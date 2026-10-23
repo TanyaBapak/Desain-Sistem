@@ -9,18 +9,24 @@ import {
   ArrowRight,
   BookOpen,
   Globe2,
-  CheckCircle2
+  CheckCircle2,
+  Edit2,
+  Trash2
 } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
 
 interface ProgramCardProps {
   program: TrainingProgram;
   onViewCurriculum: (program: TrainingProgram) => void;
+  onEditProgram?: (program: TrainingProgram) => void;
+  onDeleteProgram?: (program: TrainingProgram) => void;
 }
 
 export const ProgramCard: React.FC<ProgramCardProps> = ({
   program,
   onViewCurriculum,
+  onEditProgram,
+  onDeleteProgram,
 }) => {
   const { selectedProgramId, setSelectedProgramId, setActiveStage } = useAppStore();
 
@@ -67,9 +73,39 @@ export const ProgramCard: React.FC<ProgramCardProps> = ({
             {program.programType}
           </Badge>
 
-          <div className="flex items-center gap-1 text-xs font-bold text-slate-700 bg-slate-100 px-2.5 py-0.5 rounded-full">
-            <Globe2 className="w-3.5 h-3.5 text-blue-600" />
-            <span>{program.targetCountry}</span>
+          <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1 text-xs font-bold text-slate-700 bg-slate-100 px-2.5 py-0.5 rounded-full">
+              <Globe2 className="w-3.5 h-3.5 text-blue-600" />
+              <span>{program.targetCountry}</span>
+            </div>
+
+            {onEditProgram && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEditProgram(program);
+                }}
+                className="p-1 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition"
+                title="Edit Program Pelatihan"
+              >
+                <Edit2 className="w-3.5 h-3.5" />
+              </button>
+            )}
+
+            {onDeleteProgram && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDeleteProgram(program);
+                }}
+                className="p-1 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition"
+                title="Hapus Program"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
         </div>
 

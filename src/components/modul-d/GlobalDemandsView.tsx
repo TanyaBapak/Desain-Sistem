@@ -2,6 +2,8 @@ import React, { useState, useMemo } from 'react';
 import { useAppStore } from '../../store/useAppStore';
 import { DemandCard } from './DemandCard';
 import { DemandDetailModal } from './DemandDetailModal';
+import { DemandFormModal } from './DemandFormModal';
+import { DeleteConfirmModal } from '../ui/DeleteConfirmModal';
 import { GlobalDemand } from '../../types';
 import {
   Search,
@@ -9,7 +11,8 @@ import {
   Users,
   Briefcase,
   Calendar,
-  DollarSign
+  DollarSign,
+  Plus
 } from 'lucide-react';
 
 export const GlobalDemandsView: React.FC = () => {
@@ -21,9 +24,16 @@ export const GlobalDemandsView: React.FC = () => {
     setFilterDemandCountry,
     filterDemandSector,
     setFilterDemandSector,
+    createDemand,
+    updateDemand,
+    deleteDemand,
   } = useAppStore();
 
   const [activeModalDemand, setActiveModalDemand] = useState<GlobalDemand | null>(null);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [formMode, setFormMode] = useState<'create' | 'edit'>('create');
+  const [demandToEdit, setDemandToEdit] = useState<GlobalDemand | null>(null);
+  const [deletingDemand, setDeletingDemand] = useState<GlobalDemand | null>(null);
 
   // Compute summary metrics
   const totalSlotsRequired = demands.reduce((acc, d) => acc + d.requiredQuota, 0);
@@ -111,8 +121,8 @@ export const GlobalDemandsView: React.FC = () => {
             />
           </div>
 
-          {/* Country & Sector Filters */}
-          <div className="flex items-center gap-2">
+          {/* Country & Sector Filters & Add Button */}
+          <div className="flex flex-wrap items-center gap-2">
             <select
               value={filterDemandCountry}
               onChange={(e) => setFilterDemandCountry(e.target.value)}
@@ -134,6 +144,18 @@ export const GlobalDemandsView: React.FC = () => {
                 <option key={s} value={s}>{s}</option>
               ))}
             </select>
+
+            <button
+              onClick={() => {
+                setDemandToEdit(null);
+                setFormMode('create');
+                setIsFormOpen(true);
+              }}
+              className="px-3.5 py-2 rounded-lg text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white transition flex items-center gap-1.5 shadow-sm shrink-0"
+            >
+              <Plus className="w-4 h-4" />
+              <span>+ Input Lowongan Demand</span>
+            </button>
           </div>
         </div>
       </div>
@@ -145,6 +167,12 @@ export const GlobalDemandsView: React.FC = () => {
             key={demand.id}
             demand={demand}
             onViewDetail={setActiveModalDemand}
+            onEditDemand={(d) => {
+              setDemandToEdit(d);
+              setFormMode('edit');
+              setIsFormOpen(true);
+            }}
+            onDeleteDemand={(d) => setDeletingDemand(d)}
           />
         ))}
       </div>
@@ -154,6 +182,43 @@ export const GlobalDemandsView: React.FC = () => {
         demand={activeModalDemand}
         isOpen={!!activeModalDemand}
         onClose={() => setActiveModalDemand(null)}
+      />
+
+      {/* Demand Form Modal (Create / Edit) */}
+      <DemandFormModal
+        isOpen={isFormOpen}
+        mode={formMode}
+        initialData={demandToEdit}
+        onClose={() => {
+          setIsFormOpen(false);
+          setDemandToEdit(null);
+        }}
+        onSubmit={(data) => {
+          if (formMode === 'create') {
+            createDemand({ ...data, filledQuota: 0 });
+          } else if (demandToEdit) {
+            updateDemand(demandToEdit.id, data);
+          }
+          setIsFormOpen(false);
+          setDemandToEdit(null);
+        }}
+      />
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmModal
+        isOpen={!!deletingDemand}
+        onClose={() => setDeletingDemand(null)}
+        entityName={deletingDemand?.jobTitle || ''}
+        entityId={deletingDemand?.id || ''}
+        title="Konfirmasi Batalkan / Hapus Lowongan Demand"
+        description="Membatalkan lowongan kerja ini akan menghentikan proses matching kandidat yang sedang berjalan dan mencatat aksi ke audit log."
+        confirmText="Ya, Batalkan Lowongan"
+        onConfirm={(reason) => {
+          if (deletingDemand) {
+            deleteDemand(deletingDemand.id);
+            setDeletingDemand(null);
+          }
+        }}
       />
     </div>
   );

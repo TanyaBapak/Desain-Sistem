@@ -2,8 +2,10 @@ import React, { useState, useMemo } from 'react';
 import { useAppStore } from '../../store/useAppStore';
 import { ProgramCard } from './ProgramCard';
 import { CurriculumModal } from './CurriculumModal';
+import { ProgramFormModal } from './ProgramFormModal';
+import { DeleteConfirmModal } from '../ui/DeleteConfirmModal';
 import { TrainingProgram } from '../../types';
-import { Search, GraduationCap, Award, BookOpen, Layers } from 'lucide-react';
+import { Search, GraduationCap, Award, BookOpen, Layers, Plus } from 'lucide-react';
 
 export const TrainingProgramsView: React.FC = () => {
   const {
@@ -14,9 +16,16 @@ export const TrainingProgramsView: React.FC = () => {
     setFilterProgramType,
     filterProgramCountry,
     setFilterProgramCountry,
+    createProgram,
+    updateProgram,
+    deleteProgram,
   } = useAppStore();
 
   const [activeModalProgram, setActiveModalProgram] = useState<TrainingProgram | null>(null);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [formMode, setFormMode] = useState<'create' | 'edit'>('create');
+  const [programToEdit, setProgramToEdit] = useState<TrainingProgram | null>(null);
+  const [deletingProgram, setDeletingProgram] = useState<TrainingProgram | null>(null);
 
   const programCategories = [
     'All Programs',
@@ -69,6 +78,18 @@ export const TrainingProgramsView: React.FC = () => {
             <span className="text-[10px] text-slate-400 block font-bold uppercase">Total Program</span>
             <span className="text-xl font-extrabold text-blue-400">{programs.length} Paket</span>
           </div>
+
+          <button
+            onClick={() => {
+              setProgramToEdit(null);
+              setFormMode('create');
+              setIsFormOpen(true);
+            }}
+            className="px-4 py-2.5 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white transition flex items-center gap-1.5 shadow-md shrink-0"
+          >
+            <Plus className="w-4 h-4" />
+            <span>+ Tambah Program</span>
+          </button>
         </div>
       </div>
 
@@ -133,6 +154,12 @@ export const TrainingProgramsView: React.FC = () => {
             key={program.id}
             program={program}
             onViewCurriculum={setActiveModalProgram}
+            onEditProgram={(p) => {
+              setProgramToEdit(p);
+              setFormMode('edit');
+              setIsFormOpen(true);
+            }}
+            onDeleteProgram={(p) => setDeletingProgram(p)}
           />
         ))}
       </div>
@@ -142,6 +169,42 @@ export const TrainingProgramsView: React.FC = () => {
         program={activeModalProgram}
         isOpen={!!activeModalProgram}
         onClose={() => setActiveModalProgram(null)}
+      />
+
+      {/* Program Form Modal (Create / Edit) */}
+      <ProgramFormModal
+        isOpen={isFormOpen}
+        mode={formMode}
+        initialData={programToEdit}
+        onClose={() => {
+          setIsFormOpen(false);
+          setProgramToEdit(null);
+        }}
+        onSubmit={(data) => {
+          if (formMode === 'create') {
+            createProgram(data);
+          } else if (programToEdit) {
+            updateProgram(programToEdit.id, data);
+          }
+          setIsFormOpen(false);
+          setProgramToEdit(null);
+        }}
+      />
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmModal
+        isOpen={!!deletingProgram}
+        onClose={() => setDeletingProgram(null)}
+        entityName={deletingProgram?.title || ''}
+        entityId={deletingProgram?.id || ''}
+        title="Konfirmasi Hapus Program Pelatihan"
+        description="Menghapus program pelatihan akan membatalkan ketersediaan kurikulum untuk alokasi dan mencatat penghapusan ke audit log."
+        onConfirm={(reason) => {
+          if (deletingProgram) {
+            deleteProgram(deletingProgram.id);
+            setDeletingProgram(null);
+          }
+        }}
       />
     </div>
   );

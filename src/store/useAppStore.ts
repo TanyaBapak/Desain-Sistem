@@ -170,6 +170,26 @@ export interface AppState {
   }) => ProgramAllocationDecision;
   updateAllocationStatus: (allocationId: string, status: 'Draft' | 'Approved' | 'Finalized') => void;
   deleteAllocation: (allocationId: string) => void;
+
+  // CRUD Actions - Modul A: Calon Peserta
+  createCandidate: (candidate: Omit<CandidateParticipant, 'id'>) => CandidateParticipant;
+  updateCandidate: (id: string, updates: Partial<CandidateParticipant>) => void;
+  deleteCandidate: (id: string, reason?: string) => { success: boolean; message: string };
+
+  // CRUD Actions - Modul B: Program Pelatihan
+  createProgram: (program: Omit<TrainingProgram, 'id'>) => TrainingProgram;
+  updateProgram: (id: string, updates: Partial<TrainingProgram>) => void;
+  deleteProgram: (id: string) => { success: boolean; message: string };
+
+  // CRUD Actions - Modul C: Lembaga Vokasi
+  createProvider: (provider: Omit<VocationalProvider, 'id'>) => VocationalProvider;
+  updateProvider: (id: string, updates: Partial<VocationalProvider>) => void;
+  deleteProvider: (id: string) => { success: boolean; message: string };
+
+  // CRUD Actions - Modul D: Demand Luar Negeri
+  createDemand: (demand: Omit<GlobalDemand, 'id'>) => GlobalDemand;
+  updateDemand: (id: string, updates: Partial<GlobalDemand>) => void;
+  deleteDemand: (id: string) => { success: boolean; message: string };
 }
 
 // Initial Sample Allocation to demonstrate Dashboard
@@ -659,6 +679,408 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({
       allocations: get().allocations.filter((a) => a.allocationId !== allocationId),
     });
+  },
+
+  // ==========================================
+  // CRUD IMPLEMENTATIONS WITH AUDIT TRAIL
+  // ==========================================
+
+  // Modul A: Calon Peserta
+  createCandidate: (candidateData) => {
+    const newId = `CAND-2026-${String(get().candidates.length + 1).padStart(3, '0')}`;
+    const newCandidate: CandidateParticipant = {
+      ...candidateData,
+      id: newId,
+      verificationStatus: candidateData.verificationStatus || 'Pending Verification',
+      lifecycleStatus: candidateData.lifecycleStatus || 'SUBMITTED',
+    };
+
+    const now = new Date();
+    const timeStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')} WIB`;
+
+    const auditEntry: AuditLogEntry = {
+      id: `LOG-${Date.now()}`,
+      timestamp: timeStr,
+      actorName: get().currentUser?.name || getRoleById(get().currentRole).title,
+      actorRole: get().currentUser?.roleTitle || getRoleById(get().currentRole).badge,
+      scope: get().currentScope.name,
+      actionType: 'INPUT_DATA',
+      entity: 'Data Calon Peserta',
+      entityId: newId,
+      newValue: `${newCandidate.fullName} (${newCandidate.institutionName} - ${newCandidate.major})`,
+      justificationReason: `Pendaftaran data pencari kerja baru ke dalam sistem bursa tenaga kerja luar negeri.`,
+      ipAddress: get().currentUser?.ipAddress || '10.24.120.88',
+    };
+
+    const newApproval: DataApprovalRequest = {
+      id: `REQ-2026-${String(get().approvalRequests.length + 80).padStart(3, '0')}`,
+      entityType: 'calon_peserta',
+      entityId: newId,
+      title: `Pengusulan Data Peserta Baru: ${newCandidate.fullName}`,
+      submittedBy: get().currentUser?.name || 'Operator Disnaker',
+      submittedRole: get().currentRole,
+      scopeLabel: get().currentScope.name,
+      submittedAt: timeStr,
+      validationStatus: 'PASSED',
+      validationChecks: [
+        { ruleName: 'Format NIK 16 Digit', passed: true, message: 'Valid NIK Dukcapil' },
+        { ruleName: 'Kesesuaian Usia Produktif', passed: true, message: 'Usia 18-24 tahun' },
+        { ruleName: 'Akreditasi Sekolah Asal', passed: true, message: 'Terdaftar Dapodik' },
+      ],
+      approvalStatus: 'PENDING',
+      dataSnapshot: newCandidate,
+    };
+
+    set({
+      candidates: [newCandidate, ...get().candidates],
+      approvalRequests: [newApproval, ...get().approvalRequests],
+      auditLogs: [auditEntry, ...get().auditLogs],
+    });
+
+    return newCandidate;
+  },
+
+  updateCandidate: (id, updates) => {
+    const existing = get().candidates.find((c) => c.id === id);
+    if (!existing) return;
+
+    const updated = { ...existing, ...updates };
+    const now = new Date();
+    const timeStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')} WIB`;
+
+    const auditEntry: AuditLogEntry = {
+      id: `LOG-${Date.now()}`,
+      timestamp: timeStr,
+      actorName: get().currentUser?.name || getRoleById(get().currentRole).title,
+      actorRole: get().currentUser?.roleTitle || getRoleById(get().currentRole).badge,
+      scope: get().currentScope.name,
+      actionType: 'UPDATE_DATA',
+      entity: 'Data Calon Peserta',
+      entityId: id,
+      fieldChanged: 'biodata / kualifikasi',
+      oldValue: existing.fullName,
+      newValue: updated.fullName,
+      justificationReason: `Pemutakhiran profil, kesiapan paspor, sertifikasi, atau data kontak peserta.`,
+      ipAddress: get().currentUser?.ipAddress || '10.24.120.88',
+    };
+
+    set({
+      candidates: get().candidates.map((c) => (c.id === id ? updated : c)),
+      auditLogs: [auditEntry, ...get().auditLogs],
+    });
+  },
+
+  deleteCandidate: (id, reason) => {
+    const existing = get().candidates.find((c) => c.id === id);
+    if (!existing) return { success: false, message: 'Data peserta tidak ditemukan' };
+
+    const now = new Date();
+    const timeStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')} WIB`;
+
+    const auditEntry: AuditLogEntry = {
+      id: `LOG-${Date.now()}`,
+      timestamp: timeStr,
+      actorName: get().currentUser?.name || getRoleById(get().currentRole).title,
+      actorRole: get().currentUser?.roleTitle || getRoleById(get().currentRole).badge,
+      scope: get().currentScope.name,
+      actionType: 'HAPUS_DATA',
+      entity: 'Data Calon Peserta',
+      entityId: id,
+      oldValue: `${existing.fullName} (${existing.id})`,
+      newValue: 'DELETED / ARCHIVED',
+      justificationReason: reason || `Penghapusan data peserta karena duplikasi atau pembatalan pendaftaran.`,
+      ipAddress: get().currentUser?.ipAddress || '10.24.120.88',
+    };
+
+    set({
+      candidates: get().candidates.filter((c) => c.id !== id),
+      selectedCandidateIds: get().selectedCandidateIds.filter((cid) => cid !== id),
+      auditLogs: [auditEntry, ...get().auditLogs],
+    });
+
+    return { success: true, message: `Data calon peserta ${existing.fullName} berhasil dihapus.` };
+  },
+
+  // Modul B: Program Pelatihan
+  createProgram: (programData) => {
+    const newId = `PROG-2026-${String(get().programs.length + 1).padStart(2, '0')}`;
+    const newProgram: TrainingProgram = {
+      ...programData,
+      id: newId,
+      enrolledCount: 0,
+    };
+
+    const now = new Date();
+    const timeStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')} WIB`;
+
+    const auditEntry: AuditLogEntry = {
+      id: `LOG-${Date.now()}`,
+      timestamp: timeStr,
+      actorName: get().currentUser?.name || getRoleById(get().currentRole).title,
+      actorRole: get().currentUser?.roleTitle || getRoleById(get().currentRole).badge,
+      scope: get().currentScope.name,
+      actionType: 'INPUT_DATA',
+      entity: 'Program Pelatihan',
+      entityId: newId,
+      newValue: `${newProgram.title} (${newProgram.targetCountry} - ${newProgram.targetSector})`,
+      justificationReason: `Penetapan katalog program pelatihan vokasi baru dengan kurikulum berstandar internasional.`,
+      ipAddress: get().currentUser?.ipAddress || '10.24.120.88',
+    };
+
+    set({
+      programs: [newProgram, ...get().programs],
+      auditLogs: [auditEntry, ...get().auditLogs],
+    });
+
+    return newProgram;
+  },
+
+  updateProgram: (id, updates) => {
+    const existing = get().programs.find((p) => p.id === id);
+    if (!existing) return;
+
+    const updated = { ...existing, ...updates };
+    const now = new Date();
+    const timeStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')} WIB`;
+
+    const auditEntry: AuditLogEntry = {
+      id: `LOG-${Date.now()}`,
+      timestamp: timeStr,
+      actorName: get().currentUser?.name || getRoleById(get().currentRole).title,
+      actorRole: get().currentUser?.roleTitle || getRoleById(get().currentRole).badge,
+      scope: get().currentScope.name,
+      actionType: 'UPDATE_DATA',
+      entity: 'Program Pelatihan',
+      entityId: id,
+      fieldChanged: 'kurikulum / kuota / biaya',
+      oldValue: existing.title,
+      newValue: updated.title,
+      justificationReason: `Perubahan alokasi kuota, durasi jam pelajaran, atau penyesuaian kurikulum program.`,
+      ipAddress: get().currentUser?.ipAddress || '10.24.120.88',
+    };
+
+    set({
+      programs: get().programs.map((p) => (p.id === id ? updated : p)),
+      auditLogs: [auditEntry, ...get().auditLogs],
+    });
+  },
+
+  deleteProgram: (id) => {
+    const existing = get().programs.find((p) => p.id === id);
+    if (!existing) return { success: false, message: 'Program tidak ditemukan' };
+
+    const now = new Date();
+    const timeStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')} WIB`;
+
+    const auditEntry: AuditLogEntry = {
+      id: `LOG-${Date.now()}`,
+      timestamp: timeStr,
+      actorName: get().currentUser?.name || getRoleById(get().currentRole).title,
+      actorRole: get().currentUser?.roleTitle || getRoleById(get().currentRole).badge,
+      scope: get().currentScope.name,
+      actionType: 'HAPUS_DATA',
+      entity: 'Program Pelatihan',
+      entityId: id,
+      oldValue: existing.title,
+      newValue: 'DELETED / CLOSED',
+      justificationReason: `Penutupan atau penghapusan program pelatihan yang belum dialokasikan peserta.`,
+      ipAddress: get().currentUser?.ipAddress || '10.24.120.88',
+    };
+
+    set({
+      programs: get().programs.filter((p) => p.id !== id),
+      auditLogs: [auditEntry, ...get().auditLogs],
+    });
+
+    return { success: true, message: `Program ${existing.title} berhasil dihapus.` };
+  },
+
+  // Modul C: Lembaga Vokasi
+  createProvider: (providerData) => {
+    const newId = `VOC-2026-${String(get().providers.length + 1).padStart(3, '0')}`;
+    const newProvider: VocationalProvider = {
+      ...providerData,
+      id: newId,
+      operationalReadinessScore: providerData.operationalReadinessScore || 85,
+    };
+
+    const now = new Date();
+    const timeStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')} WIB`;
+
+    const auditEntry: AuditLogEntry = {
+      id: `LOG-${Date.now()}`,
+      timestamp: timeStr,
+      actorName: get().currentUser?.name || getRoleById(get().currentRole).title,
+      actorRole: get().currentUser?.roleTitle || getRoleById(get().currentRole).badge,
+      scope: get().currentScope.name,
+      actionType: 'INPUT_DATA',
+      entity: 'Data Lembaga Vokasi',
+      entityId: newId,
+      newValue: `${newProvider.name} (${newProvider.providerType} - ${newProvider.kabupatenKota})`,
+      justificationReason: `Pendaftaran lembaga vokasi mitra penyelenggara pelatihan vokasi luar negeri.`,
+      ipAddress: get().currentUser?.ipAddress || '10.24.120.88',
+    };
+
+    set({
+      providers: [newProvider, ...get().providers],
+      auditLogs: [auditEntry, ...get().auditLogs],
+    });
+
+    return newProvider;
+  },
+
+  updateProvider: (id, updates) => {
+    const existing = get().providers.find((p) => p.id === id);
+    if (!existing) return;
+
+    const updated = { ...existing, ...updates };
+    const now = new Date();
+    const timeStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')} WIB`;
+
+    const auditEntry: AuditLogEntry = {
+      id: `LOG-${Date.now()}`,
+      timestamp: timeStr,
+      actorName: get().currentUser?.name || getRoleById(get().currentRole).title,
+      actorRole: get().currentUser?.roleTitle || getRoleById(get().currentRole).badge,
+      scope: get().currentScope.name,
+      actionType: 'UPDATE_DATA',
+      entity: 'Data Lembaga Vokasi',
+      entityId: id,
+      fieldChanged: 'fasilitas / akreditasi / kapasitas',
+      oldValue: existing.name,
+      newValue: updated.name,
+      justificationReason: `Pembaruan data bengkel praktikum, sertifikasi e-Vokasi, atau jumlah instruktur.`,
+      ipAddress: get().currentUser?.ipAddress || '10.24.120.88',
+    };
+
+    set({
+      providers: get().providers.map((p) => (p.id === id ? updated : p)),
+      auditLogs: [auditEntry, ...get().auditLogs],
+    });
+  },
+
+  deleteProvider: (id) => {
+    const existing = get().providers.find((p) => p.id === id);
+    if (!existing) return { success: false, message: 'Lembaga tidak ditemukan' };
+
+    const now = new Date();
+    const timeStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')} WIB`;
+
+    const auditEntry: AuditLogEntry = {
+      id: `LOG-${Date.now()}`,
+      timestamp: timeStr,
+      actorName: get().currentUser?.name || getRoleById(get().currentRole).title,
+      actorRole: get().currentUser?.roleTitle || getRoleById(get().currentRole).badge,
+      scope: get().currentScope.name,
+      actionType: 'HAPUS_DATA',
+      entity: 'Data Lembaga Vokasi',
+      entityId: id,
+      oldValue: existing.name,
+      newValue: 'DEACTIVATED',
+      justificationReason: `Penonaktifan lembaga vokasi dari daftar mitra penyelenggara pelatihan.`,
+      ipAddress: get().currentUser?.ipAddress || '10.24.120.88',
+    };
+
+    set({
+      providers: get().providers.filter((p) => p.id !== id),
+      auditLogs: [auditEntry, ...get().auditLogs],
+    });
+
+    return { success: true, message: `Lembaga vokasi ${existing.name} berhasil dihapus/dinonaktifkan.` };
+  },
+
+  // Modul D: Demand Luar Negeri
+  createDemand: (demandData) => {
+    const newId = `DEM-2026-${String(get().demands.length + 1).padStart(2, '0')}`;
+    const newDemand: GlobalDemand = {
+      ...demandData,
+      id: newId,
+      filledQuota: 0,
+    };
+
+    const now = new Date();
+    const timeStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')} WIB`;
+
+    const auditEntry: AuditLogEntry = {
+      id: `LOG-${Date.now()}`,
+      timestamp: timeStr,
+      actorName: get().currentUser?.name || getRoleById(get().currentRole).title,
+      actorRole: get().currentUser?.roleTitle || getRoleById(get().currentRole).badge,
+      scope: get().currentScope.name,
+      actionType: 'INPUT_DATA',
+      entity: 'Demand Tenaga Kerja LN',
+      entityId: newId,
+      newValue: `${newDemand.jobTitle} - ${newDemand.employerName} (${newDemand.country}, Kuota: ${newDemand.requiredQuota})`,
+      justificationReason: `Input lowongan kerja luar negeri baru terverifikasi untuk diselaraskan dengan supply vokasi.`,
+      ipAddress: get().currentUser?.ipAddress || '10.24.120.88',
+    };
+
+    set({
+      demands: [newDemand, ...get().demands],
+      auditLogs: [auditEntry, ...get().auditLogs],
+    });
+
+    return newDemand;
+  },
+
+  updateDemand: (id, updates) => {
+    const existing = get().demands.find((d) => d.id === id);
+    if (!existing) return;
+
+    const updated = { ...existing, ...updates };
+    const now = new Date();
+    const timeStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')} WIB`;
+
+    const auditEntry: AuditLogEntry = {
+      id: `LOG-${Date.now()}`,
+      timestamp: timeStr,
+      actorName: get().currentUser?.name || getRoleById(get().currentRole).title,
+      actorRole: get().currentUser?.roleTitle || getRoleById(get().currentRole).badge,
+      scope: get().currentScope.name,
+      actionType: 'UPDATE_DATA',
+      entity: 'Demand Tenaga Kerja LN',
+      entityId: id,
+      fieldChanged: 'kuota / persyaratan / batas waktu',
+      oldValue: `${existing.jobTitle} (${existing.requiredQuota})`,
+      newValue: `${updated.jobTitle} (${updated.requiredQuota})`,
+      justificationReason: `Penyesuaian kuota kebutuhan pekerja migran, standar gaji, atau perpanjangan tenggat waktu rekrutmen.`,
+      ipAddress: get().currentUser?.ipAddress || '10.24.120.88',
+    };
+
+    set({
+      demands: get().demands.map((d) => (d.id === id ? updated : d)),
+      auditLogs: [auditEntry, ...get().auditLogs],
+    });
+  },
+
+  deleteDemand: (id) => {
+    const existing = get().demands.find((d) => d.id === id);
+    if (!existing) return { success: false, message: 'Demand tidak ditemukan' };
+
+    const now = new Date();
+    const timeStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')} WIB`;
+
+    const auditEntry: AuditLogEntry = {
+      id: `LOG-${Date.now()}`,
+      timestamp: timeStr,
+      actorName: get().currentUser?.name || getRoleById(get().currentRole).title,
+      actorRole: get().currentUser?.roleTitle || getRoleById(get().currentRole).badge,
+      scope: get().currentScope.name,
+      actionType: 'HAPUS_DATA',
+      entity: 'Demand Tenaga Kerja LN',
+      entityId: id,
+      oldValue: `${existing.jobTitle} - ${existing.employerName}`,
+      newValue: 'CANCELLED / REMOVED',
+      justificationReason: `Pembatalan job order atau penarikan kuota lowongan oleh pemberi kerja luar negeri.`,
+      ipAddress: get().currentUser?.ipAddress || '10.24.120.88',
+    };
+
+    set({
+      demands: get().demands.filter((d) => d.id !== id),
+      auditLogs: [auditEntry, ...get().auditLogs],
+    });
+
+    return { success: true, message: `Lowongan demand ${existing.jobTitle} berhasil dibatalkan/dihapus.` };
   },
 }));
 

@@ -2,8 +2,10 @@ import React, { useState, useMemo } from 'react';
 import { useAppStore } from '../../store/useAppStore';
 import { ProviderCard } from './ProviderCard';
 import { ProviderDetailModal } from './ProviderDetailModal';
+import { ProviderFormModal } from './ProviderFormModal';
+import { DeleteConfirmModal } from '../ui/DeleteConfirmModal';
 import { VocationalProvider } from '../../types';
-import { Search, Building2, ShieldCheck, CheckCircle2 } from 'lucide-react';
+import { Search, Building2, ShieldCheck, CheckCircle2, Plus } from 'lucide-react';
 
 export const ProvidersView: React.FC = () => {
   const {
@@ -14,9 +16,16 @@ export const ProvidersView: React.FC = () => {
     setFilterProviderType,
     filterEvokasiStatus,
     setFilterEvokasiStatus,
+    createProvider,
+    updateProvider,
+    deleteProvider,
   } = useAppStore();
 
   const [activeModalProvider, setActiveModalProvider] = useState<VocationalProvider | null>(null);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [formMode, setFormMode] = useState<'create' | 'edit'>('create');
+  const [providerToEdit, setProviderToEdit] = useState<VocationalProvider | null>(null);
+  const [deletingProvider, setDeletingProvider] = useState<VocationalProvider | null>(null);
 
   const providerTypeOptions = [
     'ALL',
@@ -88,6 +97,18 @@ export const ProvidersView: React.FC = () => {
               Feeder Kelas Aktif ↗
             </span>
           </a>
+
+          <button
+            onClick={() => {
+              setProviderToEdit(null);
+              setFormMode('create');
+              setIsFormOpen(true);
+            }}
+            className="px-4 py-2.5 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white transition flex items-center gap-1.5 shadow-md shrink-0"
+          >
+            <Plus className="w-4 h-4" />
+            <span>+ Daftarkan Lembaga</span>
+          </button>
         </div>
       </div>
 
@@ -150,6 +171,12 @@ export const ProvidersView: React.FC = () => {
             key={provider.id}
             provider={provider}
             onViewDetail={setActiveModalProvider}
+            onEditProvider={(p) => {
+              setProviderToEdit(p);
+              setFormMode('edit');
+              setIsFormOpen(true);
+            }}
+            onDeleteProvider={(p) => setDeletingProvider(p)}
           />
         ))}
       </div>
@@ -159,6 +186,43 @@ export const ProvidersView: React.FC = () => {
         provider={activeModalProvider}
         isOpen={!!activeModalProvider}
         onClose={() => setActiveModalProvider(null)}
+      />
+
+      {/* Provider Form Modal (Create / Edit) */}
+      <ProviderFormModal
+        isOpen={isFormOpen}
+        mode={formMode}
+        initialData={providerToEdit}
+        onClose={() => {
+          setIsFormOpen(false);
+          setProviderToEdit(null);
+        }}
+        onSubmit={(data) => {
+          if (formMode === 'create') {
+            createProvider(data);
+          } else if (providerToEdit) {
+            updateProvider(providerToEdit.id, data);
+          }
+          setIsFormOpen(false);
+          setProviderToEdit(null);
+        }}
+      />
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmModal
+        isOpen={!!deletingProvider}
+        onClose={() => setDeletingProvider(null)}
+        entityName={deletingProvider?.name || ''}
+        entityId={deletingProvider?.id || ''}
+        title="Konfirmasi Nonaktifkan / Hapus Lembaga Vokasi"
+        description="Menonaktifkan lembaga vokasi akan mencabut status verifikasi penyelenggara dari sistem alokasi batch pelatihan nasional."
+        confirmText="Ya, Nonaktifkan Lembaga"
+        onConfirm={(reason) => {
+          if (deletingProvider) {
+            deleteProvider(deletingProvider.id);
+            setDeletingProvider(null);
+          }
+        }}
       />
     </div>
   );

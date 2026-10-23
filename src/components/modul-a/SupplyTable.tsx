@@ -10,12 +10,17 @@ import {
   Square,
   ArrowRight,
   ShieldCheck,
-  UserCheck
+  UserCheck,
+  UserPlus,
+  Edit2,
+  Trash2
 } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
 import { CandidateParticipant } from '../../types';
 import { Badge } from '../ui/Badge';
 import { CandidateDetailModal } from './CandidateDetailModal';
+import { CandidateFormModal } from './CandidateFormModal';
+import { DeleteConfirmModal } from '../ui/DeleteConfirmModal';
 
 export const SupplyTable: React.FC = () => {
   const {
@@ -41,9 +46,16 @@ export const SupplyTable: React.FC = () => {
     currentRole,
     currentScope,
     setCurrentTab,
+    createCandidate,
+    updateCandidate,
+    deleteCandidate,
   } = useAppStore();
 
   const [activeCandidate, setActiveCandidate] = useState<CandidateParticipant | null>(null);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [formMode, setFormMode] = useState<'create' | 'edit'>('create');
+  const [candidateToEdit, setCandidateToEdit] = useState<CandidateParticipant | null>(null);
+  const [deletingCandidate, setDeletingCandidate] = useState<CandidateParticipant | null>(null);
 
   // Unique filter options extracted from candidates
   const provinsiOptions = useMemo(() => {
@@ -125,6 +137,18 @@ export const SupplyTable: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={() => {
+              setCandidateToEdit(null);
+              setFormMode('create');
+              setIsFormOpen(true);
+            }}
+            className="px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-600 text-white hover:bg-blue-500 transition shadow-xs flex items-center gap-1.5"
+          >
+            <UserPlus className="w-3.5 h-3.5" />
+            <span>+ Tambah Calon Peserta</span>
+          </button>
+
           <button
             onClick={() => setCurrentTab('approvals')}
             className="px-3 py-1.5 rounded-lg text-xs font-bold bg-white text-blue-900 hover:bg-blue-50 transition shadow-xs flex items-center gap-1.5"
@@ -492,14 +516,37 @@ export const SupplyTable: React.FC = () => {
 
                       {/* Actions */}
                       <td className="py-3 px-4 text-right">
-                        <button
-                          onClick={() => setActiveCandidate(candidate)}
-                          className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-blue-600 hover:text-white text-slate-700 transition inline-flex items-center gap-1 shadow-xs"
-                          title="Lihat Detail Profil"
-                        >
-                          <Eye className="w-3.5 h-3.5" />
-                          <span>Profil</span>
-                        </button>
+                        <div className="flex items-center justify-end gap-1.5">
+                          <button
+                            onClick={() => setActiveCandidate(candidate)}
+                            className="px-2 py-1 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-blue-600 hover:text-white text-slate-700 transition inline-flex items-center gap-1 shadow-xs"
+                            title="Lihat Detail Profil"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                            <span className="hidden sm:inline">Profil</span>
+                          </button>
+
+                          <button
+                            onClick={() => {
+                              setCandidateToEdit(candidate);
+                              setFormMode('edit');
+                              setIsFormOpen(true);
+                            }}
+                            className="px-2 py-1 rounded-lg text-xs font-semibold bg-blue-50 hover:bg-blue-600 hover:text-white text-blue-700 transition inline-flex items-center gap-1 shadow-xs"
+                            title="Ubah Data Peserta"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                            <span className="hidden sm:inline">Edit</span>
+                          </button>
+
+                          <button
+                            onClick={() => setDeletingCandidate(candidate)}
+                            className="px-2 py-1 rounded-lg text-xs font-semibold bg-rose-50 hover:bg-rose-600 hover:text-white text-rose-700 transition inline-flex items-center gap-1 shadow-xs"
+                            title="Hapus Data Peserta"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -515,6 +562,40 @@ export const SupplyTable: React.FC = () => {
         candidate={activeCandidate}
         isOpen={!!activeCandidate}
         onClose={() => setActiveCandidate(null)}
+      />
+
+      {/* Candidate Form Modal (Create / Edit) */}
+      <CandidateFormModal
+        isOpen={isFormOpen}
+        mode={formMode}
+        initialData={candidateToEdit}
+        onClose={() => {
+          setIsFormOpen(false);
+          setCandidateToEdit(null);
+        }}
+        onSubmit={(data) => {
+          if (formMode === 'create') {
+            createCandidate(data);
+          } else if (candidateToEdit) {
+            updateCandidate(candidateToEdit.id, data);
+          }
+          setIsFormOpen(false);
+          setCandidateToEdit(null);
+        }}
+      />
+
+      {/* Delete Confirmation Modal with Audit Reason */}
+      <DeleteConfirmModal
+        isOpen={!!deletingCandidate}
+        onClose={() => setDeletingCandidate(null)}
+        entityName={deletingCandidate?.fullName || ''}
+        entityId={deletingCandidate?.id || ''}
+        onConfirm={(reason) => {
+          if (deletingCandidate) {
+            deleteCandidate(deletingCandidate.id, reason);
+            setDeletingCandidate(null);
+          }
+        }}
       />
     </div>
   );

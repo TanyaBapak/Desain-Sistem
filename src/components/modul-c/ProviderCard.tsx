@@ -9,18 +9,24 @@ import {
   CheckCircle2,
   ShieldCheck,
   ArrowRight,
-  Flame
+  Flame,
+  Edit2,
+  Trash2
 } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
 
 interface ProviderCardProps {
   provider: VocationalProvider;
   onViewDetail: (provider: VocationalProvider) => void;
+  onEditProvider?: (provider: VocationalProvider) => void;
+  onDeleteProvider?: (provider: VocationalProvider) => void;
 }
 
 export const ProviderCard: React.FC<ProviderCardProps> = ({
   provider,
   onViewDetail,
+  onEditProvider,
+  onDeleteProvider,
 }) => {
   const { selectedProviderId, setSelectedProviderId, setActiveStage } = useAppStore();
 
@@ -46,21 +52,51 @@ export const ProviderCard: React.FC<ProviderCardProps> = ({
             {provider.providerType}
           </span>
 
-          <Badge
-            variant={
-              provider.evokasiVerificationStatus === 'Terverifikasi e-Vokasi'
-                ? 'success'
-                : provider.evokasiVerificationStatus === 'Proses Verifikasi'
-                ? 'warning'
-                : 'danger'
-            }
-            size="sm"
-          >
-            {provider.evokasiVerificationStatus === 'Terverifikasi e-Vokasi' && (
-              <ShieldCheck className="w-3 h-3 mr-1" />
+          <div className="flex items-center gap-1.5">
+            <Badge
+              variant={
+                provider.evokasiVerificationStatus === 'Terverifikasi e-Vokasi'
+                  ? 'success'
+                  : provider.evokasiVerificationStatus === 'Proses Verifikasi'
+                  ? 'warning'
+                  : 'danger'
+              }
+              size="sm"
+            >
+              {provider.evokasiVerificationStatus === 'Terverifikasi e-Vokasi' && (
+                <ShieldCheck className="w-3 h-3 mr-1" />
+              )}
+              {provider.evokasiVerificationStatus}
+            </Badge>
+
+            {onEditProvider && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEditProvider(provider);
+                }}
+                className="p-1 rounded-lg text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition"
+                title="Edit Lembaga Vokasi"
+              >
+                <Edit2 className="w-3.5 h-3.5" />
+              </button>
             )}
-            {provider.evokasiVerificationStatus}
-          </Badge>
+
+            {onDeleteProvider && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDeleteProvider(provider);
+                }}
+                className="p-1 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition"
+                title="Hapus / Nonaktifkan Lembaga"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
         </div>
 
         <h3 className="font-bold text-slate-900 text-base leading-snug">

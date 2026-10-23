@@ -9,18 +9,24 @@ import {
   Languages,
   Users,
   Cpu,
-  ArrowRight
+  ArrowRight,
+  Edit2,
+  Trash2
 } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
 
 interface DemandCardProps {
   demand: GlobalDemand;
   onViewDetail: (demand: GlobalDemand) => void;
+  onEditDemand?: (demand: GlobalDemand) => void;
+  onDeleteDemand?: (demand: GlobalDemand) => void;
 }
 
 export const DemandCard: React.FC<DemandCardProps> = ({
   demand,
   onViewDetail,
+  onEditDemand,
+  onDeleteDemand,
 }) => {
   const { selectedDemandId, setSelectedDemandId, setActiveStage } = useAppStore();
 
@@ -48,9 +54,39 @@ export const DemandCard: React.FC<DemandCardProps> = ({
             {demand.sector}
           </span>
 
-          <div className="flex items-center gap-1 text-xs font-bold text-slate-800 bg-slate-100 px-2.5 py-0.5 rounded-full">
-            <Globe2 className="w-3.5 h-3.5 text-blue-600" />
-            <span>{demand.country}</span>
+          <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1 text-xs font-bold text-slate-800 bg-slate-100 px-2.5 py-0.5 rounded-full">
+              <Globe2 className="w-3.5 h-3.5 text-blue-600" />
+              <span>{demand.country}</span>
+            </div>
+
+            {onEditDemand && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEditDemand(demand);
+                }}
+                className="p-1 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition"
+                title="Edit Lowongan Demand LN"
+              >
+                <Edit2 className="w-3.5 h-3.5" />
+              </button>
+            )}
+
+            {onDeleteDemand && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDeleteDemand(demand);
+                }}
+                className="p-1 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition"
+                title="Hapus / Batalkan Lowongan"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
         </div>
 
