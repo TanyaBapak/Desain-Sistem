@@ -92,6 +92,13 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({ currentTab, onTabChange })
     activeRoleObj.accessibleModules.includes(item.id)
   );
 
+  // Safeguard: Automatically navigate to role default tab if current tab is not accessible
+  React.useEffect(() => {
+    if (activeRoleObj && !activeRoleObj.accessibleModules.includes(currentTab)) {
+      onTabChange(activeRoleObj.defaultTab || 'overview');
+    }
+  }, [currentRole, currentTab, activeRoleObj, onTabChange]);
+
   return (
     <>
       <header className="sticky top-0 z-40 bg-slate-900 border-b border-slate-800 text-white shadow-xl">

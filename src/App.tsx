@@ -15,7 +15,7 @@ import { AuditLogView } from './components/audit/AuditLogView';
 import { RbacMatrixView } from './components/rbac/RbacMatrixView';
 
 export const App: React.FC = () => {
-  const { viewMode, isAuthenticated, currentTab, setCurrentTab } = useAppStore();
+  const { viewMode, isAuthenticated, currentTab, setCurrentTab, currentUser, currentScope } = useAppStore();
 
   // 1. If currently on Landing Page mode, render the public portal
   if (viewMode === 'landing') {
@@ -32,6 +32,31 @@ export const App: React.FC = () => {
     <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900 selection:bg-red-600 selection:text-white font-sans">
       {/* Top Application Header Navigation (Unified with User Profile & Logout) */}
       <HeaderNav currentTab={currentTab} onTabChange={setCurrentTab} />
+
+      {/* Active SSO Session Role Context Ribbon */}
+      {currentUser && (
+        <div className="bg-slate-900 border-b border-slate-800 text-white px-4 sm:px-6 lg:px-8 py-2 text-xs">
+          <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+              <span className="text-slate-300">
+                Sesi SSO Aktif: <strong className="text-white font-bold">{currentUser.name}</strong> ({currentUser.roleTitle})
+              </span>
+              <span className="hidden sm:inline text-slate-600">•</span>
+              <span className="text-amber-300 font-semibold text-[11px] block sm:inline">
+                Scope: {currentScope.name}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0 text-[11px]">
+              <span className="text-slate-400">Dashboard Role Terbuka:</span>
+              <span className="px-2 py-0.5 rounded font-extrabold bg-blue-900/60 text-blue-300 border border-blue-700/60 uppercase">
+                {currentTab}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Main Content Workspace */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
