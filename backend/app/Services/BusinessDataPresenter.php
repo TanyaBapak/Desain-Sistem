@@ -72,6 +72,7 @@ class BusinessDataPresenter
                     'sourceType' => match ($row->source_type) {
                         'SMK', 'BLK', 'LPK' => 'Lembaga Vokasi',
                         'Mandiri' => 'SMK / Pendidikan Vokasi',
+                        'Gardata' => 'Gardata / SIPPMI',
                         default => 'Disnaker Pemda',
                     },
                     'major' => $row->major,

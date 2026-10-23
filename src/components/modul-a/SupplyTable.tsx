@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { router } from '@inertiajs/react';
 import {
   Search,
   Filter,
@@ -13,8 +14,10 @@ import {
   UserCheck,
   UserPlus,
   Edit2,
-  Trash2
+  Trash2,
+  RefreshCw
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { useAppStore } from '../../store/useAppStore';
 import { CandidateParticipant } from '../../types';
 import { Badge } from '../ui/Badge';
@@ -53,6 +56,7 @@ export const SupplyTable: React.FC = () => {
   const [formMode, setFormMode] = useState<'create' | 'edit'>('create');
   const [candidateToEdit, setCandidateToEdit] = useState<CandidateParticipant | null>(null);
   const [deletingCandidate, setDeletingCandidate] = useState<CandidateParticipant | null>(null);
+  const [isGardataSyncing, setIsGardataSyncing] = useState(false);
 
   // Unique filter options extracted from candidates
   const provinsiOptions = useMemo(() => {
@@ -124,6 +128,17 @@ export const SupplyTable: React.FC = () => {
   const canVerifyCandidates = ['taskforce', 'verifikator'].includes(currentRole);
   const canMatchCandidates = ['taskforce', 'matching', 'verifikator'].includes(currentRole);
   const canArchiveCandidates = ['taskforce', 'superadmin'].includes(currentRole);
+  const canSyncGardata = ['taskforce', 'superadmin'].includes(currentRole);
+
+  const syncGardata = () => {
+    router.post('/integrations/gardata/sync', {}, {
+      preserveScroll: true,
+      onStart: () => setIsGardataSyncing(true),
+      onSuccess: () => toast.success('Sinkronisasi Gardata telah dijadwalkan.'),
+      onError: () => toast.error('Sinkronisasi Gardata gagal dimulai. Periksa konfigurasi antrean.'),
+      onFinish: () => setIsGardataSyncing(false),
+    });
+  };
 
   return (
     <div className="space-y-6">
@@ -151,6 +166,15 @@ export const SupplyTable: React.FC = () => {
         </div>
 
         <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+          {canSyncGardata && <button
+            type="button"
+            onClick={syncGardata}
+            disabled={isGardataSyncing}
+            className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-border bg-background px-3 py-2 text-sm font-semibold text-foreground shadow-xs transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${isGardataSyncing ? 'animate-spin' : ''}`} aria-hidden="true" />
+            <span>{isGardataSyncing ? 'Menjadwalkan…' : 'Sinkronisasi Gardata'}</span>
+          </button>}
           {canManageCandidates && <button
             onClick={() => {
               setCandidateToEdit(null);

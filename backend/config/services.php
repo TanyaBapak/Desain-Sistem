@@ -40,4 +40,11 @@ return [
         'sync_page_size' => 36,
     ],
 
+    'gardata' => [
+        'base_url' => env('GARDATA_BASE_URL', 'https://gardata.sippmi.com'),
+        'api_key' => env('GARDATA_API_KEY'),
+        'sync_page_size' => (int) env('GARDATA_SYNC_PAGE_SIZE', 50),
+        'max_pages' => (int) env('GARDATA_SYNC_MAX_PAGES', 1000),
+    ],
+
 ];
