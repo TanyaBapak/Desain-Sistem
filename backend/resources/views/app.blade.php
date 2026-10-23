@@ -9,7 +9,7 @@
         @vite('resources/js/app.tsx')
         @inertiaHead
     </head>
-    <body>
+    <body class="min-h-screen overflow-x-hidden bg-background text-foreground">
         @inertia
     </body>
 </html>

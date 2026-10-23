@@ -27,9 +27,14 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
   };
 
   return (
-    <div className="min-h-screen overflow-x-clip bg-muted/30 font-sans text-foreground">
+    <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-muted/30 font-sans text-foreground">
       <TopNav currentTab={currentTab} onOpenSidebar={() => setMobileSidebarOpen(true)} />
-      <div className="flex min-h-[calc(100vh-4rem)]">
+      <div
+        className={cn(
+          "min-h-[calc(100vh-4rem)] w-full max-w-full transition-[padding] duration-300",
+          collapsed ? "lg:pl-16" : "lg:pl-72"
+        )}
+      >
         {mobileSidebarOpen && (
           <button
             type="button"
@@ -47,12 +52,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
           mobileOpen={mobileSidebarOpen}
           onMobileClose={() => setMobileSidebarOpen(false)}
         />
-        <main
-          className={cn(
-            "min-h-[calc(100vh-4rem)] min-w-0 flex-1 px-4 py-5 transition-[margin] duration-300 sm:px-6 lg:px-8",
-            collapsed ? "lg:ml-16" : "lg:ml-72"
-          )}
-        >
+        <main className="min-h-[calc(100vh-4rem)] w-full min-w-0 px-4 py-5 sm:px-6 lg:px-8">
           <div className="mx-auto w-full min-w-0 max-w-screen-2xl">{children}</div>
         </main>
       </div>

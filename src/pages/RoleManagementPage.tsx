@@ -45,7 +45,7 @@ export const RoleManagementPage: React.FC = () => {
         <div>
           <h1 className="text-2xl font-bold text-foreground">Manajemen Role & Akun Stakeholder</h1>
           <p className="text-sm text-muted-foreground">
-            Kelola 8 peran stakeholder dalam ekosistem SMK Go Global danaturasi hak akses modul.
+            Kelola 8 peran stakeholder dalam ekosistem SMK Go Global dan konfigurasi hak akses modul.
           </p>
         </div>
         <Button onClick={() => {}} variant="outline" size="sm" disabled>
@@ -53,62 +53,60 @@ export const RoleManagementPage: React.FC = () => {
         </Button>
       </div>
 
-      <Card>
+      <Card className="min-w-0">
         <CardHeader>
           <CardTitle>Daftar 8 Peran Stakeholder</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-20">No</TableHead>
-                  <TableHead>Peran / Stakeholder</TableHead>
-                  <TableHead className="text-left">Tanggung Jawab</TableHead>
-                  <TableHead className="w-40">Scope / Lingkup</TableHead>
-                  <TableHead className="w-32">Grup</TableHead>
-                  <TableHead className="w-24">Aksi</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {STAKEHOLDER_ROLES.map((role, idx) => (
-                  <TableRow key={role.id}>
-                    <TableCell className="font-mono text-muted-foreground">{idx + 1}</TableCell>
-                    <TableCell className="font-medium">
-                      <div className="flex items-center gap-2">
-                        <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0`} style={{ backgroundColor: role.color.replace("bg-", "bg-").replace("500", "500") }}>
-                          {role.name.charAt(0)}
-                        </div>
-                        <span>{role.name}</span>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-16">No</TableHead>
+                <TableHead className="min-w-[180px]">Peran / Stakeholder</TableHead>
+                <TableHead className="min-w-[220px] text-left">Tanggung Jawab</TableHead>
+                <TableHead className="w-36 min-w-[130px]">Scope / Lingkup</TableHead>
+                <TableHead className="w-32 min-w-[110px]">Grup</TableHead>
+                <TableHead className="w-28 text-right">Aksi</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {STAKEHOLDER_ROLES.map((role, idx) => (
+                <TableRow key={role.id}>
+                  <TableCell className="font-mono text-muted-foreground">{idx + 1}</TableCell>
+                  <TableCell className="font-medium">
+                    <div className="flex items-center gap-2">
+                      <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0`} style={{ backgroundColor: role.color.replace("bg-", "bg-").replace("500", "500") }}>
+                        {role.name.charAt(0)}
                       </div>
-                    </TableCell>
-                    <TableCell className="text-sm">{role.responsibility}</TableCell>
-                    <TableCell className="text-sm">
-                      <Badge variant="outline" className={SCOPE_COLORS[role.scope as keyof typeof SCOPE_COLORS] || "bg-slate-100 text-slate-700"}>
-                        {role.scope}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-sm text-slate-600">{role.group}</TableCell>
-                    <TableCell>
-                      <Button
-                        size="sm"
-                        variant={currentRole === role.id ? "default" : "outline"}
-                        disabled
-                        title="Pengelolaan akun dilakukan melalui backend."
-                      >
-                        {currentRole === role.id ? "Aktif" : "Dikelola admin"}
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+                      <span className="truncate">{role.name}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-sm">{role.responsibility}</TableCell>
+                  <TableCell className="text-sm">
+                    <Badge variant="outline" className={SCOPE_COLORS[role.scope as keyof typeof SCOPE_COLORS] || "bg-slate-100 text-slate-700"}>
+                      {role.scope}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-sm text-slate-600">{role.group}</TableCell>
+                  <TableCell className="text-right">
+                    <Button
+                      size="sm"
+                      variant={currentRole === role.id ? "default" : "outline"}
+                      disabled
+                      title="Pengelolaan akun dilakukan melalui backend."
+                    >
+                      {currentRole === role.id ? "Aktif" : "Dikelola admin"}
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
 
       {/* Role detail cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {STAKEHOLDER_ROLES.map((role) => (
           <RoleCard key={role.id} role={role} isActive={currentRole === role.id} />
         ))}
