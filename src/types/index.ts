@@ -25,6 +25,7 @@ export interface CandidateParticipant {
   preferredJobRole: string[]; // e.g. ["Welder", "Caregiver"]
   readinessStatus: ReadinessStatus;
   verificationStatus: VerificationStatus;
+  lifecycleStatus?: DataLifecycleStatus;
 }
 
 // ==========================================
@@ -187,6 +188,81 @@ export interface RoleInfo {
   accessibleModules: string[];
   defaultTab: string;
   permissions: Record<MenuModuleId, MenuPermission>;
+  crudMatrix: CrudMatrixByRole;
+  permissionTokens: PermissionToken[];
+}
+
+// ==========================================
+// CRUD MATRIX & DATA LIFECYCLE (BLUEPRINT BAGIAN 1 - 4)
+// ==========================================
+
+export type DataLifecycleStatus = 'DRAFT' | 'SUBMITTED' | 'APPROVED' | 'RETURNED';
+
+export type PermissionToken =
+  // Peserta
+  | 'participant.create'
+  | 'participant.read'
+  | 'participant.update'
+  | 'participant.delete'
+  | 'participant.verify'
+  // Pelatihan
+  | 'training.create'
+  | 'training.read'
+  | 'training.update'
+  | 'training.delete'
+  | 'training.approve'
+  // Lembaga Vokasi
+  | 'provider.create'
+  | 'provider.read'
+  | 'provider.update'
+  | 'provider.delete'
+  | 'provider.verify'
+  // Demand LN
+  | 'demand.create'
+  | 'demand.read'
+  | 'demand.update'
+  | 'demand.delete'
+  | 'demand.verify'
+  // Matching & Penempatan
+  | 'matching.read'
+  | 'matching.assign'
+  | 'matching.update'
+  | 'matching.cancel'
+  | 'placement.read'
+  | 'placement.update'
+  | 'placement.verify'
+  // Manajemen & Audit
+  | 'user.manage'
+  | 'role.manage'
+  | 'audit.read'
+  | 'report.export';
+
+export interface CrudCapability {
+  canCreate: boolean;
+  canRead: boolean;
+  canUpdate: boolean;
+  canDelete: boolean;
+  canVerify: boolean;
+  isScoped: boolean; // (*) Pembatasan wilayah, lembaga, atau program
+  displayCode: string; // e.g. "C/R/U", "R/V", "R/U*", "R"
+  operationalRule: string;
+}
+
+export interface CrudMatrixByRole {
+  peserta: CrudCapability;
+  pelatihan: CrudCapability;
+  lembaga: CrudCapability;
+  demand: CrudCapability;
+  matching: CrudCapability;
+}
+
+export interface OperationalCrudRule {
+  moduleId: string;
+  moduleName: string;
+  createRole: string;
+  updateRole: string;
+  deleteRole: string;
+  lifecycleNote: string;
 }
 
 // 13 Full Stakeholder Roles blueprint mapping
@@ -197,6 +273,13 @@ export interface StakeholderRole13 {
   coreGroup: UserRole;
   primaryAccess: string;
   scopeType: ScopeLevel;
+  crud: {
+    peserta: string;
+    pelatihan: string;
+    lembaga: string;
+    demand: string;
+    matching: string;
+  };
 }
 
 // ==========================================

@@ -64,6 +64,19 @@ export const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({
 
           <div className="flex flex-col items-end gap-2 w-full sm:w-auto">
             <div className="flex items-center gap-2">
+              <span className="text-xs text-slate-500">Siklus Data:</span>
+              <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold border ${
+                candidate.verificationStatus === 'Verified'
+                  ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                  : candidate.verificationStatus === 'Pending Verification'
+                  ? 'bg-amber-100 text-amber-800 border-amber-300'
+                  : 'bg-slate-100 text-slate-700 border-slate-300'
+              }`}>
+                {candidate.verificationStatus === 'Verified' ? 'APPROVED' : candidate.verificationStatus === 'Pending Verification' ? 'SUBMITTED' : 'DRAFT'}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2">
               <span className="text-xs text-slate-500">Status Verifikasi:</span>
               <Badge
                 variant={
