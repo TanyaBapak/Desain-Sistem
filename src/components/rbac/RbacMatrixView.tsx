@@ -28,11 +28,11 @@ import {
   ArrowRight
 } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
-import { mockRoles, stakeholderRoles13, operationalCrudRules, getRoleById } from '../../data';
+import { mockRoles, stakeholderRoles13, operationalCrudRules, getRoleById, mockUsers } from '../../data';
 import { UserRole, MenuModuleId, AccessLevel, PermissionToken } from '../../types';
 
 export const RbacMatrixView: React.FC = () => {
-  const { currentRole, currentScope, loginAsRole, setCurrentScope } = useAppStore();
+  const { currentRole, currentScope, loginWithAccount, setCurrentScope } = useAppStore();
   const [selectedRoleForDetail, setSelectedRoleForDetail] = useState<UserRole>(currentRole);
   const [viewTab, setViewTab] = useState<'crud' | 'rules' | 'lifecycle' | 'tokens' | 'matrix' | 'roles13'>('crud');
 
@@ -767,45 +767,136 @@ export const RbacMatrixView: React.FC = () => {
       {viewTab === 'roles13' && (
         <div className="space-y-4">
           <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
-            <div className="p-4 sm:p-5 border-b border-slate-100 bg-slate-50/60 flex items-center justify-between">
+            <div className="p-4 sm:p-5 border-b border-slate-100 bg-slate-50/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
+                <span className="text-xs font-bold uppercase tracking-wider text-red-600 block mb-0.5">
+                  STANDAR KEAMANAN & AUTENTIKASI SISTEM TERPADU
+                </span>
                 <h3 className="text-base font-extrabold text-slate-900">
-                  Daftar 13 Stakeholder SGG Command Center (Blueprint Lengkap)
+                  Daftar 13 Role yang Wajib Memiliki Login & Logout (SSO Terpadu)
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Pemetaan kewenangan lengkap dan pengelompokan ke dalam 8 core group MVP.
+                  Seluruh 13 kelompok role menggunakan 1 halaman login terpadu. Perbedaan terletak pada hak akses, tampilan dashboard, dan batas wilayah (scope) data.
                 </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold">
+                  ✓ 13/13 Role Login & Logout Wajib
+                </span>
               </div>
             </div>
 
-            <div className="divide-y divide-slate-100">
-              {stakeholderRoles13.map((stk) => (
-                <div key={stk.no} className="p-4 hover:bg-slate-50/80 transition flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-                  <div className="flex items-start sm:items-center gap-3">
-                    <span className="w-7 h-7 rounded-lg bg-slate-100 text-slate-700 font-extrabold flex items-center justify-center shrink-0">
-                      {stk.no}
-                    </span>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h4 className="font-extrabold text-slate-900 text-sm">{stk.name}</h4>
-                        <span className="px-2 py-0.2 rounded text-[10px] font-bold bg-slate-100 text-slate-700 uppercase">
-                          Scope: {stk.scopeType}
-                        </span>
-                      </div>
-                      <p className="text-slate-600 mt-1 leading-relaxed">
-                        {stk.primaryAccess}
-                      </p>
-                    </div>
-                  </div>
+            {/* Official Table from Section 1 */}
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs text-left border-collapse">
+                <thead>
+                  <tr className="bg-slate-100/90 border-b border-slate-200 text-slate-700">
+                    <th className="py-3 px-3 text-center font-bold w-12">No.</th>
+                    <th className="py-3 px-4 font-bold">Role Pemangku Kepentingan</th>
+                    <th className="py-3 px-3 text-center font-bold">Login</th>
+                    <th className="py-3 px-3 text-center font-bold">Logout</th>
+                    <th className="py-3 px-4 font-bold">Halaman Awal Setelah Login</th>
+                    <th className="py-3 px-4 font-bold text-center">Aksi Pengujian Sesi</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {mockUsers.map((user) => {
+                    const isCurrentActive = currentRole === user.role && currentScope.name === user.scope.name;
+                    return (
+                      <tr key={user.id} className="hover:bg-slate-50/80 transition">
+                        <td className="py-3 px-3 text-center font-bold text-slate-500">
+                          {user.no}
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="flex items-center gap-2">
+                            <span className="font-extrabold text-slate-900">{user.roleTitle}</span>
+                            {user.mfaEnabled && (
+                              <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-purple-50 text-purple-700 border border-purple-200">
+                                MFA
+                              </span>
+                            )}
+                          </div>
+                          <span className="text-[11px] text-slate-500 block">{user.organization}</span>
+                          <span className="text-[10px] text-amber-700 font-mono block mt-0.5">
+                            Scope: {user.scope.name}
+                          </span>
+                        </td>
+                        <td className="py-3 px-3 text-center">
+                          <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[10px]">
+                            Wajib
+                          </span>
+                        </td>
+                        <td className="py-3 px-3 text-center">
+                          <span className="px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 font-bold text-[10px]">
+                            Wajib
+                          </span>
+                        </td>
+                        <td className="py-3 px-4">
+                          <span className="font-bold text-blue-800 bg-blue-50 px-2.5 py-1 rounded-md border border-blue-200 inline-block">
+                            {user.landingTabTitle}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-center">
+                          <button
+                            onClick={() => loginWithAccount(user)}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 mx-auto ${
+                              isCurrentActive
+                                ? 'bg-emerald-600 text-white shadow-xs'
+                                : 'bg-slate-900 hover:bg-red-600 text-white'
+                            }`}
+                          >
+                            {isCurrentActive ? (
+                              <>
+                                <Check className="w-3.5 h-3.5" />
+                                <span>Sedang Aktif</span>
+                              </>
+                            ) : (
+                              <>
+                                <Lock className="w-3.5 h-3.5" />
+                                <span>Simulasikan Login</span>
+                              </>
+                            )}
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
 
-                  <div className="shrink-0 flex items-center gap-2 sm:self-center">
-                    <span className="text-[10px] text-slate-400">Grup MVP:</span>
-                    <span className="px-2.5 py-1 rounded-md text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
-                      {stk.coreGroup}
-                    </span>
-                  </div>
+            {/* Section 2 & 5 Security Blueprint Information */}
+            <div className="p-5 bg-slate-50 border-t border-slate-200 grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+              <div className="p-4 rounded-xl bg-white border border-slate-200 space-y-2">
+                <div className="flex items-center gap-2 text-slate-900 font-bold">
+                  <ShieldCheck className="w-4 h-4 text-blue-600" />
+                  <span>1. Login Terpadu & MFA</span>
                 </div>
-              ))}
+                <p className="text-slate-600 text-[11px] leading-relaxed">
+                  Semua stakeholder masuk melalui 1 pintu SSO terpusat. Akun tingkat tinggi (Super Admin, Menteri, Task Force, Verifikator, Auditor) diproteksi dengan Multi-Factor Authentication.
+                </p>
+              </div>
+
+              <div className="p-4 rounded-xl bg-white border border-slate-200 space-y-2">
+                <div className="flex items-center gap-2 text-slate-900 font-bold">
+                  <Layers className="w-4 h-4 text-emerald-600" />
+                  <span>2. Role Engine & Data Scope</span>
+                </div>
+                <p className="text-slate-600 text-[11px] leading-relaxed">
+                  Setelah login, sistem otomatis membaca izin CRUD dan batas yurisdiksi (Nasional, Provinsi, Kab/Kota, Lembaga, atau Mitra LN), bukan sekadar nama jabatan.
+                </p>
+              </div>
+
+              <div className="p-4 rounded-xl bg-white border border-slate-200 space-y-2">
+                <div className="flex items-center gap-2 text-slate-900 font-bold">
+                  <Clock className="w-4 h-4 text-rose-600" />
+                  <span>3. Sesi Terlindungi & Logout</span>
+                </div>
+                <p className="text-slate-600 text-[11px] leading-relaxed">
+                  Sesi berakhir otomatis saat inaktif. Saat tombol Logout ditekan, token dihancurkan dan penekanan tombol Back tidak membuka data internal tanpa autentikasi ulang.
+                </p>
+              </div>
             </div>
           </div>
         </div>

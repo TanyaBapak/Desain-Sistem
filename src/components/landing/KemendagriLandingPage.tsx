@@ -38,6 +38,7 @@ export const KemendagriLandingPage: React.FC = () => {
     demands,
     allocations,
     loginAsRole,
+    openLoginPage,
     setViewMode,
     setCurrentTab
   } = useAppStore();
@@ -156,24 +157,15 @@ export const KemendagriLandingPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Quick Action Button to Open Roles Portal */}
+          {/* Quick Action Button: Login Command Center */}
           <div className="flex items-center gap-3">
             <button
-              onClick={() => setRoleModalOpen(true)}
-              className="hidden sm:flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold bg-slate-900 hover:bg-slate-800 text-white shadow-sm transition"
-            >
-              <Lock className="w-3.5 h-3.5 text-blue-400" />
-              <span>Pilih Role Pengguna</span>
-            </button>
-
-            <button
-              onClick={() => {
-                loginAsRole('admin');
-              }}
+              onClick={() => openLoginPage()}
               className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold bg-red-600 hover:bg-red-700 text-white shadow-md shadow-red-600/20 transition"
+              title="Buka Halaman Login Terpadu Seluruh Stakeholder"
             >
-              <Workflow className="w-4 h-4" />
-              <span>Masuk Aplikasi Internal</span>
+              <Lock className="w-4 h-4" />
+              <span>Login Command Center</span>
             </button>
           </div>
         </div>
@@ -269,23 +261,20 @@ export const KemendagriLandingPage: React.FC = () => {
             {/* Quick Action Button Group */}
             <div className="flex flex-wrap items-center gap-3 pt-3">
               <button
-                onClick={() => setRoleModalOpen(true)}
+                onClick={() => openLoginPage()}
                 className="px-6 py-3.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-extrabold text-xs uppercase tracking-wider shadow-lg shadow-red-600/30 transition flex items-center gap-2"
               >
                 <Lock className="w-4 h-4" />
-                <span>Pilih Peran Pengguna</span>
+                <span>Login Command Center</span>
                 <ChevronRight className="w-4 h-4" />
               </button>
 
               <button
-                onClick={() => {
-                  loginAsRole('admin');
-                  setCurrentTab('overview');
-                }}
+                onClick={() => openLoginPage()}
                 className="px-6 py-3.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs uppercase tracking-wider shadow-lg shadow-blue-600/20 transition flex items-center gap-2"
               >
                 <Compass className="w-4 h-4" />
-                <span>Buka Command Center (SGG-CC)</span>
+                <span>Masuk Sistem Terpadu (SSO)</span>
               </button>
             </div>
           </div>
@@ -443,13 +432,10 @@ export const KemendagriLandingPage: React.FC = () => {
             </div>
 
             <button
-              onClick={() => {
-                loginAsRole('admin');
-                setCurrentTab('overview');
-              }}
+              onClick={() => openLoginPage()}
               className="px-4 py-2 rounded-xl text-xs font-bold bg-slate-900 text-white hover:bg-slate-800 transition flex items-center gap-1.5"
             >
-              <span>Buka Seluruh Modul</span>
+              <span>Buka Seluruh Modul (Login)</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>
@@ -457,10 +443,7 @@ export const KemendagriLandingPage: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-5">
             {/* Modul A */}
             <div
-              onClick={() => {
-                loginAsRole('admin');
-                setCurrentTab('modul-a');
-              }}
+              onClick={() => openLoginPage()}
               className="bg-white p-5 rounded-2xl border border-slate-200 hover:border-blue-500 shadow-xs hover:shadow-md transition cursor-pointer flex flex-col justify-between group"
             >
               <div>
@@ -485,10 +468,7 @@ export const KemendagriLandingPage: React.FC = () => {
 
             {/* Modul B */}
             <div
-              onClick={() => {
-                loginAsRole('admin');
-                setCurrentTab('modul-b');
-              }}
+              onClick={() => openLoginPage()}
               className="bg-white p-5 rounded-2xl border border-slate-200 hover:border-indigo-500 shadow-xs hover:shadow-md transition cursor-pointer flex flex-col justify-between group"
             >
               <div>
@@ -513,10 +493,7 @@ export const KemendagriLandingPage: React.FC = () => {
 
             {/* Modul C */}
             <div
-              onClick={() => {
-                loginAsRole('admin');
-                setCurrentTab('modul-c');
-              }}
+              onClick={() => openLoginPage()}
               className="bg-white p-5 rounded-2xl border border-slate-200 hover:border-emerald-500 shadow-xs hover:shadow-md transition cursor-pointer flex flex-col justify-between group"
             >
               <div>
@@ -541,10 +518,7 @@ export const KemendagriLandingPage: React.FC = () => {
 
             {/* Modul D */}
             <div
-              onClick={() => {
-                loginAsRole('admin');
-                setCurrentTab('modul-d');
-              }}
+              onClick={() => openLoginPage()}
               className="bg-white p-5 rounded-2xl border border-slate-200 hover:border-amber-500 shadow-xs hover:shadow-md transition cursor-pointer flex flex-col justify-between group"
             >
               <div>
@@ -569,10 +543,7 @@ export const KemendagriLandingPage: React.FC = () => {
 
             {/* Modul E */}
             <div
-              onClick={() => {
-                loginAsRole('admin');
-                setCurrentTab('overview');
-              }}
+              onClick={() => openLoginPage()}
               className="bg-gradient-to-br from-blue-900 to-slate-900 p-5 rounded-2xl border border-blue-700 hover:border-blue-400 shadow-md hover:shadow-xl transition cursor-pointer flex flex-col justify-between group text-white"
             >
               <div>
@@ -727,14 +698,11 @@ export const KemendagriLandingPage: React.FC = () => {
             </div>
 
             <button
-              onClick={() => {
-                loginAsRole('admin');
-                setCurrentTab('overview');
-              }}
+              onClick={() => openLoginPage()}
               className="shrink-0 px-6 py-3.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-extrabold text-xs uppercase tracking-wider shadow-lg shadow-red-600/30 transition flex items-center gap-2"
             >
               <Compass className="w-4 h-4" />
-              <span>Buka SGG Command Center</span>
+              <span>Buka SGG Command Center (Login)</span>
             </button>
           </div>
         </div>

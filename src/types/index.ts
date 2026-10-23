@@ -134,7 +134,26 @@ export type UserRole =
   | 'employer'       // alias for demand
   | 'kandidat';      // alias for alumni
 
-export type ViewMode = 'landing' | 'app';
+export type ViewMode = 'landing' | 'login' | 'app';
+
+export interface AuthUser {
+  id: string;
+  name: string;
+  email: string;
+  role: UserRole;
+  roleTitle: string;
+  badge?: string;
+  organization: string;
+  scope: UserScope;
+  nip?: string;
+  mfaEnabled: boolean;
+  mfaVerified: boolean;
+  loginTimestamp: string;
+  ipAddress: string;
+  avatarInitials?: string;
+  authorizedScopes?: string[];
+  sessionExpiresAt?: string;
+}
 
 export type AccessLevel = 'full' | 'limited' | 'none'; // ● Akses Utama, ◐ Akses Terbatas, — Tidak Ada Akses
 
@@ -327,7 +346,9 @@ export type AuditActionType =
   | 'UPDATE_DATA'
   | 'HAPUS_DATA'
   | 'ALOKASI_MATCHING'
-  | 'AKUN_HAK_AKSES';
+  | 'AKUN_HAK_AKSES'
+  | 'LOGIN'
+  | 'LOGOUT';
 
 export interface AuditLogEntry {
   id: string; // e.g. "LOG-2026-1049"

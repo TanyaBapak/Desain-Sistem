@@ -18,6 +18,7 @@ import {
   DataApprovalRequest,
   AuditLogEntry,
   MenuModuleId,
+  AuthUser,
 } from '../types';
 import {
   mockSupply,
@@ -30,11 +31,16 @@ import {
   mockApprovals,
   mockAuditLogs,
   getRoleById,
+  mockUsers,
+  UserAccount,
 } from '../data';
 
 export interface AppState {
   // Navigation & Role Modes (Kemendagri Portal Concept)
-  viewMode: ViewMode; // 'landing' | 'app'
+  viewMode: ViewMode; // 'landing' | 'login' | 'app'
+  isAuthenticated: boolean;
+  currentUser: AuthUser | null;
+  sessionTimeRemaining: number;
   currentRole: UserRole; // 'superadmin' | 'pimpinan' | 'taskforce' | 'disnaker' | 'vokasi' | 'demand' | 'verifikator' | 'matching'
   currentScope: UserScope; // 3-Layer: Scope (Nasional, Provinsi, Kab/Kota, Lembaga, Demand)
   currentTab: string; // 'overview' | 'modul-a' | 'modul-b' | 'modul-c' | 'modul-d' | 'matching' | 'approvals' | 'audit' | 'rbac'
@@ -92,6 +98,11 @@ export interface AppState {
   setViewMode: (mode: ViewMode) => void;
   setCurrentRole: (role: UserRole) => void;
   setCurrentTab: (tab: string) => void;
+  openLoginPage: () => void;
+  loginWithAccount: (userAccount: UserAccount, options?: { mfaVerified?: boolean; ipAddress?: string }) => void;
+  logout: () => void;
+  switchRoleContext: (targetScopeName: string) => void;
+  setSessionTimeRemaining: (time: number) => void;
   loginAsRole: (role: UserRole) => void;
 
   // SGG Command Center Actions
@@ -179,6 +190,9 @@ const initialAllocations: ProgramAllocationDecision[] = [
 export const useAppStore = create<AppState>((set, get) => ({
   // Navigation & Role Defaults
   viewMode: 'landing', // Opens landing page first by default
+  isAuthenticated: false,
+  currentUser: null,
+  sessionTimeRemaining: 1800,
   currentRole: 'taskforce', // Default Task Force Nasional
   currentScope: mockRoles.find((r) => r.id === 'taskforce')?.defaultScope || {
     level: 'national',
@@ -237,6 +251,130 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   // Navigation & Role Actions
   setViewMode: (mode) => set({ viewMode: mode }),
+  openLoginPage: () => set({ viewMode: 'login' }),
+  setSessionTimeRemaining: (time) => set({ sessionTimeRemaining: time }),
+
+  loginWithAccount: (userAccount, options) => {
+    const now = new Date();
+    const timeStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')} WIB`;
+    const expiresAt = new Date(now.getTime() + 30 * 60 * 1000).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB';
+
+    const authUser: AuthUser = {
+      id: userAccount.id,
+      name: userAccount.name,
+      email: userAccount.email,
+      role: userAccount.role,
+      roleTitle: userAccount.roleTitle,
+      badge: userAccount.badge,
+      organization: userAccount.organization,
+      scope: userAccount.scope,
+      nip: userAccount.nip,
+      mfaEnabled: userAccount.mfaEnabled,
+      mfaVerified: options?.mfaVerified ?? userAccount.mfaEnabled,
+      loginTimestamp: timeStr,
+      ipAddress: options?.ipAddress || '10.24.120.88',
+      avatarInitials: userAccount.avatarInitials,
+      authorizedScopes: userAccount.authorizedScopes,
+      sessionExpiresAt: expiresAt,
+    };
+
+    const loginAudit: AuditLogEntry = {
+      id: `LOG-${Date.now()}`,
+      timestamp: timeStr,
+      actorName: userAccount.name,
+      actorRole: userAccount.roleTitle,
+      scope: userAccount.scope.name,
+      actionType: 'LOGIN',
+      entity: 'Sesi Autentikasi Pengguna',
+      entityId: userAccount.id,
+      fieldChanged: 'authSession',
+      oldValue: 'UNAUTHENTICATED',
+      newValue: `AUTHENTICATED_${userAccount.role.toUpperCase()}`,
+      justificationReason: `Autentikasi SSO Terpadu berhasil untuk ${userAccount.name} (${userAccount.roleTitle}) dengan lingkup ${userAccount.scope.name}. MFA: ${userAccount.mfaEnabled ? 'Terverifikasi' : 'Standar'}. Diarahkan otomatis ke ${userAccount.landingTabTitle}.`,
+      ipAddress: options?.ipAddress || '10.24.120.88',
+    };
+
+    set({
+      isAuthenticated: true,
+      currentUser: authUser,
+      currentRole: userAccount.role,
+      currentScope: userAccount.scope,
+      currentTab: userAccount.landingTab,
+      viewMode: 'app',
+      sessionTimeRemaining: 1800,
+      auditLogs: [loginAudit, ...get().auditLogs],
+    });
+  },
+
+  logout: () => {
+    const currentUser = get().currentUser;
+    const now = new Date();
+    const timeStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')} WIB`;
+
+    const logoutAudit: AuditLogEntry = {
+      id: `LOG-${Date.now()}`,
+      timestamp: timeStr,
+      actorName: currentUser ? currentUser.name : 'Pengguna SGG',
+      actorRole: currentUser ? currentUser.roleTitle : 'Stakeholder',
+      scope: currentUser ? currentUser.scope.name : 'Nasional',
+      actionType: 'LOGOUT',
+      entity: 'Sesi Autentikasi Pengguna',
+      entityId: currentUser ? currentUser.id : 'USR-UNKNOWN',
+      fieldChanged: 'authSession',
+      oldValue: 'AUTHENTICATED',
+      newValue: 'SESSION_TERMINATED',
+      justificationReason: `Pengguna mengakhiri sesi kerja melalui tombol Logout resmi. Token sesi dinonaktifkan dari memori sistem.`,
+      ipAddress: currentUser?.ipAddress || '10.24.120.88',
+    };
+
+    set({
+      isAuthenticated: false,
+      currentUser: null,
+      viewMode: 'landing',
+      currentTab: 'overview',
+      sessionTimeRemaining: 0,
+      auditLogs: [logoutAudit, ...get().auditLogs],
+    });
+  },
+
+  switchRoleContext: (targetScopeName) => {
+    const currentUser = get().currentUser;
+    if (!currentUser) return;
+
+    const now = new Date();
+    const timeStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')} WIB`;
+
+    const updatedScope: UserScope = {
+      ...currentUser.scope,
+      name: targetScopeName,
+    };
+
+    const contextAudit: AuditLogEntry = {
+      id: `LOG-${Date.now()}`,
+      timestamp: timeStr,
+      actorName: currentUser.name,
+      actorRole: currentUser.roleTitle,
+      scope: targetScopeName,
+      actionType: 'AKUN_HAK_AKSES',
+      entity: 'Konteks Kewenangan Sesi',
+      entityId: currentUser.id,
+      fieldChanged: 'activeScopeContext',
+      oldValue: currentUser.scope.name,
+      newValue: targetScopeName,
+      justificationReason: `Pengguna melakukan peralihan konteks wilayah/data yang diotorisasi ke ${targetScopeName}.`,
+      ipAddress: currentUser.ipAddress,
+    };
+
+    set({
+      currentScope: updatedScope,
+      currentUser: {
+        ...currentUser,
+        scope: updatedScope,
+      },
+      auditLogs: [contextAudit, ...get().auditLogs],
+    });
+  },
+
   setCurrentRole: (role) => {
     const roleObj = getRoleById(role);
     set({
@@ -249,33 +387,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   setIsRbacModalOpen: (open) => set({ isRbacModalOpen: open }),
 
   loginAsRole: (role) => {
-    const roleObj = getRoleById(role);
-    const now = new Date();
-    const timeStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')} WIB`;
-
-    const loginAudit: AuditLogEntry = {
-      id: `LOG-${Date.now()}`,
-      timestamp: timeStr,
-      actorName: roleObj.title,
-      actorRole: roleObj.badge,
-      scope: roleObj.defaultScope.name,
-      actionType: 'AKUN_HAK_AKSES',
-      entity: 'Sesi Login Pengguna',
-      entityId: roleObj.id,
-      fieldChanged: 'activeRoleSession',
-      oldValue: get().currentRole,
-      newValue: role,
-      justificationReason: `Autentikasi role berhasil sebagai ${roleObj.title} dengan scope kewenangan ${roleObj.defaultScope.name}.`,
-      ipAddress: '10.24.120.88',
-    };
-
-    set({
-      currentRole: role,
-      currentScope: roleObj.defaultScope,
-      viewMode: 'app',
-      currentTab: roleObj.defaultTab,
-      auditLogs: [loginAudit, ...get().auditLogs],
-    });
+    const matchingAccount = mockUsers.find((u) => u.role === role) || mockUsers[2];
+    get().loginWithAccount(matchingAccount);
   },
 
   // SGG Command Center Action Handlers
