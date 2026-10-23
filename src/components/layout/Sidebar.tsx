@@ -2,18 +2,9 @@
 
 import * as React from "react";
 import { useAppStore } from "@/store/useAppStore";
-import { mockRoles } from "@/data";
 import { NAV_ITEMS, type SidebarSection } from "@/lib/sidebar-items";
 import { cn } from "@/lib/utils";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { LogOut, Menu, ChevronDown, Shield, MapPin, X } from "lucide-react";
+import { Menu, MapPin, X } from "lucide-react";
 
 interface SidebarProps {
   currentTab: string;
@@ -34,14 +25,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   mobileOpen,
   onMobileClose,
 }) => {
-  const {
-    currentRole,
-    currentScope,
-    currentUser,
-    logout,
-  } = useAppStore();
-
-  const activeRoleObj = mockRoles.find((r) => r.id === currentRole) || mockRoles[0];
+  const { currentScope } = useAppStore();
 
   const navItems = NAV_ITEMS.filter((item) => accessibleTabs.includes(item.id));
   const compact = collapsed && !mobileOpen;
@@ -127,51 +111,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
         })}
       </nav>
 
-      {/* Bottom: Role & scope context + logout */}
       <div className="shrink-0 border-t border-border bg-background p-3">
-        {!compact && (
-          <div className="space-y-2">
-            <div className="flex items-center gap-2 px-2 mb-1">
-              <MapPin className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-              <span className="truncate text-xs text-muted-foreground">
-                Lingkup: {currentScope.name}
-              </span>
-            </div>
-            <div className="flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground">
-              <Shield className="h-3.5 w-3.5 shrink-0" />
-              <span className="truncate">{currentUser?.roleTitle ?? activeRoleObj.title}</span>
-            </div>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button className="flex w-full items-center justify-between gap-2 rounded-md bg-background px-3 py-2 text-left text-sm text-foreground hover:bg-secondary focus:bg-background data-[state=open]:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                  <span className="truncate">{currentUser?.name ?? "Pengguna"}</span>
-                  <ChevronDown className="h-3.5 w-3.5 shrink-0" />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-56 p-2">
-                <DropdownMenuLabel className="text-xs font-semibold uppercase">
-                  Sesi aktif
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={logout} className="text-xs text-destructive">
-                  <LogOut className="mr-2 h-3.5 w-3.5" />
-                  Keluar / Logout
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        )}
-        {compact && (
-          <button
-            type="button"
-            onClick={logout}
-            className="flex w-full justify-center rounded-md p-2 text-muted-foreground hover:bg-secondary hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            aria-label="Keluar"
-            title="Keluar"
-          >
-            <LogOut className="h-4 w-4" />
-          </button>
-        )}
+        <div
+          className={cn("flex items-center gap-2 text-xs text-muted-foreground", compact && "justify-center")}
+          aria-label={`Lingkup: ${currentScope.name}`}
+          title={compact ? `Lingkup: ${currentScope.name}` : undefined}
+        >
+          <MapPin className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+          {!compact && <span className="truncate">Lingkup: {currentScope.name}</span>}
+        </div>
       </div>
     </aside>
   );

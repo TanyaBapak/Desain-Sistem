@@ -58,7 +58,7 @@ export const TopNav: React.FC<TopNavProps> = ({ currentTab, onOpenSidebar }) => 
           </button>
 
           {/* User Profile Dropdown */}
-          <DropdownMenu>
+          <DropdownMenu modal={false}>
             <DropdownMenuTrigger asChild>
               <button className="flex items-center gap-2 rounded-md border border-border bg-background px-2 py-1.5 text-sm font-medium transition hover:bg-secondary focus:bg-background data-[state=open]:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:px-3">
                 <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
