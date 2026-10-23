@@ -14,6 +14,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
+import { saveBusinessData } from '../../lib/business-data';
 
 interface CandidateDetailModalProps {
   candidate: CandidateParticipant | null;
@@ -26,7 +27,9 @@ export const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({
   isOpen,
   onClose,
 }) => {
-  const { updateCandidateVerification, toggleCandidateSelection, selectedCandidateIds } = useAppStore();
+  const { currentRole, toggleCandidateSelection, selectedCandidateIds } = useAppStore();
+  const canVerify = ['taskforce', 'verifikator'].includes(currentRole);
+  const canMatch = currentRole === 'taskforce';
 
   if (!candidate) return null;
 
@@ -203,28 +206,38 @@ export const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({
 
         {/* Action Buttons */}
         <div className="flex flex-wrap items-center justify-between pt-4 border-t border-slate-200 gap-3">
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-slate-500">Tindakan Cepat Tahap 2:</span>
-            {candidate.verificationStatus !== 'Verified' ? (
-              <button
-                onClick={() => updateCandidateVerification(candidate.id, 'Verified')}
-                className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 text-white hover:bg-emerald-700 transition flex items-center gap-1 shadow-sm"
-              >
-                <CheckCircle className="w-3.5 h-3.5" />
-                <span>Simulasi Verifikasi Dukcapil</span>
-              </button>
-            ) : (
-              <button
-                onClick={() => updateCandidateVerification(candidate.id, 'Pending Verification')}
-                className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-200 text-slate-700 hover:bg-slate-300 transition"
-              >
-                Tandai Pending
-              </button>
-            )}
-          </div>
+          {canVerify && (
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-slate-500">Tindakan verifikasi:</span>
+              {candidate.verificationStatus !== 'Verified' ? (
+                <button
+                  onClick={() => saveBusinessData(
+                    'candidates',
+                    { ...candidate, verificationStatus: 'Verified' },
+                    candidate.id,
+                  )}
+                  className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 text-white hover:bg-emerald-700 transition flex items-center gap-1 shadow-sm"
+                >
+                  <CheckCircle className="w-3.5 h-3.5" />
+                  <span>Verifikasi data</span>
+                </button>
+              ) : (
+                <button
+                  onClick={() => saveBusinessData(
+                    'candidates',
+                    { ...candidate, verificationStatus: 'Pending Verification' },
+                    candidate.id,
+                  )}
+                  className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-200 text-slate-700 hover:bg-slate-300 transition"
+                >
+                  Tandai menunggu verifikasi
+                </button>
+              )}
+            </div>
+          )}
 
           <div className="flex items-center gap-2">
-            <button
+            {canMatch && <button
               onClick={() => toggleCandidateSelection(candidate.id)}
               className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm ${
                 isSelected
@@ -234,7 +247,7 @@ export const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({
             >
               <User className="w-4 h-4" />
               <span>{isSelected ? 'Keluarkan dari Matching Pool' : 'Pilih ke Matching Pool (Tahap 3)'}</span>
-            </button>
+            </button>}
             <button
               onClick={onClose}
               className="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 transition"

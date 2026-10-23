@@ -6,8 +6,8 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
-use Illuminate\Validation\ValidationException;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class BusinessDataController extends Controller
 {
@@ -190,6 +190,8 @@ class BusinessDataController extends Controller
 
     private function saveCandidate(Request $request, array $data, string $id, bool $creating): void
     {
+        $user = $request->user();
+        $role = $user->roles()->value('name');
         $provinceId = $this->referenceId('provinces', 'name', $data['provinsi'], 'provinsi');
         $district = DB::table('districts')
             ->where('name', $data['kabupatenKota'])
@@ -199,22 +201,49 @@ class BusinessDataController extends Controller
             abort(422, 'Kabupaten/kota tidak sesuai dengan provinsi yang dipilih.');
         }
 
+        if ($role === 'province_admin' && $provinceId !== $user->province_id) {
+            abort(403);
+        }
+        if ($role === 'district_admin' && $district->id !== $user->district_id) {
+            abort(403);
+        }
+        if ($role === 'institution_admin' && ! $user->institution_id) {
+            abort(403);
+        }
+
+        $institution = $role === 'institution_admin'
+            ? DB::table('institutions')->where('id', $user->institution_id)->first()
+            : null;
+        abort_if($role === 'institution_admin' && ! $institution, 403);
+        $canVerify = in_array($role, ['task_force', 'verifier'], true);
+        $existingVerification = $creating
+            ? 'Pending Verification'
+            : DB::table('job_seekers')->where('id', $id)->value('verification_status');
+        $existingLifecycle = $creating
+            ? 'SUBMITTED'
+            : DB::table('job_seekers')->where('id', $id)->value('lifecycle_status');
+
         $attributes = [
             'full_name' => $data['fullName'],
             'gender' => $data['gender'],
             'province_id' => $provinceId,
             'district_id' => $district->id,
+            'institution_id' => $institution?->id,
             'education_level' => $data['educationLevel'],
-            'institution_name' => $data['institutionName'],
+            'institution_name' => $institution?->name ?? $data['institutionName'],
             'major' => $data['major'],
-            'source_type' => match ($data['sourceType'] ?? '') {
-                'Lembaga Vokasi' => 'LPK',
-                'SMK / Pendidikan Vokasi' => 'SMK',
-                default => 'Disnaker',
-            },
+            'source_type' => $role === 'institution_admin'
+                ? 'LPK'
+                : ($role === 'province_admin' || $role === 'district_admin'
+                    ? 'Disnaker'
+                    : match ($data['sourceType'] ?? '') {
+                        'Lembaga Vokasi' => 'LPK',
+                        'SMK / Pendidikan Vokasi' => 'SMK',
+                        default => 'Disnaker',
+                    }),
             'readiness_status' => $data['readinessStatus'],
-            'verification_status' => $data['verificationStatus'],
-            'lifecycle_status' => $data['lifecycleStatus'] ?? 'SUBMITTED',
+            'verification_status' => $canVerify ? $data['verificationStatus'] : $existingVerification,
+            'lifecycle_status' => $canVerify ? ($data['lifecycleStatus'] ?? 'SUBMITTED') : $existingLifecycle,
             'preferred_countries' => json_encode($data['preferredCountry'] ?? []),
             'preferred_job_roles' => json_encode($data['preferredJobRole'] ?? []),
             'updated_at' => now(),
@@ -476,14 +505,17 @@ class BusinessDataController extends Controller
         abort_unless(isset(self::ENTITY_TABLES[$type]), 404);
         $role = $request->user()->roles()->value('name');
         $allowedRoles = match ($type) {
-            'candidates' => ['super_admin', 'task_force', 'province_admin', 'district_admin', 'verifier'],
-            'programs' => ['super_admin', 'task_force', 'directorate_admin', 'institution_admin', 'training_operator'],
-            'providers' => ['super_admin', 'task_force', 'directorate_admin', 'institution_admin'],
-            'demands' => ['super_admin', 'task_force', 'demand_admin'],
+            'candidates' => ['task_force', 'province_admin', 'district_admin', 'institution_admin', 'verifier'],
+            'programs' => ['task_force', 'directorate_admin', 'institution_admin', 'training_operator'],
+            'providers' => ['task_force', 'directorate_admin', 'institution_admin'],
+            'demands' => ['task_force', 'demand_admin'],
         };
 
         abort_unless(in_array($role, $allowedRoles, true), 403);
         if ($action === 'create' && $role === 'institution_admin' && $type === 'providers') {
+            abort(403);
+        }
+        if ($type === 'candidates' && $role === 'institution_admin' && ! $request->user()->institution_id) {
             abort(403);
         }
         if ($action === 'create' && in_array($role, ['institution_admin', 'training_operator'], true) && ! $request->user()->institution_id && $type === 'programs') {
@@ -498,7 +530,7 @@ class BusinessDataController extends Controller
     {
         $user = $request->user();
         $role = $user->roles()->value('name');
-        if (in_array($role, ['super_admin', 'task_force', 'directorate_admin'], true)) {
+        if (in_array($role, ['task_force', 'directorate_admin'], true)) {
             return;
         }
 
@@ -506,6 +538,7 @@ class BusinessDataController extends Controller
             'candidates' => match ($role) {
                 'province_admin' => $record->province_id === $user->province_id,
                 'district_admin' => $record->district_id === $user->district_id,
+                'institution_admin' => $record->institution_id === $user->institution_id,
                 default => true,
             },
             'programs' => ! in_array($role, ['institution_admin', 'training_operator'], true) || $record->institution_id === $user->institution_id,

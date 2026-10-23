@@ -1,102 +1,39 @@
 import {
-  Compass,
-  Users,
-  GraduationCap,
+  Activity,
+  BarChart3,
+  BookOpen,
+  Briefcase,
   Building2,
-  Globe2,
-  Workflow,
-  CheckCircle2,
-  Terminal,
-  Key,
-  Monitor,
-  Shield,
-  Clock,
-  AlertCircle,
+  ClipboardCheck,
+  FileText,
+  LayoutDashboard,
+  Link2,
+  Settings,
+  ShieldCheck,
+  Users,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+
+export type SidebarSection = "Ringkasan" | "Pelaksanaan" | "Pengelolaan";
 
 export interface SidebarItem {
   id: string;
   label: string;
-  href?: string;
-  icon: React.ElementType;
-  badge?: number | string;
-  accessibleRoles?: string[]; // role IDs allowed to see this item
-  requiresAuth?: boolean;
+  icon: LucideIcon;
+  section: SidebarSection;
 }
 
 export const NAV_ITEMS: SidebarItem[] = [
-  {
-    id: "overview",
-    label: "Dasbor Eksekutif",
-    icon: Compass,
-    accessibleRoles: [
-      "superadmin",
-      "pimpinan",
-      "taskforce",
-      "disnaker",
-      "vokasi",
-      "demand",
-      "verifikator",
-      "matching",
-    ],
-  },
-  {
-    id: "modul-a",
-    label: "Pencari Kerja",
-    icon: Users,
-    badge: 0,
-    accessibleRoles: ["superadmin", "taskforce", "disnaker", "vokasi", "verifikator", "matching"],
-  },
-  {
-    id: "modul-b",
-    label: "Program Pelatihan",
-    icon: GraduationCap,
-    accessibleRoles: ["superadmin", "taskforce", "direktorat", "vokasi", "verifikator", "matching"],
-  },
-  {
-    id: "modul-c",
-    label: "Lembaga Vokasi",
-    icon: Building2,
-    badge: 0,
-    accessibleRoles: ["superadmin", "taskforce", "direktorat", "vokasi", "verifikator", "disnaker"],
-  },
-  {
-    id: "modul-d",
-    label: "Permintaan Tenaga Kerja",
-    icon: Globe2,
-    badge: 0,
-    accessibleRoles: ["superadmin", "taskforce", "direktorat", "demand", "verifikator", "matching"],
-  },
-  {
-    id: "modul-e",
-    label: "Pencocokan & Pemantauan",
-    icon: Workflow,
-    badge: 0,
-    accessibleRoles: ["superadmin", "taskforce", "bp3mi", "matching", "verifikator", "demand", "pimpinan"],
-  },
-  {
-    id: "sippmi-monitoring",
-    label: "Pemantauan SIPPMI",
-    icon: Monitor,
-    accessibleRoles: ["superadmin", "taskforce", "bp3mi", "matching", "direktorat", "pimpinan"],
-  },
-  {
-    id: "approvals",
-    label: "Persetujuan Data",
-    icon: CheckCircle2,
-    badge: 0,
-    accessibleRoles: ["superadmin", "taskforce", "verifikator", "disnaker", "vokasi", "demand"],
-  },
-  {
-    id: "audit",
-    label: "Riwayat Audit",
-    icon: Terminal,
-    accessibleRoles: ["superadmin", "taskforce", "verifikator", "matching", "pimpinan"],
-  },
-  {
-    id: "rbac",
-    label: "Manajemen Peran & Akun",
-    icon: Key,
-    accessibleRoles: ["superadmin", "taskforce"],
-  },
+  { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, section: "Ringkasan" },
+  { id: "reports", label: "Laporan", icon: BarChart3, section: "Ringkasan" },
+  { id: "modul-a", label: "Pencari Kerja", icon: Users, section: "Pelaksanaan" },
+  { id: "modul-b", label: "Program Pelatihan", icon: BookOpen, section: "Pelaksanaan" },
+  { id: "modul-c", label: "Lembaga Vokasi", icon: Building2, section: "Pelaksanaan" },
+  { id: "modul-d", label: "Permintaan Tenaga Kerja", icon: Briefcase, section: "Pelaksanaan" },
+  { id: "matching", label: "Pencocokan", icon: Link2, section: "Pelaksanaan" },
+  { id: "sippmi-monitoring", label: "Pemantauan", icon: Activity, section: "Pelaksanaan" },
+  { id: "approvals", label: "Verifikasi", icon: ClipboardCheck, section: "Pelaksanaan" },
+  { id: "rbac", label: "Pengguna dan Peran", icon: Settings, section: "Pengelolaan" },
+  { id: "audit", label: "Jejak Audit", icon: ShieldCheck, section: "Pengelolaan" },
+  { id: "integrations", label: "Integrasi", icon: Link2, section: "Pengelolaan" },
 ];

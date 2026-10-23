@@ -25,7 +25,7 @@ export const TopNav: React.FC<TopNavProps> = ({ currentTab, onOpenSidebar }) => 
   const currentPage = NAV_ITEMS.find((item) => item.id === currentTab);
 
   return (
-    <header className="sticky top-0 z-50 flex h-16 items-center border-b border-border bg-background/95 px-4 backdrop-blur sm:px-6">
+    <header className="fixed inset-x-0 top-0 z-50 flex h-16 items-center border-b border-border bg-background px-4 shadow-sm sm:px-6">
       <div className="flex w-full items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
           <button
@@ -60,7 +60,7 @@ export const TopNav: React.FC<TopNavProps> = ({ currentTab, onOpenSidebar }) => 
           {/* User Profile Dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="flex items-center gap-2 rounded-md border border-border px-2 py-1.5 text-sm font-medium transition hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:px-3">
+              <button className="flex items-center gap-2 rounded-md border border-border bg-background px-2 py-1.5 text-sm font-medium transition hover:bg-secondary focus:bg-background data-[state=open]:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:px-3">
                 <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
                   {currentUser?.avatarInitials || "US"}
                 </div>

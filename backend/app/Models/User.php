@@ -3,8 +3,8 @@
 namespace App\Models;
 
 use Database\Factories\UserFactory;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
@@ -72,26 +72,27 @@ class User extends Authenticatable
 
     public function canAccessTab(string $tab): bool
     {
-        $roleName = $this->roles->first()?->name;
+        return in_array($tab, self::accessibleTabsForRole($this->roles->first()?->name), true);
+    }
 
-        if ($roleName === 'super_admin') {
-            return true;
-        }
-
-        $accessibleTabs = match ($roleName) {
-            'leadership' => ['overview', 'dashboard', 'sippmi-monitoring', 'audit'],
-            'task_force' => ['overview', 'dashboard', 'modul-a', 'modul-b', 'modul-c', 'modul-d', 'matching', 'modul-e', 'approvals', 'audit', 'sippmi-monitoring'],
-            'directorate_admin' => ['overview', 'dashboard', 'modul-b', 'modul-c', 'matching', 'modul-e', 'sippmi-monitoring'],
-            'province_admin', 'district_admin' => ['overview', 'dashboard', 'modul-a', 'approvals'],
-            'bp3mi_admin', 'placement_officer' => ['overview', 'dashboard', 'matching', 'modul-e', 'sippmi-monitoring'],
-            'institution_admin' => ['overview', 'dashboard', 'modul-b', 'modul-c', 'approvals'],
-            'demand_admin' => ['overview', 'dashboard', 'modul-d', 'approvals'],
-            'verifier' => ['overview', 'dashboard', 'modul-a', 'modul-b', 'modul-c', 'modul-d', 'approvals', 'audit'],
-            'training_operator' => ['overview', 'dashboard', 'modul-b'],
-            'auditor' => ['overview', 'dashboard', 'audit', 'sippmi-monitoring'],
+    /**
+     * @return list<string>
+     */
+    public static function accessibleTabsForRole(?string $roleName): array
+    {
+        return match ($roleName) {
+            'super_admin' => ['rbac', 'audit'],
+            'leadership' => ['dashboard', 'reports'],
+            'task_force' => ['dashboard', 'modul-a', 'modul-b', 'modul-c', 'modul-d', 'matching', 'sippmi-monitoring', 'approvals', 'reports'],
+            'directorate_admin' => ['dashboard', 'modul-b', 'modul-c', 'matching', 'sippmi-monitoring', 'reports'],
+            'province_admin', 'district_admin' => ['modul-a'],
+            'bp3mi_admin', 'placement_officer' => ['matching', 'sippmi-monitoring'],
+            'institution_admin' => ['modul-a', 'modul-b', 'modul-c', 'sippmi-monitoring'],
+            'demand_admin' => ['modul-d'],
+            'verifier' => ['modul-a', 'modul-b', 'modul-c', 'modul-d', 'approvals'],
+            'training_operator' => ['modul-b', 'sippmi-monitoring'],
+            'auditor' => ['reports'],
             default => [],
         };
-
-        return in_array($tab, $accessibleTabs, true);
     }
 }

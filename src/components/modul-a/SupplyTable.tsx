@@ -30,7 +30,6 @@ export const SupplyTable: React.FC = () => {
     toggleCandidateSelection,
     selectAllCandidates,
     clearCandidateSelection,
-    batchVerifyCandidates,
     searchCandidate,
     setSearchCandidate,
     filterProvinsi,
@@ -121,6 +120,10 @@ export const SupplyTable: React.FC = () => {
     'Pending Verification': 'Menunggu verifikasi',
     Unverified: 'Belum diverifikasi',
   };
+  const canManageCandidates = ['disnaker', 'vokasi', 'taskforce', 'superadmin'].includes(currentRole);
+  const canVerifyCandidates = ['taskforce', 'verifikator'].includes(currentRole);
+  const canMatchCandidates = ['taskforce', 'matching', 'verifikator'].includes(currentRole);
+  const canArchiveCandidates = ['taskforce', 'superadmin'].includes(currentRole);
 
   return (
     <div className="space-y-6">
@@ -139,14 +142,16 @@ export const SupplyTable: React.FC = () => {
             </div>
             <p className="mt-1 text-xs leading-relaxed text-blue-100">
               {currentRole === 'disnaker'
-                ? 'Kewenangan Disnaker: Input, ubah, dan ajukan usulan verifikasi calon peserta di wilayah binaan Anda.'
-                : 'Menampilkan data calon peserta siap latih terintegrasi dengan validasi NIK Dukcapil & standar SSW.'}
+                ? 'Kewenangan Disnaker: input dan perbarui data calon peserta di wilayah binaan Anda.'
+                : currentRole === 'vokasi'
+                  ? 'Kelola data peserta yang terdaftar pada lembaga vokasi Anda.'
+                  : 'Menampilkan data calon peserta siap latih terintegrasi dengan validasi NIK Dukcapil & standar SSW.'}
             </p>
           </div>
         </div>
 
         <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
-          <button
+          {canManageCandidates && <button
             onClick={() => {
               setCandidateToEdit(null);
               setFormMode('create');
@@ -156,15 +161,15 @@ export const SupplyTable: React.FC = () => {
           >
             <UserPlus className="w-3.5 h-3.5" />
             <span>+ Tambah Calon Peserta</span>
-          </button>
+          </button>}
 
-          <button
+          {canVerifyCandidates && <button
             onClick={() => setCurrentTab('approvals')}
             className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-white px-3 py-2 text-sm font-semibold text-blue-900 shadow-xs transition hover:bg-blue-50 sm:w-auto"
           >
             <ShieldCheck className="w-3.5 h-3.5 text-blue-600" />
             <span>Pusat Verifikasi & Usulan</span>
-          </button>
+          </button>}
         </div>
       </div>
 
@@ -251,7 +256,7 @@ export const SupplyTable: React.FC = () => {
             <span className="text-xs text-slate-500">
               Terpilih: <strong className="text-blue-600">{selectedCandidateIds.length}</strong> Kandidat
             </span>
-            {selectedCandidateIds.length > 0 && (
+            {canMatchCandidates && selectedCandidateIds.length > 0 && (
               <button
                 onClick={() => setActiveStage(3)}
                 className="px-3 py-2 rounded-xl text-xs font-bold bg-blue-600 text-white hover:bg-blue-700 transition flex items-center gap-1.5 shadow-sm"
@@ -340,39 +345,29 @@ export const SupplyTable: React.FC = () => {
 
         {/* Batch Validation Helper Bar (Tahap 2 Simulation) */}
         <div className="flex flex-wrap items-center justify-between text-xs bg-slate-50 px-3 py-2 rounded-xl border border-slate-200 gap-2">
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleSelectAllToggle}
-              className="flex items-center gap-1.5 font-semibold text-slate-700 hover:text-blue-600 transition"
-            >
-              {allFilteredSelected ? (
-                <CheckSquare className="w-4 h-4 text-blue-600" />
-              ) : (
-                <Square className="w-4 h-4 text-slate-400" />
-              )}
-              <span>Pilih Semua yang Ditampilkan ({filteredCandidates.length})</span>
-            </button>
-            {selectedCandidateIds.length > 0 && (
+          {canMatchCandidates && (
+            <div className="flex items-center gap-2">
               <button
-                onClick={clearCandidateSelection}
-                className="text-xs text-red-500 hover:underline ml-2"
+                onClick={handleSelectAllToggle}
+                className="flex items-center gap-1.5 font-semibold text-slate-700 hover:text-blue-600 transition"
               >
-                Kosongkan Pilihan
+                {allFilteredSelected ? (
+                  <CheckSquare className="w-4 h-4 text-blue-600" />
+                ) : (
+                  <Square className="w-4 h-4 text-slate-400" />
+                )}
+                <span>Pilih Semua yang Ditampilkan ({filteredCandidates.length})</span>
               </button>
-            )}
-          </div>
-
-          <div className="flex items-center gap-2">
-            <span className="text-slate-500">Aksi Massal Tahap 2:</span>
-            <button
-              disabled={selectedCandidateIds.length === 0}
-              onClick={() => batchVerifyCandidates(selectedCandidateIds)}
-              className="px-2.5 py-1 rounded-md text-xs font-semibold bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed transition flex items-center gap-1"
-            >
-              <ShieldCheck className="w-3.5 h-3.5" />
-              <span>Verifikasi Massal ({selectedCandidateIds.length})</span>
-            </button>
-          </div>
+              {selectedCandidateIds.length > 0 && (
+                <button
+                  onClick={clearCandidateSelection}
+                  className="text-xs text-red-500 hover:underline ml-2"
+                >
+                  Kosongkan Pilihan
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
@@ -382,9 +377,9 @@ export const SupplyTable: React.FC = () => {
           <table className="w-full min-w-[900px] table-fixed text-left text-sm">
             <thead className="bg-slate-50/80 border-b border-slate-200 text-xs font-bold text-slate-600 uppercase tracking-wider">
               <tr>
-                <th className="w-[4%] py-3.5 px-1 text-center">
+                {canMatchCandidates && <th className="w-[4%] py-3.5 px-1 text-center">
                   <span className="sr-only">Pilih</span>
-                </th>
+                </th>}
                 <th className="w-[15%] py-3.5 px-1">Calon Peserta</th>
                 <th className="w-[17%] py-3.5 px-1">Institusi & Jurusan</th>
                 <th className="w-[14%] py-3.5 px-1">Kemahiran Bahasa</th>
@@ -397,7 +392,7 @@ export const SupplyTable: React.FC = () => {
             <tbody className="divide-y divide-slate-100 text-slate-700">
               {filteredCandidates.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center text-slate-400">
+                  <td colSpan={canMatchCandidates ? 8 : 7} className="py-12 text-center text-slate-400">
                     <AlertCircle className="w-8 h-8 mx-auto mb-2 text-slate-300" />
                     <p className="font-semibold text-slate-600">Tidak ada calon peserta yang cocok</p>
                     <p className="text-xs text-slate-400 mt-1">Coba sesuaikan kata kunci pencarian atau filter Anda.</p>
@@ -405,7 +400,7 @@ export const SupplyTable: React.FC = () => {
                 </tr>
               ) : (
                 filteredCandidates.map((candidate) => {
-                  const isSelected = selectedCandidateIds.includes(candidate.id);
+                  const isSelected = canMatchCandidates && selectedCandidateIds.includes(candidate.id);
                   return (
                     <tr
                       key={candidate.id}
@@ -414,7 +409,7 @@ export const SupplyTable: React.FC = () => {
                       }`}
                     >
                       {/* Select Checkbox */}
-                      <td className="py-3 px-1 text-center">
+                      {canMatchCandidates && <td className="py-3 px-1 text-center">
                         <button
                           type="button"
                           onClick={() => toggleCandidateSelection(candidate.id)}
@@ -427,7 +422,7 @@ export const SupplyTable: React.FC = () => {
                             <Square className="w-4 h-4 text-slate-300" />
                           )}
                         </button>
-                      </td>
+                      </td>}
 
                       {/* Name & ID */}
                       <td className="py-3 px-1">
@@ -552,7 +547,7 @@ export const SupplyTable: React.FC = () => {
                       {/* Actions */}
                       <td className="py-3 px-1 text-right">
                         <div className="flex items-center justify-end gap-1">
-                          <button
+                          {canManageCandidates && <button
                             onClick={() => setActiveCandidate(candidate)}
                             aria-label={`Lihat profil ${candidate.fullName}`}
                             className="inline-flex items-center gap-1 rounded-lg bg-slate-100 p-1.5 text-xs font-semibold text-slate-700 shadow-xs transition hover:bg-blue-600 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
@@ -560,9 +555,9 @@ export const SupplyTable: React.FC = () => {
                           >
                             <Eye className="w-3.5 h-3.5" />
                             <span className="hidden 2xl:inline">Profil</span>
-                          </button>
+                          </button>}
 
-                          <button
+                          {canArchiveCandidates && <button
                             onClick={() => {
                               setCandidateToEdit(candidate);
                               setFormMode('edit');
@@ -574,7 +569,7 @@ export const SupplyTable: React.FC = () => {
                           >
                             <Edit2 className="w-3.5 h-3.5" />
                             <span className="hidden 2xl:inline">Ubah</span>
-                          </button>
+                          </button>}
 
                           <button
                             onClick={() => setDeletingCandidate(candidate)}
@@ -607,6 +602,7 @@ export const SupplyTable: React.FC = () => {
         isOpen={isFormOpen}
         mode={formMode}
         initialData={candidateToEdit}
+        canVerify={canVerifyCandidates}
         onClose={() => {
           setIsFormOpen(false);
           setCandidateToEdit(null);

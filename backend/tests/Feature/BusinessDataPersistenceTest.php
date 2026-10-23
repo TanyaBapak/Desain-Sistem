@@ -6,6 +6,7 @@ use App\Models\Role;
 use App\Models\User;
 use Database\Seeders\ReferenceDataSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
@@ -17,7 +18,7 @@ class BusinessDataPersistenceTest extends TestCase
     {
         $this->withoutVite();
         $this->seed(ReferenceDataSeeder::class);
-        $this->actingAs($this->userWithRole('super_admin'));
+        $this->actingAs($this->userWithRole('task_force'));
 
         $this->post('/business-data/candidates', [
             'nik' => '3300000000000001',
@@ -39,7 +40,7 @@ class BusinessDataPersistenceTest extends TestCase
         ])->assertRedirect()->assertSessionHasNoErrors();
         $this->assertDatabaseHas('job_seekers', ['nik' => '3300000000000001', 'full_name' => 'Peserta Contoh Baru']);
         $this->assertDatabaseHas('job_seeker_skills', ['skill_name' => 'Pengelasan dasar']);
-        \Illuminate\Support\Facades\DB::table('institutions')->insert([
+        DB::table('institutions')->insert([
             'id' => 'VOC-TEST-001',
             'name' => 'Lembaga Program Contoh',
             'institution_type' => 'SMK',
@@ -115,16 +116,16 @@ class BusinessDataPersistenceTest extends TestCase
             'salary_monthly_idr' => 20900000,
         ]);
 
-        $candidateId = \Illuminate\Support\Facades\DB::table('job_seekers')
+        $candidateId = DB::table('job_seekers')
             ->where('nik', '3300000000000001')
             ->value('id');
-        $programId = \Illuminate\Support\Facades\DB::table('training_programs')
+        $programId = DB::table('training_programs')
             ->where('name', 'Pelatihan Welder Contoh')
             ->value('id');
-        $providerId = \Illuminate\Support\Facades\DB::table('institutions')
+        $providerId = DB::table('institutions')
             ->where('name', 'Lembaga Contoh Baru')
             ->value('id');
-        $demandId = \Illuminate\Support\Facades\DB::table('job_demands')
+        $demandId = DB::table('job_demands')
             ->where('headcount', 10)
             ->value('id');
 
@@ -216,7 +217,7 @@ class BusinessDataPersistenceTest extends TestCase
     public function test_users_cannot_write_outside_their_assigned_region(): void
     {
         $this->seed(ReferenceDataSeeder::class);
-        $owner = $this->userWithRole('super_admin');
+        $owner = $this->userWithRole('task_force');
         $this->actingAs($owner)->post('/business-data/candidates', [
             'nik' => '3300000000000002',
             'fullName' => 'Peserta Luar Wilayah',
@@ -236,7 +237,7 @@ class BusinessDataPersistenceTest extends TestCase
             'lifecycleStatus' => 'SUBMITTED',
         ])->assertSessionHasNoErrors();
 
-        $candidateId = \Illuminate\Support\Facades\DB::table('job_seekers')
+        $candidateId = DB::table('job_seekers')
             ->where('nik', '3300000000000002')
             ->value('id');
         $provinceAdmin = $this->userWithRole('province_admin', ['province_id' => '32']);

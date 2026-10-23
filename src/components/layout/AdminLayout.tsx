@@ -31,7 +31,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
       <TopNav currentTab={currentTab} onOpenSidebar={() => setMobileSidebarOpen(true)} />
       <div
         className={cn(
-          "min-h-[calc(100vh-4rem)] w-full max-w-full transition-[padding] duration-300",
+          "min-h-[calc(100vh-4rem)] w-full max-w-full pt-16 transition-[padding] duration-300",
           collapsed ? "lg:pl-16" : "lg:pl-72"
         )}
       >

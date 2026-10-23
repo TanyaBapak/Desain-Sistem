@@ -5,12 +5,18 @@ use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\BusinessDataController;
 use App\Http\Controllers\Kp2miVokasiSyncController;
 use App\Http\Middleware\EnsureUserIsActive;
+use App\Models\User;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 Route::get('/', function () {
     if (auth()->check()) {
-        $tab = auth()->user()->roles()->value('default_tab') ?: 'overview';
+        $user = auth()->user();
+        $role = $user->roles()->first();
+        $accessibleTabs = User::accessibleTabsForRole($role?->name);
+        $tab = in_array($role?->default_tab, $accessibleTabs, true)
+            ? $role->default_tab
+            : ($accessibleTabs[0] ?? 'overview');
 
         return redirect()->route('app.show', $tab);
     }
@@ -37,6 +43,12 @@ Route::middleware(['auth', EnsureUserIsActive::class])->group(function () {
     Route::delete('/business-data/{type}/{id}', [BusinessDataController::class, 'destroy'])
         ->where('type', 'candidates|programs|providers|demands')
         ->name('business-data.destroy');
-    Route::get('/app', fn () => redirect()->route('app.show', 'overview'));
+    Route::get('/app', function () {
+        $user = auth()->user();
+        $role = $user->roles()->first();
+        $tabs = User::accessibleTabsForRole($role?->name);
+
+        return redirect()->route('app.show', $tabs[0] ?? 'overview');
+    });
     Route::get('/app/{tab}', AppController::class)->name('app.show');
 });

@@ -16,6 +16,7 @@ class BusinessDataPresenter
             'programs' => $this->programs($role, $user),
             'providers' => $this->providers($role, $user),
             'demands' => $this->demands($role, $user),
+            'reportSummary' => $this->reportSummary($role),
             'options' => [
                 'provinces' => DB::table('provinces')->orderBy('name')->get(['id', 'name']),
                 'districts' => DB::table('districts')->orderBy('name')->get(['id', 'province_id', 'name']),
@@ -29,7 +30,7 @@ class BusinessDataPresenter
 
     private function candidates(?string $role, User $user): array
     {
-        if (! in_array($role, ['super_admin', 'task_force', 'province_admin', 'district_admin', 'verifier'], true)) {
+        if (! in_array($role, ['task_force', 'province_admin', 'district_admin', 'institution_admin', 'verifier'], true)) {
             return [];
         }
 
@@ -37,6 +38,7 @@ class BusinessDataPresenter
             ->whereNull('deleted_at')
             ->when($role === 'province_admin', fn ($query) => $query->where('job_seekers.province_id', $user->province_id))
             ->when($role === 'district_admin', fn ($query) => $query->where('job_seekers.district_id', $user->district_id))
+            ->when($role === 'institution_admin', fn ($query) => $query->where('job_seekers.institution_id', $user->institution_id ?? ''))
             ->leftJoin('provinces', 'provinces.id', '=', 'job_seekers.province_id')
             ->leftJoin('districts', 'districts.id', '=', 'job_seekers.district_id')
             ->orderByDesc('job_seekers.created_at')
@@ -92,7 +94,7 @@ class BusinessDataPresenter
 
     private function programs(?string $role, User $user): array
     {
-        if (! in_array($role, ['super_admin', 'task_force', 'directorate_admin', 'institution_admin', 'training_operator', 'verifier'], true)) {
+        if (! in_array($role, ['task_force', 'directorate_admin', 'institution_admin', 'training_operator', 'verifier'], true)) {
             return [];
         }
 
@@ -147,7 +149,7 @@ class BusinessDataPresenter
 
     private function providers(?string $role, User $user): array
     {
-        if (! in_array($role, ['super_admin', 'task_force', 'directorate_admin', 'institution_admin', 'verifier'], true)) {
+        if (! in_array($role, ['task_force', 'directorate_admin', 'institution_admin', 'verifier'], true)) {
             return [];
         }
 
@@ -220,7 +222,7 @@ class BusinessDataPresenter
 
     private function demands(?string $role, User $user): array
     {
-        if (! in_array($role, ['super_admin', 'task_force', 'demand_admin', 'verifier'], true)) {
+        if (! in_array($role, ['task_force', 'demand_admin', 'verifier'], true)) {
             return [];
         }
 
@@ -270,7 +272,7 @@ class BusinessDataPresenter
 
     private function institutionOptions(?string $role, User $user): array
     {
-        if (! in_array($role, ['super_admin', 'task_force', 'directorate_admin', 'institution_admin', 'training_operator'], true)) {
+        if (! in_array($role, ['task_force', 'directorate_admin', 'institution_admin', 'training_operator'], true)) {
             return [];
         }
 
@@ -283,6 +285,32 @@ class BusinessDataPresenter
             ->orderBy('name')
             ->get(['id', 'name'])
             ->all();
+    }
+
+    private function reportSummary(?string $role): array
+    {
+        if (! in_array($role, ['leadership', 'task_force', 'directorate_admin', 'auditor'], true)) {
+            return [];
+        }
+
+        $updatedAt = collect([
+            DB::table('job_seekers')->whereNull('deleted_at')->max('updated_at'),
+            DB::table('training_programs')->max('updated_at'),
+            DB::table('institutions')->max('updated_at'),
+            DB::table('job_demands')->max('updated_at'),
+        ])->filter()->max();
+
+        return [
+            'candidateCount' => DB::table('job_seekers')->whereNull('deleted_at')->count(),
+            'readyCandidateCount' => DB::table('job_seekers')
+                ->whereNull('deleted_at')
+                ->where('readiness_status', 'Ready for Placement')
+                ->count(),
+            'programCount' => DB::table('training_programs')->where('status', 'Aktif')->count(),
+            'institutionCount' => DB::table('institutions')->where('status', 'Aktif')->count(),
+            'demandCount' => DB::table('job_demands')->where('verification_status', 'Approved')->count(),
+            'updatedAt' => $updatedAt,
+        ];
     }
 
     private function pluckRelated(string $table, string $column, string $jobSeekerId): array

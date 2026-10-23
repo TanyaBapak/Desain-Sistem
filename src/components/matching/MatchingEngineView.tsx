@@ -48,7 +48,6 @@ export const MatchingEngineView: React.FC = () => {
     createAllocation,
     updateAllocationStatus,
     deleteAllocation,
-    batchVerifyCandidates,
   } = useAppStore();
 
   // State for Tahap 4 batch dates
@@ -291,16 +290,15 @@ export const MatchingEngineView: React.FC = () => {
 
               <div className="p-4 rounded-xl border border-slate-200 bg-slate-50 flex flex-col justify-between">
                 <div>
-                  <span className="text-xs font-semibold text-slate-500 block">Simulasi Verifikasi Cepat</span>
-                  <p className="text-[11px] text-slate-400 mt-1">Verifikasi seluruh kandidat pending sekaligus.</p>
+                  <span className="text-xs font-semibold text-slate-500 block">Tahap Verifikasi</span>
+                  <p className="text-[11px] text-slate-400 mt-1">
+                    Periksa dan simpan hasil verifikasi melalui detail peserta atau menu Verifikasi.
+                  </p>
                 </div>
-                <button
-                  onClick={() => batchVerifyCandidates(candidates.map((c) => c.id))}
-                  className="mt-2 w-full py-2 px-3 rounded-lg text-xs font-bold bg-emerald-600 text-white hover:bg-emerald-700 transition flex items-center justify-center gap-1.5 shadow-xs"
-                >
-                  <ShieldCheck className="w-3.5 h-3.5" />
-                  <span>Verifikasi Semua Calon Peserta</span>
-                </button>
+                <div className="mt-2 flex items-center gap-1.5 text-xs font-semibold text-emerald-700">
+                  <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
+                  Verifikasi tercatat di database
+                </div>
               </div>
             </div>
 

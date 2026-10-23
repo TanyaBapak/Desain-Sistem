@@ -3,8 +3,8 @@
 namespace App\Http\Middleware;
 
 use App\Models\User;
-use Inertia\Middleware;
 use Illuminate\Http\Request;
+use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
 {
@@ -15,6 +15,10 @@ class HandleInertiaRequests extends Middleware
         $user = $request->user();
         $user?->loadMissing('roles');
         $role = $user?->roles->first();
+        $accessibleTabs = $user ? $this->accessibleTabs($user) : [];
+        $defaultTab = in_array($role?->default_tab, $accessibleTabs, true)
+            ? $role->default_tab
+            : ($accessibleTabs[0] ?? 'overview');
 
         return [
             ...parent::share($request),
@@ -38,8 +42,8 @@ class HandleInertiaRequests extends Middleware
                     ],
                     'avatarInitials' => $user->avatar_initials,
                     'mfaEnabled' => $user->mfa_enabled,
-                    'defaultTab' => $role->default_tab,
-                    'accessibleTabs' => $this->accessibleTabs($user),
+                    'defaultTab' => $defaultTab,
+                    'accessibleTabs' => $accessibleTabs,
                 ] : null,
             ],
         ];
@@ -66,21 +70,6 @@ class HandleInertiaRequests extends Middleware
      */
     private function accessibleTabs(User $user): array
     {
-        $tabs = [
-            'dashboard',
-            'overview',
-            'modul-a',
-            'modul-b',
-            'modul-c',
-            'modul-d',
-            'matching',
-            'modul-e',
-            'approvals',
-            'audit',
-            'rbac',
-            'sippmi-monitoring',
-        ];
-
-        return array_values(array_filter($tabs, fn (string $tab): bool => $user->canAccessTab($tab)));
+        return User::accessibleTabsForRole($user->roles->first()?->name);
     }
 }

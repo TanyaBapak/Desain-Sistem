@@ -57,7 +57,11 @@ class AuthenticatedSessionController extends Controller
         Auth::login($user, $credentials['remember'] ?? false);
         $request->session()->regenerate();
 
-        $defaultTab = $user->roles()->value('default_tab') ?: 'overview';
+        $role = $user->roles()->first();
+        $accessibleTabs = User::accessibleTabsForRole($role?->name);
+        $defaultTab = in_array($role?->default_tab, $accessibleTabs, true)
+            ? $role->default_tab
+            : ($accessibleTabs[0] ?? 'overview');
 
         return redirect()->intended(route('app.show', $defaultTab));
     }

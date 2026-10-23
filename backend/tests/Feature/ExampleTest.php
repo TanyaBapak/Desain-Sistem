@@ -4,8 +4,8 @@ namespace Tests\Feature;
 
 use App\Models\Role;
 use App\Models\User;
-use Inertia\Testing\AssertableInertia as Assert;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 class ExampleTest extends TestCase
@@ -32,7 +32,7 @@ class ExampleTest extends TestCase
             ->assertRedirect('/login');
     }
 
-    public function test_unknown_module_route_redirects_to_overview(): void
+    public function test_unknown_module_route_redirects_to_first_authorized_tab(): void
     {
         $user = User::factory()->create();
         $role = Role::query()->create([
@@ -44,6 +44,6 @@ class ExampleTest extends TestCase
         $user->roles()->attach($role->id);
 
         $this->actingAs($user)->get('/app/unknown-module')
-            ->assertRedirect('/app/overview');
+            ->assertRedirect('/app/rbac');
     }
 }

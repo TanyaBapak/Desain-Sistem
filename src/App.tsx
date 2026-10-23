@@ -70,6 +70,11 @@ const AuditLogView = lazy(() =>
     default: module.AuditLogView,
   })),
 );
+const ReportsView = lazy(() =>
+  import("@/components/reports/ReportsView").then((module) => ({
+    default: module.ReportsView,
+  })),
+);
 
 interface AppProps {
   currentTab: string;
@@ -80,6 +85,14 @@ interface AppProps {
     programs: TrainingProgram[];
     providers: VocationalProvider[];
     demands: GlobalDemand[];
+    reportSummary: {
+      candidateCount: number;
+      readyCandidateCount: number;
+      programCount: number;
+      institutionCount: number;
+      demandCount: number;
+      updatedAt: string | null;
+    };
     options: {
       provinces: { id: string; name: string }[];
       districts: { id: string; province_id: string; name: string }[];
@@ -95,6 +108,7 @@ interface AppProps {
       name: string;
       email: string;
       frontendRole: UserRole;
+      roleName: string;
       roleTitle: string;
       badge: string | null;
       organization: string;
@@ -173,6 +187,25 @@ export function App({ currentTab, isRoot, showLogin, auth, businessData }: AppPr
   let page: React.ReactNode;
   switch (activeTab) {
     case "dashboard":
+      if (authenticatedUser.roleName === "leadership") {
+        page = (
+          <ReportsView
+            summary={businessData?.reportSummary ?? {
+              candidateCount: 0,
+              readyCandidateCount: 0,
+              programCount: 0,
+              institutionCount: 0,
+              demandCount: 0,
+              updatedAt: null,
+            }}
+            isAuditor={false}
+            title="Dashboard"
+          />
+        );
+        break;
+      }
+      page = <DashboardPage currentTab="dashboard" setCurrentTab={setCurrentTab} />;
+      break;
     case "overview":
       page = (
         <DashboardPage currentTab={activeTab} setCurrentTab={setCurrentTab} />
@@ -199,6 +232,21 @@ export function App({ currentTab, isRoot, showLogin, auth, businessData }: AppPr
       break;
     case "audit":
       page = <AuditLogView />;
+      break;
+    case "reports":
+      page = (
+        <ReportsView
+          summary={businessData?.reportSummary ?? {
+            candidateCount: 0,
+            readyCandidateCount: 0,
+            programCount: 0,
+            institutionCount: 0,
+            demandCount: 0,
+            updatedAt: null,
+          }}
+          isAuditor={authenticatedUser.roleName === "auditor"}
+        />
+      );
       break;
     case "rbac":
       page = <RoleManagementPage />;

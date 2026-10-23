@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useAppStore } from "@/store/useAppStore";
 import { mockRoles } from "@/data";
-import { NAV_ITEMS } from "@/lib/sidebar-items";
+import { NAV_ITEMS, type SidebarSection } from "@/lib/sidebar-items";
 import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
@@ -51,13 +51,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
   return (
     <aside
       className={cn(
-        "fixed bottom-0 left-0 top-16 z-40 flex flex-col border-r border-border bg-white transition-[width,transform] duration-200 lg:translate-x-0",
+        "fixed bottom-0 left-0 top-16 z-40 flex flex-col border-r border-border bg-background transition-[width,transform] duration-200 lg:translate-x-0",
         compact ? "w-16" : "w-72",
         mobileOpen ? "translate-x-0 shadow-xl" : "-translate-x-full lg:translate-x-0"
       )}
     >
       {/* Collapse toggle */}
-      <div className="flex h-14 shrink-0 items-center justify-between border-b border-border bg-white px-3">
+      <div className="flex h-14 shrink-0 items-center justify-between border-b border-border bg-background px-3">
         {!compact && (
           <div className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-primary-foreground">
@@ -86,40 +86,49 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </button>
       </div>
 
-      <nav aria-label="Navigasi utama" className="flex-1 space-y-1 overflow-y-auto p-2">
-        {navItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = currentTab === item.id;
+      <nav aria-label="Navigasi utama" className="flex-1 space-y-4 overflow-y-auto p-2">
+        {(["Ringkasan", "Pelaksanaan", "Pengelolaan"] as SidebarSection[]).map((section) => {
+          const sectionItems = navItems.filter((item) => item.section === section);
+          if (sectionItems.length === 0) return null;
+
           return (
-            <button
-              key={item.id}
-              onClick={() => {
-                onTabChange(item.id);
-                onMobileClose();
-              }}
-              className={cn(
-                "flex w-full min-w-0 items-center gap-3 rounded-md border-l-2 px-3 py-2.5 text-left text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                isActive
-                  ? "border-primary bg-primary/10 text-primary"
-                  : "border-transparent text-muted-foreground hover:bg-secondary hover:text-foreground"
+            <div key={section} className="space-y-1">
+              {!compact && (
+                <h2 className="px-3 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  {section}
+                </h2>
               )}
-              aria-pressed={isActive}
-              title={compact ? item.label : undefined}
-            >
-              <Icon className="h-4 w-4 shrink-0" />
-              {!compact && <span className="min-w-0 flex-1 truncate">{item.label}</span>}
-              {item.badge !== undefined && !compact && (
-                <span className="ml-auto flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 px-1.5 text-xs font-semibold tabular-nums text-primary">
-                  {item.badge}
-                </span>
-              )}
-            </button>
+              {sectionItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = currentTab === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => {
+                      onTabChange(item.id);
+                      onMobileClose();
+                    }}
+                    className={cn(
+                      "flex w-full min-w-0 items-center gap-3 rounded-md border-l-2 px-3 py-2.5 text-left text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                      isActive
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-transparent text-muted-foreground hover:bg-secondary hover:text-foreground"
+                    )}
+                    aria-pressed={isActive}
+                    title={compact ? item.label : undefined}
+                  >
+                    <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
+                    {!compact && <span className="min-w-0 flex-1 truncate">{item.label}</span>}
+                  </button>
+                );
+              })}
+            </div>
           );
         })}
       </nav>
 
       {/* Bottom: Role & scope context + logout */}
-      <div className="shrink-0 border-t border-border bg-white p-3">
+      <div className="shrink-0 border-t border-border bg-background p-3">
         {!compact && (
           <div className="space-y-2">
             <div className="flex items-center gap-2 px-2 mb-1">
@@ -134,7 +143,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="flex w-full items-center justify-between gap-2 rounded-md px-3 py-2 text-left text-sm text-foreground hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                <button className="flex w-full items-center justify-between gap-2 rounded-md bg-background px-3 py-2 text-left text-sm text-foreground hover:bg-secondary focus:bg-background data-[state=open]:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                   <span className="truncate">{currentUser?.name ?? "Pengguna"}</span>
                   <ChevronDown className="h-3.5 w-3.5 shrink-0" />
                 </button>
