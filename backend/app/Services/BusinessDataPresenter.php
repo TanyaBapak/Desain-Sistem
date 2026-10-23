@@ -16,6 +16,8 @@ class BusinessDataPresenter
             'programs' => $this->programs($role, $user),
             'providers' => $this->providers($role, $user),
             'demands' => $this->demands($role, $user),
+            'candidateMatches' => $this->candidateMatches($role),
+            'allocations' => $this->allocations($role),
             'reportSummary' => $this->reportSummary($role),
             'approvalRequests' => $this->approvalRequests($role),
             'monitoring' => $this->monitoring($role, $user),
@@ -28,6 +30,43 @@ class BusinessDataPresenter
                 'institutions' => $this->institutionOptions($role, $user),
             ],
         ];
+    }
+
+    private function candidateMatches(?string $role): array
+    {
+        if (! in_array($role, ['task_force', 'directorate_admin'], true)) {
+            return [];
+        }
+
+        return DB::table('candidate_matches')
+            ->join('job_seekers', 'job_seekers.id', '=', 'candidate_matches.job_seeker_id')
+            ->join('job_demands', 'job_demands.id', '=', 'candidate_matches.job_demand_id')
+            ->leftJoin('training_classes', 'training_classes.id', '=', 'candidate_matches.training_class_id')
+            ->leftJoin('training_programs', 'training_programs.id', '=', 'training_classes.training_program_id')
+            ->whereNull('job_seekers.deleted_at')
+            ->where('job_seekers.verification_status', 'Verified')
+            ->where('job_demands.verification_status', 'Approved')
+            ->where('candidate_matches.match_status', 'Rekomendasi')
+            ->orderByDesc('candidate_matches.match_score')
+            ->orderBy('job_seekers.full_name')
+            ->get([
+                'candidate_matches.id',
+                'candidate_matches.job_seeker_id',
+                'candidate_matches.job_demand_id',
+                'candidate_matches.match_score',
+                'candidate_matches.match_status',
+                'candidate_matches.match_explanation',
+                'training_programs.name as program_name',
+            ])
+            ->map(fn (object $row): array => [
+                'id' => (int) $row->id,
+                'candidateId' => $row->job_seeker_id,
+                'demandId' => $row->job_demand_id,
+                'matchScore' => (float) $row->match_score,
+                'matchStatus' => $row->match_status,
+                'explanation' => $row->match_explanation,
+                'programName' => $row->program_name,
+            ])->all();
     }
 
     private function candidates(?string $role, User $user): array
@@ -170,6 +209,7 @@ class BusinessDataPresenter
                 'institutions.district_id',
                 'institutions.accreditation',
                 'institutions.evokasi_status',
+                'institutions.verification_status',
                 'institutions.instructor_count',
                 'institutions.workshop_capacity',
                 'institutions.readiness_score',
@@ -200,6 +240,7 @@ class BusinessDataPresenter
                     'provinsi' => $row->province_name ?? 'Belum diketahui',
                     'kabupatenKota' => $row->district_name ?? 'Belum diketahui',
                     'evokasiVerificationStatus' => $row->evokasi_status,
+                    'verificationStatus' => $row->verification_status,
                     'accreditation' => $row->accreditation,
                     'capacityPerBatch' => $row->workshop_capacity === null ? null : (int) $row->workshop_capacity,
                     'certifiedInstructorsCount' => $row->instructor_count === null ? null : (int) $row->instructor_count,
@@ -254,6 +295,7 @@ class BusinessDataPresenter
                 'job_demands.deadline',
                 'job_demands.work_term_months',
                 'job_demands.salary_range_string',
+                'job_demands.verification_status',
             ])
             ->map(fn (object $row): array => [
                 'id' => $row->id,
@@ -270,6 +312,54 @@ class BusinessDataPresenter
                 'deadlineDate' => $row->deadline,
                 'workTermMonths' => (int) $row->work_term_months,
                 'salaryRangeString' => $row->salary_range_string ?? '',
+                'verificationStatus' => $row->verification_status,
+            ])->all();
+    }
+
+    private function allocations(?string $role): array
+    {
+        if (! in_array($role, ['task_force', 'directorate_admin'], true)) {
+            return [];
+        }
+
+        $candidateIds = DB::table('program_allocation_candidates')
+            ->join('program_allocations', 'program_allocations.id', '=', 'program_allocation_candidates.program_allocation_id')
+            ->whereNull('program_allocations.deleted_at')
+            ->get(['program_allocation_candidates.program_allocation_id', 'program_allocation_candidates.job_seeker_id'])
+            ->groupBy('program_allocation_id')
+            ->map(fn ($rows): array => $rows->pluck('job_seeker_id')->all());
+
+        return DB::table('program_allocations')
+            ->join('job_demands', 'job_demands.id', '=', 'program_allocations.job_demand_id')
+            ->leftJoin('training_programs', 'training_programs.id', '=', 'program_allocations.training_program_id')
+            ->leftJoin('institutions', 'institutions.id', '=', 'program_allocations.institution_id')
+            ->whereNull('program_allocations.deleted_at')
+            ->orderByDesc('program_allocations.created_at')
+            ->get([
+                'program_allocations.id',
+                'program_allocations.job_demand_id',
+                'program_allocations.training_program_id',
+                'program_allocations.institution_id',
+                'program_allocations.total_budget',
+                'program_allocations.start_date',
+                'program_allocations.end_date',
+                'program_allocations.status',
+                'job_demands.occupation_id',
+                'training_programs.name as program_name',
+                'institutions.name as institution_name',
+            ])
+            ->map(fn (object $row): array => [
+                'allocationId' => $row->id,
+                'demandId' => $row->job_demand_id,
+                'selectedProgramId' => $row->training_program_id,
+                'selectedProviderId' => $row->institution_id,
+                'allocatedCandidateIds' => $candidateIds->get($row->id, []),
+                'totalBudgetRequired' => (float) $row->total_budget,
+                'batchScheduleStart' => $row->start_date,
+                'batchScheduleEnd' => $row->end_date,
+                'approvalStatus' => $row->status,
+                'programName' => $row->program_name,
+                'providerName' => $row->institution_name,
             ])->all();
     }
 
@@ -505,6 +595,8 @@ class BusinessDataPresenter
                 'achievedJp' => (int) $records->sum('achieved_jp'),
                 'participantCount' => $records->count(),
                 'verifiedReportsCount' => (int) $records->sum('verified_reports_count'),
+                'averageAttendance' => null,
+                'averageAssessmentScore' => null,
                 'status' => $records->first()->status,
             ])->values();
 
@@ -531,6 +623,8 @@ class BusinessDataPresenter
                 'institutions.name as institution_name',
             ])
             ->selectRaw('COUNT(training_enrollments.id) as participant_count')
+            ->selectRaw('AVG(training_enrollments.attendance_percent) as average_attendance')
+            ->selectRaw('AVG(training_enrollments.assessment_score) as average_assessment_score')
             ->groupBy(
                 'training_classes.id',
                 'training_classes.class_name',
@@ -552,9 +646,11 @@ class BusinessDataPresenter
                 'startDate' => $row->start_date,
                 'endDate' => $row->end_date,
                 'targetJp' => (int) $row->total_jp,
-                'achievedJp' => 0,
+                'achievedJp' => null,
                 'participantCount' => (int) $row->participant_count,
                 'verifiedReportsCount' => 0,
+                'averageAttendance' => $row->average_attendance === null ? null : (float) $row->average_attendance,
+                'averageAssessmentScore' => $row->average_assessment_score === null ? null : (float) $row->average_assessment_score,
                 'status' => $row->status,
             ]);
 
@@ -593,6 +689,42 @@ class BusinessDataPresenter
             ->orderByDesc('started_at')
             ->first(['status', 'started_at', 'finished_at', 'records_fetched', 'records_inserted', 'records_updated', 'records_skipped']) : null;
 
+        $placements = in_array($role, ['task_force', 'directorate_admin', 'bp3mi_admin', 'placement_officer'], true)
+            ? DB::table('placement_cases')
+                ->join('candidate_matches', 'candidate_matches.id', '=', 'placement_cases.candidate_match_id')
+                ->join('job_seekers', 'job_seekers.id', '=', 'candidate_matches.job_seeker_id')
+                ->join('job_demands', 'job_demands.id', '=', 'candidate_matches.job_demand_id')
+                ->join('employers', 'employers.id', '=', 'job_demands.employer_id')
+                ->leftJoin('countries', 'countries.id', '=', 'job_demands.country_id')
+                ->leftJoin('occupations', 'occupations.id', '=', 'job_demands.occupation_id')
+                ->when(
+                    in_array($role, ['bp3mi_admin', 'placement_officer'], true),
+                    fn ($query) => $query->where('job_seekers.province_id', $user->province_id ?? ''),
+                )
+                ->whereNull('job_seekers.deleted_at')
+                ->orderByDesc('placement_cases.started_at')
+                ->get([
+                    'placement_cases.id',
+                    'job_seekers.full_name as candidate_name',
+                    'occupations.title as occupation',
+                    'countries.name as country',
+                    'employers.name as employer',
+                    'placement_cases.status',
+                    'placement_cases.flight_date',
+                    'placement_cases.siskop2mi_id',
+                ])
+                ->map(fn (object $row): array => [
+                    'id' => $row->id,
+                    'candidateName' => $row->candidate_name,
+                    'occupation' => $row->occupation ?? 'Belum dipetakan',
+                    'country' => $row->country ?? 'Belum ditentukan',
+                    'employer' => $row->employer,
+                    'status' => $row->status,
+                    'flightDate' => $row->flight_date,
+                    'siskop2miId' => $row->siskop2mi_id,
+                ])->all()
+            : [];
+
         return [
             'summary' => [
                 'totalClasses' => $localClasses->count() + $externalClasses->count(),
@@ -604,9 +736,14 @@ class BusinessDataPresenter
                 'verifiedReports' => $canViewGardata
                     ? (int) DB::table('external_training_records')->where('external_source', 'gardata')->sum('verified_reports_count')
                     : 0,
+                'averageAttendance' => $localClasses->whereNotNull('averageAttendance')->avg('averageAttendance'),
+                'averageAssessmentScore' => $localClasses->whereNotNull('averageAssessmentScore')->avg('averageAssessmentScore'),
+                'gardataTargetJp' => (int) $externalClasses->sum('targetJp'),
+                'gardataAchievedJp' => (int) $externalClasses->sum('achievedJp'),
             ],
             'classes' => $localClasses->concat($externalClasses)->values()->all(),
             'candidates' => $gardataCandidates,
+            'placements' => $placements,
             'lastSync' => $lastSync ? [
                 'status' => $lastSync->status,
                 'startedAt' => $lastSync->started_at,

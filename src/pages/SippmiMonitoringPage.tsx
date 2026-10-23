@@ -123,7 +123,9 @@ export function SippmiMonitoringPage({ monitoring }: SippmiMonitoringPageProps) 
                       {formatDate(trainingClass.startDate)} – {formatDate(trainingClass.endDate)}
                     </TableCell>
                     <TableCell className="tabular-nums">
-                      {trainingClass.achievedJp.toLocaleString("id-ID")} / {trainingClass.targetJp.toLocaleString("id-ID")}
+                      {trainingClass.achievedJp === null
+                        ? "Belum tercatat"
+                        : `${trainingClass.achievedJp.toLocaleString("id-ID")} / ${trainingClass.targetJp.toLocaleString("id-ID")}`}
                     </TableCell>
                     <TableCell className="tabular-nums">{trainingClass.participantCount.toLocaleString("id-ID")}</TableCell>
                     <TableCell><Badge variant="secondary">{trainingClass.status}</Badge></TableCell>

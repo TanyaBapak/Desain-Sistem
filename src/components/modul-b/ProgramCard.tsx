@@ -14,6 +14,7 @@ import {
   Trash2
 } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
+import { visitAllocationStage } from '../../lib/navigation';
 
 interface ProgramCardProps {
   program: TrainingProgram;
@@ -28,7 +29,13 @@ export const ProgramCard: React.FC<ProgramCardProps> = ({
   onEditProgram,
   onDeleteProgram,
 }) => {
-  const { selectedProgramId, setSelectedProgramId, setActiveStage } = useAppStore();
+  const {
+    currentRole,
+    selectedProgramId,
+    selectedProviderId,
+    setSelectedProgramId,
+    setActiveStage,
+  } = useAppStore();
 
   const isSelected = selectedProgramId === program.id;
 
@@ -43,6 +50,7 @@ export const ProgramCard: React.FC<ProgramCardProps> = ({
   const handleSelectProgram = () => {
     setSelectedProgramId(program.id);
     setActiveStage(4);
+    visitAllocationStage({ programId: program.id, providerId: selectedProviderId ?? undefined });
   };
 
   const availableSlots = program.quota - program.enrolledCount;
@@ -183,27 +191,29 @@ export const ProgramCard: React.FC<ProgramCardProps> = ({
           <span>Lihat Kurikulum</span>
         </button>
 
-        <button
-          type="button"
-          onClick={handleSelectProgram}
-          className={`px-3.5 py-2 text-xs font-bold rounded-xl transition flex items-center gap-1.5 shadow-xs ${
-            isSelected
-              ? 'bg-emerald-600 text-white'
-              : 'bg-blue-600 text-white hover:bg-blue-700'
-          }`}
-        >
-          {isSelected ? (
-            <>
-              <CheckCircle2 className="w-3.5 h-3.5" />
-              <span>Terpilih di Tahap 4</span>
-            </>
-          ) : (
-            <>
-              <span>Pilih Alokasi</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </>
-          )}
-        </button>
+        {currentRole === 'taskforce' && (
+          <button
+            type="button"
+            onClick={handleSelectProgram}
+            className={`px-3.5 py-2 text-xs font-bold rounded-xl transition flex items-center gap-1.5 shadow-xs ${
+              isSelected
+                ? 'bg-emerald-600 text-white'
+                : 'bg-blue-600 text-white hover:bg-blue-700'
+            }`}
+          >
+            {isSelected ? (
+              <>
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                <span>Terpilih di Tahap 4</span>
+              </>
+            ) : (
+              <>
+                <span>Pilih Alokasi</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </>
+            )}
+          </button>
+        )}
       </div>
     </div>
   );

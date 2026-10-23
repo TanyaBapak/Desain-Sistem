@@ -6,6 +6,7 @@ use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\BusinessDataController;
 use App\Http\Controllers\GardataSyncController;
 use App\Http\Controllers\Kp2miVokasiSyncController;
+use App\Http\Controllers\ProgramAllocationController;
 use App\Http\Middleware\EnsureUserIsActive;
 use App\Models\User;
 use Illuminate\Support\Facades\Route;
@@ -40,6 +41,13 @@ Route::middleware(['auth', EnsureUserIsActive::class])->group(function () {
     Route::post('/approvals/{id}', [ApprovalWorkflowController::class, 'update'])
         ->where('id', '[A-Za-z0-9-]+')
         ->name('approvals.update');
+    Route::post('/allocations', [ProgramAllocationController::class, 'store'])->name('allocations.store');
+    Route::patch('/allocations/{id}', [ProgramAllocationController::class, 'updateStatus'])
+        ->where('id', '[A-Za-z0-9-]+')
+        ->name('allocations.update-status');
+    Route::delete('/allocations/{id}', [ProgramAllocationController::class, 'destroy'])
+        ->where('id', '[A-Za-z0-9-]+')
+        ->name('allocations.destroy');
     Route::post('/business-data/{type}', [BusinessDataController::class, 'store'])
         ->where('type', 'candidates|programs|providers|demands')
         ->name('business-data.store');

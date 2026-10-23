@@ -14,6 +14,7 @@ import {
   Trash2
 } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
+import { visitAllocationStage } from '../../lib/navigation';
 
 interface ProviderCardProps {
   provider: VocationalProvider;
@@ -28,13 +29,20 @@ export const ProviderCard: React.FC<ProviderCardProps> = ({
   onEditProvider,
   onDeleteProvider,
 }) => {
-  const { selectedProviderId, setSelectedProviderId, setActiveStage } = useAppStore();
+  const {
+    currentRole,
+    selectedProgramId,
+    selectedProviderId,
+    setSelectedProviderId,
+    setActiveStage,
+  } = useAppStore();
 
   const isSelected = selectedProviderId === provider.id;
 
   const handleSelectProvider = () => {
     setSelectedProviderId(provider.id);
     setActiveStage(4);
+    visitAllocationStage({ programId: selectedProgramId ?? undefined, providerId: provider.id });
   };
 
   return (
@@ -223,27 +231,29 @@ export const ProviderCard: React.FC<ProviderCardProps> = ({
           Lihat Fasilitas Lab
         </button>
 
-        <button
-          type="button"
-          onClick={handleSelectProvider}
-          className={`px-3.5 py-2 text-xs font-bold rounded-xl transition flex items-center gap-1.5 shadow-xs ${
-            isSelected
-              ? 'bg-emerald-600 text-white'
-              : 'bg-blue-600 text-white hover:bg-blue-700'
-          }`}
-        >
-          {isSelected ? (
-            <>
-              <CheckCircle2 className="w-3.5 h-3.5" />
-              <span>Terpilih di Tahap 4</span>
-            </>
-          ) : (
-            <>
-              <span>Pilih Lembaga</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </>
-          )}
-        </button>
+        {currentRole === 'taskforce' && (
+          <button
+            type="button"
+            onClick={handleSelectProvider}
+            className={`px-3.5 py-2 text-xs font-bold rounded-xl transition flex items-center gap-1.5 shadow-xs ${
+              isSelected
+                ? 'bg-emerald-600 text-white'
+                : 'bg-blue-600 text-white hover:bg-blue-700'
+            }`}
+          >
+            {isSelected ? (
+              <>
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                <span>Terpilih di Tahap 4</span>
+              </>
+            ) : (
+              <>
+                <span>Pilih Lembaga</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </>
+            )}
+          </button>
+        )}
       </div>
     </div>
   );

@@ -109,6 +109,7 @@ export interface VocationalProvider {
   sectorals?: SectoralPosition[];
   programs?: ProviderProgram[];
   source?: 'kp2mi-api' | 'vokasi.kp2mi.go.id' | 'local' | string;
+  verificationStatus?: string;
 }
 
 // ==========================================
@@ -129,6 +130,7 @@ export interface GlobalDemand {
   deadlineDate: string;
   workTermMonths: number;
   salaryRangeString: string; // e.g. "JPY 180,000 - 220,000 / bulan"
+  verificationStatus?: string;
 }
 
 // ==========================================
@@ -143,6 +145,16 @@ export interface MatchingResult {
   skillGaps: string[];
   languageGapDescription: string;
   recommendedProgramId?: string;
+}
+
+export interface PersistedCandidateMatch {
+  id: number;
+  candidateId: string;
+  demandId: string;
+  matchScore: number;
+  matchStatus: string;
+  explanation: string | null;
+  programName: string | null;
 }
 
 export interface ProgramAllocationDecision {
@@ -384,9 +396,11 @@ export interface MonitoringClassData {
   startDate: string | null;
   endDate: string | null;
   targetJp: number;
-  achievedJp: number;
+  achievedJp: number | null;
   participantCount: number;
   verifiedReportsCount: number;
+  averageAttendance: number | null;
+  averageAssessmentScore: number | null;
   status: string;
 }
 
@@ -407,9 +421,23 @@ export interface MonitoringData {
     activeClasses: number;
     gardataCandidates: number;
     verifiedReports: number;
+    averageAttendance: number | null;
+    averageAssessmentScore: number | null;
+    gardataTargetJp: number;
+    gardataAchievedJp: number;
   };
   classes: MonitoringClassData[];
   candidates: MonitoringCandidateData[];
+  placements: {
+    id: string;
+    candidateName: string;
+    occupation: string;
+    country: string;
+    employer: string;
+    status: string;
+    flightDate: string | null;
+    siskop2miId: string | null;
+  }[];
   lastSync: {
     status: string;
     startedAt: string | null;

@@ -1,8 +1,7 @@
 import React, { useState, useMemo } from 'react';
-import {
-  useAppStore,
-  calculateMatchingScore
-} from '../../store/useAppStore';
+import { router } from '@inertiajs/react';
+import { toast } from 'sonner';
+import { useAppStore } from '../../store/useAppStore';
 import { MatchingGapCard } from './MatchingGapCard';
 import {
   Cpu,
@@ -10,23 +9,48 @@ import {
   Award,
   Users,
   CheckCircle2,
-  Calendar,
-  DollarSign,
   Building2,
   GraduationCap,
-  Sparkles,
   ArrowRight,
   ShieldCheck,
   Globe2,
-  Plus,
   Trash2,
   FileCheck,
   ExternalLink
 } from 'lucide-react';
 import { Badge } from '../ui/Badge';
 import { SystemStageStepper } from '../layout/SystemStageStepper';
+import { DeleteConfirmModal } from '../ui/DeleteConfirmModal';
+import { MonitoringData, PersistedCandidateMatch } from '../../types';
 
-export const MatchingEngineView: React.FC = () => {
+interface MatchingEngineViewProps {
+  candidateMatches: PersistedCandidateMatch[];
+  monitoring: MonitoringData | undefined;
+}
+
+const inputDate = (date: Date) => {
+  const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
+  return localDate.toISOString().slice(0, 10);
+};
+
+const EMPTY_MONITORING: MonitoringData = {
+  summary: {
+    totalClasses: 0,
+    activeClasses: 0,
+    gardataCandidates: 0,
+    verifiedReports: 0,
+    averageAttendance: null,
+    averageAssessmentScore: null,
+    gardataTargetJp: 0,
+    gardataAchievedJp: 0,
+  },
+  classes: [],
+  candidates: [],
+  placements: [],
+  lastSync: null,
+};
+
+export const MatchingEngineView: React.FC<MatchingEngineViewProps> = ({ candidateMatches, monitoring }) => {
   const {
     candidates,
     programs,
@@ -40,50 +64,42 @@ export const MatchingEngineView: React.FC = () => {
     selectedCandidateIds,
     toggleCandidateSelection,
     selectAllCandidates,
-    clearCandidateSelection,
     selectedProgramId,
     setSelectedProgramId,
     selectedProviderId,
     setSelectedProviderId,
-    createAllocation,
-    updateAllocationStatus,
-    deleteAllocation,
   } = useAppStore();
+  const monitoringData = monitoring && !Array.isArray(monitoring) ? monitoring : EMPTY_MONITORING;
 
   // State for Tahap 4 batch dates
-  const [startDate, setStartDate] = useState('2026-12-01');
-  const [endDate, setEndDate] = useState('2027-03-31');
+  const [startDate, setStartDate] = useState(() => inputDate(new Date()));
+  const [endDate, setEndDate] = useState(() => {
+    const end = new Date();
+    end.setMonth(end.getMonth() + 3);
+    return inputDate(end);
+  });
   const [allocationSuccessNotice, setAllocationSuccessNotice] = useState<string | null>(null);
+  const [allocationError, setAllocationError] = useState<string | null>(null);
+  const [savingAllocation, setSavingAllocation] = useState(false);
+  const [pendingArchiveId, setPendingArchiveId] = useState<string | null>(null);
 
   // Selected entities
-  const activeDemand = demands.find((d) => d.id === selectedDemandId) || demands[0];
+  const allocationDemands = demands.filter((d) => d.verificationStatus === 'Approved');
+  const allocationProviders = providers.filter((p) => p.verificationStatus === 'Verified');
+  const activeDemand = allocationDemands.find((d) => d.id === selectedDemandId) || allocationDemands[0];
   const activeProgram = programs.find((p) => p.id === selectedProgramId) || programs[0];
-  const activeProvider = providers.find((p) => p.id === selectedProviderId) || providers[0];
+  const activeProvider = allocationProviders.find((p) => p.id === selectedProviderId) || allocationProviders[0];
 
-  // Candidates who are verified for matching (or all candidates if in stage 1/2)
-  const candidatePool = useMemo(() => {
-    if (activeStage >= 3) {
-      // Tahap 3 & 4 prioritizes verified candidates
-      return candidates.filter((c) => c.verificationStatus === 'Verified');
-    }
-    return candidates;
-  }, [candidates, activeStage]);
-
-  // Calculate matching scores against active demand
+  // Scores and recommendations are taken from persisted matching records.
   const scoredCandidates = useMemo(() => {
     if (!activeDemand) return [];
-    return candidatePool.map((candidate) => {
-      const matchResult = calculateMatchingScore(candidate, activeDemand);
-      const recommendedProgram = programs.find(
-        (p) => p.id === matchResult.recommendedProgramId
-      );
-      return {
-        candidate,
-        matchResult,
-        recommendedProgramTitle: recommendedProgram?.title || 'Program Standarisasi Teknis',
-      };
-    }).sort((a, b) => b.matchResult.matchScore - a.matchResult.matchScore);
-  }, [candidatePool, activeDemand, programs]);
+    return candidateMatches
+      .filter((match) => match.demandId === activeDemand.id)
+      .flatMap((match) => {
+        const candidate = candidates.find((entry) => entry.id === match.candidateId);
+        return candidate ? [{ candidate, matchResult: match }] : [];
+      });
+  }, [candidateMatches, candidates, activeDemand]);
 
   // Format currency helper
   const formatIDR = (num: number) => {
@@ -101,29 +117,70 @@ export const MatchingEngineView: React.FC = () => {
   // Handle allocation submission in Tahap 4
   const handleFinalizeAllocation = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!activeDemand || !activeProgram || !activeProvider) {
+      const message = 'Demand, program, dan lembaga yang aktif harus tersedia sebelum keputusan alokasi diterbitkan.';
+      setAllocationError(message);
+      toast.error(message);
+      return;
+    }
+
     if (selectedCandidateIds.length === 0) {
       alert('Pilih minimal 1 calon peserta untuk penetapan batch!');
       return;
     }
 
-    const decision = createAllocation({
+    setSavingAllocation(true);
+    setAllocationError(null);
+    router.post('/allocations', {
       demandId: activeDemand.id,
       programId: activeProgram.id,
       providerId: activeProvider.id,
       candidateIds: selectedCandidateIds,
       startDate,
       endDate,
+    }, {
+      preserveScroll: true,
+      onSuccess: () => {
+        setAllocationSuccessNotice(
+          `Keputusan alokasi berhasil disimpan ke database. Total anggaran: ${formatIDR(estimatedBudget)} untuk ${selectedCandidateIds.length} peserta.`
+        );
+        toast.success('Keputusan alokasi batch berhasil disimpan.');
+        setTimeout(() => setAllocationSuccessNotice(null), 6000);
+      },
+      onError: (errors) => {
+        const message = Object.values(errors).find(Boolean) ?? 'Alokasi belum dapat disimpan. Periksa kelengkapan data dan kapasitas.';
+        setAllocationError(message);
+        toast.error(message);
+      },
+      onFinish: () => setSavingAllocation(false),
     });
+  };
 
-    setAllocationSuccessNotice(
-      `Keputusan Alokasi ${decision.allocationId} Berhasil Ditetapkan! Total Anggaran: ${formatIDR(
-        decision.totalBudgetRequired
-      )} untuk ${decision.allocatedCandidateIds.length} peserta.`
-    );
+  const finalizeAllocation = (allocationId: string) => {
+    router.patch(`/allocations/${encodeURIComponent(allocationId)}`, { status: 'Finalized' }, {
+      preserveScroll: true,
+      onSuccess: () => toast.success('Alokasi berhasil difinalisasi.'),
+      onError: () => toast.error('Alokasi belum dapat difinalisasi. Periksa status dan hak akses.'),
+    });
+  };
 
-    setTimeout(() => {
-      setAllocationSuccessNotice(null);
-    }, 6000);
+  const archiveAllocation = (allocationId: string) => {
+    setPendingArchiveId(allocationId);
+  };
+
+  const confirmArchiveAllocation = (reason: string) => {
+    if (!pendingArchiveId) return;
+
+    const allocationId = pendingArchiveId;
+    router.delete(`/allocations/${encodeURIComponent(allocationId)}`, {
+      data: { reason },
+      preserveScroll: true,
+      onSuccess: () => {
+        toast.success('Alokasi berhasil dibatalkan dan diarsipkan.');
+        setPendingArchiveId(null);
+      },
+      onError: () => toast.error('Alokasi belum dapat dibatalkan. Alokasi final tidak dapat dibatalkan.'),
+    });
   };
 
   return (
@@ -143,6 +200,11 @@ export const MatchingEngineView: React.FC = () => {
           <div className="text-xs sm:text-sm font-semibold">{allocationSuccessNotice}</div>
         </div>
       )}
+      {allocationError && (
+        <div role="alert" className="rounded-xl border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
+          {allocationError}
+        </div>
+      )}
 
       {/* ======================================================== */}
       {/* STAGE 1: PENGUMPULAN DATA (DATA INGESTION OVERVIEW)      */}
@@ -158,7 +220,7 @@ export const MatchingEngineView: React.FC = () => {
               Integrasi Multilateral Ekosistem Vokasi & Ketenagakerjaan Luar Negeri
             </h3>
             <p className="text-xs text-slate-500 mt-1 max-w-3xl leading-relaxed">
-              Tahap awal menyatukan 4 pilar data intelijen: Pasokan Calon PMI dari SMK/Politeknik (Modul A), Kurikulum Pelatihan Terakreditasi (Modul B), Direktori Lembaga Penyelenggara e-Vokasi (Modul C), dan Permintaan Pasar Kerja Global dari SISKOP2MI (Modul D).
+              Ringkasan ini menggunakan data yang tersimpan pada basis data aplikasi. Data Gardata ditampilkan setelah disinkronkan; sumber Demand mengikuti catatan pada basis data dan belum otomatis menunjukkan integrasi SISKOP2MI.
             </p>
 
             {/* 4 Pillars Summary Grid */}
@@ -184,8 +246,12 @@ export const MatchingEngineView: React.FC = () => {
                 <div className="text-2xl font-black text-indigo-900">{programs.length}</div>
                 <p className="mt-1 text-xs text-indigo-700">Program Pelatihan Standar</p>
                 <div className="mt-3 flex items-center justify-between gap-2 overflow-hidden border-t border-indigo-200/60 pt-2 text-xs text-indigo-700">
-                  <span className="truncate">SSW Kaigo / Welder</span>
-                  <span className="truncate">Ausbildung</span>
+                  <span className="truncate">
+                    {programs.filter((program) => program.programType === 'Upskilling').length} Upskilling
+                  </span>
+                  <span className="truncate">
+                    {programs.filter((program) => program.programType === 'Reskilling').length} Reskilling
+                  </span>
                 </div>
               </div>
 
@@ -195,14 +261,16 @@ export const MatchingEngineView: React.FC = () => {
                   <Building2 className="w-4 h-4 text-emerald-600" />
                 </div>
                 <div className="text-2xl font-black text-emerald-900">{providers.length}</div>
-                <p className="mt-1 text-xs text-emerald-700">Lembaga Terverifikasi e-Vokasi</p>
+                <p className="mt-1 text-xs text-emerald-700">Lembaga dalam basis data</p>
                 <div className="mt-3 flex items-center justify-between gap-2 overflow-hidden border-t border-emerald-200/60 pt-2 text-xs text-emerald-700">
                   <span className="truncate">
                     Kapasitas: {providers.some((provider) => provider.capacityPerBatch !== null)
                       ? providers.reduce((total, provider) => total + (provider.capacityPerBatch ?? 0), 0)
                       : 'Belum tersedia'}
                   </span>
-                  <span className="truncate">Skor Rata2: 87/100</span>
+                  <span className="truncate">
+                    Terverifikasi: {providers.filter((provider) => provider.verificationStatus === 'Verified').length}
+                  </span>
                 </div>
               </div>
 
@@ -214,8 +282,12 @@ export const MatchingEngineView: React.FC = () => {
                 <div className="text-2xl font-black text-amber-900">{demands.reduce((acc, d) => acc + d.requiredQuota, 0)}</div>
                 <p className="mt-1 text-xs text-amber-700">Total Kuota Permintaan Global</p>
                 <div className="mt-3 flex items-center justify-between gap-2 overflow-hidden border-t border-amber-200/60 pt-2 text-xs text-amber-700">
-                  <span className="truncate">Jepang, Jerman, Korea</span>
-                  <span className="truncate">Taiwan</span>
+                  <span className="truncate">
+                    {new Set(demands.map((demand) => demand.country)).size} negara tujuan
+                  </span>
+                  <span className="truncate">
+                    Terpenuhi: {demands.reduce((total, demand) => total + demand.filledQuota, 0)}
+                  </span>
                 </div>
               </div>
             </div>
@@ -247,7 +319,7 @@ export const MatchingEngineView: React.FC = () => {
               Pembersihan Data, Deduplikasi & Kelayakan Calon Peserta
             </h3>
             <p className="text-xs text-slate-500 leading-relaxed max-w-3xl">
-              Sebelum dimasukkan ke dalam Matching Engine, seluruh calon peserta divalidasi keabsahan NIK Dukcapil, ijazah kejuruan, dan sertifikat bahasa. Lembaga vokasi juga disaring wajib memiliki status <strong>Terverifikasi e-Vokasi</strong>.
+              Tahap ini menampilkan status verifikasi yang tersimpan di database. Pemeriksaan Dukcapil, Dapodik, atau e-Vokasi hanya dianggap selesai jika integrasi resmi telah menyediakan hasilnya.
             </p>
 
             {/* Validation Metrics Progress */}
@@ -343,9 +415,11 @@ export const MatchingEngineView: React.FC = () => {
                 <select
                   value={activeDemand?.id}
                   onChange={(e) => setSelectedDemandId(e.target.value)}
+                  disabled={allocationDemands.length === 0}
                   className="w-full py-2 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  {demands.map((d) => (
+                  {allocationDemands.length === 0 && <option value="">Belum ada demand disetujui</option>}
+                  {allocationDemands.map((d) => (
                     <option key={d.id} value={d.id}>
                       {d.country}: {d.jobTitle} ({d.employerName})
                     </option>
@@ -397,7 +471,7 @@ export const MatchingEngineView: React.FC = () => {
             <div className="flex items-center gap-2 text-[11px] text-slate-500 bg-blue-50/50 p-2.5 rounded-lg border border-blue-100">
               <Cpu className="w-4 h-4 text-blue-600 shrink-0" />
               <span>
-                <strong>Formulasi Skor Matching:</strong> (Kesesuaian Keterampilan × 50%) + (Standar Bahasa Asing × 35%) + (Pendidikan Vokasi × 15%). Kandidat dengan skor ≥80% siap penempatan langsung, sedangkan skor &lt;80% diarahkan ke Modul B.
+                Skor dan rekomendasi berikut berasal dari hasil matching yang tersimpan di database. Jika belum ada hasil, jalankan proses matching backend terlebih dahulu.
               </span>
             </div>
           </div>
@@ -406,22 +480,26 @@ export const MatchingEngineView: React.FC = () => {
           <div className="space-y-4">
             <div className="flex items-center justify-between text-xs text-slate-500">
               <span>
-                Daftar Hasil Matching ({scoredCandidates.length} Calon Peserta Terverifikasi diurutkan dari skor tertinggi)
+                Daftar hasil matching tersimpan ({scoredCandidates.length} peserta)
               </span>
               <span>Terpilih untuk Alokasi: <strong className="text-blue-600">{selectedCandidateIds.length}</strong></span>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {scoredCandidates.map(({ candidate, matchResult, recommendedProgramTitle }) => (
-                <MatchingGapCard
-                  key={candidate.id}
-                  candidate={candidate}
-                  demand={activeDemand}
-                  result={matchResult}
-                  recommendedProgramTitle={recommendedProgramTitle}
-                />
-              ))}
-            </div>
+            {scoredCandidates.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-600">
+                Belum ada hasil matching untuk demand ini. Hasil hanya muncul setelah dicatat pada proses matching backend.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {scoredCandidates.map(({ candidate, matchResult }) => (
+                  <MatchingGapCard
+                    key={matchResult.id}
+                    candidate={candidate}
+                    result={matchResult}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -430,6 +508,28 @@ export const MatchingEngineView: React.FC = () => {
       {/* STAGE 4: PENETAPAN PROGRAM & ALOKASI LEMBAGA            */}
       {/* ======================================================== */}
       {activeStage === 4 && (
+        !activeDemand || !activeProgram || !activeProvider ? (
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-amber-950" role="status">
+            <h3 className="text-base font-bold">Data alokasi belum lengkap</h3>
+            <p className="mt-2 text-sm">
+              {[
+                !activeDemand ? 'Belum ada demand yang disetujui dan tersedia untuk akun ini.' : null,
+                !activeProgram ? 'Belum ada program pelatihan yang tersedia.' : null,
+                !activeProvider ? 'Belum ada lembaga vokasi yang terverifikasi.' : null,
+              ].filter(Boolean).join(' ')}
+            </p>
+            <p className="mt-1 text-sm">
+              Periksa status verifikasi dan akses akun, lalu pilih data yang tersedia sebelum melanjutkan.
+            </p>
+            <button
+              type="button"
+              onClick={() => setActiveStage(3)}
+              className="mt-4 rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800"
+            >
+              Kembali ke Tahap Matching
+            </button>
+          </div>
+        ) : (
         <div className="space-y-8 animate-fade-in">
           {/* Allocation Creation Simulator Form */}
           <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-6">
@@ -461,7 +561,7 @@ export const MatchingEngineView: React.FC = () => {
                       onChange={(e) => setSelectedDemandId(e.target.value)}
                       className="w-full text-xs py-2 px-3 bg-white border border-slate-200 rounded-lg font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
-                      {demands.map((d) => (
+                      {allocationDemands.map((d) => (
                         <option key={d.id} value={d.id}>
                           {d.country}: {d.jobTitle} ({d.employerName})
                         </option>
@@ -533,7 +633,7 @@ export const MatchingEngineView: React.FC = () => {
                       onChange={(e) => setSelectedProviderId(e.target.value)}
                       className="w-full text-xs py-2 px-3 bg-white border border-slate-200 rounded-lg font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
-                      {providers.map((pr) => (
+                      {allocationProviders.map((pr) => (
                         <option key={pr.id} value={pr.id}>
                           {pr.name} ({pr.provinsi} - Kesiapan: {pr.operationalReadinessScore == null ? 'Belum tersedia' : `${pr.operationalReadinessScore}/100`})
                         </option>
@@ -589,11 +689,11 @@ export const MatchingEngineView: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  disabled={selectedCandidateIds.length === 0}
+                  disabled={selectedCandidateIds.length === 0 || savingAllocation}
                   className="px-6 py-2.5 rounded-xl text-xs font-bold bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition flex items-center gap-2 shadow-lg shadow-blue-500/20"
                 >
                   <FileCheck className="w-4 h-4" />
-                  <span>Terbitkan Keputusan Penetapan Alokasi Batch</span>
+                  <span>{savingAllocation ? 'Menyimpan keputusan…' : 'Terbitkan Keputusan Penetapan Alokasi Batch'}</span>
                 </button>
               </div>
             </form>
@@ -687,7 +787,7 @@ export const MatchingEngineView: React.FC = () => {
                             <div className="flex items-center justify-end gap-1">
                               {alloc.approvalStatus !== 'Finalized' && (
                                 <button
-                                  onClick={() => updateAllocationStatus(alloc.allocationId, 'Finalized')}
+                                  onClick={() => finalizeAllocation(alloc.allocationId)}
                                   className="px-2 py-1 text-[11px] font-bold rounded bg-emerald-100 text-emerald-800 hover:bg-emerald-200 transition"
                                   title="Finalisasi Keputusan"
                                 >
@@ -695,11 +795,7 @@ export const MatchingEngineView: React.FC = () => {
                                 </button>
                               )}
                               <button
-                                onClick={() => {
-                                  if (confirm(`Hapus keputusan alokasi ${alloc.allocationId}?`)) {
-                                    deleteAllocation(alloc.allocationId);
-                                  }
-                                }}
+                                onClick={() => archiveAllocation(alloc.allocationId)}
                                 className="p-1 text-slate-400 hover:text-red-600 transition rounded"
                                 title="Hapus Alokasi"
                               >
@@ -716,6 +812,7 @@ export const MatchingEngineView: React.FC = () => {
             </div>
           </div>
         </div>
+        )
       )}
 
       {/* ======================================================== */}
@@ -730,7 +827,7 @@ export const MatchingEngineView: React.FC = () => {
                   Tahap 5: Pelaksanaan Pelatihan & Monitoring Capaian JP
                 </span>
                 <h3 className="text-lg font-black text-slate-900 mt-0.5">
-                  Pemantauan Kelas Berjalan, Presensi, Asesmen & Uji Kompetensi BNSP
+                  Pemantauan Kelas, Presensi & Asesmen Tercatat
                 </h3>
               </div>
               <div className="flex items-center gap-2">
@@ -744,16 +841,19 @@ export const MatchingEngineView: React.FC = () => {
                   <ExternalLink className="w-3.5 h-3.5" />
                   <span>Feeder: gardata.sippmi.com</span>
                 </a>
-                <Badge variant="primary">PIC: Balai / SMK & Asesor BNSP</Badge>
+                <Badge variant="primary">Sumber: Database Aplikasi & Gardata</Badge>
               </div>
             </div>
 
             {/* Feeder gardata.sippmi.com status notice */}
             <div className="p-3 bg-blue-50/60 border border-blue-200/80 rounded-xl flex items-center justify-between text-xs text-blue-900">
               <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                 <span>
-                  Data kehadiran dan capaian JP disinkronkan langsung dari <strong>gardata.sippmi.com</strong> (Sistem Pelaporan Kegiatan Pelatihan CPMI).
+                  Status sinkronisasi Gardata:{' '}
+                  <strong>{monitoringData.lastSync?.status ?? 'Belum pernah disinkronkan'}</strong>
+                  {monitoringData.lastSync?.finishedAt
+                    ? ` · Pembaruan ${new Date(monitoringData.lastSync.finishedAt).toLocaleString('id-ID')}`
+                    : ''}
                 </span>
               </div>
               <a
@@ -762,7 +862,7 @@ export const MatchingEngineView: React.FC = () => {
                 rel="noreferrer"
                 className="text-blue-700 font-bold hover:underline flex items-center gap-1 shrink-0"
               >
-                <span>Kelola Absensi Harian</span>
+                <span>Buka Gardata</span>
                 <ArrowRight className="w-3 h-3" />
               </a>
             </div>
@@ -772,72 +872,85 @@ export const MatchingEngineView: React.FC = () => {
               <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
                 <span className="text-[10px] uppercase font-bold text-slate-400">Tingkat Kehadiran Kelas</span>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-2xl font-black text-emerald-600">96,4%</span>
-                  <span className="text-xs text-slate-400">Rata-rata Presensi</span>
+                  <span className="text-2xl font-black text-emerald-600">
+                    {monitoringData.summary.averageAttendance === null
+                      ? 'Belum tersedia'
+                      : `${monitoringData.summary.averageAttendance.toLocaleString('id-ID', { maximumFractionDigits: 1 })}%`}
+                  </span>
+                  <span className="text-xs text-slate-400">Data database lokal</span>
                 </div>
                 <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
-                  <div className="h-full bg-emerald-500 rounded-full" style={{ width: '96.4%' }} />
+                  <div
+                    className="h-full bg-emerald-500 rounded-full"
+                    style={{ width: `${Math.min(100, monitoringData.summary.averageAttendance ?? 0)}%` }}
+                  />
                 </div>
               </div>
 
               <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
                 <span className="text-[10px] uppercase font-bold text-slate-400">Capaian Jam Pelajaran (JP)</span>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-2xl font-black text-blue-600">184 / 360</span>
-                  <span className="text-xs text-slate-400">JP Tuntas</span>
+                  <span className="text-2xl font-black text-blue-600">
+                    {monitoringData.summary.gardataAchievedJp.toLocaleString('id-ID')} / {monitoringData.summary.gardataTargetJp.toLocaleString('id-ID')}
+                  </span>
+                  <span className="text-xs text-slate-400">JP Gardata</span>
                 </div>
                 <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
-                  <div className="h-full bg-blue-600 rounded-full" style={{ width: '51.1%' }} />
+                  <div
+                    className="h-full bg-blue-600 rounded-full"
+                    style={{
+                      width: `${monitoringData.summary.gardataTargetJp
+                        ? Math.min(100, (monitoringData.summary.gardataAchievedJp / monitoringData.summary.gardataTargetJp) * 100)
+                        : 0}%`,
+                    }}
+                  />
                 </div>
               </div>
 
               <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
-                <span className="text-[10px] uppercase font-bold text-slate-400">Kesiapan Asesmen BNSP</span>
+                <span className="text-[10px] uppercase font-bold text-slate-400">Rata-rata Nilai Asesmen</span>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-2xl font-black text-indigo-600">88%</span>
-                  <span className="text-xs text-slate-400">Siap Uji Kompetensi</span>
+                  <span className="text-2xl font-black text-indigo-600">
+                    {monitoringData.summary.averageAssessmentScore === null
+                      ? 'Belum tersedia'
+                      : `${monitoringData.summary.averageAssessmentScore.toLocaleString('id-ID', { maximumFractionDigits: 1 })}%`}
+                  </span>
+                  <span className="text-xs text-slate-400">Data database lokal</span>
                 </div>
                 <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
-                  <div className="h-full bg-indigo-600 rounded-full" style={{ width: '88%' }} />
+                  <div
+                    className="h-full bg-indigo-600 rounded-full"
+                    style={{ width: `${Math.min(100, monitoringData.summary.averageAssessmentScore ?? 0)}%` }}
+                  />
                 </div>
               </div>
             </div>
 
-            {/* Live Active Batches Table */}
+            {/* Persisted batches and Gardata training records */}
             <div className="rounded-xl border border-slate-200 overflow-hidden">
               <div className="p-3 bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-700">
-                Daftar Kelas Pelatihan Vokasi yang Sedang Berjalan:
+                Kelas dari database lokal dan catatan pelatihan Gardata:
               </div>
               <div className="divide-y divide-slate-100 text-xs">
-                <div className="p-3 flex items-center justify-between hover:bg-slate-50">
-                  <div>
-                    <span className="font-bold text-slate-900 block">Kelas SSW Kaigo Kaizen Batch I — LPK Global Nusantara Surabaya</span>
-                    <span className="text-slate-500 text-[11px]">28 Siswa • Progres JP: 210/360 JP • Instruktur: Tanaka Kenji & Ns. Siti Rahayu</span>
+                {monitoringData.classes.length === 0 ? (
+                  <p className="p-4 text-sm text-slate-500">Belum ada data kelas atau riwayat pelatihan tersinkron.</p>
+                ) : monitoringData.classes.map((trainingClass) => (
+                  <div key={trainingClass.id} className="p-3 flex flex-col gap-1 hover:bg-slate-50 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <span className="font-bold text-slate-900 block">{trainingClass.name}</span>
+                      <span className="text-slate-500 text-[11px]">
+                        {trainingClass.source} · {trainingClass.participantCount} peserta · JP:{' '}
+                        {trainingClass.achievedJp === null
+                          ? 'belum tercatat'
+                          : `${trainingClass.achievedJp}/${trainingClass.targetJp}`}
+                        {trainingClass.averageAttendance === null
+                          ? ''
+                          : ` · Presensi ${trainingClass.averageAttendance.toLocaleString('id-ID', { maximumFractionDigits: 1 })}%`}
+                      </span>
+                    </div>
+                    <span className="text-xs font-semibold text-slate-700">{trainingClass.status}</span>
                   </div>
-                  <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
-                    On-Schedule
-                  </span>
-                </div>
-
-                <div className="p-3 flex items-center justify-between hover:bg-slate-50">
-                  <div>
-                    <span className="font-bold text-slate-900 block">Kelas Welder 3G/4G Heavy Plate — BBPVP Bandung</span>
-                    <span className="text-slate-500 text-[11px]">22 Siswa • Progres JP: 180/300 JP • Instruktur: Ir. Bambang Priyono (BNSP Master)</span>
-                  </div>
-                  <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
-                    On-Schedule
-                  </span>
-                </div>
-
-                <div className="p-3 flex items-center justify-between hover:bg-slate-50">
-                  <div>
-                    <span className="font-bold text-slate-900 block">Kelas Intensif Bahasa Jerman Ausbildung B1 — Politeknik Pariwisata Bali</span>
-                    <span className="text-slate-500 text-[11px]">19 Siswa • Progres JP: 160/400 JP • Target Ujian Goethe B1: Desember 2026</span>
-                  </div>
-                  <span className="text-xs font-bold text-amber-600 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-200">
-                    Perlu Peningkatan Kaiwa
-                  </span>
-                </div>
+                ))}
               </div>
             </div>
 
@@ -869,91 +982,60 @@ export const MatchingEngineView: React.FC = () => {
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div>
                 <span className="text-xs font-bold text-emerald-600 uppercase tracking-wider block">
-                  Tahap 6: Job Matching, Seleksi User & Penempatan SISKOP2MI
+                  Tahap 6: Job Matching, Seleksi User & Penempatan
                 </span>
                 <h3 className="text-lg font-black text-slate-900 mt-0.5">
-                  Finalisasi Kontrak Kerja, Visa Penempatan & Integrasi Sistem Berwenang
+                  Rekapitulasi proses penempatan yang tercatat
                 </h3>
               </div>
-              <Badge variant="success">Rujukan Resmi: SISKOP2MI</Badge>
+              <Badge variant="primary">Data database lokal</Badge>
             </div>
 
-            {/* SISKOP2MI Integration Info */}
             <div className="p-4 bg-blue-50/70 border border-blue-200 rounded-xl flex items-start gap-3 text-xs">
               <ShieldCheck className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
               <div>
-                <span className="font-extrabold text-blue-900 block">
-                  Kepatuhan Regulasi Penempatan PMI:
-                </span>
                 <p className="text-blue-800 leading-relaxed mt-0.5">
-                  Sesuai prinsip arsitektur SGG-CC, proses penempatan legal, penerbitan E-KTKLN, dan OPP (Orientasi Pra Pemberangkatan) diproses melalui sistem rujukan resmi <strong>SISKOP2MI</strong> sesuai dengan kewenangan perundang-undangan.
+                  Daftar di bawah berasal dari catatan penempatan lokal. Integrasi pengambilan atau sinkronisasi SISKOP2MI belum dikonfigurasi di alur ini; ID eksternal hanya ditampilkan jika tersimpan.
                 </p>
               </div>
             </div>
 
-            {/* Candidate Placement Readiness Pipeline Table */}
             <div className="rounded-xl border border-slate-200 overflow-hidden">
               <div className="p-3 bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-700 flex items-center justify-between">
-                <span>Daftar Peserta Menuju Tahap Akhir Penempatan Luar Negeri:</span>
-                <span className="text-blue-600 font-bold">14 Kandidat Siap Terbang</span>
+                <span>Catatan penempatan:</span>
+                <span className="text-blue-600 font-bold">{monitoringData.placements.length} data</span>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
                   <thead className="bg-slate-50/60 border-b border-slate-200 font-bold text-slate-600">
                     <tr>
                       <th className="py-2.5 px-3">Nama Kandidat</th>
-                      <th className="py-2.5 px-3">Asal Vokasi</th>
                       <th className="py-2.5 px-3">Jabatan & Negara</th>
-                      <th className="py-2.5 px-3">Employer Luar Negeri</th>
-                      <th className="py-2.5 px-3">Status Dokumen</th>
-                      <th className="py-2.5 px-3 text-right">Proses SISKOP2MI</th>
+                      <th className="py-2.5 px-3">Pemberi Kerja</th>
+                      <th className="py-2.5 px-3">Status Penempatan</th>
+                      <th className="py-2.5 px-3 text-right">Tanggal Berangkat</th>
+                      <th className="py-2.5 px-3 text-right">ID SISKOP2MI</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 text-slate-700">
-                    <tr className="hover:bg-slate-50">
-                      <td className="py-2.5 px-3 font-bold text-slate-900">Ahmad Fauzi Pratama</td>
-                      <td className="py-2.5 px-3 text-slate-500">SMKN 1 Cibinong (Jabar)</td>
-                      <td className="py-2.5 px-3">Welder • Jepang</td>
-                      <td className="py-2.5 px-3 text-slate-600">Mitsubishi Heavy Ind.</td>
-                      <td className="py-2.5 px-3">
-                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">
-                          CoE & Visa Terbit
-                        </span>
-                      </td>
-                      <td className="py-2.5 px-3 text-right font-mono font-bold text-blue-600">
-                        E-KTKLN: 3201-2026-0041
-                      </td>
-                    </tr>
-
-                    <tr className="hover:bg-slate-50">
-                      <td className="py-2.5 px-3 font-bold text-slate-900">Siti Nurhaliza Rahayu</td>
-                      <td className="py-2.5 px-3 text-slate-500">SMK Bakti Husada Purwokerto</td>
-                      <td className="py-2.5 px-3">Caregiver • Jepang</td>
-                      <td className="py-2.5 px-3 text-slate-600">Zenkoukai Group</td>
-                      <td className="py-2.5 px-3">
-                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">
-                          Kontrak Kerja Ditandatangani
-                        </span>
-                      </td>
-                      <td className="py-2.5 px-3 text-right font-mono font-bold text-blue-600">
-                        E-KTKLN: 3302-2026-0082
-                      </td>
-                    </tr>
-
-                    <tr className="hover:bg-slate-50">
-                      <td className="py-2.5 px-3 font-bold text-slate-900">Cut Intan Permatasari</td>
-                      <td className="py-2.5 px-3 text-slate-500">SMKN 1 Gandapura (Aceh)</td>
-                      <td className="py-2.5 px-3">Hotel Specialist • Jerman</td>
-                      <td className="py-2.5 px-3 text-slate-600">Maritim Hotelgesellschaft</td>
-                      <td className="py-2.5 px-3">
-                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-800">
-                          Pengajuan Visa Kedubes
-                        </span>
-                      </td>
-                      <td className="py-2.5 px-3 text-right font-mono font-bold text-blue-600">
-                        E-KTKLN: 1111-2026-0019
-                      </td>
-                    </tr>
+                    {monitoringData.placements.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="py-8 text-center text-slate-500">
+                          Belum ada catatan penempatan pada database untuk akun dan cakupan ini.
+                        </td>
+                      </tr>
+                    ) : monitoringData.placements.map((placement) => (
+                      <tr key={placement.id} className="hover:bg-slate-50">
+                        <td className="py-2.5 px-3 font-bold text-slate-900">{placement.candidateName}</td>
+                        <td className="py-2.5 px-3 text-slate-500">{placement.occupation} · {placement.country}</td>
+                        <td className="py-2.5 px-3 text-slate-600">{placement.employer}</td>
+                        <td className="py-2.5 px-3">{placement.status}</td>
+                        <td className="py-2.5 px-3 text-right">{placement.flightDate ?? 'Belum dijadwalkan'}</td>
+                        <td className="py-2.5 px-3 text-right font-mono font-bold text-blue-600">
+                          {placement.siskop2miId ?? 'Belum terhubung'}
+                        </td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </div>
@@ -966,19 +1048,24 @@ export const MatchingEngineView: React.FC = () => {
               >
                 Kembali ke Tahap 5
               </button>
-              <button
-                onClick={() => {
-                  alert('Data penempatan tersinkronisasi sempurna dengan SISKOP2MI!');
-                }}
-                className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-emerald-700 sm:w-auto"
-              >
-                <CheckCircle2 className="w-4 h-4" />
-                <span>Sinkronisasi Data dengan SISKOP2MI</span>
-              </button>
+              <span className="text-xs text-slate-500">
+                Sinkronisasi otomatis belum tersedia pada modul ini.
+              </span>
             </div>
           </div>
         </div>
       )}
+
+      <DeleteConfirmModal
+        isOpen={pendingArchiveId !== null}
+        onClose={() => setPendingArchiveId(null)}
+        onConfirm={confirmArchiveAllocation}
+        title="Konfirmasi Pembatalan Alokasi"
+        entityName="Keputusan alokasi batch"
+        entityId={pendingArchiveId ?? ''}
+        description="Keputusan akan diarsipkan, batch dibatalkan, peserta dikeluarkan, dan kuota dikembalikan. Tindakan ini tercatat di audit log."
+        confirmText="Batalkan dan Arsipkan"
+      />
     </div>
   );
 };

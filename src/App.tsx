@@ -4,6 +4,8 @@ import { AdminLayout } from "@/components/layout/AdminLayout";
 import {
   CandidateParticipant,
   GlobalDemand,
+  PersistedCandidateMatch,
+  ProgramAllocationDecision,
   TrainingProgram,
   DataApprovalRequest,
   MonitoringData,
@@ -87,6 +89,8 @@ interface AppProps {
     programs: TrainingProgram[];
     providers: VocationalProvider[];
     demands: GlobalDemand[];
+    candidateMatches: PersistedCandidateMatch[];
+    allocations: ProgramAllocationDecision[];
     reportSummary: {
       candidateCount: number;
       readyCandidateCount: number;
@@ -136,7 +140,15 @@ interface AppProps {
 }
 
 export function App({ currentTab, isRoot, showLogin, auth, businessData }: AppProps) {
-  const { setCurrentTab, setAuthenticatedUser, setBusinessData, businessDataLoaded } = useAppStore();
+  const {
+    setCurrentTab,
+    setAuthenticatedUser,
+    setBusinessData,
+    businessDataLoaded,
+    setActiveStage,
+    setSelectedProgramId,
+    setSelectedProviderId,
+  } = useAppStore();
   const authenticatedUser = auth.user;
   const activeTab = isRoot && authenticatedUser ? authenticatedUser.defaultTab : currentTab;
 
@@ -174,6 +186,28 @@ export function App({ currentTab, isRoot, showLogin, auth, businessData }: AppPr
       authenticatedUser.scope,
     );
   }, [authenticatedUser, setAuthenticatedUser]);
+
+  useEffect(() => {
+    if (activeTab !== "matching" && activeTab !== "modul-e") return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("stage") === "4") setActiveStage(4);
+
+    const programId = params.get("programId");
+    if (programId && businessData?.programs.some((program) => program.id === programId)) {
+      setSelectedProgramId(programId);
+    }
+
+    const providerId = params.get("providerId");
+    if (providerId && businessData?.providers.some((provider) => provider.id === providerId)) {
+      setSelectedProviderId(providerId);
+    }
+  }, [
+    activeTab,
+    businessData,
+    setActiveStage,
+    setSelectedProgramId,
+    setSelectedProviderId,
+  ]);
 
   const loading = (
     <div role="status" className="p-6 text-sm text-muted-foreground">
@@ -252,7 +286,7 @@ export function App({ currentTab, isRoot, showLogin, auth, businessData }: AppPr
       break;
     case "matching":
     case "modul-e":
-      page = <MatchingEngineView />;
+      page = <MatchingEngineView candidateMatches={businessData?.candidateMatches ?? []} monitoring={businessData?.monitoring} />;
       break;
     case "approvals":
       page = (
@@ -295,9 +329,19 @@ export function App({ currentTab, isRoot, showLogin, auth, businessData }: AppPr
       break;
     case "sippmi-monitoring":
       page = <SippmiMonitoringPage monitoring={businessData?.monitoring ?? {
-        summary: { totalClasses: 0, activeClasses: 0, gardataCandidates: 0, verifiedReports: 0 },
+        summary: {
+          totalClasses: 0,
+          activeClasses: 0,
+          gardataCandidates: 0,
+          verifiedReports: 0,
+          averageAttendance: null,
+          averageAssessmentScore: null,
+          gardataTargetJp: 0,
+          gardataAchievedJp: 0,
+        },
         classes: [],
         candidates: [],
+        placements: [],
         lastSync: null,
       }} />;
       break;

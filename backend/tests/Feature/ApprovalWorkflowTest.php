@@ -124,6 +124,10 @@ class ApprovalWorkflowTest extends TestCase
                 ->where('businessData.monitoring.summary.gardataCandidates', 1)
                 ->where('businessData.monitoring.candidates.0.nik', '3273••••••••0001')
                 ->where('businessData.monitoring.classes.0.participantCount', 1)
+                ->where('businessData.monitoring.classes.0.targetJp', 120)
+                ->where('businessData.monitoring.classes.0.achievedJp', 60)
+                ->where('businessData.monitoring.summary.gardataTargetJp', 120)
+                ->where('businessData.monitoring.summary.gardataAchievedJp', 60)
                 ->where('businessData.monitoring.lastSync.status', 'success'));
 
         $this->actingAs($this->userWithRole('leadership'))

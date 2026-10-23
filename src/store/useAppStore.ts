@@ -5,7 +5,6 @@ import {
   TrainingProgram,
   VocationalProvider,
   GlobalDemand,
-  MatchingResult,
   ProgramAllocationDecision,
   VerificationStatus,
   UserRole,
@@ -65,6 +64,7 @@ export interface AppState {
     providers: VocationalProvider[];
     demands: GlobalDemand[];
     approvalRequests?: DataApprovalRequest[];
+    allocations?: ProgramAllocationDecision[];
     options: {
       provinces: { id: string; name: string }[];
       districts: { id: string; province_id: string; name: string }[];
@@ -186,18 +186,6 @@ export interface AppState {
   batchVerifyCandidates: (ids: string[]) => void;
   updateProviderEvokasi: (id: string, status: 'Terverifikasi e-Vokasi' | 'Proses Verifikasi' | 'Belum Terverifikasi') => void;
 
-  // Program Allocation (Tahap 4)
-  createAllocation: (params: {
-    demandId: string;
-    programId: string;
-    providerId: string;
-    candidateIds: string[];
-    startDate: string;
-    endDate: string;
-  }) => ProgramAllocationDecision;
-  updateAllocationStatus: (allocationId: string, status: 'Draft' | 'Approved' | 'Finalized') => void;
-  deleteAllocation: (allocationId: string) => void;
-
   // CRUD Actions - Modul A: Calon Peserta
   createCandidate: (candidate: Omit<CandidateParticipant, 'id'>) => CandidateParticipant;
   updateCandidate: (id: string, updates: Partial<CandidateParticipant>) => void;
@@ -218,21 +206,6 @@ export interface AppState {
   updateDemand: (id: string, updates: Partial<GlobalDemand>) => void;
   deleteDemand: (id: string) => { success: boolean; message: string };
 }
-
-// Initial Sample Allocation to demonstrate Dashboard
-const initialAllocations: ProgramAllocationDecision[] = [
-  {
-    allocationId: "ALOK-2026-001",
-    demandId: "DEM-JPN-2026-01",
-    selectedProgramId: "PROG-JPN-01",
-    selectedProviderId: "VOC-JTM-003",
-    allocatedCandidateIds: ["CAND-2026-002"],
-    totalBudgetRequired: 14500000,
-    batchScheduleStart: "2026-11-10",
-    batchScheduleEnd: "2027-02-15",
-    approvalStatus: "Approved"
-  }
-];
 
 export const useAppStore = create<AppState>((set, get) => ({
   // Navigation & Role Defaults
@@ -271,6 +244,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     providers: data.providers,
     demands: data.demands,
     approvalRequests: data.approvalRequests ?? [],
+    allocations: data.allocations ?? [],
     businessOptions: data.options,
     businessDataLoaded: true,
     selectedCandidateIds: state.selectedCandidateIds.filter((id) => data.candidates.some((candidate) => candidate.id === id)),
@@ -278,7 +252,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     selectedProgramId: data.programs.some((program) => program.id === state.selectedProgramId) ? state.selectedProgramId : null,
     selectedProviderId: data.providers.some((provider) => provider.id === state.selectedProviderId) ? state.selectedProviderId : null,
   })),
-  allocations: initialAllocations,
+  allocations: [],
   approvalRequests: mockApprovals,
   auditLogs: mockAuditLogs,
 
@@ -498,7 +472,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     providers: [],
     demands: [],
     businessDataLoaded: false,
-    allocations: initialAllocations,
+    allocations: [],
     selectedCandidateIds: [],
     selectedDemandId: null,
     selectedProgramId: null,
@@ -567,45 +541,6 @@ export const useAppStore = create<AppState>((set, get) => ({
       providers: get().providers.map((p) =>
         p.id === id ? { ...p, evokasiVerificationStatus: status } : p
       ),
-    });
-  },
-
-  // Allocation Management (Tahap 4)
-  createAllocation: ({ demandId, programId, providerId, candidateIds, startDate, endDate }) => {
-    const program = get().programs.find((p) => p.id === programId);
-    const costPer = program ? program.estimatedCostPerParticipant : 15000000;
-    const totalBudget = costPer * candidateIds.length;
-
-    const newAllocation: ProgramAllocationDecision = {
-      allocationId: `ALOK-${new Date().getFullYear()}-${String(get().allocations.length + 1).padStart(3, '0')}`,
-      demandId,
-      selectedProgramId: programId,
-      selectedProviderId: providerId,
-      allocatedCandidateIds: candidateIds,
-      totalBudgetRequired: totalBudget,
-      batchScheduleStart: startDate,
-      batchScheduleEnd: endDate,
-      approvalStatus: 'Approved',
-    };
-
-    set({
-      allocations: [newAllocation, ...get().allocations],
-    });
-
-    return newAllocation;
-  },
-
-  updateAllocationStatus: (allocationId, status) => {
-    set({
-      allocations: get().allocations.map((a) =>
-        a.allocationId === allocationId ? { ...a, approvalStatus: status } : a
-      ),
-    });
-  },
-
-  deleteAllocation: (allocationId) => {
-    set({
-      allocations: get().allocations.filter((a) => a.allocationId !== allocationId),
     });
   },
 
@@ -1011,67 +946,3 @@ export const useAppStore = create<AppState>((set, get) => ({
     return { success: true, message: `Lowongan demand ${existing.jobTitle} berhasil dibatalkan/dihapus.` };
   },
 }));
-
-// ==========================================
-// FORMULASI ALGORITMA MATCHING (TAHAP 3)
-// Sesuai Formula di technical_spec.md
-// Match Score = (Skill * 0.50) + (Language * 0.35) + (Education * 0.15)
-// ==========================================
-export function calculateMatchingScore(
-  candidate: CandidateParticipant,
-  demand: GlobalDemand
-): MatchingResult {
-  // 1. Skill Match Calculation
-  const matchedSkills = candidate.skills.filter((s) =>
-    demand.requiredSkills.some((req) => req.toLowerCase().includes(s.toLowerCase()) || s.toLowerCase().includes(req.toLowerCase()))
-  );
-  const skillScore = demand.requiredSkills.length > 0
-    ? (matchedSkills.length / demand.requiredSkills.length) * 100
-    : 100;
-  const skillGaps = demand.requiredSkills.filter(
-    (req) => !candidate.skills.some((s) => s.toLowerCase().includes(req.toLowerCase()) || req.toLowerCase().includes(s.toLowerCase()))
-  );
-
-  // 2. Language Match Calculation
-  const candidateLang = candidate.languageProficiency.find((l) => {
-    const langLower = l.language.toLowerCase();
-    const countryLower = demand.country.toLowerCase();
-    const reqLevelLower = demand.requiredLanguageLevel.toLowerCase();
-    return langLower.includes(countryLower) || countryLower.includes(langLower) || reqLevelLower.includes(langLower);
-  });
-
-  const languageMatch = !!candidateLang && (
-    candidateLang.level.toLowerCase().includes('n4') ||
-    candidateLang.level.toLowerCase().includes('n3') ||
-    candidateLang.level.toLowerCase().includes('b1') ||
-    candidateLang.level.toLowerCase().includes('intermediate') ||
-    candidateLang.level.toLowerCase().includes('level 2')
-  );
-
-  const languageScore = languageMatch ? 100 : candidateLang ? 65 : 35;
-
-  // 3. Overall Weighted Score
-  const totalScore = Math.min(100, Math.round((skillScore * 0.50) + (languageScore * 0.35) + (100 * 0.15)));
-
-  // 4. Recommend Program based on gaps
-  let recommendedProg = "PROG-JPN-01";
-  if (demand.country.toLowerCase() === "jerman") recommendedProg = "PROG-GER-01";
-  else if (demand.country.toLowerCase() === "korea") recommendedProg = "PROG-KOR-01";
-  else if (demand.country.toLowerCase() === "taiwan") recommendedProg = "PROG-TWN-01";
-  else if (demand.sector.toLowerCase().includes("manufaktur") || demand.jobTitle.toLowerCase().includes("welder")) {
-    recommendedProg = "PROG-JPN-02";
-  }
-
-  return {
-    candidateId: candidate.id,
-    demandId: demand.id,
-    matchScore: totalScore,
-    skillsMatchPercentage: Math.round(skillScore),
-    languageMatch,
-    skillGaps,
-    languageGapDescription: languageMatch
-      ? `Tercapai (${candidateLang?.level || 'Standar Terpenuhi'})`
-      : `Perlu peningkatan ke ${demand.requiredLanguageLevel} (Saat ini: ${candidateLang?.level || 'Belum Terdaftar'})`,
-    recommendedProgramId: recommendedProg,
-  };
-}
