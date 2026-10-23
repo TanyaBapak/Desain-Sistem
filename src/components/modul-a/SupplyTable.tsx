@@ -441,9 +441,22 @@ export const SupplyTable: React.FC = () => {
                         <span className="font-semibold text-slate-800 block text-xs">
                           {candidate.institutionName}
                         </span>
-                        <span className="text-[11px] text-slate-500">
+                        <span className="text-[11px] text-slate-500 block">
                           {candidate.educationLevel} — {candidate.major}
                         </span>
+                        {candidate.sourceType && (
+                          <span
+                            className={`inline-block mt-1 text-[10px] font-bold px-1.5 py-0.5 rounded border ${
+                              candidate.sourceType === 'Disnaker Pemda'
+                                ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                : candidate.sourceType === 'Lembaga Vokasi'
+                                ? 'bg-purple-50 text-purple-700 border-purple-200'
+                                : 'bg-blue-50 text-blue-700 border-blue-200'
+                            }`}
+                          >
+                            Sumber: {candidate.sourceType}
+                          </span>
+                        )}
                       </td>
 
                       {/* Language */}

@@ -24,6 +24,7 @@ export const CandidateFormModal: React.FC<CandidateFormModalProps> = ({
   const [kabupatenKota, setKabupatenKota] = useState('Kabupaten Bogor');
   const [educationLevel, setEducationLevel] = useState<'SMK' | 'D3' | 'S1' | 'Lainnya'>('SMK');
   const [institutionName, setInstitutionName] = useState('SMKN 1 Cibinong');
+  const [sourceType, setSourceType] = useState<CandidateParticipant['sourceType']>('Disnaker Pemda');
   const [major, setMajor] = useState('Teknik Pengelasan');
   const [skillsInput, setSkillsInput] = useState('Arc Welding SMAW, GMAW, K3 Standar');
   const [language, setLanguage] = useState<'Jepang' | 'Jerman' | 'Inggris' | 'Mandarin' | 'Korea'>('Jepang');
@@ -42,6 +43,7 @@ export const CandidateFormModal: React.FC<CandidateFormModalProps> = ({
       setKabupatenKota(initialData.kabupatenKota);
       setEducationLevel(initialData.educationLevel);
       setInstitutionName(initialData.institutionName);
+      setSourceType(initialData.sourceType || 'Disnaker Pemda');
       setMajor(initialData.major);
       setSkillsInput(initialData.skills.join(', '));
       if (initialData.languageProficiency.length > 0) {
@@ -58,6 +60,7 @@ export const CandidateFormModal: React.FC<CandidateFormModalProps> = ({
       setNik('3201' + Math.floor(100000000000 + Math.random() * 900000000000));
       setGender('L');
       setProvinsi('Jawa Barat');
+      setSourceType('Disnaker Pemda');
       setKabupatenKota('Kabupaten Bogor');
       setEducationLevel('SMK');
       setInstitutionName('SMKN 1 Cibinong');
@@ -91,6 +94,7 @@ export const CandidateFormModal: React.FC<CandidateFormModalProps> = ({
       kabupatenKota,
       educationLevel,
       institutionName,
+      sourceType,
       major,
       skills: skillsArray.length > 0 ? skillsArray : ['Keterampilan Dasar Vokasi'],
       languageProficiency: [{ language, level: langLevel }],
@@ -199,6 +203,20 @@ export const CandidateFormModal: React.FC<CandidateFormModalProps> = ({
                 placeholder="misal: SMKN 1 Cibinong"
                 className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
+            </div>
+
+            {/* Sumber Input Data */}
+            <div>
+              <label className="block font-bold text-slate-700 mb-1">Sumber Input Data *</label>
+              <select
+                value={sourceType}
+                onChange={(e) => setSourceType(e.target.value as any)}
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+              >
+                <option value="Disnaker Pemda">Dinas Tenaga Kerja Pemda</option>
+                <option value="SMK / Pendidikan Vokasi">Sekolah Menengah Kejuruan (SMK)</option>
+                <option value="Lembaga Vokasi">Lembaga Pelatihan Vokasi (BLK / LPK / Politeknik)</option>
+              </select>
             </div>
 
             {/* Jurusan */}
