@@ -25,7 +25,6 @@ import {
   AlertCircle,
   HelpCircle,
   Eye,
-  Lock,
   Layers,
   Award,
   Compass
@@ -157,15 +156,15 @@ export const KemendagriLandingPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Quick Action Button: Login Command Center */}
+          {/* Quick Action Button: Masuk SSO */}
           <div className="flex items-center gap-3">
             <button
               onClick={() => openLoginPage()}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold bg-red-600 hover:bg-red-700 text-white shadow-md shadow-red-600/20 transition"
-              title="Buka Halaman Login Terpadu Seluruh Stakeholder"
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white shadow-md shadow-blue-600/20 transition"
+              title="Masuk Sistem Terpadu (SSO)"
             >
-              <Lock className="w-4 h-4" />
-              <span>Login Command Center</span>
+              <Compass className="w-4 h-4" />
+              <span>Masuk Sistem Terpadu (SSO)</span>
             </button>
           </div>
         </div>
@@ -258,23 +257,15 @@ export const KemendagriLandingPage: React.FC = () => {
               {slides[activeSlide].subtitle}
             </p>
 
-            {/* Quick Action Button Group */}
+            {/* Quick Action Button Group: SSO */}
             <div className="flex flex-wrap items-center gap-3 pt-3">
-              <button
-                onClick={() => openLoginPage()}
-                className="px-6 py-3.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-extrabold text-xs uppercase tracking-wider shadow-lg shadow-red-600/30 transition flex items-center gap-2"
-              >
-                <Lock className="w-4 h-4" />
-                <span>Login Command Center</span>
-                <ChevronRight className="w-4 h-4" />
-              </button>
-
               <button
                 onClick={() => openLoginPage()}
                 className="px-6 py-3.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs uppercase tracking-wider shadow-lg shadow-blue-600/20 transition flex items-center gap-2"
               >
                 <Compass className="w-4 h-4" />
                 <span>Masuk Sistem Terpadu (SSO)</span>
+                <ChevronRight className="w-4 h-4" />
               </button>
             </div>
           </div>
@@ -699,10 +690,10 @@ export const KemendagriLandingPage: React.FC = () => {
 
             <button
               onClick={() => openLoginPage()}
-              className="shrink-0 px-6 py-3.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-extrabold text-xs uppercase tracking-wider shadow-lg shadow-red-600/30 transition flex items-center gap-2"
+              className="shrink-0 px-6 py-3.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs uppercase tracking-wider shadow-lg shadow-blue-600/30 transition flex items-center gap-2"
             >
               <Compass className="w-4 h-4" />
-              <span>Buka SGG Command Center (Login)</span>
+              <span>Masuk Sistem Terpadu (SSO)</span>
             </button>
           </div>
         </div>
