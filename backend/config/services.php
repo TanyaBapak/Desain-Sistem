@@ -35,4 +35,9 @@ return [
         ],
     ],
 
+    'kp2mi' => [
+        'base_url' => env('KP2MI_VOKASI_BASE_URL', 'https://vokasi.kp2mi.go.id'),
+        'sync_page_size' => 36,
+    ],
+
 ];

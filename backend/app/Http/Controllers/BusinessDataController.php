@@ -1,0 +1,536 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
+use Illuminate\Validation\Rule;
+
+class BusinessDataController extends Controller
+{
+    private const ENTITY_TABLES = [
+        'candidates' => 'job_seekers',
+        'programs' => 'training_programs',
+        'providers' => 'institutions',
+        'demands' => 'job_demands',
+    ];
+
+    public function store(Request $request, string $type): RedirectResponse
+    {
+        $this->authorizeWrite($request, $type, 'create');
+        $data = $this->validateData($request, $type);
+
+        DB::transaction(function () use ($request, $type, $data): void {
+            match ($type) {
+                'candidates' => $this->saveCandidate($request, $data, Str::upper('CAND-'.Str::random(10)), true),
+                'programs' => $this->saveProgram($request, $data, Str::upper('PROG-'.Str::random(10)), true),
+                'providers' => $this->saveProvider($request, $data, Str::upper('VOC-'.Str::random(10)), true),
+                'demands' => $this->saveDemand($request, $data, Str::upper('DEM-'.Str::random(10)), true),
+            };
+        });
+
+        return back()->with('success', 'Data berhasil disimpan ke database.');
+    }
+
+    public function update(Request $request, string $type, string $id): RedirectResponse
+    {
+        $this->authorizeWrite($request, $type, 'update');
+        $table = self::ENTITY_TABLES[$type];
+        $existing = DB::table($table)->where('id', $id)->first();
+        abort_unless($existing && ! ($type === 'candidates' && $existing->deleted_at), 404);
+        $this->assertRecordScope($request, $type, $existing);
+        $data = $this->validateData($request, $type, $id);
+
+        DB::transaction(function () use ($request, $type, $data, $id): void {
+            match ($type) {
+                'candidates' => $this->saveCandidate($request, $data, $id, false),
+                'programs' => $this->saveProgram($request, $data, $id, false),
+                'providers' => $this->saveProvider($request, $data, $id, false),
+                'demands' => $this->saveDemand($request, $data, $id, false),
+            };
+        });
+
+        return back()->with('success', 'Perubahan berhasil disimpan.');
+    }
+
+    public function destroy(Request $request, string $type, string $id): RedirectResponse
+    {
+        $this->authorizeWrite($request, $type, 'delete');
+        $table = self::ENTITY_TABLES[$type];
+        $record = DB::table($table)->where('id', $id)->first();
+        abort_unless($record && ! ($type === 'candidates' && $record->deleted_at), 404);
+        $this->assertRecordScope($request, $type, $record);
+        $reason = $request->validate(['reason' => ['nullable', 'string', 'max:1000']])['reason'] ?? 'Data diarsipkan atau dinonaktifkan.';
+
+        DB::transaction(function () use ($request, $type, $id, $reason): void {
+            $now = now();
+            match ($type) {
+                'candidates' => DB::table('job_seekers')->where('id', $id)->update([
+                    'deleted_at' => $now,
+                    'updated_at' => $now,
+                ]),
+                'programs' => DB::table('training_programs')->where('id', $id)->update([
+                    'status' => 'Nonaktif',
+                    'updated_at' => $now,
+                ]),
+                'providers' => DB::table('institutions')->where('id', $id)->update([
+                    'status' => 'Nonaktif',
+                    'updated_at' => $now,
+                ]),
+                'demands' => DB::table('job_demands')->where('id', $id)->update([
+                    'verification_status' => 'Draft',
+                    'updated_at' => $now,
+                ]),
+            };
+
+            $this->writeAudit($request, $type, $id, 'HAPUS_DATA', $reason);
+        });
+
+        return back()->with('success', 'Data berhasil dinonaktifkan.');
+    }
+
+    private function validateData(Request $request, string $type, ?string $id = null): array
+    {
+        abort_unless(isset(self::ENTITY_TABLES[$type]), 404);
+        if ($type === 'candidates' && $id && preg_match('/[•*]/u', (string) $request->input('nik'))) {
+            $request->merge(['nik' => DB::table('job_seekers')->where('id', $id)->value('nik')]);
+        }
+
+        $rules = match ($type) {
+            'candidates' => [
+                'nik' => ['required', 'digits:16', Rule::unique('job_seekers', 'nik')->ignore($id, 'id')],
+                'fullName' => ['required', 'string', 'max:150'],
+                'gender' => ['required', Rule::in(['L', 'P'])],
+                'provinsi' => ['required', 'string', 'max:100'],
+                'kabupatenKota' => ['required', 'string', 'max:100'],
+                'educationLevel' => ['required', Rule::in(['SMK', 'D3', 'S1', 'Lainnya'])],
+                'institutionName' => ['required', 'string', 'max:255'],
+                'sourceType' => ['nullable', 'string', 'max:100'],
+                'major' => ['required', 'string', 'max:150'],
+                'skills' => ['array'],
+                'skills.*' => ['string', 'max:100'],
+                'languageProficiency' => ['array'],
+                'languageProficiency.*.language' => ['required', 'string', 'max:50'],
+                'languageProficiency.*.level' => ['required', 'string', 'max:50'],
+                'preferredCountry' => ['array'],
+                'preferredCountry.*' => ['string', 'max:100'],
+                'preferredJobRole' => ['array'],
+                'preferredJobRole.*' => ['string', 'max:150'],
+                'readinessStatus' => ['required', Rule::in(['Ready for Placement', 'Needs Upskilling', 'Needs Reskilling'])],
+                'verificationStatus' => ['required', Rule::in(['Verified', 'Pending Verification', 'Unverified'])],
+                'lifecycleStatus' => ['nullable', Rule::in(['DRAFT', 'SUBMITTED', 'IN_REVIEW', 'APPROVED', 'REJECTED'])],
+            ],
+            'programs' => [
+                'title' => ['required', 'string', 'max:255'],
+                'programType' => ['required', Rule::in(['Upskilling', 'Reskilling', 'Pelatihan Bahasa', 'Teknis Terpadu'])],
+                'targetSector' => ['required', 'string', 'max:150'],
+                'targetJobRole' => ['required', 'string', 'max:150'],
+                'targetCountry' => ['required', 'string', 'max:100'],
+                'institutionId' => ['required', 'string', 'exists:institutions,id'],
+                'durationJP' => ['required', 'integer', 'min:1', 'max:10000'],
+                'certificationTarget' => ['required', 'string', 'max:150'],
+                'estimatedCostPerParticipant' => ['required', 'numeric', 'min:0'],
+                'quota' => ['required', 'integer', 'min:1', 'max:100000'],
+                'scheduleStart' => ['nullable', 'date'],
+                'scheduleEnd' => ['nullable', 'date', 'after_or_equal:scheduleStart'],
+                'curriculumOutline' => ['array'],
+                'curriculumOutline.*' => ['string', 'max:1000'],
+            ],
+            'providers' => [
+                'name' => ['required', 'string', 'max:255'],
+                'providerType' => ['required', 'string', 'max:100'],
+                'provinsi' => ['required', 'string', 'max:100'],
+                'kabupatenKota' => ['required', 'string', 'max:100'],
+                'evokasiVerificationStatus' => ['required', Rule::in(['Terverifikasi e-Vokasi', 'Proses Verifikasi', 'Belum Terverifikasi'])],
+                'accreditation' => ['required', 'string', 'max:20'],
+                'capacityPerBatch' => ['required', 'integer', 'min:0', 'max:100000'],
+                'certifiedInstructorsCount' => ['required', 'integer', 'min:0', 'max:100000'],
+                'operationalReadinessScore' => ['required', 'integer', 'min:0', 'max:100'],
+                'facilities' => ['array'],
+                'facilities.*' => ['string', 'max:150'],
+                'supportedSectors' => ['array'],
+                'supportedSectors.*' => ['string', 'max:150'],
+                'address' => ['nullable', 'string', 'max:2000'],
+                'email' => ['nullable', 'email', 'max:100'],
+                'phone' => ['nullable', 'string', 'max:50'],
+                'leaderName' => ['nullable', 'string', 'max:150'],
+                'institutionStatus' => ['nullable', Rule::in(['Negeri', 'Swasta'])],
+                'logo' => ['nullable', 'string', 'max:255'],
+                'logoUrl' => ['nullable', 'string', 'max:255'],
+                'slug' => ['nullable', 'string', 'max:255'],
+                'website' => ['nullable', 'string', 'max:255'],
+                'institutionForm' => ['nullable', 'string', 'max:150'],
+                'sectorals' => ['array'],
+                'programs' => ['array'],
+            ],
+            'demands' => [
+                'jobTitle' => ['required', 'string', 'max:150'],
+                'employerName' => ['required', 'string', 'max:255'],
+                'country' => ['required', 'string', 'max:100'],
+                'sector' => ['required', 'string', 'max:150'],
+                'requiredQuota' => ['required', 'integer', 'min:1', 'max:100000'],
+                'filledQuota' => ['nullable', 'integer', 'min:0'],
+                'minEducation' => ['required', 'string', 'max:50'],
+                'requiredSkills' => ['array'],
+                'requiredSkills.*' => ['string', 'max:100'],
+                'requiredLanguageLevel' => ['required', 'string', 'max:100'],
+                'requiredCertifications' => ['array'],
+                'requiredCertifications.*' => ['string', 'max:150'],
+                'deadlineDate' => ['required', 'date'],
+                'workTermMonths' => ['required', 'integer', 'min:0', 'max:1200'],
+                'salaryRangeString' => ['required', 'string', 'max:150'],
+            ],
+        };
+
+        return $request->validate($rules);
+    }
+
+    private function saveCandidate(Request $request, array $data, string $id, bool $creating): void
+    {
+        $provinceId = $this->referenceId('provinces', 'name', $data['provinsi'], 'provinsi');
+        $district = DB::table('districts')
+            ->where('name', $data['kabupatenKota'])
+            ->where('province_id', $provinceId)
+            ->first();
+        if (! $district) {
+            abort(422, 'Kabupaten/kota tidak sesuai dengan provinsi yang dipilih.');
+        }
+
+        $attributes = [
+            'full_name' => $data['fullName'],
+            'gender' => $data['gender'],
+            'province_id' => $provinceId,
+            'district_id' => $district->id,
+            'education_level' => $data['educationLevel'],
+            'institution_name' => $data['institutionName'],
+            'major' => $data['major'],
+            'source_type' => match ($data['sourceType'] ?? '') {
+                'Lembaga Vokasi' => 'LPK',
+                'SMK / Pendidikan Vokasi' => 'SMK',
+                default => 'Disnaker',
+            },
+            'readiness_status' => $data['readinessStatus'],
+            'verification_status' => $data['verificationStatus'],
+            'lifecycle_status' => $data['lifecycleStatus'] ?? 'SUBMITTED',
+            'preferred_countries' => json_encode($data['preferredCountry'] ?? []),
+            'preferred_job_roles' => json_encode($data['preferredJobRole'] ?? []),
+            'updated_at' => now(),
+        ];
+
+        if ($creating) {
+            $attributes += [
+                'registration_number' => 'REG-'.Str::upper(Str::random(10)),
+                'nik' => $data['nik'],
+                'created_by' => $request->user()->name,
+                'created_at' => now(),
+            ];
+            DB::table('job_seekers')->insert(['id' => $id] + $attributes);
+        } else {
+            DB::table('job_seekers')->where('id', $id)->update($attributes);
+        }
+
+        DB::table('job_seeker_skills')->where('job_seeker_id', $id)->delete();
+        foreach ($data['skills'] ?? [] as $skill) {
+            DB::table('job_seeker_skills')->insert([
+                'job_seeker_id' => $id,
+                'skill_name' => $skill,
+                'certified' => false,
+            ]);
+        }
+        DB::table('job_seeker_languages')->where('job_seeker_id', $id)->delete();
+        foreach ($data['languageProficiency'] ?? [] as $language) {
+            DB::table('job_seeker_languages')->insert([
+                'job_seeker_id' => $id,
+                'language' => $language['language'],
+                'level' => $language['level'],
+            ]);
+        }
+
+        $this->writeAudit($request, 'candidates', $id, $creating ? 'INPUT_DATA' : 'UPDATE_DATA', 'Data pencari kerja disimpan.');
+    }
+
+    private function saveProgram(Request $request, array $data, string $id, bool $creating): void
+    {
+        $sectorId = $this->referenceId('sectors', 'name', $data['targetSector'], 'targetSector');
+        $occupationId = $this->referenceId('occupations', 'title', $data['targetJobRole'], 'targetJobRole');
+        $this->assertOccupationSector($occupationId, $sectorId, 'targetJobRole');
+        $countryId = $this->referenceId('countries', 'name', $data['targetCountry'], 'targetCountry');
+        $existing = $creating ? null : DB::table('training_programs')->where('id', $id)->first();
+        $institutionId = in_array($request->user()->roles()->value('name'), ['institution_admin', 'training_operator'], true)
+            ? $request->user()->institution_id
+            : $data['institutionId'];
+
+        $attributes = [
+            'name' => $data['title'],
+            'program_type' => $data['programType'],
+            'sector_id' => $sectorId,
+            'occupation_id' => $occupationId,
+            'target_country_id' => $countryId,
+            'total_jp' => $data['durationJP'],
+            'certification_target' => $data['certificationTarget'],
+            'cost_per_participant' => $data['estimatedCostPerParticipant'],
+            'quota' => $data['quota'],
+            'curriculum' => implode("\n", $data['curriculumOutline'] ?? []),
+            'start_date' => $data['scheduleStart'] ?? null,
+            'end_date' => $data['scheduleEnd'] ?? null,
+            'institution_id' => $institutionId,
+            'updated_at' => now(),
+        ];
+
+        if ($creating) {
+            $attributes += ['status' => 'Aktif', 'created_at' => now()];
+            DB::table('training_programs')->insert(['id' => $id] + $attributes);
+        } else {
+            DB::table('training_programs')->where('id', $id)->update($attributes);
+        }
+
+        $this->writeAudit($request, 'programs', $id, $creating ? 'INPUT_DATA' : 'UPDATE_DATA', 'Program pelatihan disimpan.');
+    }
+
+    private function saveProvider(Request $request, array $data, string $id, bool $creating): void
+    {
+        $provinceId = $this->referenceId('provinces', 'name', $data['provinsi'], 'provinsi');
+        $district = DB::table('districts')
+            ->where('name', $data['kabupatenKota'])
+            ->where('province_id', $provinceId)
+            ->first();
+        if (! $district) {
+            abort(422, 'Kabupaten/kota tidak sesuai dengan provinsi yang dipilih.');
+        }
+
+        $institutionType = match ($data['providerType']) {
+            'BLK', 'Balai', 'BLKLN' => 'BLK',
+            'LPK' => 'LPK',
+            'LKP' => 'LKP',
+            'Perguruan Tinggi / Politeknik', 'Universitas', 'Politeknik', 'Institut', 'Sekolah Tinggi', 'Akademi' => 'Perguruan Tinggi / Politeknik',
+            default => 'SMK',
+        };
+
+        $attributes = [
+            'name' => $data['name'],
+            'institution_type' => $institutionType,
+            'ownership_type' => $data['institutionStatus'] ?? 'Negeri',
+            'province_id' => $provinceId,
+            'district_id' => $district->id,
+            'address' => $data['address'] ?? null,
+            'head_name' => $data['leaderName'] ?? null,
+            'phone' => $data['phone'] ?? null,
+            'email' => $data['email'] ?? null,
+            'accreditation' => $data['accreditation'],
+            'evokasi_status' => $data['evokasiVerificationStatus'],
+            'instructor_count' => $data['certifiedInstructorsCount'],
+            'workshop_capacity' => $data['capacityPerBatch'],
+            'readiness_score' => $data['operationalReadinessScore'] ?? 0,
+            'supported_sectors' => json_encode($data['supportedSectors'] ?? []),
+            'verification_status' => $data['evokasiVerificationStatus'] === 'Terverifikasi e-Vokasi' ? 'Verified' : 'Pending Verification',
+            'updated_at' => now(),
+        ];
+
+        if ($creating) {
+            $attributes += [
+                'status' => 'Aktif',
+                'total_active_students' => 0,
+                'created_at' => now(),
+            ];
+            DB::table('institutions')->insert(['id' => $id] + $attributes);
+        } else {
+            DB::table('institutions')->where('id', $id)->update($attributes);
+        }
+
+        DB::table('institution_facilities')->where('institution_id', $id)->delete();
+        foreach ($data['facilities'] ?? [] as $facility) {
+            DB::table('institution_facilities')->insert([
+                'institution_id' => $id,
+                'facility_name' => $facility,
+                'capacity' => 0,
+                'created_at' => now(),
+            ]);
+        }
+
+        $this->writeAudit($request, 'providers', $id, $creating ? 'INPUT_DATA' : 'UPDATE_DATA', 'Data lembaga vokasi disimpan.');
+    }
+
+    private function saveDemand(Request $request, array $data, string $id, bool $creating): void
+    {
+        $countryId = $this->referenceId('countries', 'name', $data['country'], 'country');
+        $sectorId = $this->referenceId('sectors', 'name', $data['sector'], 'sector');
+        $occupationId = $this->referenceId('occupations', 'title', $data['jobTitle'], 'jobTitle');
+        $this->assertOccupationSector($occupationId, $sectorId, 'jobTitle');
+        $employer = DB::table('employers')
+            ->where('name', $data['employerName'])
+            ->where('country_id', $countryId)
+            ->first();
+
+        if ($request->user()->employer_id && (! $employer || $employer->id !== $request->user()->employer_id)) {
+            abort(403);
+        }
+        if (! $employer) {
+            $employerId = 'EMP-'.Str::upper(Str::random(10));
+            DB::table('employers')->insert([
+                'id' => $employerId,
+                'name' => $data['employerName'],
+                'country_id' => $countryId,
+                'industry' => $data['sector'],
+                'verification_status' => 'Pending',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        } else {
+            $employerId = $employer->id;
+        }
+
+        $language = preg_split('/\s+/', trim($data['requiredLanguageLevel']), 2);
+        $attributes = [
+            'employer_id' => $employerId,
+            'country_id' => $countryId,
+            'sector_id' => $sectorId,
+            'occupation_id' => $occupationId,
+            'headcount' => $data['requiredQuota'],
+            'filled_quota' => $data['filledQuota'] ?? 0,
+            'salary_monthly_idr' => $this->salaryInRupiah($data['salaryRangeString'], $countryId),
+            'salary_range_string' => $data['salaryRangeString'],
+            'job_description' => $data['jobTitle'],
+            'required_skills' => implode(', ', $data['requiredSkills'] ?? []),
+            'required_certifications' => json_encode($data['requiredCertifications'] ?? []),
+            'min_education' => $data['minEducation'],
+            'required_language' => $language[0] ?? null,
+            'min_language_level' => $language[1] ?? null,
+            'work_term_months' => $data['workTermMonths'],
+            'deadline' => $data['deadlineDate'],
+            'updated_at' => now(),
+        ];
+
+        if ($creating) {
+            $attributes += [
+                'placement_track' => 'P to P',
+                'verification_status' => 'Pending',
+                'created_at' => now(),
+            ];
+            DB::table('job_demands')->insert(['id' => $id] + $attributes);
+        } else {
+            DB::table('job_demands')->where('id', $id)->update($attributes);
+        }
+
+        $this->writeAudit($request, 'demands', $id, $creating ? 'INPUT_DATA' : 'UPDATE_DATA', 'Permintaan tenaga kerja disimpan.');
+    }
+
+    private function referenceId(string $table, string $column, string $value, string $field): string
+    {
+        $id = DB::table($table)->where($column, $value)->value('id');
+        if (! $id) {
+            throw ValidationException::withMessages([
+                $field => "Nilai {$field} tidak ditemukan. Pilih salah satu nilai dari data referensi.",
+            ]);
+        }
+
+        return (string) $id;
+    }
+
+    private function assertOccupationSector(string $occupationId, string $sectorId, string $field): void
+    {
+        $belongsToSector = DB::table('occupations')
+            ->where('id', $occupationId)
+            ->where('sector_id', $sectorId)
+            ->exists();
+        if (! $belongsToSector) {
+            throw ValidationException::withMessages([
+                $field => 'Jabatan tidak sesuai dengan sektor yang dipilih.',
+            ]);
+        }
+    }
+
+    private function salaryInRupiah(string $salaryRange, string $countryId): int
+    {
+        if (preg_match('/Rp\s*([\d.,]+)(?:\s*-\s*([\d.,]+))?\s*(Jt|Juta)?/i', $salaryRange, $rupiahMatch)) {
+            $rupiahAmounts = array_slice(array_filter([$rupiahMatch[1] ?? null, $rupiahMatch[2] ?? null]), 0, 2);
+            $multiplier = isset($rupiahMatch[3]) && $rupiahMatch[3] !== '' ? 1_000_000 : 1;
+            $values = array_map(
+                fn (string $amount): int => (int) preg_replace('/\D/', '', $amount) * $multiplier,
+                $rupiahAmounts,
+            );
+
+            return (int) round(array_sum($values) / count($values));
+        }
+
+        preg_match_all('/\d[\d.,]*/', $salaryRange, $matches);
+        $amounts = array_slice($matches[0], 0, 2);
+        $values = array_map(
+            fn (string $amount): int => (int) preg_replace('/\D/', '', $amount),
+            $amounts,
+        );
+        if ($values === []) {
+            return 0;
+        }
+
+        $average = (int) round(array_sum($values) / count($values));
+        $exchangeRate = (float) DB::table('countries')->where('id', $countryId)->value('exchange_rate_to_idr');
+
+        return (int) round($average * $exchangeRate);
+    }
+
+    private function authorizeWrite(Request $request, string $type, string $action): void
+    {
+        abort_unless(isset(self::ENTITY_TABLES[$type]), 404);
+        $role = $request->user()->roles()->value('name');
+        $allowedRoles = match ($type) {
+            'candidates' => ['super_admin', 'task_force', 'province_admin', 'district_admin', 'verifier'],
+            'programs' => ['super_admin', 'task_force', 'directorate_admin', 'institution_admin', 'training_operator'],
+            'providers' => ['super_admin', 'task_force', 'directorate_admin', 'institution_admin'],
+            'demands' => ['super_admin', 'task_force', 'demand_admin'],
+        };
+
+        abort_unless(in_array($role, $allowedRoles, true), 403);
+        if ($action === 'create' && $role === 'institution_admin' && $type === 'providers') {
+            abort(403);
+        }
+        if ($action === 'create' && in_array($role, ['institution_admin', 'training_operator'], true) && ! $request->user()->institution_id && $type === 'programs') {
+            abort(403);
+        }
+        if ($action === 'create' && $role === 'demand_admin' && ! $request->user()->employer_id) {
+            abort(403);
+        }
+    }
+
+    private function assertRecordScope(Request $request, string $type, object $record): void
+    {
+        $user = $request->user();
+        $role = $user->roles()->value('name');
+        if (in_array($role, ['super_admin', 'task_force', 'directorate_admin'], true)) {
+            return;
+        }
+
+        $allowed = match ($type) {
+            'candidates' => match ($role) {
+                'province_admin' => $record->province_id === $user->province_id,
+                'district_admin' => $record->district_id === $user->district_id,
+                default => true,
+            },
+            'programs' => ! in_array($role, ['institution_admin', 'training_operator'], true) || $record->institution_id === $user->institution_id,
+            'providers' => $role !== 'institution_admin' || $record->id === $user->institution_id,
+            'demands' => $role !== 'demand_admin' || $record->employer_id === $user->employer_id,
+        };
+        abort_unless($allowed, 403);
+    }
+
+    private function writeAudit(Request $request, string $type, string $id, string $action, string $reason): void
+    {
+        $user = $request->user();
+        $role = $user->roles()->first();
+        DB::table('audit_logs')->insert([
+            'id' => 'LOG-'.Str::upper(Str::random(12)),
+            'user_id' => $user->id,
+            'actor_name' => $user->name,
+            'actor_role' => $role?->title ?? 'Pengguna',
+            'scope' => $user->scope_name,
+            'action_type' => $action,
+            'entity' => $type,
+            'entity_id' => $id,
+            'justification_reason' => $reason,
+            'ip_address' => $request->ip() ?? '127.0.0.1',
+            'created_at' => now(),
+        ]);
+    }
+}

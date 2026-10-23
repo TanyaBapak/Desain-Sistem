@@ -33,7 +33,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
         {mobileSidebarOpen && (
           <button
             type="button"
-            className="fixed inset-x-0 bottom-0 top-16 z-30 bg-foreground/30 md:hidden"
+            className="fixed inset-x-0 bottom-0 top-16 z-30 bg-foreground/30 lg:hidden"
             aria-label="Tutup navigasi"
             onClick={() => setMobileSidebarOpen(false)}
           />
@@ -50,7 +50,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
         <main
           className={cn(
             "min-h-[calc(100vh-4rem)] min-w-0 flex-1 px-4 py-5 transition-[margin] duration-300 sm:px-6 lg:px-8",
-            collapsed ? "md:ml-16" : "md:ml-64"
+            collapsed ? "lg:ml-16" : "lg:ml-72"
           )}
         >
           <div className="mx-auto w-full min-w-0 max-w-screen-2xl">{children}</div>

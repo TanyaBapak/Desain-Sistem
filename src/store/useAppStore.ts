@@ -58,6 +58,29 @@ export interface AppState {
   programs: TrainingProgram[];
   providers: VocationalProvider[];
   demands: GlobalDemand[];
+  businessDataLoaded: boolean;
+  setBusinessData: (data: {
+    candidates: CandidateParticipant[];
+    programs: TrainingProgram[];
+    providers: VocationalProvider[];
+    demands: GlobalDemand[];
+    options: {
+      provinces: { id: string; name: string }[];
+      districts: { id: string; province_id: string; name: string }[];
+      sectors: { id: string; name: string }[];
+      occupations: { id: string; sector_id: string; title: string }[];
+      countries: { id: string; name: string }[];
+      institutions: { id: string; name: string }[];
+    };
+  }) => void;
+  businessOptions: {
+    provinces: { id: string; name: string }[];
+    districts: { id: string; province_id: string; name: string }[];
+    sectors: { id: string; name: string }[];
+    occupations: { id: string; sector_id: string; title: string }[];
+    countries: { id: string; name: string }[];
+    institutions: { id: string; name: string }[];
+  };
   allocations: ProgramAllocationDecision[];
 
   // Approvals & Audit Trail
@@ -92,7 +115,6 @@ export interface AppState {
   filterProviderSector: string;
   filterInstitutionStatus: string;
   setProviders: (providers: VocationalProvider[]) => void;
-  syncProvidersFromKp2mi: (providers: VocationalProvider[]) => void;
 
   // Modul D Filters
   searchDemand: string;
@@ -236,19 +258,33 @@ export const useAppStore = create<AppState>((set, get) => ({
     sektor: 'Kesehatan / Caregiver',
   },
 
-  candidates: mockSupply,
-  programs: mockPrograms,
-  providers: mockProviders,
-  demands: mockDemand,
+  candidates: [],
+  programs: [],
+  providers: [],
+  demands: [],
+  businessDataLoaded: false,
+  businessOptions: { provinces: [], districts: [], sectors: [], occupations: [], countries: [], institutions: [] },
+  setBusinessData: (data) => set((state) => ({
+    candidates: data.candidates,
+    programs: data.programs,
+    providers: data.providers,
+    demands: data.demands,
+    businessOptions: data.options,
+    businessDataLoaded: true,
+    selectedCandidateIds: state.selectedCandidateIds.filter((id) => data.candidates.some((candidate) => candidate.id === id)),
+    selectedDemandId: data.demands.some((demand) => demand.id === state.selectedDemandId) ? state.selectedDemandId : null,
+    selectedProgramId: data.programs.some((program) => program.id === state.selectedProgramId) ? state.selectedProgramId : null,
+    selectedProviderId: data.providers.some((provider) => provider.id === state.selectedProviderId) ? state.selectedProviderId : null,
+  })),
   allocations: initialAllocations,
   approvalRequests: mockApprovals,
   auditLogs: mockAuditLogs,
 
   activeStage: 1,
-  selectedDemandId: "DEM-JPN-2026-01",
-  selectedCandidateIds: ["CAND-2026-001", "CAND-2026-002"],
-  selectedProgramId: "PROG-JPN-01",
-  selectedProviderId: "VOC-JTM-003",
+  selectedDemandId: null,
+  selectedCandidateIds: [],
+  selectedProgramId: null,
+  selectedProviderId: null,
 
   // Modul A Filters
   searchCandidate: '',
@@ -455,10 +491,11 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   setActiveStage: (stage) => set({ activeStage: stage }),
   resetToDefaultData: () => set({
-    candidates: mockSupply,
-    programs: mockPrograms,
-    providers: mockProviders,
-    demands: mockDemand,
+    candidates: [],
+    programs: [],
+    providers: [],
+    demands: [],
+    businessDataLoaded: false,
     allocations: initialAllocations,
     selectedCandidateIds: [],
     selectedDemandId: null,
@@ -485,20 +522,6 @@ export const useAppStore = create<AppState>((set, get) => ({
   setFilterProviderSector: (val) => set({ filterProviderSector: val }),
   setFilterInstitutionStatus: (val) => set({ filterInstitutionStatus: val }),
   setProviders: (newProviders) => set({ providers: newProviders }),
-  syncProvidersFromKp2mi: (kp2miProviders) => {
-    const current = get().providers;
-    const localCreated = current.filter((p) => p.source === 'local');
-    // Ensure uniqueness by id or slug
-    const existingIds = new Set(localCreated.map((p) => p.id));
-    const merged = [...localCreated];
-    for (const kp of kp2miProviders) {
-      if (!existingIds.has(kp.id)) {
-        merged.push(kp);
-        existingIds.add(kp.id);
-      }
-    }
-    set({ providers: merged });
-  },
 
   setSearchDemand: (val) => set({ searchDemand: val }),
   setFilterDemandCountry: (val) => set({ filterDemandCountry: val }),

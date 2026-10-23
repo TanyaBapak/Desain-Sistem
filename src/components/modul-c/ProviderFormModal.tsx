@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { VocationalProvider, ProviderType } from '../../types';
+import { useAppStore } from '../../store/useAppStore';
 import { X, Building2, Save, Sparkles, ShieldCheck } from 'lucide-react';
 
 interface ProviderFormModalProps {
@@ -17,17 +18,21 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
   initialData,
   mode,
 }) => {
+  const { businessOptions } = useAppStore();
   const [name, setName] = useState('');
   const [providerType, setProviderType] = useState<ProviderType>('SMK');
   const [provinsi, setProvinsi] = useState('Jawa Barat');
-  const [kabupatenKota, setKabupatenKota] = useState('Kabupaten Bekasi');
+  const [kabupatenKota, setKabupatenKota] = useState('Kabupaten Bogor');
   const [accreditation, setAccreditation] = useState<VocationalProvider['accreditation']>('A');
   const [evokasiStatus, setEvokasiStatus] = useState<VocationalProvider['evokasiVerificationStatus']>('Proses Verifikasi');
-  const [capacityPerBatch, setCapacityPerBatch] = useState(120);
-  const [certifiedInstructorsCount, setCertifiedInstructorsCount] = useState(12);
-  const [operationalReadinessScore, setOperationalReadinessScore] = useState(88);
-  const [supportedSectorsInput, setSupportedSectorsInput] = useState('Manufaktur & Mesin, Otomotif, Teknik Pengelasan');
-  const [facilitiesInput, setFacilitiesInput] = useState('Bengkel Las Standar ISO 9606, CNC Machining Center, Lab Bahasa Komputer (35 Unit), Asrama Pelatihan');
+  const [capacityPerBatch, setCapacityPerBatch] = useState(0);
+  const [certifiedInstructorsCount, setCertifiedInstructorsCount] = useState(0);
+  const [operationalReadinessScore, setOperationalReadinessScore] = useState(0);
+  const [supportedSectorsInput, setSupportedSectorsInput] = useState('');
+  const [facilitiesInput, setFacilitiesInput] = useState('');
+  const availableDistricts = businessOptions.districts.filter(
+    (district) => businessOptions.provinces.find((province) => province.name === provinsi)?.id === district.province_id,
+  );
 
   useEffect(() => {
     if (initialData && mode === 'edit') {
@@ -37,23 +42,23 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
       setKabupatenKota(initialData.kabupatenKota);
       setAccreditation(initialData.accreditation);
       setEvokasiStatus(initialData.evokasiVerificationStatus);
-      setCapacityPerBatch(initialData.capacityPerBatch);
-      setCertifiedInstructorsCount(initialData.certifiedInstructorsCount);
-      setOperationalReadinessScore(initialData.operationalReadinessScore);
+      setCapacityPerBatch(initialData.capacityPerBatch ?? 0);
+      setCertifiedInstructorsCount(initialData.certifiedInstructorsCount ?? 0);
+      setOperationalReadinessScore(initialData.operationalReadinessScore ?? 0);
       setSupportedSectorsInput(initialData.supportedSectors.join(', '));
       setFacilitiesInput(initialData.facilities.join(', '));
     } else {
       setName('');
       setProviderType('SMK');
       setProvinsi('Jawa Barat');
-      setKabupatenKota('Kabupaten Bekasi');
+      setKabupatenKota('Kabupaten Bogor');
       setAccreditation('A');
       setEvokasiStatus('Proses Verifikasi');
-      setCapacityPerBatch(120);
-      setCertifiedInstructorsCount(12);
-      setOperationalReadinessScore(88);
-      setSupportedSectorsInput('Manufaktur & Mesin, Otomotif, Teknik Pengelasan');
-      setFacilitiesInput('Bengkel Las Standar ISO 9606, CNC Machining Center, Lab Bahasa Komputer (35 Unit), Asrama Pelatihan');
+      setCapacityPerBatch(0);
+      setCertifiedInstructorsCount(0);
+      setOperationalReadinessScore(0);
+      setSupportedSectorsInput('');
+      setFacilitiesInput('');
     }
   }, [initialData, mode, isOpen]);
 
@@ -83,8 +88,8 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
       capacityPerBatch: Number(capacityPerBatch),
       certifiedInstructorsCount: Number(certifiedInstructorsCount),
       operationalReadinessScore: Number(operationalReadinessScore),
-      supportedSectors: sectorsArray.length > 0 ? sectorsArray : ['Manufaktur Vokasi'],
-      facilities: facilitiesArray.length > 0 ? facilitiesArray : ['Bengkel Praktek Standar Industri'],
+      supportedSectors: sectorsArray,
+      facilities: facilitiesArray,
     });
   };
 
@@ -160,28 +165,37 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
               <label className="block text-xs font-bold text-slate-700 mb-1">
                 Provinsi <span className="text-rose-500">*</span>
               </label>
-              <input
-                type="text"
+              <select
                 required
                 value={provinsi}
-                onChange={(e) => setProvinsi(e.target.value)}
-                placeholder="Misal: Jawa Barat"
+                onChange={(e) => {
+                  setProvinsi(e.target.value);
+                  const provinceId = businessOptions.provinces.find((province) => province.name === e.target.value)?.id;
+                  const firstDistrict = businessOptions.districts.find((district) => district.province_id === provinceId);
+                  setKabupatenKota(firstDistrict?.name ?? '');
+                }}
                 className="w-full text-xs p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-slate-50"
-              />
+              >
+                {businessOptions.provinces.map((province) => (
+                  <option key={province.id} value={province.name}>{province.name}</option>
+                ))}
+              </select>
             </div>
 
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">
                 Kabupaten / Kota <span className="text-rose-500">*</span>
               </label>
-              <input
-                type="text"
+              <select
                 required
                 value={kabupatenKota}
                 onChange={(e) => setKabupatenKota(e.target.value)}
-                placeholder="Misal: Kabupaten Bogor"
                 className="w-full text-xs p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-slate-50"
-              />
+              >
+                {availableDistricts.map((district) => (
+                  <option key={district.id} value={district.name}>{district.name}</option>
+                ))}
+              </select>
             </div>
           </div>
 
@@ -242,7 +256,7 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
               </label>
               <input
                 type="number"
-                min={10}
+                min={0}
                 max={2000}
                 required
                 value={capacityPerBatch}
@@ -257,7 +271,7 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
               </label>
               <input
                 type="number"
-                min={1}
+                min={0}
                 max={200}
                 required
                 value={certifiedInstructorsCount}

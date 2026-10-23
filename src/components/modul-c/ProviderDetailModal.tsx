@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Modal } from '../ui/Modal';
 import { Badge } from '../ui/Badge';
 import { VocationalProvider } from '../../types';
@@ -19,7 +19,6 @@ import {
   UserCheck
 } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
-import { kp2miVokasiService, Kp2miInstitutionDetail } from '../../services/kp2miVokasiService';
 
 interface ProviderDetailModalProps {
   provider: VocationalProvider | null;
@@ -33,28 +32,6 @@ export const ProviderDetailModal: React.FC<ProviderDetailModalProps> = ({
   onClose,
 }) => {
   const { updateProviderEvokasi, setSelectedProviderId, setActiveStage } = useAppStore();
-  const [detail, setDetail] = useState<Kp2miInstitutionDetail | null>(null);
-  const [loadingDetail, setLoadingDetail] = useState(false);
-
-  useEffect(() => {
-    if (provider?.slug && isOpen) {
-      let isMounted = true;
-      setLoadingDetail(true);
-      kp2miVokasiService
-        .getInstitutionDetail(provider.slug)
-        .then((data) => {
-          if (isMounted) setDetail(data);
-        })
-        .finally(() => {
-          if (isMounted) setLoadingDetail(false);
-        });
-      return () => {
-        isMounted = false;
-      };
-    } else {
-      setDetail(null);
-    }
-  }, [provider?.slug, isOpen]);
 
   if (!provider) return null;
 
@@ -64,9 +41,7 @@ export const ProviderDetailModal: React.FC<ProviderDetailModalProps> = ({
     onClose();
   };
 
-  const officialKp2miUrl = provider.slug
-    ? `https://vokasi.kp2mi.go.id/cari-lembaga`
-    : `https://vokasi.kp2mi.go.id/cari-lembaga`;
+  const officialKp2miUrl = 'https://vokasi.kp2mi.go.id/cari-lembaga';
 
   return (
     <Modal
@@ -84,9 +59,9 @@ export const ProviderDetailModal: React.FC<ProviderDetailModalProps> = ({
               <span className="text-xs font-bold text-slate-700 bg-slate-200 px-2.5 py-0.5 rounded-md">
                 Jenis: {provider.providerType}
               </span>
-              {(detail?.institutionStatus || provider.institutionStatus) && (
+              {provider.institutionStatus && (
                 <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200">
-                  Status: {detail?.institutionStatus || provider.institutionStatus}
+                  Status: {provider.institutionStatus}
                 </span>
               )}
             </div>
@@ -129,58 +104,58 @@ export const ProviderDetailModal: React.FC<ProviderDetailModalProps> = ({
               <div className="flex items-center gap-2 text-xs text-slate-600 mt-1 flex-wrap">
                 <span className="flex items-center gap-1 font-medium">
                   <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                  <span>{detail?.district || provider.kabupatenKota}, {provider.provinsi}</span>
+                  <span>{provider.kabupatenKota}, {provider.provinsi}</span>
                 </span>
                 <span>•</span>
                 <span className="font-semibold text-slate-800">Akreditasi: {provider.accreditation}</span>
               </div>
 
-              {detail?.address && (
+              {provider.address && (
                 <p className="text-xs text-slate-500 mt-2 leading-relaxed bg-white/70 p-2 rounded-lg border border-slate-200/60">
-                  {detail.address}
+                  {provider.address}
                 </p>
               )}
             </div>
           </div>
 
           {/* Contact & Leader Info (if available from KP2MI) */}
-          {(detail?.leaderName || detail?.phone || detail?.email || detail?.website) && (
+          {(provider.leaderName || provider.phone || provider.email || provider.website) && (
             <div className="mt-4 pt-3 border-t border-slate-200/80 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-              {detail.leaderName && (
+              {provider.leaderName && (
                 <div className="flex items-center gap-2 text-slate-700">
                   <UserCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                   <span>
-                    <span className="text-slate-400">Pimpinan:</span> {detail.leaderName}{' '}
-                    {detail.leaderPosition && `(${detail.leaderPosition})`}
+                    <span className="text-slate-400">Pimpinan:</span> {provider.leaderName}{' '}
+                    {provider.leaderPosition && `(${provider.leaderPosition})`}
                   </span>
                 </div>
               )}
-              {detail.phone && (
+              {provider.phone && (
                 <div className="flex items-center gap-2 text-slate-700">
                   <Phone className="w-3.5 h-3.5 text-blue-600 shrink-0" />
                   <span>
-                    <span className="text-slate-400">Telp:</span> {detail.phone}
+                    <span className="text-slate-400">Telp:</span> {provider.phone}
                   </span>
                 </div>
               )}
-              {detail.email && (
+              {provider.email && (
                 <div className="flex items-center gap-2 text-slate-700">
                   <Mail className="w-3.5 h-3.5 text-amber-600 shrink-0" />
                   <span className="truncate">
-                    <span className="text-slate-400">Email:</span> {detail.email}
+                    <span className="text-slate-400">Email:</span> {provider.email}
                   </span>
                 </div>
               )}
-              {detail.website && (
+              {provider.website && (
                 <div className="flex items-center gap-2 text-slate-700">
                   <Globe className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
                   <a
-                    href={detail.website}
+                    href={provider.website}
                     target="_blank"
                     rel="noreferrer"
                     className="text-blue-600 hover:underline truncate"
                   >
-                    {detail.website}
+                    {provider.website}
                   </a>
                 </div>
               )}
@@ -193,19 +168,25 @@ export const ProviderDetailModal: React.FC<ProviderDetailModalProps> = ({
           <div className="p-3 bg-white border border-slate-200 rounded-xl text-center">
             <Users className="w-4 h-4 mx-auto text-blue-600 mb-1" />
             <span className="text-[11px] text-slate-400 uppercase font-bold block">Kapasitas / Batch</span>
-            <span className="text-base font-extrabold text-slate-800">{provider.capacityPerBatch} Siswa</span>
+            <span className="text-base font-extrabold text-slate-800">
+              {provider.capacityPerBatch == null ? 'Belum tersedia' : `${provider.capacityPerBatch} Siswa`}
+            </span>
           </div>
 
           <div className="p-3 bg-white border border-slate-200 rounded-xl text-center">
             <Award className="w-4 h-4 mx-auto text-emerald-600 mb-1" />
             <span className="text-[11px] text-slate-400 uppercase font-bold block">Instruktur Tersertifikasi</span>
-            <span className="text-base font-extrabold text-slate-800">{provider.certifiedInstructorsCount} Orang</span>
+            <span className="text-base font-extrabold text-slate-800">
+              {provider.certifiedInstructorsCount == null ? 'Belum tersedia' : `${provider.certifiedInstructorsCount} Orang`}
+            </span>
           </div>
 
           <div className="p-3 bg-white border border-slate-200 rounded-xl text-center">
             <Flame className="w-4 h-4 mx-auto text-amber-500 mb-1" />
             <span className="text-[11px] text-slate-400 uppercase font-bold block">Skor Kesiapan Operasional</span>
-            <span className="text-base font-extrabold text-blue-600">{provider.operationalReadinessScore} / 100</span>
+            <span className="text-base font-extrabold text-blue-600">
+              {provider.operationalReadinessScore == null ? 'Belum tersedia' : `${provider.operationalReadinessScore} / 100`}
+            </span>
           </div>
         </div>
 

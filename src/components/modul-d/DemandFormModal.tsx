@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { GlobalDemand } from '../../types';
+import { useAppStore } from '../../store/useAppStore';
 import { X, Briefcase, Save, Sparkles, Globe2, DollarSign } from 'lucide-react';
 
 interface DemandFormModalProps {
@@ -17,18 +18,22 @@ export const DemandFormModal: React.FC<DemandFormModalProps> = ({
   initialData,
   mode,
 }) => {
+  const { businessOptions } = useAppStore();
   const [jobTitle, setJobTitle] = useState('');
   const [employerName, setEmployerName] = useState('');
   const [country, setCountry] = useState('Jepang');
-  const [sector, setSector] = useState('Manufaktur & Fabrikasi');
-  const [requiredQuota, setRequiredQuota] = useState(30);
+  const [sector, setSector] = useState('Manufaktur / Pengelasan');
+  const [requiredQuota, setRequiredQuota] = useState(1);
   const [minEducation, setMinEducation] = useState('SMK');
-  const [requiredLanguageLevel, setRequiredLanguageLevel] = useState('JLPT N4 / JFT-Basic A2');
-  const [salaryRangeString, setSalaryRangeString] = useState('¥ 210.000 - 240.000 (~Rp 22-26 Jt)');
-  const [workTermMonths, setWorkTermMonths] = useState(36);
-  const [deadlineDate, setDeadlineDate] = useState('2026-11-30');
-  const [skillsInput, setSkillsInput] = useState('Arc Welding 3G, Blue Print Reading, Pemotongan Plasma');
-  const [certsInput, setCertsInput] = useState('Sertifikat Uji Kompetensi Pengelasan BNSP, SSW Tokutei Ginou');
+  const [requiredLanguageLevel, setRequiredLanguageLevel] = useState('');
+  const [salaryRangeString, setSalaryRangeString] = useState('');
+  const [workTermMonths, setWorkTermMonths] = useState(0);
+  const [deadlineDate, setDeadlineDate] = useState('');
+  const [skillsInput, setSkillsInput] = useState('');
+  const [certsInput, setCertsInput] = useState('');
+  const availableOccupations = businessOptions.occupations.filter(
+    (occupation) => businessOptions.sectors.find((item) => item.name === sector)?.id === occupation.sector_id,
+  );
 
   useEffect(() => {
     if (initialData && mode === 'edit') {
@@ -48,15 +53,15 @@ export const DemandFormModal: React.FC<DemandFormModalProps> = ({
       setJobTitle('');
       setEmployerName('');
       setCountry('Jepang');
-      setSector('Manufaktur & Fabrikasi');
-      setRequiredQuota(30);
+      setSector('Manufaktur / Pengelasan');
+      setRequiredQuota(1);
       setMinEducation('SMK');
-      setRequiredLanguageLevel('JLPT N4 / JFT-Basic A2');
-      setSalaryRangeString('¥ 210.000 - 240.000 (~Rp 22-26 Jt)');
-      setWorkTermMonths(36);
-      setDeadlineDate('2026-11-30');
-      setSkillsInput('Arc Welding 3G, Blue Print Reading, Pemotongan Plasma');
-      setCertsInput('Sertifikat Uji Kompetensi Pengelasan BNSP, SSW Tokutei Ginou');
+      setRequiredLanguageLevel('');
+      setSalaryRangeString('');
+      setWorkTermMonths(0);
+      setDeadlineDate('');
+      setSkillsInput('');
+      setCertsInput('');
     }
   }, [initialData, mode, isOpen]);
 
@@ -87,8 +92,8 @@ export const DemandFormModal: React.FC<DemandFormModalProps> = ({
       salaryRangeString,
       workTermMonths: Number(workTermMonths),
       deadlineDate,
-      requiredSkills: skillsArray.length > 0 ? skillsArray : ['Keterampilan Vokasi Sesuai Bidang'],
-      requiredCertifications: certsArray.length > 0 ? certsArray : ['Sertifikasi Standar Industri'],
+      requiredSkills: skillsArray,
+      requiredCertifications: certsArray,
     });
   };
 
@@ -134,11 +139,17 @@ export const DemandFormModal: React.FC<DemandFormModalProps> = ({
               <input
                 type="text"
                 required
+                list="demand-occupations"
                 value={jobTitle}
                 onChange={(e) => setJobTitle(e.target.value)}
-                placeholder="Contoh: Welder (Juru Las Fabrikasi Galangan)"
+                placeholder="Pilih jabatan dari data referensi"
                 className="w-full text-xs p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-slate-50 focus:bg-white transition"
               />
+              <datalist id="demand-occupations">
+                {availableOccupations.map((occupation) => (
+                  <option key={occupation.id} value={occupation.title} />
+                ))}
+              </datalist>
             </div>
 
             <div>
@@ -167,11 +178,9 @@ export const DemandFormModal: React.FC<DemandFormModalProps> = ({
                 onChange={(e) => setCountry(e.target.value)}
                 className="w-full text-xs p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-slate-50"
               >
-                <option value="Jepang">Jepang</option>
-                <option value="Jerman">Jerman</option>
-                <option value="Korea">Korea Selatan</option>
-                <option value="Taiwan">Taiwan</option>
-                <option value="Australia">Australia</option>
+                {businessOptions.countries.map((item) => (
+                  <option key={item.id} value={item.name}>{item.name}</option>
+                ))}
               </select>
             </div>
 
@@ -179,14 +188,22 @@ export const DemandFormModal: React.FC<DemandFormModalProps> = ({
               <label className="block text-xs font-bold text-slate-700 mb-1">
                 Sektor Industri <span className="text-rose-500">*</span>
               </label>
-              <input
-                type="text"
+              <select
                 required
                 value={sector}
-                onChange={(e) => setSector(e.target.value)}
-                placeholder="Misal: Manufaktur, Kesehatan, Pertanian"
+                onChange={(e) => {
+                  setSector(e.target.value);
+                  const firstOccupation = businessOptions.occupations.find(
+                    (occupation) => occupation.sector_id === businessOptions.sectors.find((item) => item.name === e.target.value)?.id,
+                  );
+                  setJobTitle(firstOccupation?.title ?? '');
+                }}
                 className="w-full text-xs p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-slate-50"
-              />
+              >
+                {businessOptions.sectors.map((item) => (
+                  <option key={item.id} value={item.name}>{item.name}</option>
+                ))}
+              </select>
             </div>
 
             <div>

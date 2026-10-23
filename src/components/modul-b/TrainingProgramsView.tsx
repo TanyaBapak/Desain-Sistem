@@ -5,6 +5,7 @@ import { CurriculumModal } from './CurriculumModal';
 import { ProgramFormModal } from './ProgramFormModal';
 import { DeleteConfirmModal } from '../ui/DeleteConfirmModal';
 import { TrainingProgram } from '../../types';
+import { archiveBusinessData, saveBusinessData } from '../../lib/business-data';
 import { Search, GraduationCap, Award, BookOpen, Layers, Plus } from 'lucide-react';
 
 export const TrainingProgramsView: React.FC = () => {
@@ -16,9 +17,6 @@ export const TrainingProgramsView: React.FC = () => {
     setFilterProgramType,
     filterProgramCountry,
     setFilterProgramCountry,
-    createProgram,
-    updateProgram,
-    deleteProgram,
   } = useAppStore();
 
   const [activeModalProgram, setActiveModalProgram] = useState<TrainingProgram | null>(null);
@@ -181,13 +179,15 @@ export const TrainingProgramsView: React.FC = () => {
           setProgramToEdit(null);
         }}
         onSubmit={(data) => {
-          if (formMode === 'create') {
-            createProgram(data);
-          } else if (programToEdit) {
-            updateProgram(programToEdit.id, data);
-          }
-          setIsFormOpen(false);
-          setProgramToEdit(null);
+          saveBusinessData(
+            'programs',
+            data,
+            formMode === 'edit' ? programToEdit?.id : undefined,
+            () => {
+              setIsFormOpen(false);
+              setProgramToEdit(null);
+            },
+          );
         }}
       />
 
@@ -201,8 +201,7 @@ export const TrainingProgramsView: React.FC = () => {
         description="Menghapus program pelatihan akan membatalkan ketersediaan kurikulum untuk alokasi dan mencatat penghapusan ke audit log."
         onConfirm={(reason) => {
           if (deletingProgram) {
-            deleteProgram(deletingProgram.id);
-            setDeletingProgram(null);
+            archiveBusinessData('programs', deletingProgram.id, reason, () => setDeletingProgram(null));
           }
         }}
       />

@@ -155,12 +155,16 @@ export const ProviderCard: React.FC<ProviderCardProps> = ({
         <div className="grid grid-cols-2 gap-2">
           <div className="p-2.5 bg-white border border-slate-200 rounded-xl">
             <span className="text-slate-400 block text-[10px] uppercase font-bold">Kapasitas / Batch</span>
-            <span className="font-bold text-slate-800 text-sm">{provider.capacityPerBatch} Siswa</span>
+            <span className="font-bold text-slate-800 text-sm">
+              {provider.capacityPerBatch == null ? 'Belum tersedia' : `${provider.capacityPerBatch} Siswa`}
+            </span>
           </div>
 
           <div className="p-2.5 bg-white border border-slate-200 rounded-xl">
             <span className="text-slate-400 block text-[10px] uppercase font-bold">Instruktur Tersertifikasi</span>
-            <span className="font-bold text-slate-800 text-sm">{provider.certifiedInstructorsCount} Orang</span>
+            <span className="font-bold text-slate-800 text-sm">
+              {provider.certifiedInstructorsCount == null ? 'Belum tersedia' : `${provider.certifiedInstructorsCount} Orang`}
+            </span>
           </div>
         </div>
 
@@ -171,20 +175,24 @@ export const ProviderCard: React.FC<ProviderCardProps> = ({
               <Flame className="w-3.5 h-3.5 text-amber-500" />
               <span>Kesiapan Sarana Operasional:</span>
             </span>
-            <span className="font-extrabold text-blue-700">{provider.operationalReadinessScore} / 100</span>
+            <span className="font-extrabold text-blue-700">
+              {provider.operationalReadinessScore == null ? 'Belum tersedia' : `${provider.operationalReadinessScore} / 100`}
+            </span>
           </div>
-          <div className="w-full h-2 rounded-full bg-slate-200 overflow-hidden">
-            <div
-              className={`h-full rounded-full transition-all duration-300 ${
-                provider.operationalReadinessScore >= 90
-                  ? 'bg-emerald-500'
-                  : provider.operationalReadinessScore >= 80
-                  ? 'bg-blue-600'
-                  : 'bg-amber-500'
-              }`}
-              style={{ width: `${provider.operationalReadinessScore}%` }}
-            />
-          </div>
+          {provider.operationalReadinessScore != null && (
+            <div className="w-full h-2 rounded-full bg-slate-200 overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all duration-300 ${
+                  provider.operationalReadinessScore >= 90
+                    ? 'bg-emerald-500'
+                    : provider.operationalReadinessScore >= 80
+                    ? 'bg-blue-600'
+                    : 'bg-amber-500'
+                }`}
+                style={{ width: `${provider.operationalReadinessScore}%` }}
+              />
+            </div>
+          )}
         </div>
 
         {/* Sektor Spesialisasi Badges */}

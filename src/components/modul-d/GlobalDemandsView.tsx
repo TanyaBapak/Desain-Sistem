@@ -5,6 +5,7 @@ import { DemandDetailModal } from './DemandDetailModal';
 import { DemandFormModal } from './DemandFormModal';
 import { DeleteConfirmModal } from '../ui/DeleteConfirmModal';
 import { GlobalDemand } from '../../types';
+import { archiveBusinessData, saveBusinessData } from '../../lib/business-data';
 import {
   Search,
   Globe2,
@@ -24,9 +25,6 @@ export const GlobalDemandsView: React.FC = () => {
     setFilterDemandCountry,
     filterDemandSector,
     setFilterDemandSector,
-    createDemand,
-    updateDemand,
-    deleteDemand,
   } = useAppStore();
 
   const [activeModalDemand, setActiveModalDemand] = useState<GlobalDemand | null>(null);
@@ -194,13 +192,16 @@ export const GlobalDemandsView: React.FC = () => {
           setDemandToEdit(null);
         }}
         onSubmit={(data) => {
-          if (formMode === 'create') {
-            createDemand({ ...data, filledQuota: 0 });
-          } else if (demandToEdit) {
-            updateDemand(demandToEdit.id, data);
-          }
-          setIsFormOpen(false);
-          setDemandToEdit(null);
+          const demandData = { ...data, filledQuota: formMode === 'create' ? 0 : demandToEdit?.filledQuota ?? 0 };
+          saveBusinessData(
+            'demands',
+            demandData,
+            formMode === 'edit' ? demandToEdit?.id : undefined,
+            () => {
+              setIsFormOpen(false);
+              setDemandToEdit(null);
+            },
+          );
         }}
       />
 
@@ -215,8 +216,7 @@ export const GlobalDemandsView: React.FC = () => {
         confirmText="Ya, Batalkan Lowongan"
         onConfirm={(reason) => {
           if (deletingDemand) {
-            deleteDemand(deletingDemand.id);
-            setDeletingDemand(null);
+            archiveBusinessData('demands', deletingDemand.id, reason, () => setDeletingDemand(null));
           }
         }}
       />

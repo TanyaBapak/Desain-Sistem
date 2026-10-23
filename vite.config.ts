@@ -14,12 +14,6 @@ export default defineConfig({
     port: 3000,
     open: false,
     proxy: {
-      '/api/kp2mi-vokasi': {
-        target: 'https://vokasi.kp2mi.go.id',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/kp2mi-vokasi/, ''),
-        secure: false,
-      },
       '/api/siskop-file': {
         target: 'https://api-siskop2mi.kp2mi.go.id',
         changeOrigin: true,

@@ -163,15 +163,15 @@ export const MatchingEngineView: React.FC = () => {
             </p>
 
             {/* 4 Pillars Summary Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mt-6">
+            <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 2xl:grid-cols-4">
               <div className="p-4 rounded-xl bg-blue-50/70 border border-blue-200">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-xs font-bold text-blue-900 uppercase">Modul A: Supply</span>
                   <Users className="w-4 h-4 text-blue-600" />
                 </div>
                 <div className="text-2xl font-black text-blue-900">{candidates.length}</div>
-                <p className="text-[11px] text-blue-700 mt-1">Calon Peserta Vokasi Terdata</p>
-                <div className="mt-3 pt-2 border-t border-blue-200/60 text-[10px] text-blue-700 flex items-center justify-between gap-1 overflow-hidden">
+                <p className="mt-1 text-xs text-blue-700">Calon Peserta Vokasi Terdata</p>
+                <div className="mt-3 flex items-center justify-between gap-2 overflow-hidden border-t border-blue-200/60 pt-2 text-xs text-blue-700">
                   <span className="truncate">Siap: {candidates.filter(c => c.readinessStatus === 'Ready for Placement').length}</span>
                   <span className="truncate">Upskill: {candidates.filter(c => c.readinessStatus === 'Needs Upskilling').length}</span>
                 </div>
@@ -183,8 +183,8 @@ export const MatchingEngineView: React.FC = () => {
                   <GraduationCap className="w-4 h-4 text-indigo-600" />
                 </div>
                 <div className="text-2xl font-black text-indigo-900">{programs.length}</div>
-                <p className="text-[11px] text-indigo-700 mt-1">Program Pelatihan Standar</p>
-                <div className="mt-3 pt-2 border-t border-indigo-200/60 text-[10px] text-indigo-700 flex items-center justify-between gap-1 overflow-hidden">
+                <p className="mt-1 text-xs text-indigo-700">Program Pelatihan Standar</p>
+                <div className="mt-3 flex items-center justify-between gap-2 overflow-hidden border-t border-indigo-200/60 pt-2 text-xs text-indigo-700">
                   <span className="truncate">SSW Kaigo / Welder</span>
                   <span className="truncate">Ausbildung</span>
                 </div>
@@ -196,9 +196,13 @@ export const MatchingEngineView: React.FC = () => {
                   <Building2 className="w-4 h-4 text-emerald-600" />
                 </div>
                 <div className="text-2xl font-black text-emerald-900">{providers.length}</div>
-                <p className="text-[11px] text-emerald-700 mt-1">Lembaga Terverifikasi e-Vokasi</p>
-                <div className="mt-3 pt-2 border-t border-emerald-200/60 text-[10px] text-emerald-700 flex items-center justify-between gap-1 overflow-hidden">
-                  <span className="truncate">Kapasitas: {providers.reduce((acc, p) => acc + p.capacityPerBatch, 0)}</span>
+                <p className="mt-1 text-xs text-emerald-700">Lembaga Terverifikasi e-Vokasi</p>
+                <div className="mt-3 flex items-center justify-between gap-2 overflow-hidden border-t border-emerald-200/60 pt-2 text-xs text-emerald-700">
+                  <span className="truncate">
+                    Kapasitas: {providers.some((provider) => provider.capacityPerBatch !== null)
+                      ? providers.reduce((total, provider) => total + (provider.capacityPerBatch ?? 0), 0)
+                      : 'Belum tersedia'}
+                  </span>
                   <span className="truncate">Skor Rata2: 87/100</span>
                 </div>
               </div>
@@ -209,8 +213,8 @@ export const MatchingEngineView: React.FC = () => {
                   <Globe2 className="w-4 h-4 text-amber-600" />
                 </div>
                 <div className="text-2xl font-black text-amber-900">{demands.reduce((acc, d) => acc + d.requiredQuota, 0)}</div>
-                <p className="text-[11px] text-amber-700 mt-1">Total Kuota Permintaan Global</p>
-                <div className="mt-3 pt-2 border-t border-amber-200/60 text-[10px] text-amber-700 flex items-center justify-between gap-1 overflow-hidden">
+                <p className="mt-1 text-xs text-amber-700">Total Kuota Permintaan Global</p>
+                <div className="mt-3 flex items-center justify-between gap-2 overflow-hidden border-t border-amber-200/60 pt-2 text-xs text-amber-700">
                   <span className="truncate">Jepang, Jerman, Korea</span>
                   <span className="truncate">Taiwan</span>
                 </div>
@@ -220,7 +224,7 @@ export const MatchingEngineView: React.FC = () => {
             <div className="mt-6 flex justify-end">
               <button
                 onClick={() => setActiveStage(2)}
-                className="px-5 py-2.5 rounded-xl text-xs font-bold bg-blue-600 text-white hover:bg-blue-700 transition flex items-center gap-2 shadow-sm"
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700 sm:w-auto"
               >
                 <span>Lanjutkan ke Tahap 2: Validasi & Standardisasi</span>
                 <ArrowRight className="w-4 h-4" />
@@ -259,9 +263,9 @@ export const MatchingEngineView: React.FC = () => {
                 </div>
                 <div className="w-full h-2 rounded-full bg-slate-200 mt-2 overflow-hidden">
                   <div
-                    className="h-full bg-emerald-500 rounded-full"
+                    className="h-full rounded-full bg-emerald-500"
                     style={{
-                      width: `${(candidates.filter((c) => c.verificationStatus === 'Verified').length / candidates.length) * 100}%`,
+                      width: `${candidates.length ? (candidates.filter((c) => c.verificationStatus === 'Verified').length / candidates.length) * 100 : 0}%`,
                     }}
                   />
                 </div>
@@ -279,7 +283,7 @@ export const MatchingEngineView: React.FC = () => {
                   <div
                     className="h-full bg-blue-600 rounded-full"
                     style={{
-                      width: `${(providers.filter((p) => p.evokasiVerificationStatus === 'Terverifikasi e-Vokasi').length / providers.length) * 100}%`,
+                      width: `${providers.length ? (providers.filter((p) => p.evokasiVerificationStatus === 'Terverifikasi e-Vokasi').length / providers.length) * 100 : 0}%`,
                     }}
                   />
                 </div>
@@ -300,16 +304,16 @@ export const MatchingEngineView: React.FC = () => {
               </div>
             </div>
 
-            <div className="mt-4 flex justify-between items-center pt-4 border-t border-slate-100">
+            <div className="mt-4 flex flex-col-reverse gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
               <button
                 onClick={() => setActiveStage(1)}
-                className="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200 transition"
+                className="w-full rounded-xl bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-200 sm:w-auto"
               >
                 Kembali ke Tahap 1
               </button>
               <button
                 onClick={() => setActiveStage(3)}
-                className="px-5 py-2.5 rounded-xl text-xs font-bold bg-blue-600 text-white hover:bg-blue-700 transition flex items-center gap-2 shadow-sm"
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700 sm:w-auto"
               >
                 <span>Lanjutkan ke Tahap 3: Analisis Gap & Matching</span>
                 <ArrowRight className="w-4 h-4" />
@@ -533,7 +537,7 @@ export const MatchingEngineView: React.FC = () => {
                     >
                       {providers.map((pr) => (
                         <option key={pr.id} value={pr.id}>
-                          {pr.name} ({pr.provinsi} - Kesiapan: {pr.operationalReadinessScore}/100)
+                          {pr.name} ({pr.provinsi} - Kesiapan: {pr.operationalReadinessScore == null ? 'Belum tersedia' : `${pr.operationalReadinessScore}/100`})
                         </option>
                       ))}
                     </select>
@@ -839,16 +843,16 @@ export const MatchingEngineView: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex justify-between items-center pt-2">
+            <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:items-center sm:justify-between">
               <button
                 onClick={() => setActiveStage(4)}
-                className="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200"
+                className="w-full rounded-xl bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-200 sm:w-auto"
               >
                 Kembali ke Tahap 4
               </button>
               <button
                 onClick={() => setActiveStage(6)}
-                className="px-5 py-2.5 rounded-xl text-xs font-bold bg-blue-600 text-white hover:bg-blue-700 flex items-center gap-1.5 shadow-sm"
+                className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-blue-700 sm:w-auto"
               >
                 <span>Lanjut ke Tahap 6: Job Matching & Penempatan</span>
                 <ArrowRight className="w-4 h-4" />
@@ -957,10 +961,10 @@ export const MatchingEngineView: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex justify-between items-center pt-2">
+            <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:items-center sm:justify-between">
               <button
                 onClick={() => setActiveStage(5)}
-                className="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200"
+                className="w-full rounded-xl bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-200 sm:w-auto"
               >
                 Kembali ke Tahap 5
               </button>
@@ -968,7 +972,7 @@ export const MatchingEngineView: React.FC = () => {
                 onClick={() => {
                   alert('Data penempatan tersinkronisasi sempurna dengan SISKOP2MI!');
                 }}
-                className="px-5 py-2.5 rounded-xl text-xs font-bold bg-emerald-600 text-white hover:bg-emerald-700 flex items-center gap-1.5 shadow-sm"
+                className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-emerald-700 sm:w-auto"
               >
                 <CheckCircle2 className="w-4 h-4" />
                 <span>Sinkronisasi Data dengan SISKOP2MI</span>

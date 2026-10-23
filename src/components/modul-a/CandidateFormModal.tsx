@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { CandidateParticipant } from '../../types';
+import { useAppStore } from '../../store/useAppStore';
 import { X, UserPlus, Save, AlertCircle, Sparkles } from 'lucide-react';
 
 interface CandidateFormModalProps {
@@ -17,22 +18,26 @@ export const CandidateFormModal: React.FC<CandidateFormModalProps> = ({
   initialData,
   mode,
 }) => {
+  const { businessOptions } = useAppStore();
   const [fullName, setFullName] = useState('');
   const [nik, setNik] = useState('');
   const [gender, setGender] = useState<'L' | 'P'>('L');
   const [provinsi, setProvinsi] = useState('Jawa Barat');
   const [kabupatenKota, setKabupatenKota] = useState('Kabupaten Bogor');
   const [educationLevel, setEducationLevel] = useState<'SMK' | 'D3' | 'S1' | 'Lainnya'>('SMK');
-  const [institutionName, setInstitutionName] = useState('SMKN 1 Cibinong');
+  const [institutionName, setInstitutionName] = useState('');
   const [sourceType, setSourceType] = useState<CandidateParticipant['sourceType']>('Disnaker Pemda');
-  const [major, setMajor] = useState('Teknik Pengelasan');
-  const [skillsInput, setSkillsInput] = useState('Arc Welding SMAW, GMAW, K3 Standar');
+  const [major, setMajor] = useState('');
+  const [skillsInput, setSkillsInput] = useState('');
   const [language, setLanguage] = useState<'Jepang' | 'Jerman' | 'Inggris' | 'Mandarin' | 'Korea'>('Jepang');
-  const [langLevel, setLangLevel] = useState('JLPT N4');
-  const [preferredCountry, setPreferredCountry] = useState('Jepang');
-  const [preferredJobRole, setPreferredJobRole] = useState('Welder');
+  const [langLevel, setLangLevel] = useState('');
+  const [preferredCountry, setPreferredCountry] = useState('');
+  const [preferredJobRole, setPreferredJobRole] = useState('');
   const [readinessStatus, setReadinessStatus] = useState<CandidateParticipant['readinessStatus']>('Needs Upskilling');
   const [verificationStatus, setVerificationStatus] = useState<CandidateParticipant['verificationStatus']>('Pending Verification');
+  const availableDistricts = businessOptions.districts.filter(
+    (district) => businessOptions.provinces.find((province) => province.name === provinsi)?.id === district.province_id,
+  );
 
   useEffect(() => {
     if (initialData && mode === 'edit') {
@@ -57,19 +62,19 @@ export const CandidateFormModal: React.FC<CandidateFormModalProps> = ({
     } else {
       // Default reset
       setFullName('');
-      setNik('3201' + Math.floor(100000000000 + Math.random() * 900000000000));
+      setNik('');
       setGender('L');
       setProvinsi('Jawa Barat');
       setSourceType('Disnaker Pemda');
       setKabupatenKota('Kabupaten Bogor');
       setEducationLevel('SMK');
-      setInstitutionName('SMKN 1 Cibinong');
-      setMajor('Teknik Pengelasan');
-      setSkillsInput('Arc Welding SMAW, GMAW, K3 Standar');
+      setInstitutionName('');
+      setMajor('');
+      setSkillsInput('');
       setLanguage('Jepang');
-      setLangLevel('JLPT N4');
-      setPreferredCountry('Jepang');
-      setPreferredJobRole('Welder');
+      setLangLevel('');
+      setPreferredCountry('');
+      setPreferredJobRole('');
       setReadinessStatus('Needs Upskilling');
       setVerificationStatus('Pending Verification');
     }
@@ -96,16 +101,14 @@ export const CandidateFormModal: React.FC<CandidateFormModalProps> = ({
       institutionName,
       sourceType,
       major,
-      skills: skillsArray.length > 0 ? skillsArray : ['Keterampilan Dasar Vokasi'],
-      languageProficiency: [{ language, level: langLevel }],
-      preferredCountry: [preferredCountry],
-      preferredJobRole: [preferredJobRole],
+      skills: skillsArray,
+      languageProficiency: langLevel ? [{ language, level: langLevel }] : [],
+      preferredCountry: preferredCountry ? [preferredCountry] : [],
+      preferredJobRole: preferredJobRole ? [preferredJobRole] : [],
       readinessStatus,
       verificationStatus,
       lifecycleStatus: mode === 'create' ? 'SUBMITTED' : initialData?.lifecycleStatus || 'APPROVED',
     });
-
-    onClose();
   };
 
   return (
@@ -237,30 +240,33 @@ export const CandidateFormModal: React.FC<CandidateFormModalProps> = ({
               <label className="block font-bold text-slate-700 mb-1">Provinsi Domisili</label>
               <select
                 value={provinsi}
-                onChange={(e) => setProvinsi(e.target.value)}
+                onChange={(e) => {
+                  setProvinsi(e.target.value);
+                  const provinceId = businessOptions.provinces.find((province) => province.name === e.target.value)?.id;
+                  const firstDistrict = businessOptions.districts.find((district) => district.province_id === provinceId);
+                  setKabupatenKota(firstDistrict?.name ?? '');
+                }}
                 className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                <option value="Jawa Barat">Jawa Barat</option>
-                <option value="Jawa Timur">Jawa Timur</option>
-                <option value="Jawa Tengah">Jawa Tengah</option>
-                <option value="DKI Jakarta">DKI Jakarta</option>
-                <option value="Bali">Bali</option>
-                <option value="Sumatera Utara">Sumatera Utara</option>
-                <option value="Sulawesi Selatan">Sulawesi Selatan</option>
+                {businessOptions.provinces.map((province) => (
+                  <option key={province.id} value={province.name}>{province.name}</option>
+                ))}
               </select>
             </div>
 
             {/* Kabupaten/Kota */}
             <div>
               <label className="block font-bold text-slate-700 mb-1">Kabupaten / Kota</label>
-              <input
-                type="text"
+              <select
                 required
                 value={kabupatenKota}
                 onChange={(e) => setKabupatenKota(e.target.value)}
-                placeholder="misal: Kabupaten Bogor"
                 className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+              >
+                {availableDistricts.map((district) => (
+                  <option key={district.id} value={district.name}>{district.name}</option>
+                ))}
+              </select>
             </div>
           </div>
 
@@ -285,7 +291,7 @@ export const CandidateFormModal: React.FC<CandidateFormModalProps> = ({
               <div className="grid grid-cols-2 gap-2">
                 <select
                   value={language}
-                  onChange={(e) => setLanguage(e.target.value as any)}
+                  onChange={(e) => setLanguage(e.target.value as typeof language)}
                   className="px-2.5 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="Jepang">Jepang</option>
@@ -313,11 +319,10 @@ export const CandidateFormModal: React.FC<CandidateFormModalProps> = ({
                   onChange={(e) => setPreferredCountry(e.target.value)}
                   className="px-2.5 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="Jepang">Jepang</option>
-                  <option value="Jerman">Jerman</option>
-                  <option value="Korea Selatan">Korea Selatan</option>
-                  <option value="Taiwan">Taiwan</option>
-                  <option value="Arab Saudi">Arab Saudi</option>
+                    <option value="">Pilih negara</option>
+                    {businessOptions.countries.map((country) => (
+                      <option key={country.id} value={country.name}>{country.name}</option>
+                    ))}
                 </select>
                 <input
                   type="text"
@@ -334,7 +339,7 @@ export const CandidateFormModal: React.FC<CandidateFormModalProps> = ({
               <label className="block font-bold text-slate-700 mb-1">Status Kesiapan Peserta</label>
               <select
                 value={readinessStatus}
-                onChange={(e) => setReadinessStatus(e.target.value as any)}
+                onChange={(e) => setReadinessStatus(e.target.value as CandidateParticipant['readinessStatus'])}
                 className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="Ready for Placement">Ready for Placement (Siap Seleksi/Penempatan)</option>

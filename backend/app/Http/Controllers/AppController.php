@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
+use App\Services\BusinessDataPresenter;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -24,7 +25,7 @@ class AppController extends Controller
         'sippmi-monitoring',
     ];
 
-    public function __invoke(Request $request, string $tab): Response|RedirectResponse
+    public function __invoke(Request $request, string $tab, BusinessDataPresenter $businessDataPresenter): Response|RedirectResponse
     {
         if (! in_array($tab, self::TABS, true)) {
             return redirect()->route('app.show', 'overview');
@@ -36,6 +37,7 @@ class AppController extends Controller
             'currentTab' => $tab,
             'isRoot' => false,
             'showLogin' => false,
+            'businessData' => $businessDataPresenter->make($request->user()),
         ]);
     }
 }

@@ -1,7 +1,14 @@
-import React, { lazy, Suspense, useEffect } from "react";
+import React, { lazy, Suspense, useEffect, useLayoutEffect } from "react";
 import { useAppStore } from "@/store/useAppStore";
 import { AdminLayout } from "@/components/layout/AdminLayout";
-import { UserRole, UserScope } from "@/types";
+import {
+  CandidateParticipant,
+  GlobalDemand,
+  TrainingProgram,
+  UserRole,
+  UserScope,
+  VocationalProvider,
+} from "@/types";
 
 const KemendagriLandingPage = lazy(() =>
   import("@/components/landing/KemendagriLandingPage").then((module) => ({
@@ -68,6 +75,20 @@ interface AppProps {
   currentTab: string;
   isRoot: boolean;
   showLogin: boolean;
+  businessData?: {
+    candidates: CandidateParticipant[];
+    programs: TrainingProgram[];
+    providers: VocationalProvider[];
+    demands: GlobalDemand[];
+    options: {
+      provinces: { id: string; name: string }[];
+      districts: { id: string; province_id: string; name: string }[];
+      sectors: { id: string; name: string }[];
+      occupations: { id: string; sector_id: string; title: string }[];
+      countries: { id: string; name: string }[];
+      institutions: { id: string; name: string }[];
+    };
+  };
   auth: {
     user: {
       id: string;
@@ -86,10 +107,16 @@ interface AppProps {
   };
 }
 
-export function App({ currentTab, isRoot, showLogin, auth }: AppProps) {
-  const { setCurrentTab, setAuthenticatedUser } = useAppStore();
+export function App({ currentTab, isRoot, showLogin, auth, businessData }: AppProps) {
+  const { setCurrentTab, setAuthenticatedUser, setBusinessData, businessDataLoaded } = useAppStore();
   const authenticatedUser = auth.user;
   const activeTab = isRoot && authenticatedUser ? authenticatedUser.defaultTab : currentTab;
+
+  useLayoutEffect(() => {
+    if (businessData) {
+      setBusinessData(businessData);
+    }
+  }, [businessData, setBusinessData]);
 
   useEffect(() => {
     if (!authenticatedUser) {
@@ -137,6 +164,10 @@ export function App({ currentTab, isRoot, showLogin, auth }: AppProps) {
         <KemendagriLandingPage />
       </Suspense>
     );
+  }
+
+  if (!businessDataLoaded) {
+    return loading;
   }
 
   let page: React.ReactNode;

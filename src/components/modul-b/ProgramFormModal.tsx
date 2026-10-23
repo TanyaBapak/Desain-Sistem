@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { TrainingProgram, ProgramType } from '../../types';
+import { useAppStore } from '../../store/useAppStore';
 import { X, GraduationCap, Save, Sparkles, BookOpen } from 'lucide-react';
 
 interface ProgramFormModalProps {
@@ -17,20 +18,23 @@ export const ProgramFormModal: React.FC<ProgramFormModalProps> = ({
   initialData,
   mode,
 }) => {
+  const { businessOptions } = useAppStore();
   const [title, setTitle] = useState('');
   const [programType, setProgramType] = useState<ProgramType>('Teknis Terpadu');
-  const [targetSector, setTargetSector] = useState('Manufaktur & Konstruksi');
-  const [targetJobRole, setTargetJobRole] = useState('Juru Las Industri (Welder)');
+  const [targetSector, setTargetSector] = useState('Manufaktur / Pengelasan');
+  const [targetJobRole, setTargetJobRole] = useState('Welder SMAW / GMAW');
   const [targetCountry, setTargetCountry] = useState('Jepang');
-  const [durationJP, setDurationJP] = useState(320);
-  const [certificationTarget, setCertificationTarget] = useState('Sertifikasi BNSP + SSW Tokutei Ginou');
-  const [estimatedCostPerParticipant, setEstimatedCostPerParticipant] = useState(12500000);
-  const [quota, setQuota] = useState(50);
+  const [institutionId, setInstitutionId] = useState('');
+  const [durationJP, setDurationJP] = useState(0);
+  const [certificationTarget, setCertificationTarget] = useState('');
+  const [estimatedCostPerParticipant, setEstimatedCostPerParticipant] = useState(0);
+  const [quota, setQuota] = useState(1);
   const [enrolledCount, setEnrolledCount] = useState(0);
-  const [scheduleStart, setScheduleStart] = useState('2026-08-01');
-  const [scheduleEnd, setScheduleEnd] = useState('2026-10-31');
-  const [curriculumInput, setCurriculumInput] = useState(
-    'Pengenalan Standar Industri Jepang (5S/Kaizen)\nPengelasan Plat Posisi 1G - 3G Standar AWS\nBahasa Jepang Teknis Kerja & Keselamatan K3\nSimulasi Ujian Evaluasi Keterampilan SSW'
+  const [scheduleStart, setScheduleStart] = useState('');
+  const [scheduleEnd, setScheduleEnd] = useState('');
+  const [curriculumInput, setCurriculumInput] = useState('');
+  const availableOccupations = businessOptions.occupations.filter(
+    (occupation) => businessOptions.sectors.find((sector) => sector.name === targetSector)?.id === occupation.sector_id,
   );
 
   useEffect(() => {
@@ -40,13 +44,14 @@ export const ProgramFormModal: React.FC<ProgramFormModalProps> = ({
       setTargetSector(initialData.targetSector);
       setTargetJobRole(initialData.targetJobRole);
       setTargetCountry(initialData.targetCountry);
+      setInstitutionId(initialData.institutionId ?? businessOptions.institutions[0]?.id ?? '');
       setDurationJP(initialData.durationJP);
       setCertificationTarget(initialData.certificationTarget);
       setEstimatedCostPerParticipant(initialData.estimatedCostPerParticipant);
       setQuota(initialData.quota);
       setEnrolledCount(initialData.enrolledCount);
-      setScheduleStart(initialData.scheduleStart || '2026-08-01');
-      setScheduleEnd(initialData.scheduleEnd || '2026-10-31');
+      setScheduleStart(initialData.scheduleStart || '');
+      setScheduleEnd(initialData.scheduleEnd || '');
       setCurriculumInput(
         initialData.curriculumOutline && initialData.curriculumOutline.length > 0
           ? initialData.curriculumOutline.join('\n')
@@ -55,21 +60,20 @@ export const ProgramFormModal: React.FC<ProgramFormModalProps> = ({
     } else {
       setTitle('');
       setProgramType('Teknis Terpadu');
-      setTargetSector('Manufaktur & Konstruksi');
-      setTargetJobRole('Juru Las Industri (Welder)');
+      setTargetSector('Manufaktur / Pengelasan');
+      setTargetJobRole('Welder SMAW / GMAW');
       setTargetCountry('Jepang');
-      setDurationJP(320);
-      setCertificationTarget('Sertifikasi BNSP + SSW Tokutei Ginou');
-      setEstimatedCostPerParticipant(12500000);
-      setQuota(50);
+      setInstitutionId(businessOptions.institutions[0]?.id ?? '');
+      setDurationJP(0);
+      setCertificationTarget('');
+      setEstimatedCostPerParticipant(0);
+      setQuota(1);
       setEnrolledCount(0);
-      setScheduleStart('2026-08-01');
-      setScheduleEnd('2026-10-31');
-      setCurriculumInput(
-        'Pengenalan Standar Industri Jepang (5S/Kaizen)\nPengelasan Plat Posisi 1G - 3G Standar AWS\nBahasa Jepang Teknis Kerja & Keselamatan K3\nSimulasi Ujian Evaluasi Keterampilan SSW'
-      );
+      setScheduleStart('');
+      setScheduleEnd('');
+      setCurriculumInput('');
     }
-  }, [initialData, mode, isOpen]);
+  }, [initialData, mode, isOpen, businessOptions.institutions]);
 
   if (!isOpen) return null;
 
@@ -88,6 +92,7 @@ export const ProgramFormModal: React.FC<ProgramFormModalProps> = ({
       targetSector,
       targetJobRole,
       targetCountry,
+      institutionId,
       durationJP: Number(durationJP),
       certificationTarget,
       estimatedCostPerParticipant: Number(estimatedCostPerParticipant),
@@ -95,10 +100,7 @@ export const ProgramFormModal: React.FC<ProgramFormModalProps> = ({
       enrolledCount: Number(enrolledCount),
       scheduleStart,
       scheduleEnd,
-      curriculumOutline:
-        curriculumArray.length > 0
-          ? curriculumArray
-          : ['Standar Teknis Vokasi Global', 'Keselamatan Kerja & Bahasa Kerja'],
+      curriculumOutline: curriculumArray,
     });
   };
 
@@ -174,28 +176,38 @@ export const ProgramFormModal: React.FC<ProgramFormModalProps> = ({
               <label className="block text-xs font-bold text-slate-700 mb-1">
                 Sektor Industri <span className="text-rose-500">*</span>
               </label>
-              <input
-                type="text"
+              <select
                 required
                 value={targetSector}
-                onChange={(e) => setTargetSector(e.target.value)}
-                placeholder="Misal: Manufaktur, Kesehatan, Hospitality"
+                onChange={(e) => {
+                  setTargetSector(e.target.value);
+                  const firstOccupation = businessOptions.occupations.find(
+                    (occupation) => occupation.sector_id === businessOptions.sectors.find((sector) => sector.name === e.target.value)?.id,
+                  );
+                  setTargetJobRole(firstOccupation?.title ?? '');
+                }}
                 className="w-full text-xs p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-slate-50"
-              />
+              >
+                {businessOptions.sectors.map((sector) => (
+                  <option key={sector.id} value={sector.name}>{sector.name}</option>
+                ))}
+              </select>
             </div>
 
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">
                 Target Jabatan / Job Role <span className="text-rose-500">*</span>
               </label>
-              <input
-                type="text"
+              <select
                 required
                 value={targetJobRole}
                 onChange={(e) => setTargetJobRole(e.target.value)}
-                placeholder="Misal: Caregiver, Welder 3G, Operator CNC"
                 className="w-full text-xs p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-slate-50"
-              />
+              >
+                {availableOccupations.map((occupation) => (
+                  <option key={occupation.id} value={occupation.title}>{occupation.title}</option>
+                ))}
+              </select>
             </div>
 
             <div>
@@ -207,13 +219,28 @@ export const ProgramFormModal: React.FC<ProgramFormModalProps> = ({
                 onChange={(e) => setTargetCountry(e.target.value)}
                 className="w-full text-xs p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-slate-50"
               >
-                <option value="Jepang">Jepang</option>
-                <option value="Jerman">Jerman</option>
-                <option value="Korea">Korea Selatan</option>
-                <option value="Taiwan">Taiwan</option>
-                <option value="Australia">Australia</option>
+                {businessOptions.countries.map((country) => (
+                  <option key={country.id} value={country.name}>{country.name}</option>
+                ))}
               </select>
             </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1">
+              Lembaga Penyelenggara <span className="text-rose-500">*</span>
+            </label>
+            <select
+              required
+              value={institutionId}
+              onChange={(e) => setInstitutionId(e.target.value)}
+              className="w-full text-xs p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-slate-50"
+            >
+              <option value="">Pilih lembaga penyelenggara</option>
+              {businessOptions.institutions.map((institution) => (
+                <option key={institution.id} value={institution.id}>{institution.name}</option>
+              ))}
+            </select>
           </div>
 
           {/* Durasi JP, Sertifikasi & Biaya Per Peserta */}

@@ -30,7 +30,7 @@ export const TopNav: React.FC<TopNavProps> = ({ currentTab, onOpenSidebar }) => 
         <div className="flex min-w-0 items-center gap-3">
           <button
             onClick={onOpenSidebar}
-            className="rounded-md p-2 text-muted-foreground transition hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:hidden"
+            className="rounded-md p-2 text-muted-foreground transition hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:hidden"
             aria-label="Buka navigasi"
           >
             <Menu className="h-5 w-5" />
@@ -89,6 +89,9 @@ export const TopNav: React.FC<TopNavProps> = ({ currentTab, onOpenSidebar }) => 
                 <MapPin className="h-4 w-4 shrink-0 text-muted-foreground" />
                 {currentScope.name}
               </DropdownMenuItem>
+              <div className="px-2 py-1.5 text-xs text-muted-foreground">
+                MFA: {currentUser?.mfaEnabled ? "Aktif" : "Tidak aktif"}
+              </div>
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 onClick={() => {

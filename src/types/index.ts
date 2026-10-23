@@ -41,6 +41,8 @@ export interface TrainingProgram {
   targetSector: string; // e.g. "Kesehatan", "Industri Manufaktur"
   targetJobRole: string; // e.g. "Caregiver / Kaigo", "Welder"
   targetCountry: string;
+  institutionId?: string;
+  institutionName?: string;
   durationJP: number; // Jam Pelajaran, e.g. 320
   certificationTarget: string; // e.g. "Sertifikasi BNSP + SSW Tokutei Ginou"
   estimatedCostPerParticipant: number; // IDR
@@ -87,11 +89,11 @@ export interface VocationalProvider {
   kabupatenKota: string;
   evokasiVerificationStatus: 'Terverifikasi e-Vokasi' | 'Proses Verifikasi' | 'Belum Terverifikasi';
   accreditation: 'A' | 'B' | 'Unggul' | 'Baik Sekali' | string;
-  capacityPerBatch: number;
-  certifiedInstructorsCount: number;
+  capacityPerBatch: number | null;
+  certifiedInstructorsCount: number | null;
   facilities: string[]; // e.g. ["Bengkel Las Standard ISO", "Lab Bahasa Komputer"]
   supportedSectors: string[];
-  operationalReadinessScore: number; // 0 - 100
+  operationalReadinessScore: number | null; // 0 - 100
   // Official KP2MI Portal vokasi.kp2mi.go.id fields
   slug?: string;
   logo?: string;

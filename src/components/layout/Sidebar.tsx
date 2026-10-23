@@ -51,13 +51,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
   return (
     <aside
       className={cn(
-        "fixed bottom-0 left-0 top-16 z-40 flex flex-col border-r border-border bg-background transition-[width,transform] duration-200 md:translate-x-0",
-        compact ? "w-16 md:w-16" : "w-72 md:w-64",
-        mobileOpen ? "translate-x-0 shadow-xl" : "-translate-x-full md:translate-x-0"
+        "fixed bottom-0 left-0 top-16 z-40 flex flex-col border-r border-border bg-white transition-[width,transform] duration-200 lg:translate-x-0",
+        compact ? "w-16" : "w-72",
+        mobileOpen ? "translate-x-0 shadow-xl" : "-translate-x-full lg:translate-x-0"
       )}
     >
       {/* Collapse toggle */}
-      <div className="flex h-14 shrink-0 items-center justify-between border-b border-border bg-background px-3">
+      <div className="flex h-14 shrink-0 items-center justify-between border-b border-border bg-white px-3">
         {!compact && (
           <div className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-primary-foreground">
@@ -71,7 +71,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <button
           type="button"
           onClick={() => setCollapsed(!collapsed)}
-          className="hidden rounded-md p-2 text-muted-foreground transition hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:inline-flex"
+          className="hidden rounded-md p-2 text-muted-foreground transition hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:inline-flex"
           aria-label={collapsed ? "Perluas navigasi" : "Ciutkan navigasi"}
         >
           <Menu className={cn("h-4 w-4", collapsed && "rotate-90")} />
@@ -79,7 +79,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <button
           type="button"
           onClick={onMobileClose}
-          className="rounded-md p-2 text-muted-foreground transition hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:hidden"
+          className="rounded-md p-2 text-muted-foreground transition hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:hidden"
           aria-label="Tutup navigasi"
         >
           <X className="h-4 w-4" />
@@ -119,7 +119,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </nav>
 
       {/* Bottom: Role & scope context + logout */}
-      <div className="border-t border-border p-3 shrink-0">
+      <div className="shrink-0 border-t border-border bg-white p-3">
         {!compact && (
           <div className="space-y-2">
             <div className="flex items-center gap-2 px-2 mb-1">

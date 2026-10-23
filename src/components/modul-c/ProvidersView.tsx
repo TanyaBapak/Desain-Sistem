@@ -1,10 +1,13 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { router } from '@inertiajs/react';
+import { toast } from 'sonner';
 import { useAppStore } from '../../store/useAppStore';
 import { ProviderCard } from './ProviderCard';
 import { ProviderDetailModal } from './ProviderDetailModal';
 import { ProviderFormModal } from './ProviderFormModal';
 import { DeleteConfirmModal } from '../ui/DeleteConfirmModal';
 import { VocationalProvider } from '../../types';
+import { archiveBusinessData, saveBusinessData } from '../../lib/business-data';
 import {
   Search,
   Building2,
@@ -19,10 +22,10 @@ import {
   ChevronRight,
   Sparkles
 } from 'lucide-react';
-import { kp2miVokasiService, Kp2miCountResponse } from '../../services/kp2miVokasiService';
 
 export const ProvidersView: React.FC = () => {
   const {
+    currentRole,
     providers,
     searchProvider,
     setSearchProvider,
@@ -36,10 +39,6 @@ export const ProvidersView: React.FC = () => {
     setFilterProviderSector,
     filterInstitutionStatus,
     setFilterInstitutionStatus,
-    createProvider,
-    updateProvider,
-    deleteProvider,
-    syncProvidersFromKp2mi,
   } = useAppStore();
 
   const [activeModalProvider, setActiveModalProvider] = useState<VocationalProvider | null>(null);
@@ -51,46 +50,26 @@ export const ProvidersView: React.FC = () => {
   // KP2MI Live Sync State
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncSuccess, setSyncSuccess] = useState(false);
-  const [liveStats, setLiveStats] = useState<Kp2miCountResponse>({
-    certifiedInstitutionCount: 508,
-    institutionCount: 1520,
-  });
-
+  const canSync = currentRole === 'superadmin' || currentRole === 'taskforce';
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 12;
 
-  // Load Live Count on mount
-  useEffect(() => {
-    let isMounted = true;
-    kp2miVokasiService.getLiveCount().then((stats) => {
-      if (isMounted && stats) {
-        setLiveStats(stats);
-      }
-    });
-    return () => {
-      isMounted = false;
-    };
-  }, []);
-
-  const handleLiveSync = async () => {
+  const handleLiveSync = () => {
     setIsSyncing(true);
     setSyncSuccess(false);
-    try {
-      // Fetch fresh items from vokasi.kp2mi.go.id
-      const res = await kp2miVokasiService.searchInstitutions({ page: 1, limit: 36 });
-      if (res.data && res.data.length > 0) {
-        syncProvidersFromKp2mi(res.data);
-      }
-      const count = await kp2miVokasiService.getLiveCount();
-      if (count) setLiveStats(count);
-      setSyncSuccess(true);
-      setTimeout(() => setSyncSuccess(false), 4000);
-    } catch (err) {
-      console.error('Sync failed:', err);
-    } finally {
-      setIsSyncing(false);
-    }
+    router.post('/integrations/kp2mi/sync', {}, {
+      preserveScroll: true,
+      onSuccess: () => {
+        setSyncSuccess(true);
+        toast.success('Sinkronisasi KP2MI berhasil.');
+        setTimeout(() => setSyncSuccess(false), 4000);
+      },
+      onError: (errors) => {
+        toast.error(errors.sync ?? 'Sinkronisasi gagal. Coba kembali beberapa saat lagi.');
+      },
+      onFinish: () => setIsSyncing(false),
+    });
   };
 
   const providerTypeOptions = [
@@ -216,7 +195,7 @@ export const ProvidersView: React.FC = () => {
             </div>
             <div className="flex items-center gap-1.5 text-xs text-blue-300 bg-blue-950/60 border border-blue-800/60 px-2.5 py-1 rounded-md">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="font-semibold">Live Feeder: vokasi.kp2mi.go.id/cari-lembaga</span>
+              <span className="font-semibold">Sumber: basis data KP2MI</span>
             </div>
           </div>
 
@@ -224,7 +203,7 @@ export const ProvidersView: React.FC = () => {
             Direktori Lembaga Penyelenggara Vokasi Terakreditasi
           </h2>
           <p className="text-xs text-slate-300 max-w-2xl leading-relaxed">
-            Data lembaga disinkronkan langsung dari basis data resmi Kementerian Perlindungan Pekerja Migran Indonesia (P2MI) mencakup SMK, LPK, Balai Latihan Kerja (BLK), Politeknik, dan Universitas dari seluruh Indonesia.
+            Data ditampilkan dari basis data aplikasi dan dapat diperbarui melalui sinkronisasi resmi KP2MI.
           </p>
         </div>
 
@@ -232,34 +211,31 @@ export const ProvidersView: React.FC = () => {
           {/* Official Statistics Tile */}
           <div className="bg-slate-800/90 border border-slate-700 px-4 py-2.5 rounded-xl text-center">
             <span className="text-[10px] text-slate-400 block font-bold uppercase">
-              Database Nasional KP2MI
+              Data Lembaga Tersimpan
             </span>
             <div className="flex items-center justify-center gap-2 mt-0.5">
               <span className="text-lg font-black text-emerald-400">
-                {liveStats.institutionCount.toLocaleString('id-ID')}
+                {providers.length.toLocaleString('id-ID')}
               </span>
-              <span className="text-xs text-slate-400">Lembaga</span>
-              <span className="text-slate-600">•</span>
-              <span className="text-xs font-bold text-amber-300">
-                {liveStats.certifiedInstitutionCount} Terakreditasi
-              </span>
+                <span className="text-xs text-slate-400">Lembaga tersimpan</span>
             </div>
           </div>
 
-          {/* Live Sync Button */}
-          <button
-            onClick={handleLiveSync}
-            disabled={isSyncing}
-            className={`px-3.5 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 border shadow-sm ${
-              syncSuccess
-                ? 'bg-emerald-600 border-emerald-500 text-white'
-                : 'bg-slate-800 hover:bg-slate-700 border-slate-600 text-slate-200'
-            }`}
-            title="Tarik data live terbaru dari vokasi.kp2mi.go.id"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin text-amber-400' : ''}`} />
-            <span>{isSyncing ? 'Menyinkronkan...' : syncSuccess ? 'Tersinkron!' : 'Sinkronisasi Live'}</span>
-          </button>
+          {canSync && (
+            <button
+              onClick={handleLiveSync}
+              disabled={isSyncing}
+              className={`px-3.5 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 border shadow-sm ${
+                syncSuccess
+                  ? 'bg-emerald-600 border-emerald-500 text-white'
+                  : 'bg-slate-800 hover:bg-slate-700 border-slate-600 text-slate-200'
+              }`}
+              title="Simpan pembaruan dari basis data KP2MI"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin text-amber-400' : ''}`} />
+              <span>{isSyncing ? 'Menyinkronkan...' : syncSuccess ? 'Tersinkron!' : 'Sinkronisasi'}</span>
+            </button>
+          )}
 
           {/* External Portal Link */}
           <a
@@ -520,13 +496,15 @@ export const ProvidersView: React.FC = () => {
           setProviderToEdit(null);
         }}
         onSubmit={(data) => {
-          if (formMode === 'create') {
-            createProvider(data);
-          } else if (providerToEdit) {
-            updateProvider(providerToEdit.id, data);
-          }
-          setIsFormOpen(false);
-          setProviderToEdit(null);
+          saveBusinessData(
+            'providers',
+            data,
+            formMode === 'edit' ? providerToEdit?.id : undefined,
+            () => {
+              setIsFormOpen(false);
+              setProviderToEdit(null);
+            },
+          );
         }}
       />
 
@@ -541,8 +519,7 @@ export const ProvidersView: React.FC = () => {
         confirmText="Ya, Nonaktifkan Lembaga"
         onConfirm={() => {
           if (deletingProvider) {
-            deleteProvider(deletingProvider.id);
-            setDeletingProvider(null);
+            archiveBusinessData('providers', deletingProvider.id, undefined, () => setDeletingProvider(null));
           }
         }}
       />
