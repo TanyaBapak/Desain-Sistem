@@ -26,6 +26,13 @@ export default defineConfig({
         rewrite: (path) => path.replace(/^\/api\/siskop-file/, ''),
         secure: false,
       },
+      // Proxy ke Laravel SIPPMI (LPK / pelatihan) untuk monitoring tahap 4-6
+      // Production: http://gardata.sippmi.com ; Development fallback localhost:8000
+      '/api/v1/placement': {
+        target: process.env.VITE_SIPPMI_API_BASE || 'http://gardata.sippmi.com',
+        changeOrigin: true,
+        secure: false,
+      },
     },
   },
 });

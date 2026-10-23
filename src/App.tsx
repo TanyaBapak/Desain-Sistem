@@ -1,89 +1,89 @@
-import React from 'react';
-import { useAppStore } from './store/useAppStore';
-import { KemendagriLandingPage } from './components/landing/KemendagriLandingPage';
-import { UnifiedLoginPage } from './components/auth/UnifiedLoginPage';
-import { HeaderNav } from './components/layout/HeaderNav';
-import { Footer } from './components/layout/Footer';
-import { ExecutiveCommandCenter } from './components/dashboard/ExecutiveCommandCenter';
-import { SupplyTable } from './components/modul-a/SupplyTable';
-import { TrainingProgramsView } from './components/modul-b/TrainingProgramsView';
-import { ProvidersView } from './components/modul-c/ProvidersView';
-import { GlobalDemandsView } from './components/modul-d/GlobalDemandsView';
-import { MatchingEngineView } from './components/matching/MatchingEngineView';
-import { ApprovalWorkflowView } from './components/approvals/ApprovalWorkflowView';
-import { AuditLogView } from './components/audit/AuditLogView';
-import { RbacMatrixView } from './components/rbac/RbacMatrixView';
+import React from "react";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+  useLocation,
+} from "react-router-dom";
+import { useAppStore } from "@/store/useAppStore";
+import { KemendagriLandingPage } from "@/components/landing/KemendagriLandingPage";
+import { UnifiedLoginPage } from "@/components/auth/UnifiedLoginPage";
+import { AdminLayout } from "@/components/layout/AdminLayout";
+import { getDefaultTab, canAccessTab, getRoleInfo } from "@/lib/rbac";
+import { mockRoles } from "@/data";
+
+// --- Pages (lazy-ish inline imports) ---
+import { DashboardPage } from "@/pages/DashboardPage";
+import { RoleManagementPage } from "@/pages/RoleManagementPage";
+import { SippmiMonitoringPage } from "@/pages/SippmiMonitoringPage";
+import { SupplyTable } from "@/components/modul-a/SupplyTable";
+import { TrainingProgramsView } from "@/components/modul-b/TrainingProgramsView";
+import { ProvidersView } from "@/components/modul-c/ProvidersView";
+import { GlobalDemandsView } from "@/components/modul-d/GlobalDemandsView";
+import { MatchingEngineView } from "@/components/matching/MatchingEngineView";
+import { ApprovalWorkflowView } from "@/components/approvals/ApprovalWorkflowView";
+import { AuditLogView } from "@/components/audit/AuditLogView";
+import { RbacMatrixView } from "@/components/rbac/RbacMatrixView";
+
+// Wrapper that passes currentTab/onTabChange to legacy module components
+function LegacyModulePage({ component: Component }: { component: React.FC }) {
+  const { currentTab, setCurrentTab, currentRole } = useAppStore();
+  const roleObj = getRoleInfo(currentRole);
+  // Ensure tab is accessible for this role
+  React.useEffect(() => {
+    if (!canAccessTab(currentRole, currentTab)) {
+      setCurrentTab(roleObj.defaultTab);
+    }
+  }, [currentRole, currentTab, roleObj, setCurrentTab]);
+  return <Component />;
+}
 
 export const App: React.FC = () => {
-  const { viewMode, isAuthenticated, currentTab, setCurrentTab, currentUser, currentScope } = useAppStore();
+  const { viewMode, isAuthenticated, currentTab, setCurrentTab, currentRole } =
+    useAppStore();
 
-  // 1. If currently on Landing Page mode, render the public portal
-  if (viewMode === 'landing') {
+  // 1. Landing page mode
+  if (viewMode === "landing") {
     return <KemendagriLandingPage />;
   }
 
-  // 2. If on Login mode, or unauthenticated when attempting to access internal views, render Unified Login Page
-  if (viewMode === 'login' || !isAuthenticated) {
+  // 2. Login / not authenticated
+  if (viewMode === "login" || !isAuthenticated) {
     return <UnifiedLoginPage />;
   }
 
-  // 3. If authenticated in App mode, render the Internal Command Center Dashboard
+  // 3. Authenticated → Admin dashboard with routing
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900 selection:bg-red-600 selection:text-white font-sans">
-      {/* Top Application Header Navigation (Unified with User Profile & Logout) */}
-      <HeaderNav currentTab={currentTab} onTabChange={setCurrentTab} />
+    <BrowserRouter>
+      <Routes>
+        {/* Redirect root to default tab for role */}
+        <Route
+          path="/"
+          element={
+            <Navigate to={`/app/${getDefaultTab(currentRole)}`} replace />
+          }
+        />
 
-      {/* Active SSO Session Role Context Ribbon */}
-      {currentUser && (
-        <div className="bg-slate-900 border-b border-slate-800 text-white px-4 sm:px-6 lg:px-8 py-2 text-xs">
-          <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
-              <span className="text-slate-300">
-                Sesi SSO Aktif: <strong className="text-white font-bold">{currentUser.name}</strong> ({currentUser.roleTitle})
-              </span>
-              <span className="hidden sm:inline text-slate-600">•</span>
-              <span className="text-amber-300 font-semibold text-[11px] block sm:inline">
-                Scope: {currentScope.name}
-              </span>
-            </div>
-
-            <div className="flex items-center gap-2 shrink-0 text-[11px]">
-              <span className="text-slate-400">Dashboard Role Terbuka:</span>
-              <span className="px-2 py-0.5 rounded font-extrabold bg-blue-900/60 text-blue-300 border border-blue-700/60 uppercase">
-                {currentTab}
-              </span>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Main Content Workspace */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {currentTab === 'overview' && (
-          <ExecutiveCommandCenter onNavigate={(tab) => setCurrentTab(tab)} />
-        )}
-
-        {currentTab === 'modul-a' && <SupplyTable />}
-
-        {currentTab === 'modul-b' && <TrainingProgramsView />}
-
-        {currentTab === 'modul-c' && <ProvidersView />}
-
-        {currentTab === 'modul-d' && <GlobalDemandsView />}
-
-        {currentTab === 'matching' && <MatchingEngineView />}
-
-        {currentTab === 'approvals' && <ApprovalWorkflowView />}
-
-        {currentTab === 'audit' && <AuditLogView />}
-
-        {currentTab === 'rbac' && <RbacMatrixView />}
-      </main>
-
-      {/* Comprehensive Ministry Footer */}
-      <Footer />
-    </div>
+        <Route path="/app/*" element={<AdminLayout />}>
+          <Route index element={<Navigate to={`/app/${getDefaultTab(currentRole)}`} replace />} />
+          <Route
+            path="dashboard"
+            element={<DashboardPage currentTab={currentTab} setCurrentTab={setCurrentTab} />}
+          />
+          <Route path="modul-a" element={<LegacyModulePage component={SupplyTable} />} />
+          <Route path="modul-b" element={<LegacyModulePage component={TrainingProgramsView} />} />
+          <Route path="modul-c" element={<LegacyModulePage component={ProvidersView} />} />
+          <Route path="modul-d" element={<LegacyModulePage component={GlobalDemandsView} />} />
+          <Route path="matching" element={<LegacyModulePage component={MatchingEngineView} />} />
+          <Route path="modul-e" element={<LegacyModulePage component={MatchingEngineView} />} />
+          <Route path="approvals" element={<LegacyModulePage component={ApprovalWorkflowView} />} />
+          <Route path="audit" element={<LegacyModulePage component={AuditLogView} />} />
+          <Route path="rbac" element={<RoleManagementPage />} />
+          <Route path="sippmi-monitoring" element={<SippmiMonitoringPage />} />
+        </Route>
+        </Routes>
+      </BrowserRouter>
   );
 };
 

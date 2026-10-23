@@ -1,38 +1,55 @@
-import React from 'react';
+"use client";
 
-interface BadgeProps {
-  children: React.ReactNode;
-  variant?: 'primary' | 'success' | 'warning' | 'danger' | 'neutral' | 'outline' | 'purple';
-  size?: 'sm' | 'md';
-  className?: string;
-}
+import * as React from "react";
+import { Slot } from "@radix-ui/react-slot";
+import { cva, type VariantProps } from "class-variance-authority";
+import { cn } from "@/lib/utils";
 
-export const Badge: React.FC<BadgeProps> = ({
-  children,
-  variant = 'neutral',
-  size = 'md',
-  className = '',
-}) => {
-  const sizeClasses = {
-    sm: 'text-[11px] px-2 py-0.5',
-    md: 'text-xs px-2.5 py-1',
-  };
+const badgeVariants = cva(
+  "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+  {
+    variants: {
+      variant: {
+        default: "border-transparent bg-primary text-primary-foreground hover:bg-primary/80",
+        secondary:
+          "border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80",
+        destructive:
+          "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80",
+        outline: "text-foreground border-border",
+        success: "border-transparent bg-emerald-600 text-emerald-50 hover:bg-emerald-600/90",
+        warning:
+          "border-transparent bg-amber-600 text-amber-50 hover:bg-amber-600/90",
+        danger: "border-transparent bg-red-600 text-red-50 hover:bg-red-600/90",
+        primary: "border-transparent bg-blue-600 text-blue-50 hover:bg-blue-600/90",
+        purple: "border-transparent bg-violet-600 text-violet-50 hover:bg-violet-600/90",
+        neutral: "border-transparent bg-slate-200 text-slate-900 hover:bg-slate-300",
+      },
+      size: {
+        default: "h-8 px-2.5 py-0.5 text-xs",
+        sm: "h-7 px-2 py-0.5 text-[10px]",
+        lg: "h-9 px-3 py-1 text-sm",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
+      size: "default",
+    },
+  }
+);
 
-  const variantClasses = {
-    primary: 'bg-blue-100 text-blue-800 border-blue-200',
-    success: 'bg-emerald-100 text-emerald-800 border-emerald-200',
-    warning: 'bg-amber-100 text-amber-800 border-amber-200',
-    danger: 'bg-red-100 text-red-800 border-red-200',
-    neutral: 'bg-slate-100 text-slate-700 border-slate-200',
-    purple: 'bg-indigo-100 text-indigo-800 border-indigo-200',
-    outline: 'bg-transparent text-slate-600 border-slate-300',
-  };
+export interface BadgeProps
+  extends React.ComponentPropsWithoutRef<typeof Slot>,
+    VariantProps<typeof badgeVariants> {}
 
-  return (
-    <span
-      className={`inline-flex items-center font-medium rounded-full border ${sizeClasses[size]} ${variantClasses[variant]} ${className}`}
-    >
-      {children}
-    </span>
-  );
-};
+const Badge = React.forwardRef<HTMLDivElement, BadgeProps>(
+  ({ className, variant, size, ...props }, ref) => (
+    <Slot
+      className={cn(badgeVariants({ variant, size }), className)}
+      {...props}
+      ref={ref}
+    />
+  )
+);
+Badge.displayName = "Badge";
+
+export { Badge, badgeVariants };
