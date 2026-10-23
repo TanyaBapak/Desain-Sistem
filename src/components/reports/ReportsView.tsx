@@ -1,5 +1,5 @@
 import React from 'react';
-import { BarChart3, Building2, GraduationCap, Users, BriefcaseBusiness } from 'lucide-react';
+import { BarChart3, Building2, GraduationCap, Users, BriefcaseBusiness, Database, Clock3 } from 'lucide-react';
 
 export interface ReportSummary {
   candidateCount: number;
@@ -8,6 +8,16 @@ export interface ReportSummary {
   institutionCount: number;
   demandCount: number;
   updatedAt: string | null;
+  gardata: {
+    candidateCount: number;
+    trainingRecordCount: number;
+    lastSyncStatus: string | null;
+    lastSyncAt: string | null;
+    recordsFetched: number;
+    recordsInserted: number;
+    recordsUpdated: number;
+    recordsSkipped: number;
+  };
 }
 
 interface ReportsViewProps {
@@ -77,6 +87,63 @@ WIB
           Tampilan auditor hanya memuat angka agregat; data pribadi dan rincian peserta tidak ditampilkan.
         </p>
       )}
+
+      <article className="rounded-xl border border-border bg-card p-5 shadow-sm">
+        <div className="mb-4 flex items-center gap-3">
+          <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <Database className="h-5 w-5" aria-hidden="true" />
+          </span>
+          <div>
+            <h2 className="text-base font-medium text-foreground">Ringkasan Gardata / SIPPMI</h2>
+            <p className="text-xs text-muted-foreground">
+              Data yang sudah tersimpan di database lokal.
+            </p>
+          </div>
+        </div>
+        {summary.gardata.lastSyncStatus ? (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <GardataMetric label="Peserta Gardata" value={summary.gardata.candidateCount} />
+            <GardataMetric label="Riwayat pelatihan" value={summary.gardata.trainingRecordCount} />
+            <GardataMetric label="Rekaman diterima" value={summary.gardata.recordsFetched} />
+            <div>
+              <p className="text-xs text-muted-foreground">Sinkronisasi terakhir</p>
+              <p className="mt-1 flex items-center gap-1.5 text-sm font-medium text-foreground">
+                <Clock3 className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                {summary.gardata.lastSyncStatus}
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {summary.gardata.lastSyncAt
+                  ? `${new Intl.DateTimeFormat('id-ID', {
+                    dateStyle: 'medium',
+                    timeStyle: 'short',
+                    timeZone: 'Asia/Jakarta',
+                  }).format(new Date(summary.gardata.lastSyncAt))} WIB`
+                  : 'Waktu selesai belum tersedia'}
+              </p>
+            </div>
+            <p className="text-xs text-muted-foreground sm:col-span-2 lg:col-span-4">
+              Baru: {summary.gardata.recordsInserted.toLocaleString('id-ID')} ·
+              Diperbarui: {summary.gardata.recordsUpdated.toLocaleString('id-ID')} ·
+              Dilewati: {summary.gardata.recordsSkipped.toLocaleString('id-ID')}
+            </p>
+          </div>
+        ) : (
+          <p className="rounded-lg border border-border bg-muted/40 p-4 text-sm text-muted-foreground">
+            Belum ada catatan sinkronisasi Gardata. Angka Gardata belum tersedia dan tidak dianggap sudah tersinkron.
+          </p>
+        )}
+      </article>
     </section>
+  );
+}
+
+function GardataMetric({ label, value }: { label: string; value: number }) {
+  return (
+    <div>
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="mt-1 text-xl font-bold tabular-nums text-foreground">
+        {value.toLocaleString('id-ID')}
+      </p>
+    </div>
   );
 }

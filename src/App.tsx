@@ -5,6 +5,8 @@ import {
   CandidateParticipant,
   GlobalDemand,
   TrainingProgram,
+  DataApprovalRequest,
+  MonitoringData,
   UserRole,
   UserScope,
   VocationalProvider,
@@ -92,7 +94,19 @@ interface AppProps {
       institutionCount: number;
       demandCount: number;
       updatedAt: string | null;
+      gardata: {
+        candidateCount: number;
+        trainingRecordCount: number;
+        lastSyncStatus: string | null;
+        lastSyncAt: string | null;
+        recordsFetched: number;
+        recordsInserted: number;
+        recordsUpdated: number;
+        recordsSkipped: number;
+      };
     };
+    approvalRequests: DataApprovalRequest[];
+    monitoring: MonitoringData;
     options: {
       provinces: { id: string; name: string }[];
       districts: { id: string; province_id: string; name: string }[];
@@ -128,7 +142,10 @@ export function App({ currentTab, isRoot, showLogin, auth, businessData }: AppPr
 
   useLayoutEffect(() => {
     if (businessData) {
-      setBusinessData(businessData);
+      setBusinessData({
+        ...businessData,
+        approvalRequests: businessData.approvalRequests,
+      });
     }
   }, [businessData, setBusinessData]);
 
@@ -197,6 +214,16 @@ export function App({ currentTab, isRoot, showLogin, auth, businessData }: AppPr
               institutionCount: 0,
               demandCount: 0,
               updatedAt: null,
+              gardata: {
+                candidateCount: 0,
+                trainingRecordCount: 0,
+                lastSyncStatus: null,
+                lastSyncAt: null,
+                recordsFetched: 0,
+                recordsInserted: 0,
+                recordsUpdated: 0,
+                recordsSkipped: 0,
+              },
             }}
             isAuditor={false}
             title="Dashboard"
@@ -228,7 +255,12 @@ export function App({ currentTab, isRoot, showLogin, auth, businessData }: AppPr
       page = <MatchingEngineView />;
       break;
     case "approvals":
-      page = <ApprovalWorkflowView />;
+      page = (
+        <ApprovalWorkflowView
+          approvalRequests={businessData?.approvalRequests ?? []}
+          canReview={["task_force", "verifier"].includes(authenticatedUser.roleName)}
+        />
+      );
       break;
     case "audit":
       page = <AuditLogView />;
@@ -243,6 +275,16 @@ export function App({ currentTab, isRoot, showLogin, auth, businessData }: AppPr
             institutionCount: 0,
             demandCount: 0,
             updatedAt: null,
+            gardata: {
+              candidateCount: 0,
+              trainingRecordCount: 0,
+              lastSyncStatus: null,
+              lastSyncAt: null,
+              recordsFetched: 0,
+              recordsInserted: 0,
+              recordsUpdated: 0,
+              recordsSkipped: 0,
+            },
           }}
           isAuditor={authenticatedUser.roleName === "auditor"}
         />
@@ -252,7 +294,12 @@ export function App({ currentTab, isRoot, showLogin, auth, businessData }: AppPr
       page = <RoleManagementPage />;
       break;
     case "sippmi-monitoring":
-      page = <SippmiMonitoringPage />;
+      page = <SippmiMonitoringPage monitoring={businessData?.monitoring ?? {
+        summary: { totalClasses: 0, activeClasses: 0, gardataCandidates: 0, verifiedReports: 0 },
+        classes: [],
+        candidates: [],
+        lastSync: null,
+      }} />;
       break;
     default:
       page = <DashboardPage currentTab="overview" setCurrentTab={setCurrentTab} />;

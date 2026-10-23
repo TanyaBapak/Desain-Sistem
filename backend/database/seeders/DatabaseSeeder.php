@@ -18,6 +18,7 @@ class DatabaseSeeder extends Seeder
             AccessControlSeeder::class,
             DemoDataSeeder::class,
             DevelopmentAdminSeeder::class,
+            DevelopmentRoleUsersSeeder::class,
         ]);
     }
 }

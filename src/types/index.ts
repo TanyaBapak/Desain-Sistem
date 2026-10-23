@@ -361,7 +361,7 @@ export interface DataApprovalRequest {
   title: string;
   entityTitle?: string;
   submittedBy: string; // e.g. "Budi Santoso (Admin Disnaker Kab. Bogor)"
-  submittedRole: UserRole;
+  submittedRole: string;
   scopeLabel: string; // e.g. "Kab. Bogor, Jawa Barat"
   submittedAt: string;
   validationStatus: 'PASSED' | 'FLAGGED';
@@ -372,6 +372,53 @@ export interface DataApprovalRequest {
   rejectionReason?: string;
   revisionNotes?: string;
   dataSnapshot: Record<string, any>;
+  details?: { label: string; value: string | number | null }[];
+}
+
+export interface MonitoringClassData {
+  id: string;
+  source: string;
+  classCode: string;
+  name: string;
+  sector: string;
+  startDate: string | null;
+  endDate: string | null;
+  targetJp: number;
+  achievedJp: number;
+  participantCount: number;
+  verifiedReportsCount: number;
+  status: string;
+}
+
+export interface MonitoringCandidateData {
+  id: string;
+  fullName: string;
+  nik: string;
+  region: string;
+  expertise: string | null;
+  targetCountry: string;
+  status: string;
+  readinessStatus: string;
+}
+
+export interface MonitoringData {
+  summary: {
+    totalClasses: number;
+    activeClasses: number;
+    gardataCandidates: number;
+    verifiedReports: number;
+  };
+  classes: MonitoringClassData[];
+  candidates: MonitoringCandidateData[];
+  lastSync: {
+    status: string;
+    startedAt: string | null;
+    finishedAt: string | null;
+    recordsFetched: number;
+    recordsInserted: number;
+    recordsUpdated: number;
+    recordsSkipped: number;
+  } | null;
 }
 
 // ==========================================

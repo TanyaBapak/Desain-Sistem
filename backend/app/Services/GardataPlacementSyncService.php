@@ -185,8 +185,8 @@ class GardataPlacementSyncService
             'external_source' => self::SOURCE,
             'external_id' => $externalId,
             'readiness_status' => $this->readinessStatus($readiness['status'] ?? null),
-            'verification_status' => 'Pending Verification',
-            'lifecycle_status' => 'SUBMITTED',
+            'verification_status' => $existing?->verification_status ?? 'Pending Verification',
+            'lifecycle_status' => $existing?->lifecycle_status ?? 'SUBMITTED',
             'preferred_countries' => $preferredCountries ? json_encode([$preferredCountries]) : null,
             'preferred_job_roles' => $expertise ? json_encode([$expertise]) : null,
             'updated_at' => $now,
@@ -200,6 +200,7 @@ class GardataPlacementSyncService
                 ...$attributes,
                 'created_at' => $now,
             ]);
+            $this->createApprovalRequest($id, $externalId);
         }
 
         $this->syncTrainingRecords($item['classes_history'] ?? null, $id);
@@ -216,6 +217,40 @@ class GardataPlacementSyncService
             'updated' => $existing ? 1 : 0,
             'skipped' => 0,
         ];
+    }
+
+    private function createApprovalRequest(string $candidateId, string $externalId): void
+    {
+        if (DB::table('approval_requests')
+            ->where('entity_type', 'calon_peserta')
+            ->where('entity_id', $candidateId)
+            ->exists()) {
+            return;
+        }
+
+        $requestId = 'GARDATA-'.Str::upper(substr(hash('sha256', $externalId), 0, 24));
+        $now = now();
+        DB::table('approval_requests')->insert([
+            'id' => $requestId,
+            'entity_type' => 'calon_peserta',
+            'entity_id' => $candidateId,
+            'title' => 'Verifikasi peserta Gardata #'.$candidateId,
+            'submitted_by' => 'Integrasi Gardata',
+            'submitted_role' => 'gardata',
+            'scope_label' => 'Data terintegrasi Gardata / SIPPMI',
+            'submitted_at' => $now,
+            'validation_status' => 'PASSED',
+            'status' => 'PENDING',
+            'data_snapshot' => json_encode(['source' => self::SOURCE, 'external_id' => $externalId], JSON_THROW_ON_ERROR),
+        ]);
+        DB::table('approval_histories')->insert([
+            'approval_request_id' => $requestId,
+            'actor_id' => null,
+            'actor_name' => 'Integrasi Gardata',
+            'action' => 'SUBMIT',
+            'notes' => 'Data peserta tersinkron; menunggu verifikasi internal.',
+            'created_at' => $now,
+        ]);
     }
 
     private function syncTrainingRecords(mixed $history, string $jobSeekerId): void

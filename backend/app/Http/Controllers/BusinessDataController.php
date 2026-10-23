@@ -22,14 +22,21 @@ class BusinessDataController extends Controller
     {
         $this->authorizeWrite($request, $type, 'create');
         $data = $this->validateData($request, $type);
+        $id = match ($type) {
+            'candidates' => Str::upper('CAND-'.Str::random(10)),
+            'programs' => Str::upper('PROG-'.Str::random(10)),
+            'providers' => Str::upper('VOC-'.Str::random(10)),
+            'demands' => Str::upper('DEM-'.Str::random(10)),
+        };
 
-        DB::transaction(function () use ($request, $type, $data): void {
+        DB::transaction(function () use ($request, $type, $data, $id): void {
             match ($type) {
-                'candidates' => $this->saveCandidate($request, $data, Str::upper('CAND-'.Str::random(10)), true),
-                'programs' => $this->saveProgram($request, $data, Str::upper('PROG-'.Str::random(10)), true),
-                'providers' => $this->saveProvider($request, $data, Str::upper('VOC-'.Str::random(10)), true),
-                'demands' => $this->saveDemand($request, $data, Str::upper('DEM-'.Str::random(10)), true),
+                'candidates' => $this->saveCandidate($request, $data, $id, true),
+                'programs' => $this->saveProgram($request, $data, $id, true),
+                'providers' => $this->saveProvider($request, $data, $id, true),
+                'demands' => $this->saveDemand($request, $data, $id, true),
             };
+            $this->createApprovalRequest($request, $type, $id);
         });
 
         return back()->with('success', 'Data berhasil disimpan ke database.');
@@ -51,6 +58,7 @@ class BusinessDataController extends Controller
                 'providers' => $this->saveProvider($request, $data, $id, false),
                 'demands' => $this->saveDemand($request, $data, $id, false),
             };
+            $this->createApprovalRequest($request, $type, $id);
         });
 
         return back()->with('success', 'Perubahan berhasil disimpan.');
@@ -242,8 +250,8 @@ class BusinessDataController extends Controller
                         default => 'Disnaker',
                     }),
             'readiness_status' => $data['readinessStatus'],
-            'verification_status' => $canVerify ? $data['verificationStatus'] : $existingVerification,
-            'lifecycle_status' => $canVerify ? ($data['lifecycleStatus'] ?? 'SUBMITTED') : $existingLifecycle,
+            'verification_status' => $creating ? 'Pending Verification' : ($canVerify ? $data['verificationStatus'] : $existingVerification),
+            'lifecycle_status' => $creating ? 'SUBMITTED' : ($canVerify ? ($data['lifecycleStatus'] ?? 'SUBMITTED') : $existingLifecycle),
             'preferred_countries' => json_encode($data['preferredCountry'] ?? []),
             'preferred_job_roles' => json_encode($data['preferredJobRole'] ?? []),
             'updated_at' => now(),
@@ -310,7 +318,7 @@ class BusinessDataController extends Controller
         ];
 
         if ($creating) {
-            $attributes += ['status' => 'Aktif', 'created_at' => now()];
+            $attributes += ['status' => 'Nonaktif', 'created_at' => now()];
             DB::table('training_programs')->insert(['id' => $id] + $attributes);
         } else {
             DB::table('training_programs')->where('id', $id)->update($attributes);
@@ -354,7 +362,9 @@ class BusinessDataController extends Controller
             'workshop_capacity' => $data['capacityPerBatch'],
             'readiness_score' => $data['operationalReadinessScore'] ?? 0,
             'supported_sectors' => json_encode($data['supportedSectors'] ?? []),
-            'verification_status' => $data['evokasiVerificationStatus'] === 'Terverifikasi e-Vokasi' ? 'Verified' : 'Pending Verification',
+            'verification_status' => $creating ? 'Pending Verification' : (
+                $data['evokasiVerificationStatus'] === 'Terverifikasi e-Vokasi' ? 'Verified' : 'Pending Verification'
+            ),
             'updated_at' => now(),
         ];
 
@@ -444,6 +454,67 @@ class BusinessDataController extends Controller
         }
 
         $this->writeAudit($request, 'demands', $id, $creating ? 'INPUT_DATA' : 'UPDATE_DATA', 'Permintaan tenaga kerja disimpan.');
+    }
+
+    private function createApprovalRequest(Request $request, string $type, string $id): void
+    {
+        $entityType = match ($type) {
+            'candidates' => 'calon_peserta',
+            'programs' => 'program_pelatihan',
+            'providers' => 'lembaga_vokasi',
+            'demands' => 'demand_luar_negeri',
+        };
+        $hasPendingRequest = DB::table('approval_requests')
+            ->where('entity_type', $entityType)
+            ->where('entity_id', $id)
+            ->where('status', 'PENDING')
+            ->exists();
+
+        $now = now();
+        if (! $hasPendingRequest) {
+            $approvalId = 'APP-'.Str::upper(Str::random(20));
+            DB::table('approval_requests')->insert([
+                'id' => $approvalId,
+                'entity_type' => $entityType,
+                'entity_id' => $id,
+                'title' => 'Pengajuan '.str_replace('_', ' ', $entityType).' #'.$id,
+                'submitted_by' => $request->user()->name,
+                'submitted_role' => $request->user()->roles()->value('name') ?? 'operator',
+                'scope_label' => $request->user()->scope_name,
+                'submitted_at' => $now,
+                'validation_status' => 'PASSED',
+                'status' => 'PENDING',
+                'data_snapshot' => json_encode(['source' => 'smk_goglobal'], JSON_THROW_ON_ERROR),
+            ]);
+            DB::table('approval_histories')->insert([
+                'approval_request_id' => $approvalId,
+                'actor_id' => $request->user()->id,
+                'actor_name' => $request->user()->name,
+                'action' => 'SUBMIT',
+                'notes' => 'Data tersimpan dan menunggu verifikasi.',
+                'created_at' => $now,
+            ]);
+        }
+
+        match ($type) {
+            'candidates' => DB::table('job_seekers')->where('id', $id)->update([
+                'verification_status' => 'Pending Verification',
+                'lifecycle_status' => 'SUBMITTED',
+                'updated_at' => $now,
+            ]),
+            'programs' => DB::table('training_programs')->where('id', $id)->update([
+                'status' => 'Nonaktif',
+                'updated_at' => $now,
+            ]),
+            'providers' => DB::table('institutions')->where('id', $id)->update([
+                'verification_status' => 'Pending Verification',
+                'updated_at' => $now,
+            ]),
+            'demands' => DB::table('job_demands')->where('id', $id)->update([
+                'verification_status' => 'Pending',
+                'updated_at' => $now,
+            ]),
+        };
     }
 
     private function referenceId(string $table, string $column, string $value, string $field): string

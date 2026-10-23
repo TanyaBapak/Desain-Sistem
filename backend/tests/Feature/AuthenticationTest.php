@@ -181,7 +181,7 @@ class AuthenticationTest extends TestCase
         $this->seed(DatabaseSeeder::class);
 
         $this->assertDatabaseCount('roles', 13);
-        $this->assertDatabaseCount('users', 1);
+        $this->assertDatabaseCount('users', 13);
         $this->assertDatabaseCount('job_seekers', 1);
         $this->assertDatabaseHas('job_seekers', [
             'id' => 'CAND-DEMO-001',

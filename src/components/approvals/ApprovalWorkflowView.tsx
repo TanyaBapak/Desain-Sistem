@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { router } from '@inertiajs/react';
+import { toast } from 'sonner';
 import {
   CheckCircle2,
   AlertCircle,
@@ -18,18 +20,14 @@ import {
   Check,
   X
 } from 'lucide-react';
-import { useAppStore } from '../../store/useAppStore';
-import { DataApprovalRequest, ApprovalStatus, ApprovalEntityType } from '../../types';
-import { getRoleById } from '../../data';
+import { DataApprovalRequest, ApprovalEntityType } from '../../types';
 
-export const ApprovalWorkflowView: React.FC = () => {
-  const {
-    approvalRequests,
-    currentRole,
-    approveRequest,
-    rejectRequest,
-    requestRevision,
-  } = useAppStore();
+interface ApprovalWorkflowViewProps {
+  approvalRequests: DataApprovalRequest[];
+  canReview: boolean;
+}
+
+export const ApprovalWorkflowView: React.FC<ApprovalWorkflowViewProps> = ({ approvalRequests, canReview }) => {
 
   const [filterStatus, setFilterStatus] = useState<string>('ALL');
   const [filterType, setFilterType] = useState<string>('ALL');
@@ -41,9 +39,8 @@ export const ApprovalWorkflowView: React.FC = () => {
     request: DataApprovalRequest;
   } | null>(null);
   const [modalNotes, setModalNotes] = useState('');
-
-  const activeRoleObj = getRoleById(currentRole);
-  const canApproveOrReview = activeRoleObj.permissions.approvals.canApprove || activeRoleObj.permissions.approvals.canVerify;
+  const [actionError, setActionError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   const filteredRequests = approvalRequests.filter((req) => {
     if (filterStatus !== 'ALL' && req.approvalStatus !== filterStatus) return false;
@@ -65,26 +62,32 @@ export const ApprovalWorkflowView: React.FC = () => {
 
   const handleConfirmAction = () => {
     if (!activeModal) return;
-    const { type, request } = activeModal;
-
-    if (type === 'approve') {
-      approveRequest(request.id, modalNotes || undefined);
-    } else if (type === 'reject') {
-      if (!modalNotes.trim()) {
-        alert('Mohon cantumkan alasan penolakan data.');
-        return;
-      }
-      rejectRequest(request.id, modalNotes);
-    } else if (type === 'revision') {
-      if (!modalNotes.trim()) {
-        alert('Mohon cantumkan catatan perbaikan bagi operator pengusul.');
-        return;
-      }
-      requestRevision(request.id, modalNotes);
+    if (activeModal.type !== 'approve' && !modalNotes.trim()) {
+      setActionError(activeModal.type === 'reject'
+        ? 'Alasan penolakan wajib diisi.'
+        : 'Catatan revisi wajib diisi.');
+      return;
     }
 
-    setActiveModal(null);
-    setModalNotes('');
+    setSubmitting(true);
+    setActionError('');
+    router.post(`/approvals/${encodeURIComponent(activeModal.request.id)}`, {
+      action: activeModal.type,
+      notes: modalNotes,
+    }, {
+      preserveScroll: true,
+      onSuccess: () => {
+        toast.success('Keputusan verifikasi berhasil disimpan.');
+        setActiveModal(null);
+        setModalNotes('');
+      },
+      onError: (errors) => {
+        const message = Object.values(errors).find(Boolean);
+        setActionError(message ?? 'Keputusan belum dapat disimpan. Periksa hak akses dan status usulan.');
+        toast.error(message ?? 'Keputusan verifikasi gagal disimpan.');
+      },
+      onFinish: () => setSubmitting(false),
+    });
   };
 
   const getEntityIcon = (type: ApprovalEntityType) => {
@@ -311,6 +314,17 @@ export const ApprovalWorkflowView: React.FC = () => {
                     Diajukan oleh: <strong className="text-slate-900">{req.submittedBy}</strong>
                   </p>
 
+                  {req.details && req.details.length > 0 && (
+                    <dl className="grid grid-cols-1 gap-x-4 gap-y-2 rounded-xl border border-border bg-card p-3 text-sm sm:grid-cols-2">
+                      {req.details.map((detail) => (
+                        <div key={detail.label}>
+                          <dt className="text-xs text-muted-foreground">{detail.label}</dt>
+                          <dd className="font-medium text-foreground">{detail.value ?? '—'}</dd>
+                        </div>
+                      ))}
+                    </dl>
+                  )}
+
                   {/* Automated Validation Results Card */}
                   <div className="bg-slate-50 rounded-xl p-3 border border-slate-200/80 space-y-1.5 text-xs">
                     <div className="flex items-center justify-between text-[11px] font-extrabold text-slate-500 uppercase tracking-wider mb-1">
@@ -355,7 +369,7 @@ export const ApprovalWorkflowView: React.FC = () => {
                 <div className="flex lg:flex-col items-center lg:items-end justify-between lg:justify-start gap-2.5 shrink-0 pt-2 lg:pt-0 border-t lg:border-t-0 border-slate-100">
                   {/* Status Pill */}
                   <div>
-                    {req.approvalStatus === 'PENDING' && (
+                    {canReview && req.approvalStatus === 'PENDING' && (
                       <span className="px-3 py-1 rounded-full text-xs font-extrabold bg-amber-100 text-amber-900 border border-amber-300 flex items-center gap-1.5">
                         <Clock className="w-3.5 h-3.5" />
                         <span>Menunggu Keputusan</span>
@@ -474,6 +488,7 @@ export const ApprovalWorkflowView: React.FC = () => {
                 }
                 className="w-full text-xs p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none"
               />
+              {actionError && <p role="alert" className="mt-2 text-xs text-destructive">{actionError}</p>}
             </div>
 
             <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
@@ -485,6 +500,7 @@ export const ApprovalWorkflowView: React.FC = () => {
               </button>
               <button
                 onClick={handleConfirmAction}
+                disabled={submitting}
                 className={`px-4 py-2 rounded-xl text-xs font-extrabold text-white shadow-xs transition ${
                   activeModal.type === 'approve'
                     ? 'bg-emerald-600 hover:bg-emerald-700'
@@ -493,7 +509,7 @@ export const ApprovalWorkflowView: React.FC = () => {
                     : 'bg-purple-600 hover:bg-purple-700'
                 }`}
               >
-                Konfirmasi & Simpan ke Audit Log
+                {submitting ? 'Menyimpan…' : 'Konfirmasi & Simpan ke Audit Log'}
               </button>
             </div>
           </div>

@@ -17,6 +17,8 @@ class BusinessDataPresenter
             'providers' => $this->providers($role, $user),
             'demands' => $this->demands($role, $user),
             'reportSummary' => $this->reportSummary($role),
+            'approvalRequests' => $this->approvalRequests($role),
+            'monitoring' => $this->monitoring($role, $user),
             'options' => [
                 'provinces' => DB::table('provinces')->orderBy('name')->get(['id', 'name']),
                 'districts' => DB::table('districts')->orderBy('name')->get(['id', 'province_id', 'name']),
@@ -294,11 +296,17 @@ class BusinessDataPresenter
             return [];
         }
 
+        $gardataLastSync = DB::table('integration_sync_logs')
+            ->where('source', 'gardata')
+            ->orderByDesc('started_at')
+            ->first(['status', 'started_at', 'finished_at', 'records_fetched', 'records_inserted', 'records_updated', 'records_skipped']);
+
         $updatedAt = collect([
             DB::table('job_seekers')->whereNull('deleted_at')->max('updated_at'),
             DB::table('training_programs')->max('updated_at'),
             DB::table('institutions')->max('updated_at'),
             DB::table('job_demands')->max('updated_at'),
+            $gardataLastSync?->finished_at,
         ])->filter()->max();
 
         return [
@@ -310,7 +318,304 @@ class BusinessDataPresenter
             'programCount' => DB::table('training_programs')->where('status', 'Aktif')->count(),
             'institutionCount' => DB::table('institutions')->where('status', 'Aktif')->count(),
             'demandCount' => DB::table('job_demands')->where('verification_status', 'Approved')->count(),
+            'gardata' => [
+                'candidateCount' => DB::table('job_seekers')
+                    ->whereNull('deleted_at')
+                    ->where('external_source', 'gardata')
+                    ->count(),
+                'trainingRecordCount' => DB::table('external_training_records')
+                    ->where('external_source', 'gardata')
+                    ->count(),
+                'lastSyncStatus' => $gardataLastSync?->status,
+                'lastSyncAt' => $gardataLastSync?->finished_at,
+                'recordsFetched' => (int) ($gardataLastSync?->records_fetched ?? 0),
+                'recordsInserted' => (int) ($gardataLastSync?->records_inserted ?? 0),
+                'recordsUpdated' => (int) ($gardataLastSync?->records_updated ?? 0),
+                'recordsSkipped' => (int) ($gardataLastSync?->records_skipped ?? 0),
+            ],
             'updatedAt' => $updatedAt,
+        ];
+    }
+
+    private function approvalRequests(?string $role): array
+    {
+        if (! in_array($role, ['task_force', 'verifier'], true)) {
+            return [];
+        }
+
+        return DB::table('approval_requests')
+            ->orderByRaw("CASE WHEN status = 'PENDING' THEN 0 ELSE 1 END")
+            ->orderByDesc('submitted_at')
+            ->get([
+                'id',
+                'entity_type',
+                'entity_id',
+                'title',
+                'submitted_by',
+                'submitted_role',
+                'scope_label',
+                'submitted_at',
+                'validation_status',
+                'status',
+                'reviewed_by',
+                'reviewed_at',
+                'rejection_reason',
+                'revision_notes',
+            ])
+            ->map(fn (object $row): array => [
+                'id' => $row->id,
+                'entityType' => $row->entity_type,
+                'entityId' => $row->entity_id,
+                'entityTitle' => null,
+                'details' => $this->approvalDetails($row->entity_type, $row->entity_id),
+                'title' => $row->title,
+                'submittedBy' => $row->submitted_by,
+                'submittedRole' => $row->submitted_role,
+                'scopeLabel' => $row->scope_label,
+                'submittedAt' => $row->submitted_at,
+                'validationStatus' => $row->validation_status,
+                'approvalStatus' => $row->status,
+                'reviewedBy' => $row->reviewed_by,
+                'reviewedAt' => $row->reviewed_at,
+                'rejectionReason' => $row->rejection_reason,
+                'revisionNotes' => $row->revision_notes,
+                'dataSnapshot' => [],
+                'validationChecks' => [[
+                    'ruleName' => 'Validasi data wajib',
+                    'passed' => $row->validation_status === 'PASSED',
+                    'message' => $row->validation_status === 'PASSED'
+                        ? 'Data wajib telah lolos validasi server.'
+                        : 'Perlu pemeriksaan manual sebelum keputusan.',
+                ]],
+            ])->all();
+    }
+
+    private function approvalDetails(string $entityType, string $entityId): array
+    {
+        $details = match ($entityType) {
+            'calon_peserta' => DB::table('job_seekers')
+                ->leftJoin('provinces', 'provinces.id', '=', 'job_seekers.province_id')
+                ->leftJoin('districts', 'districts.id', '=', 'job_seekers.district_id')
+                ->where('job_seekers.id', $entityId)
+                ->first([
+                    'job_seekers.full_name',
+                    'job_seekers.nik',
+                    'job_seekers.major',
+                    'job_seekers.education_level',
+                    'job_seekers.verification_status',
+                    'provinces.name as province_name',
+                    'districts.name as district_name',
+                ]),
+            'lembaga_vokasi' => DB::table('institutions')
+                ->leftJoin('provinces', 'provinces.id', '=', 'institutions.province_id')
+                ->leftJoin('districts', 'districts.id', '=', 'institutions.district_id')
+                ->where('institutions.id', $entityId)
+                ->first([
+                    'institutions.name',
+                    'institutions.institution_type',
+                    'institutions.verification_status',
+                    'provinces.name as province_name',
+                    'districts.name as district_name',
+                ]),
+            'program_pelatihan' => DB::table('training_programs')
+                ->leftJoin('sectors', 'sectors.id', '=', 'training_programs.sector_id')
+                ->leftJoin('occupations', 'occupations.id', '=', 'training_programs.occupation_id')
+                ->leftJoin('countries', 'countries.id', '=', 'training_programs.target_country_id')
+                ->where('training_programs.id', $entityId)
+                ->first([
+                    'training_programs.name',
+                    'training_programs.total_jp',
+                    'training_programs.quota',
+                    'sectors.name as sector_name',
+                    'occupations.title as occupation_title',
+                    'countries.name as country_name',
+                ]),
+            'demand_luar_negeri' => DB::table('job_demands')
+                ->join('employers', 'employers.id', '=', 'job_demands.employer_id')
+                ->leftJoin('countries', 'countries.id', '=', 'job_demands.country_id')
+                ->leftJoin('occupations', 'occupations.id', '=', 'job_demands.occupation_id')
+                ->where('job_demands.id', $entityId)
+                ->first([
+                    'employers.name as employer_name',
+                    'countries.name as country_name',
+                    'occupations.title as occupation_title',
+                    'job_demands.headcount',
+                    'job_demands.deadline',
+                    'job_demands.verification_status',
+                ]),
+        };
+        if (! $details) {
+            return [];
+        }
+
+        return match ($entityType) {
+            'calon_peserta' => [
+                ['label' => 'Nama peserta', 'value' => $details->full_name],
+                ['label' => 'NIK', 'value' => strlen($details->nik) === 16
+                    ? substr($details->nik, 0, 4).'••••••••'.substr($details->nik, -4)
+                    : '••••'],
+                ['label' => 'Pendidikan / keahlian', 'value' => $details->education_level.' / '.$details->major],
+                ['label' => 'Wilayah', 'value' => trim(($details->district_name ?? 'Belum diketahui').', '.($details->province_name ?? 'Belum diketahui'))],
+                ['label' => 'Status verifikasi', 'value' => $details->verification_status],
+            ],
+            'lembaga_vokasi' => [
+                ['label' => 'Nama lembaga', 'value' => $details->name],
+                ['label' => 'Jenis lembaga', 'value' => $details->institution_type],
+                ['label' => 'Wilayah', 'value' => trim(($details->district_name ?? 'Belum diketahui').', '.($details->province_name ?? 'Belum diketahui'))],
+                ['label' => 'Status verifikasi', 'value' => $details->verification_status],
+            ],
+            'program_pelatihan' => [
+                ['label' => 'Nama program', 'value' => $details->name],
+                ['label' => 'Sektor / jabatan', 'value' => trim(($details->sector_name ?? 'Belum dipetakan').' / '.($details->occupation_title ?? 'Belum dipetakan'))],
+                ['label' => 'Negara tujuan', 'value' => $details->country_name],
+                ['label' => 'Jam pelajaran / kuota', 'value' => $details->total_jp.' JP / '.$details->quota.' peserta'],
+            ],
+            'demand_luar_negeri' => [
+                ['label' => 'Pemberi kerja', 'value' => $details->employer_name],
+                ['label' => 'Jabatan', 'value' => $details->occupation_title],
+                ['label' => 'Negara tujuan', 'value' => $details->country_name],
+                ['label' => 'Kuota / batas waktu', 'value' => $details->headcount.' orang / '.$details->deadline],
+                ['label' => 'Status verifikasi', 'value' => $details->verification_status],
+            ],
+        };
+    }
+
+    private function monitoring(?string $role, User $user): array
+    {
+        if (! in_array($role, ['task_force', 'directorate_admin', 'institution_admin', 'training_operator', 'bp3mi_admin', 'placement_officer'], true)) {
+            return [];
+        }
+
+        $canViewGardata = in_array($role, ['task_force', 'directorate_admin'], true);
+        $externalClasses = DB::table('external_training_records')
+            ->where('external_source', 'gardata')
+            ->when(! $canViewGardata, fn ($query) => $query->whereRaw('1 = 0'))
+            ->orderByDesc('updated_at')
+            ->get()
+            ->groupBy('external_batch_id')
+            ->map(fn ($records): array => [
+                'id' => 'gardata-'.$records->first()->external_batch_id,
+                'source' => 'Gardata / SIPPMI',
+                'classCode' => $records->first()->class_code ?? $records->first()->external_batch_id,
+                'name' => $records->first()->batch_name,
+                'sector' => $records->first()->sector_name ?? $records->first()->program_name ?? 'Belum dipetakan',
+                'startDate' => $records->first()->start_date,
+                'endDate' => $records->first()->end_date,
+                'targetJp' => (int) $records->max('target_jp'),
+                'achievedJp' => (int) $records->sum('achieved_jp'),
+                'participantCount' => $records->count(),
+                'verifiedReportsCount' => (int) $records->sum('verified_reports_count'),
+                'status' => $records->first()->status,
+            ])->values();
+
+        $localClasses = DB::table('training_classes')
+            ->join('training_programs', 'training_programs.id', '=', 'training_classes.training_program_id')
+            ->leftJoin('institutions', 'institutions.id', '=', 'training_classes.institution_id')
+            ->leftJoin('training_enrollments', 'training_enrollments.training_class_id', '=', 'training_classes.id')
+            ->when(
+                in_array($role, ['institution_admin', 'training_operator'], true),
+                fn ($query) => $query->where('training_classes.institution_id', $user->institution_id ?? ''),
+            )
+            ->when(
+                in_array($role, ['bp3mi_admin', 'placement_officer'], true),
+                fn ($query) => $query->where('institutions.province_id', $user->province_id ?? ''),
+            )
+            ->select([
+                'training_classes.id',
+                'training_classes.class_name',
+                'training_classes.start_date',
+                'training_classes.end_date',
+                'training_classes.status',
+                'training_programs.name as program_name',
+                'training_programs.total_jp',
+                'institutions.name as institution_name',
+            ])
+            ->selectRaw('COUNT(training_enrollments.id) as participant_count')
+            ->groupBy(
+                'training_classes.id',
+                'training_classes.class_name',
+                'training_classes.start_date',
+                'training_classes.end_date',
+                'training_classes.status',
+                'training_programs.name',
+                'training_programs.total_jp',
+                'institutions.name',
+            )
+            ->orderByDesc('training_classes.start_date')
+            ->get()
+            ->map(fn (object $row): array => [
+                'id' => 'internal-'.$row->id,
+                'source' => 'SMK Go Global',
+                'classCode' => $row->id,
+                'name' => $row->class_name,
+                'sector' => $row->program_name,
+                'startDate' => $row->start_date,
+                'endDate' => $row->end_date,
+                'targetJp' => (int) $row->total_jp,
+                'achievedJp' => 0,
+                'participantCount' => (int) $row->participant_count,
+                'verifiedReportsCount' => 0,
+                'status' => $row->status,
+            ]);
+
+        $gardataCandidatesQuery = DB::table('job_seekers')
+            ->leftJoin('provinces', 'provinces.id', '=', 'job_seekers.province_id')
+            ->leftJoin('districts', 'districts.id', '=', 'job_seekers.district_id')
+            ->whereNull('job_seekers.deleted_at')
+            ->where('job_seekers.external_source', 'gardata')
+            ->orderByDesc('job_seekers.updated_at')
+            ->limit(100);
+        $gardataCandidates = ($canViewGardata ? $gardataCandidatesQuery : $gardataCandidatesQuery->whereRaw('1 = 0'))
+            ->get([
+                'job_seekers.id',
+                'job_seekers.nik',
+                'job_seekers.full_name',
+                'job_seekers.major',
+                'job_seekers.readiness_status',
+                'job_seekers.verification_status',
+                'job_seekers.preferred_countries',
+                'provinces.name as province_name',
+                'districts.name as district_name',
+            ])
+            ->map(fn (object $row): array => [
+                'id' => $row->id,
+                'fullName' => $row->full_name,
+                'nik' => strlen($row->nik) === 16 ? substr($row->nik, 0, 4).'••••••••'.substr($row->nik, -4) : '••••',
+                'region' => trim(($row->district_name ?? 'Belum diketahui').', '.($row->province_name ?? 'Belum diketahui')),
+                'expertise' => $row->major,
+                'targetCountry' => $this->decodeArray($row->preferred_countries)[0] ?? 'Belum ditentukan',
+                'status' => $row->verification_status,
+                'readinessStatus' => $row->readiness_status,
+            ])->all();
+
+        $lastSync = $canViewGardata ? DB::table('integration_sync_logs')
+            ->where('source', 'gardata')
+            ->orderByDesc('started_at')
+            ->first(['status', 'started_at', 'finished_at', 'records_fetched', 'records_inserted', 'records_updated', 'records_skipped']) : null;
+
+        return [
+            'summary' => [
+                'totalClasses' => $localClasses->count() + $externalClasses->count(),
+                'activeClasses' => $localClasses->where('status', 'Sedang Berjalan')->count()
+                    + $externalClasses->where('status', 'IN_PROGRESS')->count(),
+                'gardataCandidates' => $canViewGardata
+                    ? DB::table('job_seekers')->whereNull('deleted_at')->where('external_source', 'gardata')->count()
+                    : 0,
+                'verifiedReports' => $canViewGardata
+                    ? (int) DB::table('external_training_records')->where('external_source', 'gardata')->sum('verified_reports_count')
+                    : 0,
+            ],
+            'classes' => $localClasses->concat($externalClasses)->values()->all(),
+            'candidates' => $gardataCandidates,
+            'lastSync' => $lastSync ? [
+                'status' => $lastSync->status,
+                'startedAt' => $lastSync->started_at,
+                'finishedAt' => $lastSync->finished_at,
+                'recordsFetched' => (int) $lastSync->records_fetched,
+                'recordsInserted' => (int) $lastSync->records_inserted,
+                'recordsUpdated' => (int) $lastSync->records_updated,
+                'recordsSkipped' => (int) $lastSync->records_skipped,
+            ] : null,
         ];
     }
 

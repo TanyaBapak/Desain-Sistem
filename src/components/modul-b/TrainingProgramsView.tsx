@@ -17,6 +17,7 @@ export const TrainingProgramsView: React.FC = () => {
     setFilterProgramType,
     filterProgramCountry,
     setFilterProgramCountry,
+    businessOptions,
   } = useAppStore();
 
   const [activeModalProgram, setActiveModalProgram] = useState<TrainingProgram | null>(null);
@@ -124,10 +125,9 @@ export const TrainingProgramsView: React.FC = () => {
               className="text-xs py-1.5 px-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
             >
               <option value="ALL">Semua Negara</option>
-              <option value="Jepang">Jepang</option>
-              <option value="Jerman">Jerman</option>
-              <option value="Korea">Korea Selatan</option>
-              <option value="Taiwan">Taiwan</option>
+              {businessOptions.countries.map((country) => (
+                <option key={country.id} value={country.name}>{country.name}</option>
+              ))}
             </select>
           </div>
         </div>

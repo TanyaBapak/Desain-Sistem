@@ -68,6 +68,11 @@ class GardataPlacementSyncTest extends TestCase
         ]);
         $this->assertSame(1, DB::table('external_training_records')->count());
         $this->assertSame(2, DB::table('integration_sync_logs')->where('status', 'success')->count());
+        $this->assertSame(1, DB::table('approval_requests')
+            ->where('entity_type', 'calon_peserta')
+            ->where('status', 'PENDING')
+            ->count());
+        $this->assertSame(1, DB::table('approval_histories')->where('action', 'SUBMIT')->count());
     }
 
     public function test_sync_skips_candidates_without_verified_consent(): void

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AppController;
+use App\Http\Controllers\ApprovalWorkflowController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\BusinessDataController;
 use App\Http\Controllers\GardataSyncController;
@@ -36,6 +37,9 @@ Route::middleware(['auth', EnsureUserIsActive::class])->group(function () {
     Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
     Route::post('/integrations/gardata/sync', GardataSyncController::class)->name('integrations.gardata.sync');
     Route::post('/integrations/kp2mi/sync', Kp2miVokasiSyncController::class)->name('integrations.kp2mi.sync');
+    Route::post('/approvals/{id}', [ApprovalWorkflowController::class, 'update'])
+        ->where('id', '[A-Za-z0-9-]+')
+        ->name('approvals.update');
     Route::post('/business-data/{type}', [BusinessDataController::class, 'store'])
         ->where('type', 'candidates|programs|providers|demands')
         ->name('business-data.store');

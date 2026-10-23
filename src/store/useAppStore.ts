@@ -64,6 +64,7 @@ export interface AppState {
     programs: TrainingProgram[];
     providers: VocationalProvider[];
     demands: GlobalDemand[];
+    approvalRequests?: DataApprovalRequest[];
     options: {
       provinces: { id: string; name: string }[];
       districts: { id: string; province_id: string; name: string }[];
@@ -269,6 +270,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     programs: data.programs,
     providers: data.providers,
     demands: data.demands,
+    approvalRequests: data.approvalRequests ?? [],
     businessOptions: data.options,
     businessDataLoaded: true,
     selectedCandidateIds: state.selectedCandidateIds.filter((id) => data.candidates.some((candidate) => candidate.id === id)),
