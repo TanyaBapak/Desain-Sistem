@@ -11,10 +11,14 @@ import {
   RefreshCw,
   Home,
   UserCheck,
-  ChevronDown
+  ChevronDown,
+  CheckCircle2,
+  Terminal,
+  Key,
+  MapPin
 } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
-import { mockRoles } from '../../data';
+import { mockRoles, getRoleById } from '../../data';
 import { UserRole } from '../../types';
 
 interface HeaderNavProps {
@@ -28,17 +32,20 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({ currentTab, onTabChange })
     providers,
     demands,
     allocations,
+    approvalRequests,
     resetToDefaultData,
     currentRole,
+    currentScope,
     loginAsRole,
     setViewMode,
   } = useAppStore();
 
   const [roleDropdownOpen, setRoleDropdownOpen] = useState(false);
 
-  const activeRoleObj = mockRoles.find((r) => r.id === currentRole) || mockRoles[0];
+  const activeRoleObj = getRoleById(currentRole);
+  const pendingApprovalsCount = approvalRequests.filter((r) => r.approvalStatus === 'PENDING').length;
 
-  // Concise, highly readable navigation items
+  // Comprehensive 9 Navigation Items
   const allNavItems = [
     { id: 'overview', label: 'Command Center', icon: Compass },
     { id: 'modul-a', label: 'Supply Calon', badge: candidates.length, icon: Users },
@@ -46,6 +53,9 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({ currentTab, onTabChange })
     { id: 'modul-c', label: 'Kesiapan Lembaga', badge: providers.length, icon: Building2 },
     { id: 'modul-d', label: 'Demand Global', badge: demands.length, icon: Globe2 },
     { id: 'matching', label: 'Smart Matching', badge: allocations.length, highlight: true, icon: Workflow },
+    { id: 'approvals', label: 'Verifikasi & Approval', badge: pendingApprovalsCount > 0 ? pendingApprovalsCount : undefined, icon: CheckCircle2 },
+    { id: 'audit', label: 'Audit Log', icon: Terminal },
+    { id: 'rbac', label: 'Matriks Hak Akses', icon: Key },
   ];
 
   // Filter accessible tabs by role
@@ -64,23 +74,33 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({ currentTab, onTabChange })
             className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-red-600/20 hover:bg-red-600 text-red-300 hover:text-white border border-red-500/40 transition font-semibold"
           >
             <Home className="w-3 h-3" />
-            <span>Portal Beranda Utama</span>
+            <span>Portal Beranda</span>
           </button>
 
           <span className="text-slate-700">|</span>
           <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-          <span className="font-medium text-slate-300">Sistem Aplikasi Internal Terpadu</span>
+          <span className="font-medium text-slate-300 hidden sm:inline">Sistem SGG Command Center</span>
 
-          <span className="text-slate-700 hidden sm:inline">|</span>
+          {/* Active Scope Pill Indicator */}
+          <span className="text-slate-700">|</span>
+          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-slate-800/80 border border-slate-700 text-slate-300 text-[11px]">
+            <MapPin className="w-3 h-3 text-rose-400 shrink-0" />
+            <span className="text-slate-400">Scope:</span>
+            <span className="font-semibold text-amber-300 truncate max-w-[200px]" title={currentScope.name}>
+              {currentScope.name}
+            </span>
+          </div>
+
+          <span className="text-slate-700 hidden lg:inline">|</span>
           <a
             href="https://gardata.sippmi.com"
             target="_blank"
             rel="noreferrer"
-            className="hidden md:flex items-center gap-1 text-[11px] text-blue-300 hover:text-white transition font-semibold"
+            className="hidden lg:flex items-center gap-1 text-[11px] text-blue-300 hover:text-white transition font-semibold"
             title="Kunjungi Portal Feeder Pelatihan CPMI"
           >
             <ExternalLink className="w-3 h-3 text-blue-400" />
-            <span>gardata.sippmi.com (Feeder Pelatihan)</span>
+            <span>gardata.sippmi.com</span>
           </a>
         </div>
 
@@ -97,9 +117,10 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({ currentTab, onTabChange })
             </button>
 
             {roleDropdownOpen && (
-              <div className="absolute right-0 mt-1 w-72 bg-white text-slate-800 rounded-2xl shadow-2xl border border-slate-200 p-2 z-50 animate-fade-in">
-                <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 mb-1">
-                  Ganti Hak Akses / Role:
+              <div className="absolute right-0 mt-1 w-80 bg-white text-slate-800 rounded-2xl shadow-2xl border border-slate-200 p-2.5 z-50 animate-fade-in max-h-[80vh] overflow-y-auto">
+                <div className="px-3 py-2 text-[10px] font-extrabold text-slate-400 uppercase tracking-wider border-b border-slate-100 mb-1 flex items-center justify-between">
+                  <span>PILIH ROLE PEMANGKU KEPENTINGAN:</span>
+                  <span className="text-blue-600 font-bold">8 Role Inti</span>
                 </div>
                 {mockRoles.map((role) => (
                   <button
@@ -108,21 +129,43 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({ currentTab, onTabChange })
                       loginAsRole(role.id);
                       setRoleDropdownOpen(false);
                     }}
-                    className={`w-full text-left p-2.5 rounded-xl text-xs transition flex items-center justify-between ${
+                    className={`w-full text-left p-2.5 rounded-xl text-xs transition flex items-start justify-between mb-1 ${
                       currentRole === role.id
-                        ? 'bg-blue-50 text-blue-800 font-bold border border-blue-200'
+                        ? 'bg-blue-50 text-blue-900 font-bold border border-blue-200'
                         : 'hover:bg-slate-50 text-slate-700'
                     }`}
                   >
-                    <div>
-                      <span className="block font-bold">{role.title}</span>
-                      <span className="text-[10px] text-slate-400 block">{role.organization}</span>
+                    <div className="pr-2">
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-4 h-4 rounded-full bg-slate-200 text-slate-700 text-[10px] flex items-center justify-center font-bold">
+                          {role.number}
+                        </span>
+                        <span className="font-extrabold">{role.title}</span>
+                      </div>
+                      <span className="text-[10px] text-blue-600 block mt-0.5">{role.badge}</span>
+                      <span className="text-[10px] text-slate-400 block line-clamp-1">{role.organization}</span>
+                      <span className="text-[9px] text-slate-500 block font-mono mt-0.5">
+                        Scope: {role.defaultScope.name}
+                      </span>
                     </div>
                     {currentRole === role.id && (
-                      <span className="w-2 h-2 rounded-full bg-blue-600" />
+                      <span className="w-2.5 h-2.5 rounded-full bg-blue-600 shrink-0 mt-1" />
                     )}
                   </button>
                 ))}
+
+                <div className="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between px-2 text-[11px]">
+                  <button
+                    onClick={() => {
+                      onTabChange('rbac');
+                      setRoleDropdownOpen(false);
+                    }}
+                    className="text-blue-600 hover:underline font-bold flex items-center gap-1"
+                  >
+                    <Key className="w-3 h-3" />
+                    <span>Lihat Matriks Lengkap RBAC</span>
+                  </button>
+                </div>
               </div>
             )}
           </div>

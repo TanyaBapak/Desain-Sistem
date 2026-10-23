@@ -3,4 +3,7 @@ export * from './mockPrograms';
 export * from './mockProviders';
 export * from './mockDemand';
 export * from './mockNews';
+export * from './mockRoles';
+export * from './mockApprovals';
+export * from './mockAuditLogs';
 export * from './mockCommandCenter';

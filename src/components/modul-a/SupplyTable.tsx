@@ -38,6 +38,9 @@ export const SupplyTable: React.FC = () => {
     filterLanguage,
     setFilterLanguage,
     setActiveStage,
+    currentRole,
+    currentScope,
+    setCurrentTab,
   } = useAppStore();
 
   const [activeCandidate, setActiveCandidate] = useState<CandidateParticipant | null>(null);
@@ -100,6 +103,38 @@ export const SupplyTable: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {/* 3-Layer Security Scope Notification Ribbon */}
+      <div className="bg-gradient-to-r from-blue-900 to-indigo-900 rounded-2xl p-4 text-white shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs border border-blue-800">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg bg-blue-800 flex items-center justify-center font-bold text-amber-400 shrink-0">
+            RBAC
+          </div>
+          <div>
+            <div className="font-extrabold text-sm flex items-center gap-2">
+              <span>Modul A: Bank Data Calon Peserta</span>
+              <span className="px-2 py-0.2 rounded text-[10px] font-bold bg-blue-700/60 text-blue-200 uppercase">
+                Scope: {currentScope.name}
+              </span>
+            </div>
+            <p className="text-[11px] text-blue-200 mt-0.5">
+              {currentRole === 'disnaker'
+                ? 'Kewenangan Disnaker: Input, ubah, dan ajukan usulan verifikasi calon peserta di wilayah binaan Anda.'
+                : 'Menampilkan data calon peserta siap latih terintegrasi dengan validasi NIK Dukcapil & standar SSW.'}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={() => setCurrentTab('approvals')}
+            className="px-3 py-1.5 rounded-lg text-xs font-bold bg-white text-blue-900 hover:bg-blue-50 transition shadow-xs flex items-center gap-1.5"
+          >
+            <ShieldCheck className="w-3.5 h-3.5 text-blue-600" />
+            <span>Pusat Verifikasi & Usulan</span>
+          </button>
+        </div>
+      </div>
+
       {/* Metric Cards Top Summary */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">

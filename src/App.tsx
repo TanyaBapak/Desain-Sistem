@@ -9,6 +9,9 @@ import { TrainingProgramsView } from './components/modul-b/TrainingProgramsView'
 import { ProvidersView } from './components/modul-c/ProvidersView';
 import { GlobalDemandsView } from './components/modul-d/GlobalDemandsView';
 import { MatchingEngineView } from './components/matching/MatchingEngineView';
+import { ApprovalWorkflowView } from './components/approvals/ApprovalWorkflowView';
+import { AuditLogView } from './components/audit/AuditLogView';
+import { RbacMatrixView } from './components/rbac/RbacMatrixView';
 import { mockRoles } from './data';
 import { ShieldCheck, UserCheck, ArrowLeft } from 'lucide-react';
 
@@ -43,6 +46,12 @@ export const App: React.FC = () => {
         {currentTab === 'modul-d' && <GlobalDemandsView />}
 
         {currentTab === 'matching' && <MatchingEngineView />}
+
+        {currentTab === 'approvals' && <ApprovalWorkflowView />}
+
+        {currentTab === 'audit' && <AuditLogView />}
+
+        {currentTab === 'rbac' && <RbacMatrixView />}
       </main>
 
       {/* Comprehensive Ministry Footer */}

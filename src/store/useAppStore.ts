@@ -14,6 +14,10 @@ import {
   StageDetail,
   AggregateMatchingItem,
   DrillDownFilter,
+  UserScope,
+  DataApprovalRequest,
+  AuditLogEntry,
+  MenuModuleId,
 } from '../types';
 import {
   mockSupply,
@@ -22,13 +26,19 @@ import {
   mockDemand,
   mockStageDetails,
   mockAggregateMatching,
+  mockRoles,
+  mockApprovals,
+  mockAuditLogs,
+  getRoleById,
 } from '../data';
 
 export interface AppState {
   // Navigation & Role Modes (Kemendagri Portal Concept)
   viewMode: ViewMode; // 'landing' | 'app'
-  currentRole: UserRole; // 'admin' | 'vokasi' | 'kandidat' | 'disnaker' | 'employer'
-  currentTab: string; // 'overview' | 'modul-a' | 'modul-b' | 'modul-c' | 'modul-d' | 'matching'
+  currentRole: UserRole; // 'superadmin' | 'pimpinan' | 'taskforce' | 'disnaker' | 'vokasi' | 'demand' | 'verifikator' | 'matching'
+  currentScope: UserScope; // 3-Layer: Scope (Nasional, Provinsi, Kab/Kota, Lembaga, Demand)
+  currentTab: string; // 'overview' | 'modul-a' | 'modul-b' | 'modul-c' | 'modul-d' | 'matching' | 'approvals' | 'audit' | 'rbac'
+  isRbacModalOpen: boolean;
 
   // SGG Command Center (SGG-CC) Specific State
   executiveTier: ExecutiveTier; // 'menteri' | 'dirjen' | 'bp3mi'
@@ -43,6 +53,10 @@ export interface AppState {
   providers: VocationalProvider[];
   demands: GlobalDemand[];
   allocations: ProgramAllocationDecision[];
+
+  // Approvals & Audit Trail
+  approvalRequests: DataApprovalRequest[];
+  auditLogs: AuditLogEntry[];
 
   // Workflow Stages & Selection State
   activeStage: number; // 1, 2, 3, 4, 5, 6
@@ -84,6 +98,18 @@ export interface AppState {
   setExecutiveTier: (tier: ExecutiveTier) => void;
   setActiveBusinessStage: (stage: BusinessStage) => void;
   setDrillDownFilter: (filter: Partial<DrillDownFilter>) => void;
+
+  // RBAC & Scope Actions
+  setCurrentScope: (scope: UserScope) => void;
+  setIsRbacModalOpen: (open: boolean) => void;
+
+  // Approval Workflow Actions
+  approveRequest: (requestId: string, reviewerNotes?: string) => void;
+  rejectRequest: (requestId: string, rejectionReason: string) => void;
+  requestRevision: (requestId: string, revisionNotes: string) => void;
+
+  // Audit Log Actions
+  addAuditLog: (entry: Omit<AuditLogEntry, 'id' | 'timestamp'>) => void;
 
   // Actions
   setActiveStage: (stage: number) => void;
@@ -153,8 +179,13 @@ const initialAllocations: ProgramAllocationDecision[] = [
 export const useAppStore = create<AppState>((set, get) => ({
   // Navigation & Role Defaults
   viewMode: 'landing', // Opens landing page first by default
-  currentRole: 'admin',
+  currentRole: 'taskforce', // Default Task Force Nasional
+  currentScope: mockRoles.find((r) => r.id === 'taskforce')?.defaultScope || {
+    level: 'national',
+    name: 'Nasional Terpadu (Lintas Kementerian & Lembaga)',
+  },
   currentTab: 'overview',
+  isRbacModalOpen: false,
 
   // SGG Command Center State
   executiveTier: 'menteri',
@@ -172,6 +203,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   providers: mockProviders,
   demands: mockDemand,
   allocations: initialAllocations,
+  approvalRequests: mockApprovals,
+  auditLogs: mockAuditLogs,
 
   activeStage: 1,
   selectedDemandId: "DEM-JPN-2026-01",
@@ -204,18 +237,44 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   // Navigation & Role Actions
   setViewMode: (mode) => set({ viewMode: mode }),
-  setCurrentRole: (role) => set({ currentRole: role }),
-  setCurrentTab: (tab) => set({ currentTab: tab }),
-  loginAsRole: (role) => {
-    let tab = 'overview';
-    if (role === 'vokasi') tab = 'modul-c';
-    else if (role === 'kandidat') tab = 'modul-a';
-    else if (role === 'disnaker') tab = 'modul-a';
-    else if (role === 'employer') tab = 'modul-d';
+  setCurrentRole: (role) => {
+    const roleObj = getRoleById(role);
     set({
       currentRole: role,
+      currentScope: roleObj.defaultScope,
+    });
+  },
+  setCurrentTab: (tab) => set({ currentTab: tab }),
+  setCurrentScope: (scope) => set({ currentScope: scope }),
+  setIsRbacModalOpen: (open) => set({ isRbacModalOpen: open }),
+
+  loginAsRole: (role) => {
+    const roleObj = getRoleById(role);
+    const now = new Date();
+    const timeStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')} WIB`;
+
+    const loginAudit: AuditLogEntry = {
+      id: `LOG-${Date.now()}`,
+      timestamp: timeStr,
+      actorName: roleObj.title,
+      actorRole: roleObj.badge,
+      scope: roleObj.defaultScope.name,
+      actionType: 'AKUN_HAK_AKSES',
+      entity: 'Sesi Login Pengguna',
+      entityId: roleObj.id,
+      fieldChanged: 'activeRoleSession',
+      oldValue: get().currentRole,
+      newValue: role,
+      justificationReason: `Autentikasi role berhasil sebagai ${roleObj.title} dengan scope kewenangan ${roleObj.defaultScope.name}.`,
+      ipAddress: '10.24.120.88',
+    };
+
+    set({
+      currentRole: role,
+      currentScope: roleObj.defaultScope,
       viewMode: 'app',
-      currentTab: tab,
+      currentTab: roleObj.defaultTab,
+      auditLogs: [loginAudit, ...get().auditLogs],
     });
   },
 
@@ -224,6 +283,157 @@ export const useAppStore = create<AppState>((set, get) => ({
   setActiveBusinessStage: (stage) => set({ activeBusinessStage: stage }),
   setDrillDownFilter: (filter) =>
     set({ drillDownFilter: { ...get().drillDownFilter, ...filter } }),
+
+  // Approval Workflow Actions
+  approveRequest: (requestId, reviewerNotes) => {
+    const req = get().approvalRequests.find((r) => r.id === requestId);
+    if (!req) return;
+
+    const now = new Date();
+    const timeStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')} WIB`;
+
+    const updatedRequests = get().approvalRequests.map((r) =>
+      r.id === requestId
+        ? {
+            ...r,
+            approvalStatus: 'APPROVED' as const,
+            reviewedBy: `${getRoleById(get().currentRole).title} (Petugas Berwenang)`,
+            reviewedAt: timeStr,
+            revisionNotes: reviewerNotes || 'Disetujui dan memenuhi seluruh persyaratan substantif.',
+          }
+        : r
+    );
+
+    let updatedCandidates = get().candidates;
+    let updatedProviders = get().providers;
+
+    if (req.entityType === 'calon_peserta') {
+      updatedCandidates = updatedCandidates.map((c) => ({
+        ...c,
+        verificationStatus: 'Verified' as const,
+      }));
+    } else if (req.entityType === 'lembaga_vokasi') {
+      updatedProviders = updatedProviders.map((p) =>
+        p.id === req.entityId ? { ...p, evokasiVerificationStatus: 'Terverifikasi e-Vokasi' as const } : p
+      );
+    }
+
+    const newAudit: AuditLogEntry = {
+      id: `LOG-${Date.now()}`,
+      timestamp: timeStr,
+      actorName: getRoleById(get().currentRole).title,
+      actorRole: getRoleById(get().currentRole).badge,
+      scope: get().currentScope.name,
+      actionType: 'PERSETUJUAN',
+      entity: req.entityType,
+      entityId: req.entityId,
+      fieldChanged: 'approvalStatus',
+      oldValue: 'PENDING',
+      newValue: 'APPROVED',
+      justificationReason: reviewerNotes || `Persetujuan resmi data: ${req.title} setelah validasi keabsahan data.`,
+      ipAddress: '10.24.120.45',
+    };
+
+    set({
+      approvalRequests: updatedRequests,
+      candidates: updatedCandidates,
+      providers: updatedProviders,
+      auditLogs: [newAudit, ...get().auditLogs],
+    });
+  },
+
+  rejectRequest: (requestId, rejectionReason) => {
+    const req = get().approvalRequests.find((r) => r.id === requestId);
+    if (!req) return;
+
+    const now = new Date();
+    const timeStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')} WIB`;
+
+    const updatedRequests = get().approvalRequests.map((r) =>
+      r.id === requestId
+        ? {
+            ...r,
+            approvalStatus: 'REJECTED' as const,
+            reviewedBy: `${getRoleById(get().currentRole).title}`,
+            reviewedAt: timeStr,
+            rejectionReason,
+          }
+        : r
+    );
+
+    const newAudit: AuditLogEntry = {
+      id: `LOG-${Date.now()}`,
+      timestamp: timeStr,
+      actorName: getRoleById(get().currentRole).title,
+      actorRole: getRoleById(get().currentRole).badge,
+      scope: get().currentScope.name,
+      actionType: 'PENOLAKAN',
+      entity: req.entityType,
+      entityId: req.entityId,
+      fieldChanged: 'approvalStatus',
+      oldValue: 'PENDING',
+      newValue: 'REJECTED',
+      justificationReason: rejectionReason,
+      ipAddress: '10.24.120.45',
+    };
+
+    set({
+      approvalRequests: updatedRequests,
+      auditLogs: [newAudit, ...get().auditLogs],
+    });
+  },
+
+  requestRevision: (requestId, revisionNotes) => {
+    const req = get().approvalRequests.find((r) => r.id === requestId);
+    if (!req) return;
+
+    const now = new Date();
+    const timeStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')} WIB`;
+
+    const updatedRequests = get().approvalRequests.map((r) =>
+      r.id === requestId
+        ? {
+            ...r,
+            approvalStatus: 'REVISION_REQUESTED' as const,
+            reviewedBy: `${getRoleById(get().currentRole).title}`,
+            reviewedAt: timeStr,
+            revisionNotes,
+          }
+        : r
+    );
+
+    const newAudit: AuditLogEntry = {
+      id: `LOG-${Date.now()}`,
+      timestamp: timeStr,
+      actorName: getRoleById(get().currentRole).title,
+      actorRole: getRoleById(get().currentRole).badge,
+      scope: get().currentScope.name,
+      actionType: 'REVISI',
+      entity: req.entityType,
+      entityId: req.entityId,
+      fieldChanged: 'approvalStatus',
+      oldValue: 'PENDING',
+      newValue: 'REVISION_REQUESTED',
+      justificationReason: revisionNotes,
+      ipAddress: '10.24.120.45',
+    };
+
+    set({
+      approvalRequests: updatedRequests,
+      auditLogs: [newAudit, ...get().auditLogs],
+    });
+  },
+
+  addAuditLog: (entry) => {
+    const now = new Date();
+    const timeStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')} WIB`;
+    const newLog: AuditLogEntry = {
+      ...entry,
+      id: `LOG-${Date.now()}`,
+      timestamp: timeStr,
+    };
+    set({ auditLogs: [newLog, ...get().auditLogs] });
+  },
 
   setActiveStage: (stage) => set({ activeStage: stage }),
   resetToDefaultData: () => set({

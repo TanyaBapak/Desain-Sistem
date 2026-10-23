@@ -116,19 +116,150 @@ export interface ProgramAllocationDecision {
 }
 
 // ==========================================
-// ROLE & PORTAL GOVERNMENT TYPES (KEMENDAGRI STYLE)
+// 3-LAYER SECURITY MODEL: ROLE, PERMISSION & SCOPE
 // ==========================================
-export type UserRole = 'admin' | 'vokasi' | 'kandidat' | 'disnaker' | 'employer';
+
+// 8 Core MVP Roles (as recommended in Blueprint) + Backwards compatibility aliases
+export type UserRole =
+  | 'superadmin'     // 1. Super Admin / Pusdatin
+  | 'pimpinan'       // 2. Menteri / Pimpinan
+  | 'taskforce'      // 3. Admin Task Force Nasional
+  | 'disnaker'       // 4. Admin Disnaker Kabupaten/Kota / Pemprov
+  | 'vokasi'         // 5. Admin Lembaga Vokasi (SMK / BLK / LPK)
+  | 'demand'         // 6. Admin Demand / Pemberi Kerja
+  | 'verifikator'    // 7. Verifikator Data & Keabsahan
+  | 'matching'       // 8. Petugas Matching & Penempatan
+  | 'admin'          // alias for superadmin/taskforce
+  | 'employer'       // alias for demand
+  | 'kandidat';      // alias for alumni
+
 export type ViewMode = 'landing' | 'app';
+
+export type AccessLevel = 'full' | 'limited' | 'none'; // ● Akses Utama, ◐ Akses Terbatas, — Tidak Ada Akses
+
+export type MenuModuleId =
+  | 'overview'       // Dashboard nasional
+  | 'modul-a'        // Data calon peserta
+  | 'modul-b'        // Program pelatihan
+  | 'modul-c'        // Data lembaga vokasi
+  | 'modul-d'        // Demand luar negeri
+  | 'matching'       // Matching peserta
+  | 'approvals'      // Alur persetujuan & verifikasi data
+  | 'audit'          // Audit log & jejak perubahan
+  | 'rbac'           // Matriks hak akses & manajemen akun
+  | 'accounts';      // Manajemen akun
+
+export interface MenuPermission {
+  moduleId: MenuModuleId;
+  moduleName: string;
+  accessLevel: AccessLevel; // ●, ◐, —
+  canView: boolean;
+  canCreate: boolean;
+  canEdit: boolean;
+  canVerify: boolean;
+  canApprove: boolean;
+  canDelete: boolean;
+  canExport: boolean;
+  scopeRule: string; // Penjelasan batasan scope
+}
+
+export type ScopeLevel = 'national' | 'provinsi' | 'kabupaten' | 'lembaga' | 'demand';
+
+export interface UserScope {
+  level: ScopeLevel;
+  name: string; // e.g. "Nasional (Seluruh Indonesia)", "Kabupaten Bogor", "SMKN 1 Cibinong"
+  provinsi?: string;
+  kabupatenKota?: string;
+  institutionId?: string;
+  institutionName?: string;
+  employerId?: string;
+  employerName?: string;
+}
 
 export interface RoleInfo {
   id: UserRole;
+  number: number; // 1 to 13 or 1 to 8
   title: string;
   badge: string;
   organization: string;
   description: string;
+  defaultScope: UserScope;
   accessibleModules: string[];
   defaultTab: string;
+  permissions: Record<MenuModuleId, MenuPermission>;
+}
+
+// 13 Full Stakeholder Roles blueprint mapping
+export interface StakeholderRole13 {
+  no: number;
+  id: string;
+  name: string;
+  coreGroup: UserRole;
+  primaryAccess: string;
+  scopeType: ScopeLevel;
+}
+
+// ==========================================
+// ALUR PERSETUJUAN DATA (APPROVAL WORKFLOW)
+// ==========================================
+export type ApprovalStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'REVISION_REQUESTED';
+export type ApprovalEntityType = 'calon_peserta' | 'lembaga_vokasi' | 'program_pelatihan' | 'demand_luar_negeri';
+
+export interface AutomatedValidationCheck {
+  ruleName: string;
+  passed: boolean;
+  message: string;
+}
+
+export interface DataApprovalRequest {
+  id: string; // e.g. "REQ-2026-081"
+  entityType: ApprovalEntityType;
+  entityId: string;
+  title: string;
+  entityTitle?: string;
+  submittedBy: string; // e.g. "Budi Santoso (Admin Disnaker Kab. Bogor)"
+  submittedRole: UserRole;
+  scopeLabel: string; // e.g. "Kab. Bogor, Jawa Barat"
+  submittedAt: string;
+  validationStatus: 'PASSED' | 'FLAGGED';
+  validationChecks: AutomatedValidationCheck[];
+  approvalStatus: ApprovalStatus;
+  reviewedBy?: string;
+  reviewedAt?: string;
+  rejectionReason?: string;
+  revisionNotes?: string;
+  dataSnapshot: Record<string, any>;
+}
+
+// ==========================================
+// AUDIT LOG & JEJAK PERUBAHAN
+// ==========================================
+export type AuditActionType =
+  | 'INPUT_DATA'
+  | 'AUTO_VALIDATION'
+  | 'VERIFIKASI'
+  | 'PERSETUJUAN'
+  | 'PENOLAKAN'
+  | 'REVISI'
+  | 'UPDATE_DATA'
+  | 'HAPUS_DATA'
+  | 'ALOKASI_MATCHING'
+  | 'AKUN_HAK_AKSES';
+
+export interface AuditLogEntry {
+  id: string; // e.g. "LOG-2026-1049"
+  timestamp: string;
+  actorName: string;
+  actorRole: string;
+  scope: string;
+  actionType: AuditActionType;
+  entity: string;
+  entityId: string;
+  fieldChanged?: string;
+  oldValue?: string;
+  newValue?: string;
+  justificationReason: string;
+  ipAddress: string;
 }
 
 export interface NewsArticle {

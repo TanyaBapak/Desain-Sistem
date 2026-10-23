@@ -377,8 +377,8 @@ export const KemendagriLandingPage: React.FC = () => {
             </p>
           </div>
 
-          {/* 5 User Role Cards Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+          {/* 8 Core User Role Cards Grid (4x2 on desktop) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
             {mockRoles.map((role) => (
               <div
                 key={role.id}
@@ -387,22 +387,33 @@ export const KemendagriLandingPage: React.FC = () => {
               >
                 <div>
                   <div className="w-12 h-12 rounded-xl bg-red-100 text-red-700 group-hover:bg-red-600 group-hover:text-white flex items-center justify-center transition-colors mb-3">
-                    {role.id === 'admin' && <ShieldCheck className="w-6 h-6" />}
-                    {role.id === 'vokasi' && <Building2 className="w-6 h-6" />}
-                    {role.id === 'kandidat' && <GraduationCap className="w-6 h-6" />}
+                    {role.id === 'superadmin' && <ShieldCheck className="w-6 h-6" />}
+                    {role.id === 'pimpinan' && <Award className="w-6 h-6" />}
+                    {role.id === 'taskforce' && <Workflow className="w-6 h-6" />}
                     {role.id === 'disnaker' && <Users className="w-6 h-6" />}
-                    {role.id === 'employer' && <Globe2 className="w-6 h-6" />}
+                    {role.id === 'vokasi' && <Building2 className="w-6 h-6" />}
+                    {role.id === 'demand' && <Globe2 className="w-6 h-6" />}
+                    {role.id === 'verifikator' && <CheckCircle2 className="w-6 h-6" />}
+                    {role.id === 'matching' && <Layers className="w-6 h-6" />}
                   </div>
 
-                  <span className="text-[10px] font-bold text-red-600 uppercase tracking-wider block mb-1">
-                    {role.badge}
-                  </span>
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <span className="w-4 h-4 rounded-full bg-red-100 text-red-700 text-[10px] flex items-center justify-center font-bold">
+                      {role.number}
+                    </span>
+                    <span className="text-[10px] font-bold text-red-600 uppercase tracking-wider block">
+                      {role.badge}
+                    </span>
+                  </div>
                   <h3 className="text-sm font-extrabold text-slate-900 group-hover:text-red-700 transition leading-snug">
                     {role.title}
                   </h3>
                   <p className="text-[11px] text-slate-500 mt-2 leading-relaxed line-clamp-3">
                     {role.description}
                   </p>
+                  <span className="text-[10px] text-slate-400 block font-mono mt-2 truncate">
+                    Scope: {role.defaultScope.name}
+                  </span>
                 </div>
 
                 <div className="mt-4 pt-3 border-t border-slate-200 flex items-center justify-between text-xs font-bold text-red-600 group-hover:text-red-700">
@@ -812,15 +823,18 @@ export const KemendagriLandingPage: React.FC = () => {
                 >
                   <div className="flex items-center gap-3.5">
                     <div className="w-10 h-10 rounded-xl bg-slate-100 group-hover:bg-red-600 group-hover:text-white text-slate-700 flex items-center justify-center transition-colors">
-                      {role.id === 'admin' && <ShieldCheck className="w-5 h-5" />}
-                      {role.id === 'vokasi' && <Building2 className="w-5 h-5" />}
-                      {role.id === 'kandidat' && <GraduationCap className="w-5 h-5" />}
+                      {role.id === 'superadmin' && <ShieldCheck className="w-5 h-5" />}
+                      {role.id === 'pimpinan' && <Award className="w-5 h-5" />}
+                      {role.id === 'taskforce' && <Workflow className="w-5 h-5" />}
                       {role.id === 'disnaker' && <Users className="w-5 h-5" />}
-                      {role.id === 'employer' && <Globe2 className="w-5 h-5" />}
+                      {role.id === 'vokasi' && <Building2 className="w-5 h-5" />}
+                      {role.id === 'demand' && <Globe2 className="w-5 h-5" />}
+                      {role.id === 'verifikator' && <CheckCircle2 className="w-5 h-5" />}
+                      {role.id === 'matching' && <Layers className="w-5 h-5" />}
                     </div>
                     <div>
                       <span className="text-[10px] font-bold text-red-600 uppercase block">
-                        {role.badge}
+                        No. {role.number} — {role.badge}
                       </span>
                       <h4 className="font-bold text-sm text-slate-900">{role.title}</h4>
                       <p className="text-xs text-slate-500 mt-0.5">{role.organization}</p>
