@@ -163,7 +163,7 @@ export const MatchingEngineView: React.FC = () => {
             </p>
 
             {/* 4 Pillars Summary Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mt-6">
               <div className="p-4 rounded-xl bg-blue-50/70 border border-blue-200">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-xs font-bold text-blue-900 uppercase">Modul A: Supply</span>
@@ -171,9 +171,9 @@ export const MatchingEngineView: React.FC = () => {
                 </div>
                 <div className="text-2xl font-black text-blue-900">{candidates.length}</div>
                 <p className="text-[11px] text-blue-700 mt-1">Calon Peserta Vokasi Terdata</p>
-                <div className="mt-3 pt-2 border-t border-blue-200/60 text-[10px] text-blue-600 flex justify-between">
-                  <span>Siap Kerja: {candidates.filter(c => c.readinessStatus === 'Ready for Placement').length}</span>
-                  <span>Perlu Upskill: {candidates.filter(c => c.readinessStatus === 'Needs Upskilling').length}</span>
+                <div className="mt-3 pt-2 border-t border-blue-200/60 text-[10px] text-blue-700 flex items-center justify-between gap-1 overflow-hidden">
+                  <span className="truncate">Siap: {candidates.filter(c => c.readinessStatus === 'Ready for Placement').length}</span>
+                  <span className="truncate">Upskill: {candidates.filter(c => c.readinessStatus === 'Needs Upskilling').length}</span>
                 </div>
               </div>
 
@@ -184,9 +184,9 @@ export const MatchingEngineView: React.FC = () => {
                 </div>
                 <div className="text-2xl font-black text-indigo-900">{programs.length}</div>
                 <p className="text-[11px] text-indigo-700 mt-1">Program Pelatihan Standar</p>
-                <div className="mt-3 pt-2 border-t border-indigo-200/60 text-[10px] text-indigo-600 flex justify-between">
-                  <span>SSW Kaigo / Welder</span>
-                  <span>Ausbildung Jerman</span>
+                <div className="mt-3 pt-2 border-t border-indigo-200/60 text-[10px] text-indigo-700 flex items-center justify-between gap-1 overflow-hidden">
+                  <span className="truncate">SSW Kaigo / Welder</span>
+                  <span className="truncate">Ausbildung</span>
                 </div>
               </div>
 
@@ -197,9 +197,9 @@ export const MatchingEngineView: React.FC = () => {
                 </div>
                 <div className="text-2xl font-black text-emerald-900">{providers.length}</div>
                 <p className="text-[11px] text-emerald-700 mt-1">Lembaga Terverifikasi e-Vokasi</p>
-                <div className="mt-3 pt-2 border-t border-emerald-200/60 text-[10px] text-emerald-600 flex justify-between">
-                  <span>Kapasitas: {providers.reduce((acc, p) => acc + p.capacityPerBatch, 0)}</span>
-                  <span>Skor Rata2: 87/100</span>
+                <div className="mt-3 pt-2 border-t border-emerald-200/60 text-[10px] text-emerald-700 flex items-center justify-between gap-1 overflow-hidden">
+                  <span className="truncate">Kapasitas: {providers.reduce((acc, p) => acc + p.capacityPerBatch, 0)}</span>
+                  <span className="truncate">Skor Rata2: 87/100</span>
                 </div>
               </div>
 
@@ -210,9 +210,9 @@ export const MatchingEngineView: React.FC = () => {
                 </div>
                 <div className="text-2xl font-black text-amber-900">{demands.reduce((acc, d) => acc + d.requiredQuota, 0)}</div>
                 <p className="text-[11px] text-amber-700 mt-1">Total Kuota Permintaan Global</p>
-                <div className="mt-3 pt-2 border-t border-amber-200/60 text-[10px] text-amber-600 flex justify-between">
-                  <span>Jepang, Jerman, Korea</span>
-                  <span>Taiwan Tech</span>
+                <div className="mt-3 pt-2 border-t border-amber-200/60 text-[10px] text-amber-700 flex items-center justify-between gap-1 overflow-hidden">
+                  <span className="truncate">Jepang, Jerman, Korea</span>
+                  <span className="truncate">Taiwan</span>
                 </div>
               </div>
             </div>

@@ -83,29 +83,29 @@ export const SystemStageStepper: React.FC<StepperProps> = ({ currentStage, onSel
         </div>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 relative">
-        {stages.map((stg, idx) => {
+      <div className="flex xl:grid xl:grid-cols-6 gap-2.5 overflow-x-auto no-scrollbar pb-1 relative">
+        {stages.map((stg) => {
           const isActive = currentStage === stg.id;
           const isCompleted = currentStage > stg.id;
           const Icon = stg.icon;
 
           return (
-            <div key={stg.id} className="relative flex items-stretch">
+            <div key={stg.id} className="relative flex-1 min-w-[155px] xl:min-w-0 flex items-stretch shrink-0">
               <button
                 type="button"
                 onClick={() => onSelectStage(stg.id)}
                 className={`w-full text-left p-3 rounded-xl border transition-all duration-200 flex flex-col justify-between ${
                   isActive
-                    ? 'bg-gradient-to-br from-blue-700 to-indigo-900 border-blue-400 text-white shadow-lg shadow-blue-900/40 scale-[1.02] ring-2 ring-blue-500/40'
+                    ? 'bg-gradient-to-br from-blue-700 to-indigo-900 border-blue-400 text-white shadow-lg shadow-blue-900/40 ring-2 ring-blue-500/40'
                     : isCompleted
                     ? 'bg-slate-800/80 border-emerald-500/30 text-slate-200 hover:bg-slate-800 hover:border-slate-700'
                     : 'bg-slate-800/40 border-slate-800 text-slate-400 hover:bg-slate-800/80 hover:text-slate-300'
                 }`}
               >
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-1.5">
+                <div className="flex items-center justify-between mb-2 gap-1">
+                  <div className="flex items-center gap-1.5 whitespace-nowrap">
                     <div
-                      className={`p-1 rounded-md ${
+                      className={`p-1 rounded-md shrink-0 ${
                         isActive
                           ? 'bg-white/20 text-white'
                           : isCompleted
@@ -115,25 +115,25 @@ export const SystemStageStepper: React.FC<StepperProps> = ({ currentStage, onSel
                     >
                       <Icon className="w-3.5 h-3.5" />
                     </div>
-                    <span className="text-[11px] font-bold uppercase tracking-wider">
+                    <span className="text-[11px] font-bold uppercase tracking-wider whitespace-nowrap">
                       {stg.title}
                     </span>
                   </div>
 
                   {isCompleted ? (
-                    <span className="text-[10px] font-bold text-emerald-400 bg-emerald-950/60 px-1.5 py-0.5 rounded-full border border-emerald-800/40">
+                    <span className="text-[10px] font-bold text-emerald-400 bg-emerald-950/60 px-1.5 py-0.5 rounded-full border border-emerald-800/40 shrink-0">
                       ✓
                     </span>
                   ) : isActive ? (
-                    <span className="text-[9px] font-bold text-white bg-blue-500/40 px-1.5 py-0.5 rounded-full">
+                    <span className="text-[9px] font-bold text-white bg-blue-500/40 px-1.5 py-0.5 rounded-full shrink-0 whitespace-nowrap">
                       Aktif
                     </span>
                   ) : null}
                 </div>
 
-                <div>
-                  <h4 className="text-xs font-bold leading-tight mb-0.5">{stg.subtitle}</h4>
-                  <p className="text-[10px] opacity-75 leading-normal line-clamp-1">{stg.description}</p>
+                <div className="overflow-hidden">
+                  <h4 className="text-xs font-bold leading-tight mb-0.5 whitespace-nowrap truncate">{stg.subtitle}</h4>
+                  <p className="text-[10px] opacity-75 leading-normal truncate">{stg.description}</p>
                 </div>
               </button>
             </div>

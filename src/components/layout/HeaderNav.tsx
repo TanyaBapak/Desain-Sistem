@@ -45,7 +45,7 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({ currentTab, onTabChange })
     { id: 'modul-b', label: 'Pelatihan', icon: GraduationCap },
     { id: 'modul-c', label: 'Kesiapan Lembaga', badge: providers.length, icon: Building2 },
     { id: 'modul-d', label: 'Demand Global', badge: demands.length, icon: Globe2 },
-    { id: 'matching', label: 'Smart Matching', badge: `${allocations.length} Alokasi`, highlight: true, icon: Workflow },
+    { id: 'matching', label: 'Smart Matching', badge: allocations.length, highlight: true, icon: Workflow },
   ];
 
   // Filter accessible tabs by role
@@ -56,8 +56,8 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({ currentTab, onTabChange })
   return (
     <header className="sticky top-0 z-40 bg-slate-900 border-b border-slate-800 text-white shadow-xl">
       {/* Top Bar Status with Government Identity & Role Switcher */}
-      <div className="bg-slate-950/90 px-4 sm:px-8 py-1.5 border-b border-slate-800/80 text-xs flex flex-wrap items-center justify-between text-slate-400 gap-2">
-        <div className="flex items-center gap-2">
+      <div className="bg-slate-950/90 px-4 sm:px-6 lg:px-8 py-1.5 border-b border-slate-800/80 text-xs flex items-center justify-between overflow-x-auto no-scrollbar text-slate-400 gap-3">
+        <div className="flex items-center gap-2 whitespace-nowrap shrink-0">
           {/* Back to Portal Landing Page Button */}
           <button
             onClick={() => setViewMode('landing')}
@@ -84,7 +84,7 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({ currentTab, onTabChange })
           </a>
         </div>
 
-        <div className="flex items-center gap-3 text-xs">
+        <div className="flex items-center gap-3 text-xs whitespace-nowrap shrink-0">
           {/* Active Role Selector Widget */}
           <div className="relative">
             <button
@@ -145,32 +145,35 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({ currentTab, onTabChange })
 
       {/* Main Brand & Tab Navigation */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
+        <div className="flex items-center justify-between h-14 sm:h-16 gap-3">
           {/* Logo & Platform Name */}
           <div
-            className="flex items-center gap-3 cursor-pointer group"
+            className="flex items-center gap-2.5 cursor-pointer group shrink-0"
             onClick={() => onTabChange(activeRoleObj.defaultTab)}
           >
             <img
               src="/logo.png"
               alt="Logo Resmi Kemnaker & Vokasi Indonesia"
-              className="w-10 h-10 object-contain drop-shadow-sm group-hover:scale-105 transition-transform shrink-0"
+              className="w-9 h-9 object-contain drop-shadow-sm group-hover:scale-105 transition-transform shrink-0"
             />
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-extrabold text-lg tracking-tight text-white">SMK GO GLOBAL</span>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-600 text-white uppercase tracking-wider">
+            <div className="shrink-0">
+              <div className="flex items-center gap-1.5">
+                <span className="font-extrabold text-base tracking-tight text-white whitespace-nowrap">SMK GO GLOBAL</span>
+                <span className="px-1.5 py-0.5 rounded text-[9px] font-black bg-blue-600 text-white uppercase tracking-wider">
                   {activeRoleObj.id.toUpperCase()}
                 </span>
               </div>
-              <p className="text-[11px] text-slate-400 hidden sm:block">
-                {activeRoleObj.organization}
+              <p className="text-[10px] text-slate-400 hidden xl:block whitespace-nowrap leading-none mt-0.5">
+                Kementerian Pelindungan Pekerja Migran Indonesia
+              </p>
+              <p className="text-[10px] text-slate-400 hidden sm:block xl:hidden whitespace-nowrap leading-none mt-0.5">
+                Kementerian P2MI RI
               </p>
             </div>
           </div>
 
           {/* Role-Filtered Navigation Tabs */}
-          <nav className="hidden lg:flex items-center space-x-1">
+          <nav className="hidden md:flex items-center gap-1 overflow-x-auto no-scrollbar py-1 shrink-0">
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = currentTab === item.id;
@@ -178,21 +181,21 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({ currentTab, onTabChange })
                 <button
                   key={item.id}
                   onClick={() => onTabChange(item.id)}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold transition-all ${
+                  className={`whitespace-nowrap flex items-center gap-1.5 px-2.5 lg:px-3 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 ${
                     isActive
                       ? item.highlight
-                        ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30 ring-1 ring-blue-400'
+                        ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30 ring-1 ring-blue-400'
                         : 'bg-slate-800 text-blue-400 ring-1 ring-slate-700'
                       : item.highlight
                       ? 'text-blue-300 hover:bg-blue-950/60 hover:text-white border border-blue-800/50'
                       : 'text-slate-300 hover:bg-slate-800/70 hover:text-white'
                   }`}
                 >
-                  <Icon className={`w-4 h-4 ${isActive ? 'text-white' : item.highlight ? 'text-blue-400' : 'text-slate-400'}`} />
-                  <span>{item.label}</span>
+                  <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-white' : item.highlight ? 'text-blue-400' : 'text-slate-400'}`} />
+                  <span className="whitespace-nowrap">{item.label}</span>
                   {item.badge !== undefined && (
                     <span
-                      className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
+                      className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold shrink-0 ${
                         isActive
                           ? 'bg-white/20 text-white'
                           : 'bg-slate-800 text-slate-300 border border-slate-700'
@@ -208,7 +211,7 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({ currentTab, onTabChange })
         </div>
 
         {/* Mobile Subnav Scrollable */}
-        <div className="flex lg:hidden overflow-x-auto py-2 space-x-2 border-t border-slate-800 no-scrollbar">
+        <div className="flex md:hidden overflow-x-auto py-2 space-x-2 border-t border-slate-800 no-scrollbar">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = currentTab === item.id;
@@ -216,12 +219,17 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({ currentTab, onTabChange })
               <button
                 key={item.id}
                 onClick={() => onTabChange(item.id)}
-                className={`whitespace-nowrap flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition ${
+                className={`whitespace-nowrap flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition shrink-0 ${
                   isActive ? 'bg-blue-600 text-white font-bold' : 'bg-slate-800 text-slate-300'
                 }`}
               >
-                <Icon className="w-3.5 h-3.5" />
+                <Icon className="w-3.5 h-3.5 shrink-0" />
                 <span>{item.label}</span>
+                {item.badge !== undefined && (
+                  <span className="text-[10px] px-1.5 py-0.2 rounded-full font-bold bg-white/20 text-white">
+                    {item.badge}
+                  </span>
+                )}
               </button>
             );
           })}
