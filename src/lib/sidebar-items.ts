@@ -27,7 +27,7 @@ export interface SidebarItem {
 export const NAV_ITEMS: SidebarItem[] = [
   {
     id: "overview",
-    label: "Executive Monitoring",
+    label: "Dasbor Eksekutif",
     icon: Compass,
     accessibleRoles: [
       "superadmin",
@@ -42,41 +42,41 @@ export const NAV_ITEMS: SidebarItem[] = [
   },
   {
     id: "modul-a",
-    label: "Modul A — Supply Intelligence",
+    label: "Pencari Kerja",
     icon: Users,
     badge: 0,
     accessibleRoles: ["superadmin", "taskforce", "disnaker", "vokasi", "verifikator", "matching"],
   },
   {
     id: "modul-b",
-    label: "Modul B — Training Program",
+    label: "Program Pelatihan",
     icon: GraduationCap,
     accessibleRoles: ["superadmin", "taskforce", "direktorat", "vokasi", "verifikator", "matching"],
   },
   {
     id: "modul-c",
-    label: "Modul C — Vocational Provider",
+    label: "Lembaga Vokasi",
     icon: Building2,
     badge: 0,
     accessibleRoles: ["superadmin", "taskforce", "direktorat", "vokasi", "verifikator", "disnaker"],
   },
   {
     id: "modul-d",
-    label: "Modul D — Global Demand",
+    label: "Permintaan Tenaga Kerja",
     icon: Globe2,
     badge: 0,
     accessibleRoles: ["superadmin", "taskforce", "direktorat", "demand", "verifikator", "matching"],
   },
   {
     id: "modul-e",
-    label: "Modul E — Matching & Monitoring",
+    label: "Pencocokan & Pemantauan",
     icon: Workflow,
     badge: 0,
     accessibleRoles: ["superadmin", "taskforce", "bp3mi", "matching", "verifikator", "demand", "pimpinan"],
   },
   {
     id: "sippmi-monitoring",
-    label: "Monitoring SIPPMI (T4-6)",
+    label: "Pemantauan SIPPMI",
     icon: Monitor,
     accessibleRoles: ["superadmin", "taskforce", "bp3mi", "matching", "direktorat", "pimpinan"],
   },
@@ -89,13 +89,13 @@ export const NAV_ITEMS: SidebarItem[] = [
   },
   {
     id: "audit",
-    label: "Audit Log",
+    label: "Riwayat Audit",
     icon: Terminal,
     accessibleRoles: ["superadmin", "taskforce", "verifikator", "matching", "pimpinan"],
   },
   {
     id: "rbac",
-    label: "Manajemen Role & Akun",
+    label: "Manajemen Peran & Akun",
     icon: Key,
     accessibleRoles: ["superadmin", "taskforce"],
   },

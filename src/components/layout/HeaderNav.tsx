@@ -24,8 +24,10 @@ import {
   Check
 } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
-import { mockRoles, getRoleById, mockUsers } from '../../data';
+import { mockRoles, getRoleById } from '../../data';
 import { UserRole } from '../../types';
+import { LOGO_URL } from '@/lib/assets';
+import { visitPath } from '@/lib/navigation';
 
 interface HeaderNavProps {
   currentTab: string;
@@ -43,47 +45,39 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({ currentTab, onTabChange })
     currentRole,
     currentScope,
     currentUser,
-    loginWithAccount,
     logout,
-    switchRoleContext,
-    setViewMode,
   } = useAppStore();
 
-  const [roleDropdownOpen, setRoleDropdownOpen] = useState(false);
-  const [scopeDropdownOpen, setScopeDropdownOpen] = useState(false);
   const [logoutModalOpen, setLogoutModalOpen] = useState(false);
 
   const activeRoleObj = getRoleById(currentRole);
   const pendingApprovalsCount = approvalRequests.filter((r) => r.approvalStatus === 'PENDING').length;
 
-  // Active User representation (fallback to matching mockUser if currentUser is not initialized)
+  // The server session is the source of the active identity.
   const activeUser = currentUser || {
-    id: 'USR-003',
-    name: 'Dr. Ir. Budi Santoso, M.Sc',
-    email: 'taskforce.nasional@p2mi.go.id',
+    id: '',
+    name: 'Pengguna',
+    email: '',
     role: currentRole,
     roleTitle: activeRoleObj.title,
     organization: activeRoleObj.organization,
     scope: currentScope,
-    nip: '197508121999031003',
-    mfaEnabled: true,
-    mfaVerified: true,
-    loginTimestamp: '2026-10-23 08:30:00 WIB',
-    ipAddress: '10.24.120.88',
-    avatarInitials: 'BS',
-    authorizedScopes: ['Gugus Tugas Nasional', 'Satgas 5 Koridor Negara'],
+    mfaEnabled: false,
+    mfaVerified: false,
+    loginTimestamp: '',
+    ipAddress: '',
   };
 
   // Comprehensive 9 Navigation Items
   const allNavItems = [
-    { id: 'overview', label: 'Command Center', icon: Compass },
-    { id: 'modul-a', label: 'Supply Calon', badge: candidates.length, icon: Users },
+    { id: 'overview', label: 'Dasbor Utama', icon: Compass },
+    { id: 'modul-a', label: 'Pencari Kerja', badge: candidates.length, icon: Users },
     { id: 'modul-b', label: 'Pelatihan', icon: GraduationCap },
-    { id: 'modul-c', label: 'Kesiapan Lembaga', badge: providers.length, icon: Building2 },
-    { id: 'modul-d', label: 'Demand Global', badge: demands.length, icon: Globe2 },
-    { id: 'matching', label: 'Smart Matching', badge: allocations.length, highlight: true, icon: Workflow },
-    { id: 'approvals', label: 'Verifikasi & Approval', badge: pendingApprovalsCount > 0 ? pendingApprovalsCount : undefined, icon: CheckCircle2 },
-    { id: 'audit', label: 'Audit Log', icon: Terminal },
+    { id: 'modul-c', label: 'Lembaga Vokasi', badge: providers.length, icon: Building2 },
+    { id: 'modul-d', label: 'Permintaan Tenaga Kerja', badge: demands.length, icon: Globe2 },
+    { id: 'matching', label: 'Pencocokan Peserta', badge: allocations.length, highlight: true, icon: Workflow },
+    { id: 'approvals', label: 'Verifikasi & Persetujuan', badge: pendingApprovalsCount > 0 ? pendingApprovalsCount : undefined, icon: CheckCircle2 },
+    { id: 'audit', label: 'Riwayat Audit', icon: Terminal },
     { id: 'rbac', label: 'Matriks Hak Akses', icon: Key },
   ];
 
@@ -107,7 +101,7 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({ currentTab, onTabChange })
           <div className="flex items-center gap-2 whitespace-nowrap shrink-0">
             {/* Back to Public Portal Link */}
             <button
-              onClick={() => setViewMode('landing')}
+              onClick={() => visitPath('/')}
               className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition font-semibold"
               title="Kunjungi Portal Publik Beranda"
             >
@@ -119,52 +113,14 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({ currentTab, onTabChange })
             <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
             <span className="font-semibold text-slate-200 hidden sm:inline">Sesi SSO Terotentikasi</span>
 
-            {/* Scope Indicator with Switcher */}
+            {/* Scope comes from the authenticated server session. */}
             <span className="text-slate-700">|</span>
-            <div className="relative">
-              <button
-                onClick={() => setScopeDropdownOpen(!scopeDropdownOpen)}
-                className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-slate-800/80 hover:bg-slate-700 border border-slate-700 text-slate-300 text-[11px] transition"
-                title="Batas Wilayah / Data yang Diotorisasi (Klik untuk melihat konteks)"
-              >
+            <div className="flex items-center gap-1.5 px-2 py-0.5 text-[11px] text-slate-300">
                 <MapPin className="w-3 h-3 text-rose-400 shrink-0" />
                 <span className="text-slate-400">Scope:</span>
                 <span className="font-semibold text-amber-300 truncate max-w-[190px]">
                   {currentScope.name}
                 </span>
-                {activeUser.authorizedScopes && activeUser.authorizedScopes.length > 1 && (
-                  <ChevronDown className="w-3 h-3 text-slate-400" />
-                )}
-              </button>
-
-              {/* Context Scope Switcher Dropdown */}
-              {scopeDropdownOpen && activeUser.authorizedScopes && (
-                <div className="absolute left-0 mt-1 w-72 bg-slate-900 border border-slate-700 text-slate-200 rounded-xl shadow-2xl p-2 z-50 animate-fade-in text-xs">
-                  <div className="px-2 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-800 mb-1 flex items-center justify-between">
-                    <span>GANTI KONTEKS WILAYAH:</span>
-                    <span className="text-emerald-400">Tercatat Audit</span>
-                  </div>
-                  {activeUser.authorizedScopes.map((scopeName) => (
-                    <button
-                      key={scopeName}
-                      onClick={() => {
-                        switchRoleContext(scopeName);
-                        setScopeDropdownOpen(false);
-                      }}
-                      className={`w-full text-left px-2.5 py-1.5 rounded-lg flex items-center justify-between transition text-xs ${
-                        currentScope.name === scopeName
-                          ? 'bg-blue-600/30 text-blue-300 font-bold border border-blue-500/40'
-                          : 'hover:bg-slate-800 text-slate-300'
-                      }`}
-                    >
-                      <span className="truncate">{scopeName}</span>
-                      {currentScope.name === scopeName && (
-                        <Check className="w-3.5 h-3.5 text-blue-400 shrink-0" />
-                      )}
-                    </button>
-                  ))}
-                </div>
-              )}
             </div>
 
             <span className="text-slate-700 hidden lg:inline">|</span>
@@ -181,71 +137,9 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({ currentTab, onTabChange })
           </div>
 
           <div className="flex items-center gap-3 text-xs whitespace-nowrap shrink-0">
-            {/* Multi-Role Switcher (13 Stakeholder Accounts) */}
-            <div className="relative">
-              <button
-                onClick={() => setRoleDropdownOpen(!roleDropdownOpen)}
-                className="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 transition font-bold"
-                title="Ganti akun stakeholder untuk simulasi pengujian"
-              >
-                <UserCheck className="w-3.5 h-3.5 text-blue-400" />
-                <span>Akun: <strong className="text-amber-400">{activeUser.roleTitle}</strong></span>
-                <ChevronDown className="w-3 h-3 text-slate-400" />
-              </button>
-
-              {roleDropdownOpen && (
-                <div className="absolute right-0 mt-1 w-84 bg-white text-slate-800 rounded-2xl shadow-2xl border border-slate-200 p-2.5 z-50 animate-fade-in max-h-[80vh] overflow-y-auto">
-                  <div className="px-3 py-2 text-[10px] font-extrabold text-slate-400 uppercase tracking-wider border-b border-slate-100 mb-1 flex items-center justify-between">
-                    <span>13 ROLE PEMANGKU KEPENTINGAN:</span>
-                    <span className="text-blue-600 font-bold">SSO Terpadu</span>
-                  </div>
-                  {mockUsers.map((user) => (
-                    <button
-                      key={user.id}
-                      onClick={() => {
-                        loginWithAccount(user);
-                        setRoleDropdownOpen(false);
-                      }}
-                      className={`w-full text-left p-2 rounded-xl text-xs transition flex items-start justify-between mb-1 ${
-                        activeUser.id === user.id
-                          ? 'bg-blue-50 text-blue-900 font-bold border border-blue-200'
-                          : 'hover:bg-slate-50 text-slate-700'
-                      }`}
-                    >
-                      <div className="pr-2">
-                        <div className="flex items-center gap-1.5">
-                          <span className="w-4 h-4 rounded-full bg-slate-200 text-slate-700 text-[10px] flex items-center justify-center font-bold">
-                            {user.no}
-                          </span>
-                          <span className="font-extrabold line-clamp-1">{user.roleTitle}</span>
-                        </div>
-                        <span className="text-[10px] text-blue-600 block mt-0.5 line-clamp-1">{user.name}</span>
-                        <span className="text-[9px] text-slate-500 block font-mono mt-0.5">
-                          Tujuan: {user.landingTabTitle}
-                        </span>
-                      </div>
-                      {activeUser.id === user.id && (
-                        <span className="w-2.5 h-2.5 rounded-full bg-blue-600 shrink-0 mt-1" />
-                      )}
-                    </button>
-                  ))}
-
-                  <div className="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between px-2 text-[11px]">
-                    <button
-                      onClick={() => {
-                        onTabChange('rbac');
-                        setRoleDropdownOpen(false);
-                      }}
-                      className="text-blue-600 hover:underline font-bold flex items-center gap-1"
-                    >
-                      <Key className="w-3 h-3" />
-                      <span>Lihat Matriks Hak Akses (RBAC)</span>
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-
+            <span className="px-2.5 py-1 font-bold text-slate-200">
+              Akun: <strong className="text-amber-400">{activeUser.roleTitle}</strong>
+            </span>
             <span className="text-slate-700">|</span>
             <button
               onClick={() => {
@@ -271,7 +165,7 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({ currentTab, onTabChange })
               onClick={() => onTabChange(activeRoleObj.defaultTab)}
             >
               <img
-                src="/logo.png"
+                src={LOGO_URL}
                 alt="Logo Resmi Kemnaker & Vokasi Indonesia"
                 className="w-9 h-9 object-contain drop-shadow-sm group-hover:scale-105 transition-transform shrink-0"
               />
@@ -420,12 +314,6 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({ currentTab, onTabChange })
                 <span className="text-slate-400">Lingkup Scope:</span>
                 <span className="font-semibold text-slate-300 truncate max-w-[200px]">{currentScope.name}</span>
               </div>
-              {activeUser.nip && (
-                <div className="flex items-center justify-between">
-                  <span className="text-slate-400">NIP:</span>
-                  <span className="font-mono text-slate-300">{activeUser.nip}</span>
-                </div>
-              )}
             </div>
 
             <div className="mt-4 flex items-center gap-2 p-2.5 rounded-xl bg-amber-950/40 border border-amber-800/60 text-[11px] text-amber-300">

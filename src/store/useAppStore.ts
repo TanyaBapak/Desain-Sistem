@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { router } from '@inertiajs/react';
 import {
   CandidateParticipant,
   TrainingProgram,
@@ -31,9 +32,8 @@ import {
   mockApprovals,
   mockAuditLogs,
   getRoleById,
-  mockUsers,
-  UserAccount,
 } from '../data';
+import { visitAppTab, visitPath } from '../lib/navigation';
 
 export interface AppState {
   // Navigation & Role Modes (Kemendagri Portal Concept)
@@ -101,14 +101,11 @@ export interface AppState {
 
   // Navigation & Role Actions
   setViewMode: (mode: ViewMode) => void;
-  setCurrentRole: (role: UserRole) => void;
   setCurrentTab: (tab: string) => void;
   openLoginPage: () => void;
-  loginWithAccount: (userAccount: UserAccount, options?: { mfaVerified?: boolean; ipAddress?: string }) => void;
+  setAuthenticatedUser: (user: AuthUser, role: UserRole, scope: UserScope) => void;
   logout: () => void;
-  switchRoleContext: (targetScopeName: string) => void;
   setSessionTimeRemaining: (time: number) => void;
-  loginAsRole: (role: UserRole) => void;
 
   // SGG Command Center Actions
   setExecutiveTier: (tier: ExecutiveTier) => void;
@@ -116,7 +113,6 @@ export interface AppState {
   setDrillDownFilter: (filter: Partial<DrillDownFilter>) => void;
 
   // RBAC & Scope Actions
-  setCurrentScope: (scope: UserScope) => void;
   setIsRbacModalOpen: (open: boolean) => void;
 
   // Approval Workflow Actions
@@ -282,145 +278,23 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   // Navigation & Role Actions
   setViewMode: (mode) => set({ viewMode: mode }),
-  openLoginPage: () => set({ viewMode: 'login' }),
+  openLoginPage: () => visitPath('/login'),
   setSessionTimeRemaining: (time) => set({ sessionTimeRemaining: time }),
-
-  loginWithAccount: (userAccount, options) => {
-    const now = new Date();
-    const timeStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')} WIB`;
-    const expiresAt = new Date(now.getTime() + 30 * 60 * 1000).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB';
-
-    const authUser: AuthUser = {
-      id: userAccount.id,
-      name: userAccount.name,
-      email: userAccount.email,
-      role: userAccount.role,
-      roleTitle: userAccount.roleTitle,
-      badge: userAccount.badge,
-      organization: userAccount.organization,
-      scope: userAccount.scope,
-      nip: userAccount.nip,
-      mfaEnabled: userAccount.mfaEnabled,
-      mfaVerified: options?.mfaVerified ?? userAccount.mfaEnabled,
-      loginTimestamp: timeStr,
-      ipAddress: options?.ipAddress || '10.24.120.88',
-      avatarInitials: userAccount.avatarInitials,
-      authorizedScopes: userAccount.authorizedScopes,
-      sessionExpiresAt: expiresAt,
-    };
-
-    const loginAudit: AuditLogEntry = {
-      id: `LOG-${Date.now()}`,
-      timestamp: timeStr,
-      actorName: userAccount.name,
-      actorRole: userAccount.roleTitle,
-      scope: userAccount.scope.name,
-      actionType: 'LOGIN',
-      entity: 'Sesi Autentikasi Pengguna',
-      entityId: userAccount.id,
-      fieldChanged: 'authSession',
-      oldValue: 'UNAUTHENTICATED',
-      newValue: `AUTHENTICATED_${userAccount.role.toUpperCase()}`,
-      justificationReason: `Autentikasi SSO Terpadu berhasil untuk ${userAccount.name} (${userAccount.roleTitle}) dengan lingkup ${userAccount.scope.name}. MFA: ${userAccount.mfaEnabled ? 'Terverifikasi' : 'Standar'}. Diarahkan otomatis ke ${userAccount.landingTabTitle}.`,
-      ipAddress: options?.ipAddress || '10.24.120.88',
-    };
-
+  setAuthenticatedUser: (user, role, scope) =>
     set({
       isAuthenticated: true,
-      currentUser: authUser,
-      currentRole: userAccount.role,
-      currentScope: userAccount.scope,
-      currentTab: userAccount.landingTab,
-      viewMode: 'app',
-      sessionTimeRemaining: 1800,
-      auditLogs: [loginAudit, ...get().auditLogs],
-    });
-  },
-
-  logout: () => {
-    const currentUser = get().currentUser;
-    const now = new Date();
-    const timeStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')} WIB`;
-
-    const logoutAudit: AuditLogEntry = {
-      id: `LOG-${Date.now()}`,
-      timestamp: timeStr,
-      actorName: currentUser ? currentUser.name : 'Pengguna SGG',
-      actorRole: currentUser ? currentUser.roleTitle : 'Stakeholder',
-      scope: currentUser ? currentUser.scope.name : 'Nasional',
-      actionType: 'LOGOUT',
-      entity: 'Sesi Autentikasi Pengguna',
-      entityId: currentUser ? currentUser.id : 'USR-UNKNOWN',
-      fieldChanged: 'authSession',
-      oldValue: 'AUTHENTICATED',
-      newValue: 'SESSION_TERMINATED',
-      justificationReason: `Pengguna mengakhiri sesi kerja melalui tombol Logout resmi. Token sesi dinonaktifkan dari memori sistem.`,
-      ipAddress: currentUser?.ipAddress || '10.24.120.88',
-    };
-
-    set({
-      isAuthenticated: false,
-      currentUser: null,
-      viewMode: 'landing',
-      currentTab: 'overview',
-      sessionTimeRemaining: 0,
-      auditLogs: [logoutAudit, ...get().auditLogs],
-    });
-  },
-
-  switchRoleContext: (targetScopeName) => {
-    const currentUser = get().currentUser;
-    if (!currentUser) return;
-
-    const now = new Date();
-    const timeStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')} WIB`;
-
-    const updatedScope: UserScope = {
-      ...currentUser.scope,
-      name: targetScopeName,
-    };
-
-    const contextAudit: AuditLogEntry = {
-      id: `LOG-${Date.now()}`,
-      timestamp: timeStr,
-      actorName: currentUser.name,
-      actorRole: currentUser.roleTitle,
-      scope: targetScopeName,
-      actionType: 'AKUN_HAK_AKSES',
-      entity: 'Konteks Kewenangan Sesi',
-      entityId: currentUser.id,
-      fieldChanged: 'activeScopeContext',
-      oldValue: currentUser.scope.name,
-      newValue: targetScopeName,
-      justificationReason: `Pengguna melakukan peralihan konteks wilayah/data yang diotorisasi ke ${targetScopeName}.`,
-      ipAddress: currentUser.ipAddress,
-    };
-
-    set({
-      currentScope: updatedScope,
-      currentUser: {
-        ...currentUser,
-        scope: updatedScope,
-      },
-      auditLogs: [contextAudit, ...get().auditLogs],
-    });
-  },
-
-  setCurrentRole: (role) => {
-    const roleObj = getRoleById(role);
-    set({
+      currentUser: user,
       currentRole: role,
-      currentScope: roleObj.defaultScope,
-    });
-  },
-  setCurrentTab: (tab) => set({ currentTab: tab }),
-  setCurrentScope: (scope) => set({ currentScope: scope }),
-  setIsRbacModalOpen: (open) => set({ isRbacModalOpen: open }),
+      currentScope: scope,
+      viewMode: 'app',
+    }),
+  logout: () => router.post('/logout'),
 
-  loginAsRole: (role) => {
-    const matchingAccount = mockUsers.find((u) => u.role === role) || mockUsers[2];
-    get().loginWithAccount(matchingAccount);
+  setCurrentTab: (tab) => {
+    set({ currentTab: tab });
+    visitAppTab(tab);
   },
+  setIsRbacModalOpen: (open) => set({ isRbacModalOpen: open }),
 
   // SGG Command Center Action Handlers
   setExecutiveTier: (tier) => set({ executiveTier: tier }),

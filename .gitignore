@@ -4,6 +4,8 @@ node_modules/
 # Production build
 dist/
 dist-ssr/
+/public/build/
+/public/hot
 
 # Local env files
 .env

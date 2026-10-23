@@ -37,7 +37,7 @@ const SCOPE_COLORS: Record<string, string> = {
 };
 
 export const RoleManagementPage: React.FC = () => {
-  const { currentRole, currentUser, switchRoleContext, loginWithAccount } = useAppStore();
+  const { currentRole } = useAppStore();
 
   return (
     <div className="space-y-6">
@@ -93,30 +93,10 @@ export const RoleManagementPage: React.FC = () => {
                       <Button
                         size="sm"
                         variant={currentRole === role.id ? "default" : "outline"}
-                        onClick={() => {
-                          // Simulasi pindah role context
-                          const mockUser = {
-                            no: idx + 1,
-                            id: `USR-ROLE-${idx + 1}`,
-                            username: role.id,
-                            email: `${role.id}@p2mi.go.id`,
-                            name: role.name,
-                            role: role.id as any,
-                            roleTitle: role.name,
-                            badge: role.group,
-                            organization: "Kementerian P2MI",
-                            scope: { level: "national" as any, name: role.scope },
-                            landingTab: "overview",
-                            landingTabTitle: "Dashboard",
-                            mfaEnabled: false,
-                            avatarInitials: role.name.charAt(0),
-                            status: "Aktif" as const,
-                          };
-                          loginWithAccount(mockUser);
-                          switchRoleContext(role.scope);
-                        }}
+                        disabled
+                        title="Pengelolaan akun dilakukan melalui backend."
                       >
-                        {currentRole === role.id ? "Aktif" : "Masuk sebagai"}
+                        {currentRole === role.id ? "Aktif" : "Dikelola admin"}
                       </Button>
                     </TableCell>
                   </TableRow>

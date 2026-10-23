@@ -28,11 +28,11 @@ import {
   ArrowRight
 } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
-import { mockRoles, stakeholderRoles13, operationalCrudRules, getRoleById, mockUsers } from '../../data';
+import { mockRoles, stakeholderRoles13, operationalCrudRules, getRoleById } from '../../data';
 import { UserRole, MenuModuleId, AccessLevel, PermissionToken } from '../../types';
 
 export const RbacMatrixView: React.FC = () => {
-  const { currentRole, currentScope, loginWithAccount, setCurrentScope } = useAppStore();
+  const { currentRole, currentScope } = useAppStore();
   const [selectedRoleForDetail, setSelectedRoleForDetail] = useState<UserRole>(currentRole);
   const [viewTab, setViewTab] = useState<'crud' | 'rules' | 'lifecycle' | 'tokens' | 'matrix' | 'roles13'>('crud');
 
@@ -801,25 +801,20 @@ export const RbacMatrixView: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {mockUsers.map((user) => {
-                    const isCurrentActive = currentRole === user.role && currentScope.name === user.scope.name;
+                  {stakeholderRoles13.map((role) => {
+                    const isCurrentActive = currentRole === role.coreGroup && currentScope.level === role.scopeType;
                     return (
-                      <tr key={user.id} className="hover:bg-slate-50/80 transition">
+                      <tr key={role.id} className="hover:bg-slate-50/80 transition">
                         <td className="py-3 px-3 text-center font-bold text-slate-500">
-                          {user.no}
+                          {role.no}
                         </td>
                         <td className="py-3 px-4">
                           <div className="flex items-center gap-2">
-                            <span className="font-extrabold text-slate-900">{user.roleTitle}</span>
-                            {user.mfaEnabled && (
-                              <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-purple-50 text-purple-700 border border-purple-200">
-                                MFA
-                              </span>
-                            )}
+                            <span className="font-extrabold text-slate-900">{role.name}</span>
                           </div>
-                          <span className="text-[11px] text-slate-500 block">{user.organization}</span>
+                          <span className="text-[11px] text-slate-500 block">{role.primaryAccess}</span>
                           <span className="text-[10px] text-amber-700 font-mono block mt-0.5">
-                            Scope: {user.scope.name}
+                            Scope: {role.scopeType}
                           </span>
                         </td>
                         <td className="py-3 px-3 text-center">
@@ -834,27 +829,24 @@ export const RbacMatrixView: React.FC = () => {
                         </td>
                         <td className="py-3 px-4">
                           <span className="font-bold text-blue-800 bg-blue-50 px-2.5 py-1 rounded-md border border-blue-200 inline-block">
-                            {user.landingTabTitle}
+                            {role.primaryAccess}
                           </span>
                         </td>
                         <td className="py-3 px-4 text-center">
                           <button
-                            onClick={() => loginWithAccount(user)}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 mx-auto ${
-                              isCurrentActive
-                                ? 'bg-emerald-600 text-white shadow-xs'
-                                : 'bg-slate-900 hover:bg-red-600 text-white'
-                            }`}
+                            type="button"
+                            disabled
+                            className="mx-auto flex cursor-not-allowed items-center justify-center gap-1.5 rounded-lg bg-slate-200 px-3 py-1.5 text-xs font-bold text-slate-600"
                           >
                             {isCurrentActive ? (
                               <>
                                 <Check className="w-3.5 h-3.5" />
-                                <span>Sedang Aktif</span>
+                                <span>Role aktif</span>
                               </>
                             ) : (
                               <>
                                 <Lock className="w-3.5 h-3.5" />
-                                <span>Simulasikan Login</span>
+                                <span>Akun server</span>
                               </>
                             )}
                           </button>

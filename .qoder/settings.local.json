@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find /Users/it/Project/p2mi/src -maxdepth 3 -type f | sort | head -200)",
+      "Bash(find /Users/it/Project/p2mi/database -type f -maxdepth 3 -print -exec wc -l {} \\\\; && printf '\\\\n--- .env keys only ---\\\\n' && sed 's/=.*/=<redacted>/' /Users/it/Project/p2mi/.env && printf '\\\\n--- gitignore ---\\\\n' && cat /Users/it/Project/p2mi/.gitignore)",
+      "Bash(printf 'php: '; php -v 2>/dev/null | head -1 || echo \"not found\"; printf 'composer: '; composer --version 2>/dev/null || echo \"not found\"; printf 'node: '; node -v; printf 'pnpm: '; pnpm -v 2>/dev/null || echo \"not found\"; printf 'npm: '; npm -v; printf 'docker: '; docker --version 2>/dev/null || echo \"not found\"; printf 'psql: '; psql --version 2>/dev/null || echo \"not found\"; printf 'mysql: '; mysql --version 2>/dev/null || echo \"not found\"; printf 'sqlite3: '; sqlite3 --version 2>/dev/null | cut -c1-20 || echo \"not found\")",
+      "Bash(find /Users/it/Project/p2mi -maxdepth 2 -not -path '*/node_modules*' -not -path '*/.git/*' | head -100)",
+      "Bash(wc:*)",
+      "Bash(cat /Users/it/Project/p2mi/.gitignore; echo '---GIT CONFIG---'; cat /Users/it/Project/p2mi/.git/config; echo '---GIT LOG---'; git -C /Users/it/Project/p2mi log --oneline -20; echo '---DIST HTACCESS---'; diff /Users/it/Project/p2mi/public/.htaccess /Users/it/Project/p2mi/dist/.htaccess && echo identical)",
+      "Bash(find /Users/it/Project/p2mi -not -path '*/node_modules/*' -not -path '*/.git/*' \\\\\\( -iname '*.php' -o -iname '*.blade.php' -o -iname 'composer.json' -o -iname 'artisan' -o -iname '*.go' -o -iname '*.py' -o -iname '*.rb' -o -iname '*.java' -o -iname '*.cs' -o -iname '*.js' -o -iname '*.mjs' -o -iname '*.cjs' -o -iname '*.ts' \\\\\\) | sort)",
+      "Bash(git -C /Users/it/Project/p2mi show --stat --oneline 16322b8; echo '---'; git -C /Users/it/Project/p2mi show 16322b8 -- .htaccess public/.htaccess | head -80; echo '---QODER---'; cat /Users/it/Project/p2mi/.qoder/settings.local.json)",
+      "Bash(cd /Users/it/Project/p2mi && git status && git log --oneline -n 20)",
+      "Bash(cd /Users/it/Project/p2mi && find src -maxdepth 3 -type f | sort | head -200)",
+      "Bash(cd /Users/it/Project/p2mi && find public dist -maxdepth 2 -type f | sort | head -100 && echo '--- htaccess ---' && cat public/.htaccess 2>/dev/null && cat dist/.htaccess 2>/dev/null)",
+      "Bash(php -v; composer --version; mysql --version; php -m | tr '\\\\n' ' ')",
+      "Bash(cd /Users/it/Project/p2mi && ls -la backend 2>/dev/null || echo 'no backend dir'; cat .env | sed 's/=.*/=<redacted>/' ; echo '--- gitignore ---'; cat .gitignore)",
+      "Bash(mysqladmin ping 2>&1 | head -3; mysql -e 'SELECT VERSION\\(\\); SHOW DATABASES;' 2>&1 | head -30)",
+      "Bash(cd /Users/it/Project/p2mi && sed -n '1,160p' src/components/modul-a/CandidateFormModal.tsx)",
+      "Bash(cd /Users/it/Project/p2mi && sed -n '1,180p' src/components/modul-b/ProgramFormModal.tsx && echo '--- demand form ---' && sed -n '1,160p' src/components/modul-d/DemandFormModal.tsx)",
+      "Bash(git -C /Users/it/Project/p2mi status --short && git -C /Users/it/Project/p2mi log --oneline -8)",
+      "Bash(php -v; composer --version; mysql --version 2>/dev/null || true; which php composer mysql 2>/dev/null)",
+      "Bash(php -m | sort)",
+      "Bash(php:*)"
+    ]
+  }
+}

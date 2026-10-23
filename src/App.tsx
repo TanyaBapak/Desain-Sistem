@@ -1,90 +1,193 @@
-import React from "react";
-import {
-  BrowserRouter,
-  Routes,
-  Route,
-  Navigate,
-  useLocation,
-} from "react-router-dom";
+import React, { lazy, Suspense, useEffect } from "react";
 import { useAppStore } from "@/store/useAppStore";
-import { KemendagriLandingPage } from "@/components/landing/KemendagriLandingPage";
-import { UnifiedLoginPage } from "@/components/auth/UnifiedLoginPage";
 import { AdminLayout } from "@/components/layout/AdminLayout";
-import { getDefaultTab, canAccessTab, getRoleInfo } from "@/lib/rbac";
-import { mockRoles } from "@/data";
+import { UserRole, UserScope } from "@/types";
 
-// --- Pages (lazy-ish inline imports) ---
-import { DashboardPage } from "@/pages/DashboardPage";
-import { RoleManagementPage } from "@/pages/RoleManagementPage";
-import { SippmiMonitoringPage } from "@/pages/SippmiMonitoringPage";
-import { SupplyTable } from "@/components/modul-a/SupplyTable";
-import { TrainingProgramsView } from "@/components/modul-b/TrainingProgramsView";
-import { ProvidersView } from "@/components/modul-c/ProvidersView";
-import { GlobalDemandsView } from "@/components/modul-d/GlobalDemandsView";
-import { MatchingEngineView } from "@/components/matching/MatchingEngineView";
-import { ApprovalWorkflowView } from "@/components/approvals/ApprovalWorkflowView";
-import { AuditLogView } from "@/components/audit/AuditLogView";
-import { RbacMatrixView } from "@/components/rbac/RbacMatrixView";
+const KemendagriLandingPage = lazy(() =>
+  import("@/components/landing/KemendagriLandingPage").then((module) => ({
+    default: module.KemendagriLandingPage,
+  })),
+);
+const UnifiedLoginPage = lazy(() =>
+  import("@/components/auth/UnifiedLoginPage").then((module) => ({
+    default: module.UnifiedLoginPage,
+  })),
+);
+const DashboardPage = lazy(() =>
+  import("@/pages/DashboardPage").then((module) => ({
+    default: module.DashboardPage,
+  })),
+);
+const RoleManagementPage = lazy(() =>
+  import("@/pages/RoleManagementPage").then((module) => ({
+    default: module.RoleManagementPage,
+  })),
+);
+const SippmiMonitoringPage = lazy(() =>
+  import("@/pages/SippmiMonitoringPage").then((module) => ({
+    default: module.SippmiMonitoringPage,
+  })),
+);
+const SupplyTable = lazy(() =>
+  import("@/components/modul-a/SupplyTable").then((module) => ({
+    default: module.SupplyTable,
+  })),
+);
+const TrainingProgramsView = lazy(() =>
+  import("@/components/modul-b/TrainingProgramsView").then((module) => ({
+    default: module.TrainingProgramsView,
+  })),
+);
+const ProvidersView = lazy(() =>
+  import("@/components/modul-c/ProvidersView").then((module) => ({
+    default: module.ProvidersView,
+  })),
+);
+const GlobalDemandsView = lazy(() =>
+  import("@/components/modul-d/GlobalDemandsView").then((module) => ({
+    default: module.GlobalDemandsView,
+  })),
+);
+const MatchingEngineView = lazy(() =>
+  import("@/components/matching/MatchingEngineView").then((module) => ({
+    default: module.MatchingEngineView,
+  })),
+);
+const ApprovalWorkflowView = lazy(() =>
+  import("@/components/approvals/ApprovalWorkflowView").then((module) => ({
+    default: module.ApprovalWorkflowView,
+  })),
+);
+const AuditLogView = lazy(() =>
+  import("@/components/audit/AuditLogView").then((module) => ({
+    default: module.AuditLogView,
+  })),
+);
 
-// Wrapper that passes currentTab/onTabChange to legacy module components
-function LegacyModulePage({ component: Component }: { component: React.FC }) {
-  const { currentTab, setCurrentTab, currentRole } = useAppStore();
-  const roleObj = getRoleInfo(currentRole);
-  // Ensure tab is accessible for this role
-  React.useEffect(() => {
-    if (!canAccessTab(currentRole, currentTab)) {
-      setCurrentTab(roleObj.defaultTab);
-    }
-  }, [currentRole, currentTab, roleObj, setCurrentTab]);
-  return <Component />;
+interface AppProps {
+  currentTab: string;
+  isRoot: boolean;
+  showLogin: boolean;
+  auth: {
+    user: {
+      id: string;
+      name: string;
+      email: string;
+      frontendRole: UserRole;
+      roleTitle: string;
+      badge: string | null;
+      organization: string;
+      scope: UserScope;
+      avatarInitials: string | null;
+      mfaEnabled: boolean;
+      defaultTab: string;
+      accessibleTabs: string[];
+    } | null;
+  };
 }
 
-export const App: React.FC = () => {
-  const { viewMode, isAuthenticated, currentTab, setCurrentTab, currentRole } =
-    useAppStore();
+export function App({ currentTab, isRoot, showLogin, auth }: AppProps) {
+  const { setCurrentTab, setAuthenticatedUser } = useAppStore();
+  const authenticatedUser = auth.user;
+  const activeTab = isRoot && authenticatedUser ? authenticatedUser.defaultTab : currentTab;
 
-  // 1. Landing page mode
-  if (viewMode === "landing") {
-    return <KemendagriLandingPage />;
-  }
+  useEffect(() => {
+    if (!authenticatedUser) {
+      return;
+    }
 
-  // 2. Login / not authenticated
-  if (viewMode === "login" || !isAuthenticated) {
-    return <UnifiedLoginPage />;
-  }
+    setAuthenticatedUser(
+      {
+        id: authenticatedUser.id,
+        name: authenticatedUser.name,
+        email: authenticatedUser.email,
+        role: authenticatedUser.frontendRole,
+        roleTitle: authenticatedUser.roleTitle,
+        badge: authenticatedUser.badge ?? undefined,
+        organization: authenticatedUser.organization,
+        scope: authenticatedUser.scope,
+        mfaEnabled: authenticatedUser.mfaEnabled,
+        mfaVerified: false,
+        loginTimestamp: "",
+        ipAddress: "",
+        avatarInitials: authenticatedUser.avatarInitials ?? undefined,
+      },
+      authenticatedUser.frontendRole,
+      authenticatedUser.scope,
+    );
+  }, [authenticatedUser, setAuthenticatedUser]);
 
-  // 3. Authenticated → Admin dashboard with routing
-  return (
-    <BrowserRouter>
-      <Routes>
-        {/* Redirect root to default tab for role */}
-        <Route
-          path="/"
-          element={
-            <Navigate to={`/app/${getDefaultTab(currentRole)}`} replace />
-          }
-        />
-
-        <Route path="/app/*" element={<AdminLayout />}>
-          <Route index element={<Navigate to={`/app/${getDefaultTab(currentRole)}`} replace />} />
-          <Route
-            path="dashboard"
-            element={<DashboardPage currentTab={currentTab} setCurrentTab={setCurrentTab} />}
-          />
-          <Route path="modul-a" element={<LegacyModulePage component={SupplyTable} />} />
-          <Route path="modul-b" element={<LegacyModulePage component={TrainingProgramsView} />} />
-          <Route path="modul-c" element={<LegacyModulePage component={ProvidersView} />} />
-          <Route path="modul-d" element={<LegacyModulePage component={GlobalDemandsView} />} />
-          <Route path="matching" element={<LegacyModulePage component={MatchingEngineView} />} />
-          <Route path="modul-e" element={<LegacyModulePage component={MatchingEngineView} />} />
-          <Route path="approvals" element={<LegacyModulePage component={ApprovalWorkflowView} />} />
-          <Route path="audit" element={<LegacyModulePage component={AuditLogView} />} />
-          <Route path="rbac" element={<RoleManagementPage />} />
-          <Route path="sippmi-monitoring" element={<SippmiMonitoringPage />} />
-        </Route>
-        </Routes>
-      </BrowserRouter>
+  const loading = (
+    <div role="status" className="p-6 text-sm text-muted-foreground">
+      Memuat halaman…
+    </div>
   );
-};
+
+  if (showLogin && !authenticatedUser) {
+    return (
+      <Suspense fallback={loading}>
+        <UnifiedLoginPage />
+      </Suspense>
+    );
+  }
+
+  if (!authenticatedUser) {
+    return (
+      <Suspense fallback={loading}>
+        <KemendagriLandingPage />
+      </Suspense>
+    );
+  }
+
+  let page: React.ReactNode;
+  switch (activeTab) {
+    case "dashboard":
+    case "overview":
+      page = (
+        <DashboardPage currentTab={activeTab} setCurrentTab={setCurrentTab} />
+      );
+      break;
+    case "modul-a":
+      page = <SupplyTable />;
+      break;
+    case "modul-b":
+      page = <TrainingProgramsView />;
+      break;
+    case "modul-c":
+      page = <ProvidersView />;
+      break;
+    case "modul-d":
+      page = <GlobalDemandsView />;
+      break;
+    case "matching":
+    case "modul-e":
+      page = <MatchingEngineView />;
+      break;
+    case "approvals":
+      page = <ApprovalWorkflowView />;
+      break;
+    case "audit":
+      page = <AuditLogView />;
+      break;
+    case "rbac":
+      page = <RoleManagementPage />;
+      break;
+    case "sippmi-monitoring":
+      page = <SippmiMonitoringPage />;
+      break;
+    default:
+      page = <DashboardPage currentTab="overview" setCurrentTab={setCurrentTab} />;
+  }
+
+  return (
+    <AdminLayout
+      currentTab={activeTab}
+      onTabChange={setCurrentTab}
+      accessibleTabs={authenticatedUser.accessibleTabs}
+    >
+      <Suspense fallback={loading}>{page}</Suspense>
+    </AdminLayout>
+  );
+}
 
 export default App;

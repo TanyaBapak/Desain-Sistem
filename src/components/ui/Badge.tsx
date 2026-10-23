@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
@@ -38,12 +37,12 @@ const badgeVariants = cva(
 );
 
 export interface BadgeProps
-  extends React.ComponentPropsWithoutRef<typeof Slot>,
+  extends React.HTMLAttributes<HTMLSpanElement>,
     VariantProps<typeof badgeVariants> {}
 
-const Badge = React.forwardRef<HTMLDivElement, BadgeProps>(
+const Badge = React.forwardRef<HTMLSpanElement, BadgeProps>(
   ({ className, variant, size, ...props }, ref) => (
-    <Slot
+    <span
       className={cn(badgeVariants({ variant, size }), className)}
       {...props}
       ref={ref}

@@ -1,9 +1,15 @@
 /** @type {import('tailwindcss').Config} */
 export default {
-  content: [
-    "./index.html",
-    "./src/**/*.{js,ts,jsx,tsx}",
-  ],
+  content: {
+    relative: true,
+    files: [
+      "./index.html",
+      "./src/**/*.{js,ts,jsx,tsx}",
+      "./backend/resources/views/**/*.blade.php",
+      "./backend/resources/js/**/*.{js,ts,jsx,tsx}",
+      "./backend/app/**/*.php",
+    ],
+  },
   theme: {
     extend: {
       colors: {

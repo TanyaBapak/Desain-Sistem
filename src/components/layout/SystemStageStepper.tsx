@@ -83,14 +83,14 @@ export const SystemStageStepper: React.FC<StepperProps> = ({ currentStage, onSel
         </div>
       </div>
 
-      <div className="flex xl:grid xl:grid-cols-6 gap-2.5 overflow-x-auto no-scrollbar pb-1 relative">
+      <div className="relative grid grid-cols-1 gap-2.5 pb-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
         {stages.map((stg) => {
           const isActive = currentStage === stg.id;
           const isCompleted = currentStage > stg.id;
           const Icon = stg.icon;
 
           return (
-            <div key={stg.id} className="relative flex-1 min-w-[155px] xl:min-w-0 flex items-stretch shrink-0">
+            <div key={stg.id} className="relative flex min-w-0 items-stretch">
               <button
                 type="button"
                 onClick={() => onSelectStage(stg.id)}
@@ -115,7 +115,7 @@ export const SystemStageStepper: React.FC<StepperProps> = ({ currentStage, onSel
                     >
                       <Icon className="w-3.5 h-3.5" />
                     </div>
-                    <span className="text-[11px] font-bold uppercase tracking-wider whitespace-nowrap">
+                    <span className="text-xs font-bold uppercase tracking-wider whitespace-nowrap">
                       {stg.title}
                     </span>
                   </div>
@@ -132,8 +132,8 @@ export const SystemStageStepper: React.FC<StepperProps> = ({ currentStage, onSel
                 </div>
 
                 <div className="overflow-hidden">
-                  <h4 className="text-xs font-bold leading-tight mb-0.5 whitespace-nowrap truncate">{stg.subtitle}</h4>
-                  <p className="text-[10px] opacity-75 leading-normal truncate">{stg.description}</p>
+                  <h4 className="mb-0.5 truncate text-sm font-bold leading-tight">{stg.subtitle}</h4>
+                  <p className="truncate text-xs leading-normal opacity-75">{stg.description}</p>
                 </div>
               </button>
             </div>

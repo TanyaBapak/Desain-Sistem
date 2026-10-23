@@ -2,8 +2,8 @@
 
 import * as React from "react";
 import { useAppStore } from "@/store/useAppStore";
-import { Bell, Shield, User, HelpCircle, Settings, ChevronDown } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Bell, Shield, User, ChevronDown, Menu, LogOut, MapPin } from "lucide-react";
+import { NAV_ITEMS } from "@/lib/sidebar-items";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,42 +12,43 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { cn } from "@/lib/utils";
 import { Toaster } from "@/components/ui/toaster";
 
 interface TopNavProps {
+  currentTab: string;
   onOpenSidebar: () => void;
 }
 
-export const TopNav: React.FC<TopNavProps> = ({ onOpenSidebar }) => {
+export const TopNav: React.FC<TopNavProps> = ({ currentTab, onOpenSidebar }) => {
   const { currentUser, currentRole, currentScope, logout } = useAppStore();
   const activeRoleObj = getRoleInfo(currentRole);
-
-  const [userDropdownOpen, setUserDropdownOpen] = React.useState(false);
+  const currentPage = NAV_ITEMS.find((item) => item.id === currentTab);
 
   return (
-    <div className="sticky top-0 z-50 flex flex-col border-b border-border bg-background/80 backdrop-blur-md">
-      <div className="flex items-center justify-between px-4 py-3 bg-background border-b border-border shrink-0">
-        <div className="flex items-center gap-3">
+    <header className="sticky top-0 z-50 flex h-16 items-center border-b border-border bg-background/95 px-4 backdrop-blur sm:px-6">
+      <div className="flex w-full items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-3">
           <button
             onClick={onOpenSidebar}
-            className="rounded-md p-2 text-slate-500 hover:bg-secondary hover:text-accent-foreground transition shrink-0"
+            className="rounded-md p-2 text-muted-foreground transition hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:hidden"
             aria-label="Buka navigasi"
           >
-            <MenuIcon className="h-4 w-4" />
+            <Menu className="h-5 w-5" />
           </button>
-          <div className="flex flex-col">
-            <span className="text-sm font-bold text-foreground">SMK Go Global</span>
-            <span className="text-xs text-slate-500">
-              Admin Dashboard · Kementerian P2MI
-            </span>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold text-foreground">
+              {currentPage?.label ?? "SMK Go Global"}
+            </p>
+            <p className="hidden truncate text-xs text-muted-foreground sm:block">
+              Platform Monitoring SMK Go Global
+            </p>
           </div>
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
           {/* Notifications */}
           <button
-            className="relative p-2 text-slate-500 hover:text-slate-900 transition"
+            className="relative rounded-md p-2 text-muted-foreground transition hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             aria-label="Notifikasi"
           >
             <Bell className="h-4 w-4" />
@@ -59,18 +60,17 @@ export const TopNav: React.FC<TopNavProps> = ({ onOpenSidebar }) => {
           {/* User Profile Dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium bg-slate-100 text-slate-700 hover:bg-slate-200 transition shrink-0">
-                <div className="h-7 w-7 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-bold">
+              <button className="flex items-center gap-2 rounded-md border border-border px-2 py-1.5 text-sm font-medium transition hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:px-3">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
                   {currentUser?.avatarInitials || "US"}
                 </div>
-                <div className="hidden md:flex flex-col">
-                  <span className="text-slate-700">{currentUser?.name || "Pengguna"}</span>
-                  <span className="text-xs text-slate-500">{activeRoleObj.title}</span>
+                <div className="hidden min-w-0 flex-col text-left sm:flex">
+                  <span className="max-w-40 truncate text-foreground">{currentUser?.name || "Pengguna"}</span>
+                  <span className="max-w-40 truncate text-xs text-muted-foreground">
+                    {currentUser?.roleTitle ?? activeRoleObj.title}
+                  </span>
                 </div>
-                <span className="hidden md:block text-xs text-blue-600">
-                  MFA Aktif
-                </span>
-                <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
+                <ChevronDown className="h-4 w-4 text-muted-foreground" />
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-60 p-2">
@@ -78,26 +78,25 @@ export const TopNav: React.FC<TopNavProps> = ({ onOpenSidebar }) => {
                 Sesi Aktif
               </DropdownMenuLabel>
               <DropdownMenuItem className="flex items-center gap-2 text-sm">
-                <User className="h-4 w-4 text-slate-400 shrink-0" />
+                <User className="h-4 w-4 shrink-0 text-muted-foreground" />
                 {currentUser?.name}
               </DropdownMenuItem>
               <DropdownMenuItem className="flex items-center gap-2 text-sm text-slate-500">
-                <Shield className="h-4 w-4 text-slate-400 shrink-0" />
-                {activeRoleObj.title}
+                <Shield className="h-4 w-4 shrink-0 text-muted-foreground" />
+                {currentUser?.roleTitle ?? activeRoleObj.title}
               </DropdownMenuItem>
               <DropdownMenuItem className="flex items-center gap-2 text-sm text-slate-500">
-                <MapPinIcon className="h-4 w-4 text-slate-400 shrink-0" />
+                <MapPin className="h-4 w-4 shrink-0 text-muted-foreground" />
                 {currentScope.name}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 onClick={() => {
-                  setUserDropdownOpen(false);
                   logout();
                 }}
                 className="text-sm text-destructive"
               >
-                <LogOutIcon className="h-4 w-4 text-red-500 shrink-0" />
+                <LogOut className="h-4 w-4 shrink-0" />
                 Keluar / Logout
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -105,71 +104,9 @@ export const TopNav: React.FC<TopNavProps> = ({ onOpenSidebar }) => {
         </div>
       </div>
       <Toaster />
-    </div>
+    </header>
   );
 };
-
-function MenuIcon(props: any) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      {...props}
-    >
-      <line x1="3" y1="12" x2="21" y2="12" />
-      <line x1="3" y1="6" x2="21" y2="6" />
-      <line x1="3" y1="18" x2="21" y2="18" />
-    </svg>
-  );
-}
-
-function LogOutIcon(props: any) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      {...props}
-    >
-      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-      <polyline points="16 17 21 12 16 7" />
-      <line x1="21" y1="12" x2="9" y2="12" />
-    </svg>
-  );
-}
-
-function MapPinIcon(props: any) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      {...props}
-    >
-      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0" />
-      <circle cx="12" cy="10" r="3" />
-    </svg>
-  );
-}
 
 function getRoleInfo(role: string) {
   const mockRoles = [

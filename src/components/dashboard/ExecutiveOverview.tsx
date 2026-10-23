@@ -111,16 +111,16 @@ export const ExecutiveOverview: React.FC<ExecutiveOverviewProps> = ({ onNavigate
         <div className="flex items-center justify-between">
           <div>
             <span className="text-xs font-bold text-blue-600 uppercase tracking-wider block">
-              Ekosistem 4 Modul Intelijen
+              Empat Fitur Utama
             </span>
             <h2 className="text-xl font-extrabold text-slate-900">
-              Navigasi Langsung ke Seluruh Modul Terpadu
+              Akses Langsung ke Fitur Utama
             </h2>
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {/* Card Modul A */}
+          {/* Pencari Kerja */}
           <div
             onClick={() => onNavigate('modul-a')}
             className="group p-5 bg-white rounded-2xl border border-slate-200 hover:border-blue-500 shadow-xs hover:shadow-lg transition cursor-pointer flex flex-col justify-between"
@@ -130,22 +130,22 @@ export const ExecutiveOverview: React.FC<ExecutiveOverviewProps> = ({ onNavigate
                 <Users className="w-6 h-6" />
               </div>
               <span className="text-[10px] font-bold text-blue-600 uppercase tracking-wider block mb-1">
-                Modul A
+                Pencari Kerja
               </span>
               <h3 className="text-base font-bold text-slate-900 group-hover:text-blue-600 transition-colors">
-                Supply Intelligence
+                Data Pencari Kerja
               </h3>
               <p className="text-xs text-slate-500 mt-1 leading-relaxed">
                 Agregasi data profil calon PMI vokasi dari SMK, D3, Politeknik, status kesiapan teknis, dan kemahiran bahasa asing.
               </p>
             </div>
             <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-semibold text-blue-600">
-              <span>Buka Modul A</span>
+              <span>Buka Pencari Kerja</span>
               <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </div>
           </div>
 
-          {/* Card Modul B */}
+          {/* Program Pelatihan */}
           <div
             onClick={() => onNavigate('modul-b')}
             className="group p-5 bg-white rounded-2xl border border-slate-200 hover:border-indigo-500 shadow-xs hover:shadow-lg transition cursor-pointer flex flex-col justify-between"
@@ -155,22 +155,22 @@ export const ExecutiveOverview: React.FC<ExecutiveOverviewProps> = ({ onNavigate
                 <GraduationCap className="w-6 h-6" />
               </div>
               <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider block mb-1">
-                Modul B
+                Program Pelatihan
               </span>
               <h3 className="text-base font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">
-                Training Program Intelligence
+                Program Pelatihan
               </h3>
               <p className="text-xs text-slate-500 mt-1 leading-relaxed">
                 Katalog kurikulum terstandar (Upskilling, Reskilling, Bahasa, Teknis Terpadu) untuk sertifikasi BNSP & negara tujuan.
               </p>
             </div>
             <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-semibold text-indigo-600">
-              <span>Buka Modul B</span>
+              <span>Buka Program Pelatihan</span>
               <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </div>
           </div>
 
-          {/* Card Modul C */}
+          {/* Lembaga Vokasi */}
           <div
             onClick={() => onNavigate('modul-c')}
             className="group p-5 bg-white rounded-2xl border border-slate-200 hover:border-emerald-500 shadow-xs hover:shadow-lg transition cursor-pointer flex flex-col justify-between"
@@ -180,22 +180,22 @@ export const ExecutiveOverview: React.FC<ExecutiveOverviewProps> = ({ onNavigate
                 <Building2 className="w-6 h-6" />
               </div>
               <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider block mb-1">
-                Modul C
+                Lembaga Vokasi
               </span>
               <h3 className="text-base font-bold text-slate-900 group-hover:text-emerald-600 transition-colors">
-                Vocational Provider Readiness
+                Kesiapan Lembaga Vokasi
               </h3>
               <p className="text-xs text-slate-500 mt-1 leading-relaxed">
                 Pemetaan kesiapan sarana bengkel kerja, instruktur bersertifikat, dan verifikasi e-Vokasi dari SMK, BLK, LPK, dan Politeknik.
               </p>
             </div>
             <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-semibold text-emerald-600">
-              <span>Buka Modul C</span>
+              <span>Buka Lembaga Vokasi</span>
               <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </div>
           </div>
 
-          {/* Card Modul D */}
+          {/* Permintaan Tenaga Kerja */}
           <div
             onClick={() => onNavigate('modul-d')}
             className="group p-5 bg-white rounded-2xl border border-slate-200 hover:border-amber-500 shadow-xs hover:shadow-lg transition cursor-pointer flex flex-col justify-between"
@@ -205,17 +205,17 @@ export const ExecutiveOverview: React.FC<ExecutiveOverviewProps> = ({ onNavigate
                 <Globe2 className="w-6 h-6" />
               </div>
               <span className="text-[10px] font-bold text-amber-600 uppercase tracking-wider block mb-1">
-                Modul D
+                Permintaan Tenaga Kerja
               </span>
               <h3 className="text-base font-bold text-slate-900 group-hover:text-amber-600 transition-colors">
-                Global Demand Intelligence
+                Permintaan Tenaga Kerja Luar Negeri
               </h3>
               <p className="text-xs text-slate-500 mt-1 leading-relaxed">
                 Pemetaan lowongan kerja luar negeri resmi via SISKOP2MI di Jepang, Jerman, Korea Selatan, dan Taiwan beserta persyaratannya.
               </p>
             </div>
             <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-semibold text-amber-600">
-              <span>Buka Modul D</span>
+              <span>Buka Permintaan Tenaga Kerja</span>
               <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </div>
           </div>

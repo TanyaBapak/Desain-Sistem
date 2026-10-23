@@ -1,5 +1,6 @@
 import React from 'react';
 import { ShieldCheck, Heart, Sparkles } from 'lucide-react';
+import { LOGO_URL } from '@/lib/assets';
 
 export const Footer: React.FC = () => {
   return (
@@ -9,7 +10,7 @@ export const Footer: React.FC = () => {
           <div className="md:col-span-2 space-y-3">
             <div className="flex items-center gap-2">
               <img
-                src="/logo.png"
+                src={LOGO_URL}
                 alt="Logo Resmi Kemnaker & Vokasi Indonesia"
                 className="w-8 h-8 object-contain shrink-0"
               />
@@ -25,13 +26,13 @@ export const Footer: React.FC = () => {
           </div>
 
           <div>
-            <h4 className="text-white font-bold text-xs uppercase tracking-wider mb-3">5 Modul Utama SGG-CC</h4>
+            <h4 className="text-white font-bold text-xs uppercase tracking-wider mb-3">5 Menu Utama SGG-CC</h4>
             <ul className="space-y-2 text-xs">
-              <li className="hover:text-blue-400 cursor-pointer transition">Modul A: Supply Intelligence</li>
-              <li className="hover:text-blue-400 cursor-pointer transition">Modul B: Training Program Intelligence</li>
-              <li className="hover:text-blue-400 cursor-pointer transition">Modul C: Vocational Provider Readiness</li>
-              <li className="hover:text-blue-400 cursor-pointer transition">Modul D: Global Demand Intelligence</li>
-              <li className="hover:text-blue-400 cursor-pointer transition">Modul E: Matching & Executive Monitoring</li>
+              <li className="hover:text-blue-400 cursor-pointer transition">Pencari Kerja</li>
+              <li className="hover:text-blue-400 cursor-pointer transition">Program Pelatihan</li>
+              <li className="hover:text-blue-400 cursor-pointer transition">Lembaga Vokasi</li>
+              <li className="hover:text-blue-400 cursor-pointer transition">Permintaan Tenaga Kerja</li>
+              <li className="hover:text-blue-400 cursor-pointer transition">Pencocokan & Pemantauan</li>
             </ul>
           </div>
 

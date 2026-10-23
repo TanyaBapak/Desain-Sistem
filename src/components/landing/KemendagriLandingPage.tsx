@@ -4,6 +4,7 @@ import {
 } from '../../store/useAppStore';
 import { mockNews, mockRoles } from '../../data';
 import { UserRole } from '../../types';
+import { LOGO_URL } from '@/lib/assets';
 import {
   ShieldCheck,
   Building2,
@@ -37,10 +38,8 @@ export const KemendagriLandingPage: React.FC = () => {
     providers,
     demands,
     allocations,
-    loginAsRole,
     openLoginPage,
     setViewMode,
-    setCurrentTab
   } = useAppStore();
 
   const [activeSlide, setActiveSlide] = useState(0);
@@ -68,8 +67,9 @@ export const KemendagriLandingPage: React.FC = () => {
   const totalVerifiedCandidates = candidates.filter((c) => c.verificationStatus === 'Verified').length;
 
   const handleSelectRole = (roleId: UserRole) => {
-    loginAsRole(roleId);
+    void roleId;
     setRoleModalOpen(false);
+    openLoginPage();
   };
 
   return (
@@ -139,7 +139,7 @@ export const KemendagriLandingPage: React.FC = () => {
           >
             {/* Logo Resmi Kemnaker / Vokasi Indonesia */}
             <img
-              src="/logo.png"
+              src={LOGO_URL}
               alt="Logo Resmi Kemnaker & Vokasi Indonesia"
               className="w-12 h-12 object-contain drop-shadow-sm group-hover:scale-105 transition-transform shrink-0"
             />
@@ -831,7 +831,7 @@ export const KemendagriLandingPage: React.FC = () => {
             <div className="md:col-span-2 space-y-3">
               <div className="flex items-center gap-2.5">
                 <img
-                  src="/logo.png"
+                  src={LOGO_URL}
                   alt="Logo Resmi Kemnaker & Vokasi Indonesia"
                   className="w-8 h-8 object-contain shrink-0"
                 />

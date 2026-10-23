@@ -1,4 +1,4 @@
-import { getRoleById, mockRoles, mockUsers } from "@/data";
+import { getRoleById, mockRoles } from "@/data";
 import { UserRole } from "@/types";
 
 export function getAccessibleTabs(role: UserRole): string[] {
@@ -12,10 +12,6 @@ export function canAccessTab(role: UserRole, tabId: string): boolean {
 
 export function getDefaultTab(role: UserRole): string {
   return getRoleById(role).defaultTab;
-}
-
-export function getAllUsers() {
-  return mockUsers;
 }
 
 export function getRoleInfo(role: UserRole) {
