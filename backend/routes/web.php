@@ -7,6 +7,7 @@ use App\Http\Controllers\BusinessDataController;
 use App\Http\Controllers\GardataSyncController;
 use App\Http\Controllers\Kp2miVokasiSyncController;
 use App\Http\Controllers\ProgramAllocationController;
+use App\Http\Controllers\UserManagementController;
 use App\Http\Middleware\EnsureUserIsActive;
 use App\Models\User;
 use Illuminate\Support\Facades\Route;
@@ -36,6 +37,14 @@ Route::post('/login', [AuthenticatedSessionController::class, 'store'])->middlew
 
 Route::middleware(['auth', EnsureUserIsActive::class])->group(function () {
     Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
+    Route::post('/impersonation/stop', [UserManagementController::class, 'stopImpersonating'])->name('impersonation.stop');
+    Route::post('/admin/users', [UserManagementController::class, 'store'])->name('admin.users.store');
+    Route::patch('/admin/users/{user}/status', [UserManagementController::class, 'updateStatus'])
+        ->whereNumber('user')
+        ->name('admin.users.status');
+    Route::post('/admin/users/{user}/impersonate', [UserManagementController::class, 'impersonate'])
+        ->whereNumber('user')
+        ->name('admin.users.impersonate');
     Route::post('/integrations/gardata/sync', GardataSyncController::class)->name('integrations.gardata.sync');
     Route::post('/integrations/kp2mi/sync', Kp2miVokasiSyncController::class)->name('integrations.kp2mi.sync');
     Route::post('/approvals/{id}', [ApprovalWorkflowController::class, 'update'])

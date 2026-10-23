@@ -33,7 +33,7 @@ export const NAV_ITEMS: SidebarItem[] = [
   { id: "matching", label: "Pencocokan", icon: Link2, section: "Pelaksanaan" },
   { id: "sippmi-monitoring", label: "Pemantauan", icon: Activity, section: "Pelaksanaan" },
   { id: "approvals", label: "Verifikasi", icon: ClipboardCheck, section: "Pelaksanaan" },
-  { id: "rbac", label: "Pengguna dan Peran", icon: Settings, section: "Pengelolaan" },
+  { id: "rbac", label: "Pengelola Pengguna", icon: Settings, section: "Pengelolaan" },
   { id: "audit", label: "Jejak Audit", icon: ShieldCheck, section: "Pengelolaan" },
   { id: "integrations", label: "Integrasi", icon: Link2, section: "Pengelolaan" },
 ];

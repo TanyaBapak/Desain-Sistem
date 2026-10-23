@@ -11,6 +11,10 @@ class EnsureUserIsActive
 {
     public function handle(Request $request, Closure $next): Response
     {
+        if ($request->routeIs('impersonation.stop') && $request->session()->has('impersonator_id')) {
+            return $next($request);
+        }
+
         if ($request->user()?->status !== 'Aktif') {
             Auth::guard('web')->logout();
             $request->session()->invalidate();

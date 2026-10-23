@@ -45,6 +45,9 @@ class HandleInertiaRequests extends Middleware
                     'defaultTab' => $defaultTab,
                     'accessibleTabs' => $accessibleTabs,
                 ] : null,
+                'impersonation' => $request->session()->has('impersonator_id') ? [
+                    'adminName' => $request->session()->get('impersonator_name'),
+                ] : null,
             ],
         ];
     }

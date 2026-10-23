@@ -27,8 +27,12 @@ class AppController extends Controller
         'sippmi-monitoring',
     ];
 
-    public function __invoke(Request $request, string $tab, BusinessDataPresenter $businessDataPresenter): Response|RedirectResponse
-    {
+    public function __invoke(
+        Request $request,
+        string $tab,
+        BusinessDataPresenter $businessDataPresenter,
+        UserManagementController $userManagementController,
+    ): Response|RedirectResponse {
         if (! in_array($tab, self::TABS, true)) {
             $role = $request->user()?->roles()->first();
             $accessibleTabs = User::accessibleTabsForRole($role?->name);
@@ -38,11 +42,17 @@ class AppController extends Controller
 
         abort_unless($request->user()?->canAccessTab($tab), 403);
 
-        return Inertia::render('App', [
+        $props = [
             'currentTab' => $tab,
             'isRoot' => false,
             'showLogin' => false,
             'businessData' => $businessDataPresenter->make($request->user()),
-        ]);
+        ];
+
+        if ($tab === 'rbac' && $request->user()->roles()->where('name', 'super_admin')->exists()) {
+            $props['adminUsers'] = $userManagementController->indexData($request);
+        }
+
+        return Inertia::render('App', $props);
     }
 }

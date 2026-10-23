@@ -34,6 +34,11 @@ const RoleManagementPage = lazy(() =>
     default: module.RoleManagementPage,
   })),
 );
+const UserManagementPage = lazy(() =>
+  import("@/pages/UserManagementPage").then((module) => ({
+    default: module.UserManagementPage,
+  })),
+);
 const SippmiMonitoringPage = lazy(() =>
   import("@/pages/SippmiMonitoringPage").then((module) => ({
     default: module.SippmiMonitoringPage,
@@ -121,6 +126,7 @@ interface AppProps {
     };
   };
   auth: {
+    impersonation: { adminName: string | null } | null;
     user: {
       id: string;
       name: string;
@@ -137,9 +143,29 @@ interface AppProps {
       accessibleTabs: string[];
     } | null;
   };
+  adminUsers?: {
+    data: {
+      id: string;
+      name: string;
+      username: string;
+      email: string;
+      status: string;
+      scopeName: string;
+      roleName: string;
+      roleTitle: string;
+    }[];
+    currentPage: number;
+    lastPage: number;
+    total: number;
+    roles: { name: string; title: string }[];
+    provinces: { id: string; name: string }[];
+    districts: { id: string; province_id: string; name: string }[];
+    institutions: { id: string; name: string }[];
+    employers: { id: string; name: string }[];
+  };
 }
 
-export function App({ currentTab, isRoot, showLogin, auth, businessData }: AppProps) {
+export function App({ currentTab, isRoot, showLogin, auth, businessData, adminUsers }: AppProps) {
   const {
     setCurrentTab,
     setAuthenticatedUser,
@@ -325,7 +351,11 @@ export function App({ currentTab, isRoot, showLogin, auth, businessData }: AppPr
       );
       break;
     case "rbac":
-      page = <RoleManagementPage />;
+      page = authenticatedUser.roleName === "super_admin" ? (
+        <UserManagementPage adminUsers={adminUsers} currentUserId={authenticatedUser.id} />
+      ) : (
+        <RoleManagementPage />
+      );
       break;
     case "sippmi-monitoring":
       page = <SippmiMonitoringPage monitoring={businessData?.monitoring ?? {
@@ -354,6 +384,7 @@ export function App({ currentTab, isRoot, showLogin, auth, businessData }: AppPr
       currentTab={activeTab}
       onTabChange={setCurrentTab}
       accessibleTabs={authenticatedUser.accessibleTabs}
+      impersonationAdminName={auth.impersonation?.adminName ?? null}
     >
       <Suspense fallback={loading}>{page}</Suspense>
     </AdminLayout>
