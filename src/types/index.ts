@@ -53,21 +53,59 @@ export interface TrainingProgram {
 // ==========================================
 // MODUL C: VOCATIONAL PROVIDER READINESS
 // ==========================================
-export type ProviderType = 'SMK' | 'BLK' | 'LPK' | 'LKP' | 'Perguruan Tinggi / Politeknik';
+export type ProviderType = 
+  | 'SMK' 
+  | 'BLK' 
+  | 'LPK' 
+  | 'LKP' 
+  | 'Perguruan Tinggi / Politeknik' 
+  | 'Universitas' 
+  | 'Politeknik' 
+  | 'SMA' 
+  | 'Balai' 
+  | 'BLKLN' 
+  | 'Institut' 
+  | 'Sekolah Tinggi' 
+  | 'Akademi';
+
+export interface SectoralPosition {
+  sectoral: string;
+  position: string;
+}
+
+export interface ProviderProgram {
+  name: string;
+  capacity: number;
+}
 
 export interface VocationalProvider {
   id: string; // e.g. "VOC-JBR-002"
   name: string;
-  providerType: ProviderType;
+  providerType: ProviderType | string;
   provinsi: string;
   kabupatenKota: string;
   evokasiVerificationStatus: 'Terverifikasi e-Vokasi' | 'Proses Verifikasi' | 'Belum Terverifikasi';
-  accreditation: 'A' | 'B' | 'Unggul' | 'Baik Sekali';
+  accreditation: 'A' | 'B' | 'Unggul' | 'Baik Sekali' | string;
   capacityPerBatch: number;
   certifiedInstructorsCount: number;
   facilities: string[]; // e.g. ["Bengkel Las Standard ISO", "Lab Bahasa Komputer"]
   supportedSectors: string[];
   operationalReadinessScore: number; // 0 - 100
+  // Official KP2MI Portal vokasi.kp2mi.go.id fields
+  slug?: string;
+  logo?: string;
+  logoUrl?: string;
+  address?: string;
+  email?: string;
+  phone?: string;
+  website?: string;
+  leaderName?: string;
+  leaderPosition?: string;
+  institutionStatus?: 'Negeri' | 'Swasta' | string;
+  institutionForm?: string;
+  sectorals?: SectoralPosition[];
+  programs?: ProviderProgram[];
+  source?: 'kp2mi-api' | 'vokasi.kp2mi.go.id' | 'local' | string;
 }
 
 // ==========================================

@@ -88,6 +88,11 @@ export interface AppState {
   searchProvider: string;
   filterProviderType: string;
   filterEvokasiStatus: string;
+  filterProviderProvince: string;
+  filterProviderSector: string;
+  filterInstitutionStatus: string;
+  setProviders: (providers: VocationalProvider[]) => void;
+  syncProvidersFromKp2mi: (providers: VocationalProvider[]) => void;
 
   // Modul D Filters
   searchDemand: string;
@@ -141,6 +146,9 @@ export interface AppState {
   setSearchProvider: (val: string) => void;
   setFilterProviderType: (val: string) => void;
   setFilterEvokasiStatus: (val: string) => void;
+  setFilterProviderProvince: (val: string) => void;
+  setFilterProviderSector: (val: string) => void;
+  setFilterInstitutionStatus: (val: string) => void;
 
   setSearchDemand: (val: string) => void;
   setFilterDemandCountry: (val: string) => void;
@@ -263,6 +271,9 @@ export const useAppStore = create<AppState>((set, get) => ({
   searchProvider: '',
   filterProviderType: 'ALL',
   filterEvokasiStatus: 'ALL',
+  filterProviderProvince: 'ALL',
+  filterProviderSector: 'ALL',
+  filterInstitutionStatus: 'ALL',
 
   // Modul D Filters
   searchDemand: '',
@@ -596,6 +607,24 @@ export const useAppStore = create<AppState>((set, get) => ({
   setSearchProvider: (val) => set({ searchProvider: val }),
   setFilterProviderType: (val) => set({ filterProviderType: val }),
   setFilterEvokasiStatus: (val) => set({ filterEvokasiStatus: val }),
+  setFilterProviderProvince: (val) => set({ filterProviderProvince: val }),
+  setFilterProviderSector: (val) => set({ filterProviderSector: val }),
+  setFilterInstitutionStatus: (val) => set({ filterInstitutionStatus: val }),
+  setProviders: (newProviders) => set({ providers: newProviders }),
+  syncProvidersFromKp2mi: (kp2miProviders) => {
+    const current = get().providers;
+    const localCreated = current.filter((p) => p.source === 'local');
+    // Ensure uniqueness by id or slug
+    const existingIds = new Set(localCreated.map((p) => p.id));
+    const merged = [...localCreated];
+    for (const kp of kp2miProviders) {
+      if (!existingIds.has(kp.id)) {
+        merged.push(kp);
+        existingIds.add(kp.id);
+      }
+    }
+    set({ providers: merged });
+  },
 
   setSearchDemand: (val) => set({ searchDemand: val }),
   setFilterDemandCountry: (val) => set({ filterDemandCountry: val }),

@@ -32,7 +32,7 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
   useEffect(() => {
     if (initialData && mode === 'edit') {
       setName(initialData.name);
-      setProviderType(initialData.providerType);
+      setProviderType(initialData.providerType as ProviderType);
       setProvinsi(initialData.provinsi);
       setKabupatenKota(initialData.kabupatenKota);
       setAccreditation(initialData.accreditation);

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Modal } from '../ui/Modal';
 import { Badge } from '../ui/Badge';
 import { VocationalProvider } from '../../types';
@@ -11,9 +11,15 @@ import {
   CheckCircle,
   AlertTriangle,
   Flame,
-  Check
+  Check,
+  ExternalLink,
+  Phone,
+  Mail,
+  Globe,
+  UserCheck
 } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
+import { kp2miVokasiService, Kp2miInstitutionDetail } from '../../services/kp2miVokasiService';
 
 interface ProviderDetailModalProps {
   provider: VocationalProvider | null;
@@ -27,6 +33,28 @@ export const ProviderDetailModal: React.FC<ProviderDetailModalProps> = ({
   onClose,
 }) => {
   const { updateProviderEvokasi, setSelectedProviderId, setActiveStage } = useAppStore();
+  const [detail, setDetail] = useState<Kp2miInstitutionDetail | null>(null);
+  const [loadingDetail, setLoadingDetail] = useState(false);
+
+  useEffect(() => {
+    if (provider?.slug && isOpen) {
+      let isMounted = true;
+      setLoadingDetail(true);
+      kp2miVokasiService
+        .getInstitutionDetail(provider.slug)
+        .then((data) => {
+          if (isMounted) setDetail(data);
+        })
+        .finally(() => {
+          if (isMounted) setLoadingDetail(false);
+        });
+      return () => {
+        isMounted = false;
+      };
+    } else {
+      setDetail(null);
+    }
+  }, [provider?.slug, isOpen]);
 
   if (!provider) return null;
 
@@ -36,21 +64,33 @@ export const ProviderDetailModal: React.FC<ProviderDetailModalProps> = ({
     onClose();
   };
 
+  const officialKp2miUrl = provider.slug
+    ? `https://vokasi.kp2mi.go.id/cari-lembaga`
+    : `https://vokasi.kp2mi.go.id/cari-lembaga`;
+
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
       title="Profil Kesiapan Lembaga Penyelenggara Vokasi"
-      subtitle={`Kode Lembaga: ${provider.id} — Sinkronisasi Basis Data e-Vokasi Kemendikbudristek & Kemnaker`}
+      subtitle={`Kode Lembaga: ${provider.id} — Sinkronisasi Basis Data vokasi.kp2mi.go.id`}
       maxWidth="3xl"
     >
       <div className="space-y-6">
         {/* Header Summary */}
         <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl">
-          <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-            <span className="text-xs font-bold text-slate-700 bg-slate-200 px-2.5 py-0.5 rounded-md">
-              Jenis: {provider.providerType}
-            </span>
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs font-bold text-slate-700 bg-slate-200 px-2.5 py-0.5 rounded-md">
+                Jenis: {provider.providerType}
+              </span>
+              {(detail?.institutionStatus || provider.institutionStatus) && (
+                <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200">
+                  Status: {detail?.institutionStatus || provider.institutionStatus}
+                </span>
+              )}
+            </div>
+
             <div className="flex items-center gap-2">
               <span className="text-xs text-slate-500">Status e-Vokasi:</span>
               <Badge
@@ -67,14 +107,85 @@ export const ProviderDetailModal: React.FC<ProviderDetailModalProps> = ({
             </div>
           </div>
 
-          <h3 className="text-lg font-bold text-slate-900 leading-snug">{provider.name}</h3>
+          <div className="flex items-start gap-4">
+            {provider.logoUrl ? (
+              <img
+                src={provider.logoUrl}
+                alt={provider.name}
+                className="w-14 h-14 object-contain rounded-xl border border-slate-200 bg-white p-1.5 shrink-0 shadow-xs"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                }}
+              />
+            ) : (
+              <div className="w-14 h-14 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0">
+                <Building2 className="w-7 h-7 text-slate-400" />
+              </div>
+            )}
 
-          <div className="flex items-center gap-1.5 text-xs text-slate-600 mt-1">
-            <MapPin className="w-3.5 h-3.5 text-slate-400" />
-            <span>{provider.kabupatenKota}, {provider.provinsi}</span>
-            <span>•</span>
-            <span className="font-semibold text-slate-800">Akreditasi: {provider.accreditation}</span>
+            <div className="min-w-0 flex-1">
+              <h3 className="text-lg font-bold text-slate-900 leading-snug">{provider.name}</h3>
+
+              <div className="flex items-center gap-2 text-xs text-slate-600 mt-1 flex-wrap">
+                <span className="flex items-center gap-1 font-medium">
+                  <MapPin className="w-3.5 h-3.5 text-slate-400" />
+                  <span>{detail?.district || provider.kabupatenKota}, {provider.provinsi}</span>
+                </span>
+                <span>•</span>
+                <span className="font-semibold text-slate-800">Akreditasi: {provider.accreditation}</span>
+              </div>
+
+              {detail?.address && (
+                <p className="text-xs text-slate-500 mt-2 leading-relaxed bg-white/70 p-2 rounded-lg border border-slate-200/60">
+                  {detail.address}
+                </p>
+              )}
+            </div>
           </div>
+
+          {/* Contact & Leader Info (if available from KP2MI) */}
+          {(detail?.leaderName || detail?.phone || detail?.email || detail?.website) && (
+            <div className="mt-4 pt-3 border-t border-slate-200/80 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+              {detail.leaderName && (
+                <div className="flex items-center gap-2 text-slate-700">
+                  <UserCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  <span>
+                    <span className="text-slate-400">Pimpinan:</span> {detail.leaderName}{' '}
+                    {detail.leaderPosition && `(${detail.leaderPosition})`}
+                  </span>
+                </div>
+              )}
+              {detail.phone && (
+                <div className="flex items-center gap-2 text-slate-700">
+                  <Phone className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                  <span>
+                    <span className="text-slate-400">Telp:</span> {detail.phone}
+                  </span>
+                </div>
+              )}
+              {detail.email && (
+                <div className="flex items-center gap-2 text-slate-700">
+                  <Mail className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                  <span className="truncate">
+                    <span className="text-slate-400">Email:</span> {detail.email}
+                  </span>
+                </div>
+              )}
+              {detail.website && (
+                <div className="flex items-center gap-2 text-slate-700">
+                  <Globe className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                  <a
+                    href={detail.website}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-blue-600 hover:underline truncate"
+                  >
+                    {detail.website}
+                  </a>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* 3 Metric Summary Tiles */}
@@ -156,6 +267,15 @@ export const ProviderDetailModal: React.FC<ProviderDetailModalProps> = ({
           </div>
 
           <div className="flex items-center gap-2">
+            <a
+              href="https://vokasi.kp2mi.go.id/cari-lembaga"
+              target="_blank"
+              rel="noreferrer"
+              className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 transition flex items-center gap-1.5"
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+              <span>Buka di vokasi.kp2mi.go.id ↗</span>
+            </a>
             <button
               onClick={onClose}
               className="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 transition"
