@@ -61,11 +61,11 @@ class ProgramAllocationTest extends TestCase
                 ->where('businessData.allocations.0.approvalStatus', 'Approved'));
     }
 
-    public function test_allocation_rejects_participants_when_capacity_is_insufficient(): void
+    public function test_allocation_rejects_participants_when_ready_participant_count_is_insufficient(): void
     {
         $user = $this->userWithRole('task_force');
         $this->createAllocationRecords();
-        DB::table('institutions')->where('id', 'VOC-ALLOC-001')->update(['workshop_capacity' => 1]);
+        DB::table('institutions')->where('id', 'VOC-ALLOC-001')->update(['ready_participant_count' => 1]);
 
         $this->actingAs($user)
             ->from('/app/matching')
@@ -229,6 +229,8 @@ class ProgramAllocationTest extends TestCase
             'province_id' => '32',
             'district_id' => '3201',
             'workshop_capacity' => 10,
+            'class_count' => 2,
+            'ready_participant_count' => 10,
             'accreditation' => 'A',
             'evokasi_status' => 'Terverifikasi e-Vokasi',
             'verification_status' => 'Verified',

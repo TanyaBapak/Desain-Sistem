@@ -162,9 +162,16 @@ export const ProviderCard: React.FC<ProviderCardProps> = ({
         {/* Metric Chips */}
         <div className="grid grid-cols-2 gap-2">
           <div className="p-2.5 bg-white border border-slate-200 rounded-xl">
-            <span className="text-slate-400 block text-[10px] uppercase font-bold">Kapasitas / Batch</span>
+            <span className="text-slate-400 block text-[10px] uppercase font-bold">Jumlah Kelas</span>
             <span className="font-bold text-slate-800 text-sm">
-              {provider.capacityPerBatch == null ? 'Belum tersedia' : `${provider.capacityPerBatch} Siswa`}
+              {provider.classCount == null ? 'Belum tersedia' : `${provider.classCount} Kelas`}
+            </span>
+          </div>
+
+          <div className="p-2.5 bg-white border border-slate-200 rounded-xl">
+            <span className="text-slate-400 block text-[10px] uppercase font-bold">Peserta Siap Pelatihan</span>
+            <span className="font-bold text-slate-800 text-sm">
+              {provider.readyParticipantCount == null ? 'Belum tersedia' : `${provider.readyParticipantCount} Orang`}
             </span>
           </div>
 

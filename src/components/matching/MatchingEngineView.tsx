@@ -264,8 +264,13 @@ export const MatchingEngineView: React.FC<MatchingEngineViewProps> = ({ candidat
                 <p className="mt-1 text-xs text-emerald-700">Lembaga dalam basis data</p>
                 <div className="mt-3 flex items-center justify-between gap-2 overflow-hidden border-t border-emerald-200/60 pt-2 text-xs text-emerald-700">
                   <span className="truncate">
-                    Kapasitas: {providers.some((provider) => provider.capacityPerBatch !== null)
-                      ? providers.reduce((total, provider) => total + (provider.capacityPerBatch ?? 0), 0)
+                    Kelas: {providers.some((provider) => provider.classCount != null)
+                      ? providers.reduce((total, provider) => total + (provider.classCount ?? 0), 0)
+                      : 'Belum tersedia'}
+                  </span>
+                  <span className="truncate">
+                    Peserta siap pelatihan: {providers.some((provider) => provider.readyParticipantCount != null)
+                      ? providers.reduce((total, provider) => total + (provider.readyParticipantCount ?? 0), 0)
                       : 'Belum tersedia'}
                   </span>
                   <span className="truncate">

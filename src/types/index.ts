@@ -90,6 +90,8 @@ export interface VocationalProvider {
   evokasiVerificationStatus: 'Terverifikasi e-Vokasi' | 'Proses Verifikasi' | 'Belum Terverifikasi';
   accreditation: 'A' | 'B' | 'Unggul' | 'Baik Sekali' | string;
   capacityPerBatch: number | null;
+  classCount?: number | null;
+  readyParticipantCount?: number | null;
   certifiedInstructorsCount: number | null;
   facilities: string[]; // e.g. ["Bengkel Las Standard ISO", "Lab Bahasa Komputer"]
   supportedSectors: string[];

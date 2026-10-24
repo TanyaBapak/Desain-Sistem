@@ -25,7 +25,8 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
   const [kabupatenKota, setKabupatenKota] = useState('Kabupaten Bogor');
   const [accreditation, setAccreditation] = useState<VocationalProvider['accreditation']>('A');
   const [evokasiStatus, setEvokasiStatus] = useState<VocationalProvider['evokasiVerificationStatus']>('Proses Verifikasi');
-  const [capacityPerBatch, setCapacityPerBatch] = useState(0);
+  const [classCount, setClassCount] = useState(0);
+  const [readyParticipantCount, setReadyParticipantCount] = useState(0);
   const [certifiedInstructorsCount, setCertifiedInstructorsCount] = useState(0);
   const [operationalReadinessScore, setOperationalReadinessScore] = useState(0);
   const [supportedSectorsInput, setSupportedSectorsInput] = useState('');
@@ -42,7 +43,8 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
       setKabupatenKota(initialData.kabupatenKota);
       setAccreditation(initialData.accreditation);
       setEvokasiStatus(initialData.evokasiVerificationStatus);
-      setCapacityPerBatch(initialData.capacityPerBatch ?? 0);
+      setClassCount(initialData.classCount ?? 0);
+      setReadyParticipantCount(initialData.readyParticipantCount ?? 0);
       setCertifiedInstructorsCount(initialData.certifiedInstructorsCount ?? 0);
       setOperationalReadinessScore(initialData.operationalReadinessScore ?? 0);
       setSupportedSectorsInput(initialData.supportedSectors.join(', '));
@@ -54,7 +56,8 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
       setKabupatenKota('Kabupaten Bogor');
       setAccreditation('A');
       setEvokasiStatus('Proses Verifikasi');
-      setCapacityPerBatch(0);
+      setClassCount(0);
+      setReadyParticipantCount(0);
       setCertifiedInstructorsCount(0);
       setOperationalReadinessScore(0);
       setSupportedSectorsInput('');
@@ -85,7 +88,9 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
       kabupatenKota,
       accreditation,
       evokasiVerificationStatus: evokasiStatus,
-      capacityPerBatch: Number(capacityPerBatch),
+      capacityPerBatch: initialData?.capacityPerBatch ?? null,
+      classCount: Number(classCount),
+      readyParticipantCount: Number(readyParticipantCount),
       certifiedInstructorsCount: Number(certifiedInstructorsCount),
       operationalReadinessScore: Number(operationalReadinessScore),
       supportedSectors: sectorsArray,
@@ -248,19 +253,34 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
             </div>
           </div>
 
-          {/* Kapasitas Siswa & Instruktur */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Kelas, peserta siap pelatihan, dan instruktur */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">
-                Kapasitas Siswa / Batch (Orang) <span className="text-rose-500">*</span>
+                Jumlah Kelas <span className="text-rose-500">*</span>
               </label>
               <input
                 type="number"
                 min={0}
-                max={2000}
+                max={100000}
                 required
-                value={capacityPerBatch}
-                onChange={(e) => setCapacityPerBatch(Number(e.target.value))}
+                value={classCount}
+                onChange={(e) => setClassCount(Number(e.target.value))}
+                className="w-full text-xs p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-slate-50"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                Peserta Siap Mengikuti Pelatihan <span className="text-rose-500">*</span>
+              </label>
+              <input
+                type="number"
+                min={0}
+                max={100000}
+                required
+                value={readyParticipantCount}
+                onChange={(e) => setReadyParticipantCount(Number(e.target.value))}
                 className="w-full text-xs p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-slate-50"
               />
             </div>
@@ -272,7 +292,7 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
               <input
                 type="number"
                 min={0}
-                max={200}
+                max={100000}
                 required
                 value={certifiedInstructorsCount}
                 onChange={(e) => setCertifiedInstructorsCount(Number(e.target.value))}

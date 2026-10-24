@@ -36,6 +36,9 @@ class InstitutionRegistrationTest extends TestCase
         $this->assertNotNull($institution);
         $this->assertSame('Pending Verification', $institution->verification_status);
         $this->assertSame('Swakelola Tipe 2', $institution->procurement_method);
+        $this->assertSame(3, $institution->class_count);
+        $this->assertSame(24, $institution->ready_participant_count);
+        $this->assertNull($institution->workshop_capacity);
         $this->assertNotNull($institution->registration_consented_at);
         $this->assertSame('2026-10-v1', $institution->registration_consent_version);
         $this->assertSame('Ditangguhkan', $user->status);
@@ -152,7 +155,8 @@ class InstitutionRegistrationTest extends TestCase
             'contactPhone' => '080000000000',
             'accreditation' => 'B',
             'instructorCount' => '8',
-            'batchCapacity' => '24',
+            'classCount' => '3',
+            'readyParticipantCount' => '24',
             'supportedSectors' => 'Kesehatan, Manufaktur',
             'procurementMethod' => 'Swakelola Tipe 2',
             'password' => 'Pendaftaran-Aman-123',

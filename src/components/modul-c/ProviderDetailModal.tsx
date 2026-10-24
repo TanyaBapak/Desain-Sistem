@@ -171,13 +171,21 @@ export const ProviderDetailModal: React.FC<ProviderDetailModalProps> = ({
           )}
         </div>
 
-        {/* 3 Metric Summary Tiles */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        {/* Institution readiness metrics */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="p-3 bg-white border border-slate-200 rounded-xl text-center">
             <Users className="w-4 h-4 mx-auto text-blue-600 mb-1" />
-            <span className="text-[11px] text-slate-400 uppercase font-bold block">Kapasitas / Batch</span>
+            <span className="text-[11px] text-slate-400 uppercase font-bold block">Jumlah Kelas</span>
             <span className="text-base font-extrabold text-slate-800">
-              {provider.capacityPerBatch == null ? 'Belum tersedia' : `${provider.capacityPerBatch} Siswa`}
+              {provider.classCount == null ? 'Belum tersedia' : `${provider.classCount} Kelas`}
+            </span>
+          </div>
+
+          <div className="p-3 bg-white border border-slate-200 rounded-xl text-center">
+            <Users className="w-4 h-4 mx-auto text-blue-600 mb-1" />
+            <span className="text-[11px] text-slate-400 uppercase font-bold block">Peserta Siap Mengikuti Pelatihan</span>
+            <span className="text-base font-extrabold text-slate-800">
+              {provider.readyParticipantCount == null ? 'Belum tersedia' : `${provider.readyParticipantCount} Orang`}
             </span>
           </div>
 

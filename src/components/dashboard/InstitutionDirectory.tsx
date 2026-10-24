@@ -9,7 +9,8 @@ export interface InstitutionDirectoryItem {
   district: string;
   accreditation: string | null;
   evokasiStatus: string;
-  capacity: number | null;
+  classCount: number | null;
+  readyParticipantCount: number | null;
 }
 
 interface InstitutionDirectoryProps {
@@ -42,14 +43,15 @@ export function InstitutionDirectory({
       <CardContent>
         {institutions.length > 0 ? (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[640px] text-left text-sm">
+            <table className="w-full min-w-[800px] text-left text-sm">
               <thead className="border-b text-muted-foreground">
                 <tr>
                   <th scope="col" className="pb-2 pr-4 font-medium">Nama lembaga</th>
                   <th scope="col" className="pb-2 px-4 font-medium">Wilayah</th>
                   <th scope="col" className="pb-2 px-4 font-medium">Status e-Vokasi</th>
                   <th scope="col" className="pb-2 px-4 font-medium">Akreditasi</th>
-                  <th scope="col" className="pb-2 pl-4 text-right font-medium">Kapasitas/batch</th>
+                  <th scope="col" className="pb-2 px-4 text-right font-medium">Jumlah kelas</th>
+                  <th scope="col" className="pb-2 pl-4 text-right font-medium">Peserta siap pelatihan</th>
                 </tr>
               </thead>
               <tbody className="divide-y">
@@ -66,8 +68,11 @@ export function InstitutionDirectory({
                     </td>
                     <td className="px-4 py-3">{institution.evokasiStatus}</td>
                     <td className="px-4 py-3">{institution.accreditation || "Belum tersedia"}</td>
+                    <td className="px-4 py-3 text-right tabular-nums">
+                      {institution.classCount?.toLocaleString("id-ID") ?? "Belum tersedia"}
+                    </td>
                     <td className="py-3 pl-4 text-right tabular-nums">
-                      {institution.capacity?.toLocaleString("id-ID") ?? "Belum tersedia"}
+                      {institution.readyParticipantCount?.toLocaleString("id-ID") ?? "Belum tersedia"}
                     </td>
                   </tr>
                 ))}

@@ -29,7 +29,8 @@ export function InstitutionRegistrationPage({ provinces, districts }: Institutio
     contactPhone: "",
     accreditation: "",
     instructorCount: "0",
-    batchCapacity: "0",
+    classCount: "0",
+    readyParticipantCount: "0",
     supportedSectors: "",
     procurementMethod: "",
     password: "",
@@ -149,8 +150,11 @@ export function InstitutionRegistrationPage({ provinces, districts }: Institutio
               <Field label="Jumlah instruktur" error={errors.instructorCount}>
                 <Input required type="number" min="0" value={data.instructorCount} onChange={(event) => setData("instructorCount", event.target.value)} />
               </Field>
-              <Field label="Kapasitas peserta per batch" error={errors.batchCapacity}>
-                <Input required type="number" min="0" value={data.batchCapacity} onChange={(event) => setData("batchCapacity", event.target.value)} />
+              <Field label="Jumlah kelas" error={errors.classCount}>
+                <Input required type="number" min="0" value={data.classCount} onChange={(event) => setData("classCount", event.target.value)} />
+              </Field>
+              <Field label="Jumlah peserta yang siap mengikuti pelatihan" error={errors.readyParticipantCount}>
+                <Input required type="number" min="0" value={data.readyParticipantCount} onChange={(event) => setData("readyParticipantCount", event.target.value)} />
               </Field>
               <Field label="Sektor pelatihan yang didukung" error={errors.supportedSectors} className="sm:col-span-2">
                 <Input required value={data.supportedSectors} onChange={(event) => setData("supportedSectors", event.target.value)} placeholder="Pisahkan dengan koma, misalnya Kesehatan, Manufaktur" />

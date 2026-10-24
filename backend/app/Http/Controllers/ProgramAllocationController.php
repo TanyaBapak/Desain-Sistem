@@ -62,10 +62,10 @@ class ProgramAllocationController extends Controller
 
             $remainingDemand = max(0, (int) $demand->headcount - (int) $demand->filled_quota);
             $remainingProgramQuota = max(0, (int) $program->quota - (int) $program->enrolled_count);
-            $capacity = $institution->workshop_capacity;
-            if (count($data['candidateIds']) > min($remainingDemand, $remainingProgramQuota, (int) $capacity)) {
+            $readyParticipantLimit = $institution->ready_participant_count ?? $institution->workshop_capacity;
+            if (count($data['candidateIds']) > min($remainingDemand, $remainingProgramQuota, (int) $readyParticipantLimit)) {
                 throw ValidationException::withMessages([
-                    'candidateIds' => 'Jumlah peserta melebihi sisa kuota demand, program, atau kapasitas lembaga.',
+                    'candidateIds' => 'Jumlah peserta melebihi sisa kuota demand, program, atau jumlah peserta yang siap mengikuti pelatihan.',
                 ]);
             }
 

@@ -48,7 +48,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           district: provider.kabupatenKota,
           accreditation: provider.accreditation || null,
           evokasiStatus: provider.evokasiVerificationStatus,
-          capacity: provider.capacityPerBatch,
+          classCount: provider.classCount ?? null,
+          readyParticipantCount: provider.readyParticipantCount ?? null,
         })),
     [providers],
   );

@@ -84,14 +84,21 @@ class BusinessDataPersistenceTest extends TestCase
             'kabupatenKota' => 'Kabupaten Bogor',
             'evokasiVerificationStatus' => 'Proses Verifikasi',
             'accreditation' => 'A',
-            'capacityPerBatch' => 30,
+            'classCount' => 4,
+            'readyParticipantCount' => 32,
             'certifiedInstructorsCount' => 4,
             'operationalReadinessScore' => 70,
             'facilities' => ['Ruang Praktik Contoh'],
             'supportedSectors' => ['Manufaktur / Pengelasan'],
             'institutionStatus' => 'Negeri',
         ])->assertSessionHasNoErrors();
-        $this->assertDatabaseHas('institutions', ['name' => 'Lembaga Contoh Baru', 'district_id' => '3201']);
+        $this->assertDatabaseHas('institutions', [
+            'name' => 'Lembaga Contoh Baru',
+            'district_id' => '3201',
+            'class_count' => 4,
+            'ready_participant_count' => 32,
+            'workshop_capacity' => null,
+        ]);
         $this->assertDatabaseHas('institution_facilities', ['facility_name' => 'Ruang Praktik Contoh']);
 
         $this->post('/business-data/demands', [
@@ -169,7 +176,8 @@ class BusinessDataPersistenceTest extends TestCase
             'kabupatenKota' => 'Kabupaten Bogor',
             'evokasiVerificationStatus' => 'Terverifikasi e-Vokasi',
             'accreditation' => 'A',
-            'capacityPerBatch' => 35,
+            'classCount' => 5,
+            'readyParticipantCount' => 40,
             'certifiedInstructorsCount' => 5,
             'operationalReadinessScore' => 80,
             'facilities' => ['Ruang Praktik Contoh', 'Bengkel Contoh'],
