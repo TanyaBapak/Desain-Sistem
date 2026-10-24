@@ -385,6 +385,7 @@ export interface DataApprovalRequest {
   revisionNotes?: string;
   dataSnapshot: Record<string, any>;
   details?: { label: string; value: string | number | null }[];
+  documents?: { id: number; type: string; name: string; downloadUrl: string }[];
 }
 
 export interface MonitoringClassData {

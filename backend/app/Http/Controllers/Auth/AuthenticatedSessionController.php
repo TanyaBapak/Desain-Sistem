@@ -24,6 +24,7 @@ class AuthenticatedSessionController extends Controller
             'currentTab' => 'overview',
             'isRoot' => true,
             'showLogin' => true,
+            'registrationStatus' => session('status'),
         ]);
     }
 

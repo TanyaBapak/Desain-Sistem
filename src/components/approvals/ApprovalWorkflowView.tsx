@@ -324,6 +324,26 @@ export const ApprovalWorkflowView: React.FC<ApprovalWorkflowViewProps> = ({ appr
                       ))}
                     </dl>
                   )}
+                  {req.documents && req.documents.length > 0 && (
+                    <div className="space-y-2 rounded-xl border border-border bg-card p-3">
+                      <h4 className="text-sm font-semibold text-foreground">Dokumen pendaftaran</h4>
+                      <ul className="space-y-1">
+                        {req.documents.map((document) => (
+                          <li key={document.id}>
+                            <a
+                              href={document.downloadUrl}
+                              className="text-sm font-medium text-primary underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                            >
+                              {document.name}
+                            </a>
+                            <span className="ml-2 text-xs text-muted-foreground">
+                              {document.type.replace(/_/g, " ")}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
 
                   {/* Automated Validation Results Card */}
                   <div className="bg-slate-50 rounded-xl p-3 border border-slate-200/80 space-y-1.5 text-xs">

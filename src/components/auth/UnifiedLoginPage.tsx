@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { LOGO_URL } from "@/lib/assets";
 
-export function UnifiedLoginPage() {
+export function UnifiedLoginPage({ status }: { status?: string | null }) {
   const [showPassword, setShowPassword] = useState(false);
   const { data, setData, post, processing, errors } = useForm({
     identifier: "",
@@ -65,6 +65,11 @@ export function UnifiedLoginPage() {
           </div>
 
           <form onSubmit={submit} className="space-y-4">
+            {status && (
+              <p role="status" className="rounded-xl border border-emerald-800 bg-emerald-950/80 p-3 text-sm text-emerald-200">
+                {status}
+              </p>
+            )}
             {errors.identifier && (
               <p role="alert" className="rounded-xl border border-red-800 bg-red-950/80 p-3 text-sm text-red-300">
                 {errors.identifier}
@@ -151,6 +156,16 @@ export function UnifiedLoginPage() {
                 </>
               )}
             </button>
+            <p className="pt-2 text-center text-sm text-slate-400">
+              Lembaga vokasi belum memiliki akun?{" "}
+              <button
+                type="button"
+                onClick={() => router.visit("/lembaga/daftar")}
+                className="font-semibold text-white underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                Daftar mandiri
+              </button>
+            </p>
           </form>
         </section>
       </main>

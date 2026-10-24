@@ -25,6 +25,11 @@ const UnifiedLoginPage = lazy(() =>
     default: module.UnifiedLoginPage,
   })),
 );
+const InstitutionRegistrationPage = lazy(() =>
+  import("@/pages/InstitutionRegistrationPage").then((module) => ({
+    default: module.InstitutionRegistrationPage,
+  })),
+);
 const DashboardPage = lazy(() =>
   import("@/pages/DashboardPage").then((module) => ({
     default: module.DashboardPage,
@@ -90,6 +95,12 @@ interface AppProps {
   currentTab: string;
   isRoot: boolean;
   showLogin: boolean;
+  showInstitutionRegistration?: boolean;
+  registrationStatus?: string | null;
+  registrationOptions?: {
+    provinces: { id: string; name: string }[];
+    districts: { id: string; province_id: string; name: string }[];
+  };
   businessData?: {
     candidates: CandidateParticipant[];
     programs: TrainingProgram[];
@@ -171,7 +182,17 @@ interface AppProps {
   };
 }
 
-export function App({ currentTab, isRoot, showLogin, auth, businessData, adminUsers }: AppProps) {
+export function App({
+  currentTab,
+  isRoot,
+  showLogin,
+  showInstitutionRegistration,
+  registrationStatus,
+  registrationOptions,
+  auth,
+  businessData,
+  adminUsers,
+}: AppProps) {
   const {
     setCurrentTab,
     setAuthenticatedUser,
@@ -250,7 +271,18 @@ export function App({ currentTab, isRoot, showLogin, auth, businessData, adminUs
   if (showLogin && !authenticatedUser) {
     return (
       <Suspense fallback={loading}>
-        <UnifiedLoginPage />
+        <UnifiedLoginPage status={registrationStatus} />
+      </Suspense>
+    );
+  }
+
+  if (showInstitutionRegistration && !authenticatedUser && registrationOptions) {
+    return (
+      <Suspense fallback={loading}>
+        <InstitutionRegistrationPage
+          provinces={registrationOptions.provinces}
+          districts={registrationOptions.districts}
+        />
       </Suspense>
     );
   }

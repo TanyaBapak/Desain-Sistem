@@ -5,11 +5,35 @@ namespace App\Http\Controllers;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ApprovalWorkflowController extends Controller
 {
+    public function downloadDocument(Request $request, string $id, int $documentId): StreamedResponse
+    {
+        abort_unless(
+            in_array($request->user()->roles()->value('name'), ['task_force', 'verifier'], true),
+            403,
+        );
+
+        $approval = DB::table('approval_requests')
+            ->where('id', $id)
+            ->where('entity_type', 'lembaga_vokasi')
+            ->first();
+        abort_unless($approval, 404);
+
+        $document = DB::table('institution_registration_documents')
+            ->where('id', $documentId)
+            ->where('institution_id', $approval->entity_id)
+            ->first();
+        abort_unless($document && Storage::disk('local')->exists($document->document_path), 404);
+
+        return Storage::disk('local')->download($document->document_path, $document->original_name);
+    }
+
     public function update(Request $request, string $id): RedirectResponse
     {
         abort_unless(
@@ -74,6 +98,15 @@ class ApprovalWorkflowController extends Controller
             ]);
 
             $this->updateEntityVerification($approval->entity_type, $approval->entity_id, $data['action']);
+            if ($approval->entity_type === 'lembaga_vokasi' && $data['action'] !== 'revision') {
+                DB::table('users')
+                    ->where('institution_id', $approval->entity_id)
+                    ->where('status', 'Ditangguhkan')
+                    ->update([
+                        'status' => $data['action'] === 'approve' ? 'Aktif' : 'Nonaktif',
+                        'updated_at' => $now,
+                    ]);
+            }
 
             $audit = [
                 'id' => 'AUD-'.Str::upper(Str::random(20)),

@@ -5,6 +5,7 @@ use App\Http\Controllers\ApprovalWorkflowController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\BusinessDataController;
 use App\Http\Controllers\GardataSyncController;
+use App\Http\Controllers\InstitutionRegistrationController;
 use App\Http\Controllers\Kp2miVokasiSyncController;
 use App\Http\Controllers\ProgramAllocationController;
 use App\Http\Controllers\UserManagementController;
@@ -34,6 +35,10 @@ Route::get('/', function () {
 
 Route::get('/login', [AuthenticatedSessionController::class, 'create'])->name('login');
 Route::post('/login', [AuthenticatedSessionController::class, 'store'])->middleware('throttle:5,1')->name('login.store');
+Route::get('/lembaga/daftar', [InstitutionRegistrationController::class, 'create'])->name('institutions.register');
+Route::post('/lembaga/daftar', [InstitutionRegistrationController::class, 'store'])
+    ->middleware('throttle:3,1')
+    ->name('institutions.register.store');
 
 Route::middleware(['auth', EnsureUserIsActive::class])->group(function () {
     Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
@@ -56,6 +61,9 @@ Route::middleware(['auth', EnsureUserIsActive::class])->group(function () {
     Route::post('/approvals/{id}', [ApprovalWorkflowController::class, 'update'])
         ->where('id', '[A-Za-z0-9-]+')
         ->name('approvals.update');
+    Route::get('/approvals/{id}/documents/{documentId}', [ApprovalWorkflowController::class, 'downloadDocument'])
+        ->where(['id' => '[A-Za-z0-9-]+', 'documentId' => '[0-9]+'])
+        ->name('approvals.documents.download');
     Route::post('/allocations', [ProgramAllocationController::class, 'store'])->name('allocations.store');
     Route::patch('/allocations/{id}', [ProgramAllocationController::class, 'updateStatus'])
         ->where('id', '[A-Za-z0-9-]+')

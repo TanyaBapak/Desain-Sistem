@@ -157,14 +157,24 @@ export const KemendagriLandingPage: React.FC = () => {
           </div>
 
           {/* Quick Action Button: Masuk SSO */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <a
+              href="/lembaga/daftar"
+              title="Pendaftaran lembaga SMK Go Internasional - AC"
+              className="flex items-center gap-2 rounded-xl border border-blue-200 bg-white px-3 py-2.5 text-xs font-bold text-blue-800 transition hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 sm:px-4"
+            >
+              <Building2 className="h-4 w-4 shrink-0" aria-hidden="true" />
+              <span className="hidden sm:inline">Daftar SMK Go Internasional - AC</span>
+              <span className="sm:hidden">Daftar Lembaga</span>
+            </a>
             <button
               onClick={() => openLoginPage()}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white shadow-md shadow-blue-600/20 transition"
+              className="flex items-center gap-2 rounded-xl bg-blue-600 px-3 py-2.5 text-xs font-bold text-white shadow-md shadow-blue-600/20 transition hover:bg-blue-500 sm:px-5"
               title="Masuk Sistem Terpadu (SSO)"
             >
-              <Compass className="w-4 h-4" />
-              <span>Masuk Sistem Terpadu (SSO)</span>
+              <Compass className="h-4 w-4 shrink-0" />
+              <span className="hidden sm:inline">Masuk Sistem Terpadu (SSO)</span>
+              <span className="sm:hidden">Masuk</span>
             </button>
           </div>
         </div>
@@ -267,6 +277,14 @@ export const KemendagriLandingPage: React.FC = () => {
                 <span>Masuk Sistem Terpadu (SSO)</span>
                 <ChevronRight className="w-4 h-4" />
               </button>
+              <a
+                href="/lembaga/daftar"
+                className="flex items-center gap-2 rounded-xl border border-slate-600 bg-slate-900/70 px-5 py-3.5 text-xs font-extrabold uppercase tracking-wider text-white transition hover:border-blue-400 hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <Building2 className="h-4 w-4" aria-hidden="true" />
+                <span>Daftar SMK Go Internasional - AC</span>
+                <ChevronRight className="h-4 w-4" aria-hidden="true" />
+              </a>
             </div>
           </div>
 

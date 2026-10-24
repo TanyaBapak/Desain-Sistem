@@ -541,6 +541,21 @@ class BusinessDataPresenter
                 'entityId' => $row->entity_id,
                 'entityTitle' => null,
                 'details' => $this->approvalDetails($row->entity_type, $row->entity_id),
+                'documents' => $row->entity_type === 'lembaga_vokasi'
+                    ? DB::table('institution_registration_documents')
+                        ->where('institution_id', $row->entity_id)
+                        ->orderBy('document_type')
+                        ->get(['id', 'document_type', 'original_name'])
+                        ->map(fn (object $document): array => [
+                            'id' => (int) $document->id,
+                            'type' => $document->document_type,
+                            'name' => $document->original_name,
+                            'downloadUrl' => route('approvals.documents.download', [
+                                'id' => $row->id,
+                                'documentId' => $document->id,
+                            ]),
+                        ])->all()
+                    : [],
                 'title' => $row->title,
                 'submittedBy' => $row->submitted_by,
                 'submittedRole' => $row->submitted_role,
@@ -587,6 +602,15 @@ class BusinessDataPresenter
                     'institutions.name',
                     'institutions.institution_type',
                     'institutions.verification_status',
+                    'institutions.npsn_or_vin',
+                    'institutions.ownership_type',
+                    'institutions.address',
+                    'institutions.head_name',
+                    'institutions.email',
+                    'institutions.phone',
+                    'institutions.accreditation',
+                    'institutions.instructor_count',
+                    'institutions.workshop_capacity',
                     'provinces.name as province_name',
                     'districts.name as district_name',
                 ]),
@@ -634,7 +658,14 @@ class BusinessDataPresenter
             'lembaga_vokasi' => [
                 ['label' => 'Nama lembaga', 'value' => $details->name],
                 ['label' => 'Jenis lembaga', 'value' => $details->institution_type],
+                ['label' => 'NPSN / nomor izin', 'value' => $details->npsn_or_vin],
+                ['label' => 'Kepemilikan', 'value' => $details->ownership_type],
                 ['label' => 'Wilayah', 'value' => trim(($details->district_name ?? 'Belum diketahui').', '.($details->province_name ?? 'Belum diketahui'))],
+                ['label' => 'Alamat', 'value' => $details->address],
+                ['label' => 'Penanggung jawab', 'value' => $details->head_name],
+                ['label' => 'Kontak lembaga', 'value' => trim(($details->email ?? '—').' / '.($details->phone ?? '—'))],
+                ['label' => 'Akreditasi', 'value' => $details->accreditation],
+                ['label' => 'Instruktur / kapasitas per batch', 'value' => $details->instructor_count.' / '.$details->workshop_capacity],
                 ['label' => 'Status verifikasi', 'value' => $details->verification_status],
             ],
             'program_pelatihan' => [
