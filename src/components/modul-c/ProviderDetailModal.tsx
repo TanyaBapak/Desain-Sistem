@@ -108,6 +108,14 @@ export const ProviderDetailModal: React.FC<ProviderDetailModalProps> = ({
                 </span>
                 <span>•</span>
                 <span className="font-semibold text-slate-800">Akreditasi: {provider.accreditation}</span>
+                {provider.procurementMethod && (
+                  <>
+                    <span>•</span>
+                    <span className="font-semibold text-slate-800">
+                      Skema penyelenggaraan: {provider.procurementMethod}
+                    </span>
+                  </>
+                )}
               </div>
 
               {provider.address && (

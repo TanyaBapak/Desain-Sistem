@@ -110,6 +110,7 @@ export interface VocationalProvider {
   programs?: ProviderProgram[];
   source?: 'kp2mi-api' | 'vokasi.kp2mi.go.id' | 'local' | string;
   verificationStatus?: string;
+  procurementMethod?: string | null;
 }
 
 // ==========================================

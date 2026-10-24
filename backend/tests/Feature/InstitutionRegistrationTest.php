@@ -35,6 +35,7 @@ class InstitutionRegistrationTest extends TestCase
 
         $this->assertNotNull($institution);
         $this->assertSame('Pending Verification', $institution->verification_status);
+        $this->assertSame('Swakelola Tipe 2', $institution->procurement_method);
         $this->assertNotNull($institution->registration_consented_at);
         $this->assertSame('2026-10-v1', $institution->registration_consent_version);
         $this->assertSame('Ditangguhkan', $user->status);
@@ -123,6 +124,19 @@ class InstitutionRegistrationTest extends TestCase
         $this->assertDatabaseCount('institution_registration_documents', 0);
     }
 
+    public function test_registration_rejects_an_unsupported_procurement_method(): void
+    {
+        $this->seed([ReferenceDataSeeder::class, AccessControlSeeder::class]);
+        $payload = $this->registrationPayload();
+        $payload['procurementMethod'] = 'Swakelola Tipe 4';
+
+        $this->from('/lembaga/daftar')->post('/lembaga/daftar', $payload)
+            ->assertRedirect('/lembaga/daftar')
+            ->assertSessionHasErrors('procurementMethod');
+
+        $this->assertDatabaseCount('institutions', 0);
+    }
+
     private function registrationPayload(): array
     {
         return [
@@ -140,6 +154,7 @@ class InstitutionRegistrationTest extends TestCase
             'instructorCount' => '8',
             'batchCapacity' => '24',
             'supportedSectors' => 'Kesehatan, Manufaktur',
+            'procurementMethod' => 'Swakelola Tipe 2',
             'password' => 'Pendaftaran-Aman-123',
             'password_confirmation' => 'Pendaftaran-Aman-123',
             'consent' => '1',

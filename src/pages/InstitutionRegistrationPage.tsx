@@ -31,6 +31,7 @@ export function InstitutionRegistrationPage({ provinces, districts }: Institutio
     instructorCount: "0",
     batchCapacity: "0",
     supportedSectors: "",
+    procurementMethod: "",
     password: "",
     password_confirmation: "",
     consent: false,
@@ -132,6 +133,19 @@ export function InstitutionRegistrationPage({ provinces, districts }: Institutio
               <Field label="Akreditasi (jika ada)" error={errors.accreditation}>
                 <Input value={data.accreditation} onChange={(event) => setData("accreditation", event.target.value)} placeholder="Contoh: A, B, Unggul" />
               </Field>
+              <Field label="Skema penyelenggaraan" error={errors.procurementMethod}>
+                <select
+                  required
+                  className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                  value={data.procurementMethod}
+                  onChange={(event) => setData("procurementMethod", event.target.value)}
+                >
+                  <option value="">Pilih skema penyelenggaraan</option>
+                  <option value="Swakelola Tipe 2">Swakelola Tipe 2</option>
+                  <option value="Swakelola Tipe 3">Swakelola Tipe 3</option>
+                  <option value="E-purchasing">E-purchasing</option>
+                </select>
+              </Field>
               <Field label="Jumlah instruktur" error={errors.instructorCount}>
                 <Input required type="number" min="0" value={data.instructorCount} onChange={(event) => setData("instructorCount", event.target.value)} />
               </Field>
@@ -155,7 +169,7 @@ export function InstitutionRegistrationPage({ provinces, districts }: Institutio
               </Field>
             </div>
             <p className="text-xs text-muted-foreground">
-              Akun dan dokumen hanya dapat digunakan setelah pengajuan disetujui.
+              Akun hanya dapat digunakan setelah pengajuan disetujui.
             </p>
             <label className="flex items-start gap-3 text-sm text-foreground">
               <input
@@ -166,8 +180,8 @@ export function InstitutionRegistrationPage({ provinces, districts }: Institutio
                 className="mt-1 h-4 w-4 rounded border-input accent-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               />
               <span>
-                Saya berwenang mewakili lembaga dan menyetujui pemrosesan data serta dokumen
-                pendaftaran untuk keperluan verifikasi lembaga vokasi.
+                Saya berwenang mewakili lembaga dan menyetujui pemrosesan data pendaftaran
+                untuk keperluan verifikasi lembaga vokasi.
               </span>
             </label>
             {errors.consent && <p role="alert" className="text-sm text-destructive">{errors.consent}</p>}
