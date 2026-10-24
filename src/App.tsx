@@ -153,6 +153,10 @@ interface AppProps {
       scopeName: string;
       roleName: string;
       roleTitle: string;
+      provinceId: string | null;
+      districtId: string | null;
+      institutionId: string | null;
+      employerId: string | null;
     }[];
     currentPage: number;
     lastPage: number;

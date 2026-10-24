@@ -8,6 +8,7 @@ use Database\Seeders\AccessControlSeeder;
 use Database\Seeders\ReferenceDataSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
@@ -50,11 +51,40 @@ class UserManagementTest extends TestCase
         $this->assertSame('kabupaten', $created->scope_level);
         $this->assertSame('Kabupaten Bogor', $created->scope_name);
         $this->assertSame('district_admin', $created->roles()->value('name'));
+        $this->assertDatabaseHas('model_has_roles', [
+            'model_id' => $created->id,
+            'model_type' => User::class,
+            'role_id' => Role::query()->where('name', 'district_admin')->value('id'),
+        ]);
         $this->assertDatabaseHas('audit_logs', [
             'user_id' => $admin->id,
             'action_type' => 'AKUN_HAK_AKSES',
             'entity_id' => (string) $created->id,
         ]);
+    }
+
+    public function test_super_admin_can_create_an_account_with_a_ten_character_password(): void
+    {
+        $this->actingAs($this->userWithRole('super_admin'));
+
+        $this->post('/admin/users', [
+            'name' => 'Pengguna Contoh',
+            'username' => 'pengguna-contoh',
+            'email' => 'pengguna@example.invalid',
+            'password' => 'aman123456',
+            'role' => 'task_force',
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $created = User::query()->where('username', 'pengguna-contoh')->firstOrFail();
+        $this->assertSame('task_force', $created->roles()->value('name'));
+
+        $this->from('/app/rbac')->post('/admin/users', [
+            'name' => 'Pengguna Kedua',
+            'username' => 'pengguna-kedua',
+            'email' => 'pengguna-kedua@example.invalid',
+            'password' => 'aman12345',
+            'role' => 'task_force',
+        ])->assertRedirect('/app/rbac')->assertSessionHasErrors('password');
     }
 
     public function test_super_admin_cannot_create_another_super_admin_or_mismatched_scope(): void
@@ -80,6 +110,87 @@ class UserManagementTest extends TestCase
             ->assertSessionHasErrors('districtId');
 
         $this->assertDatabaseCount('users', 1);
+    }
+
+    public function test_super_admin_can_edit_a_user_role_and_scope_and_keep_password_when_omitted(): void
+    {
+        $admin = $this->userWithRole('super_admin');
+        $user = $this->userWithRole('task_force', [
+            'username' => 'taskforce-edit',
+            'email' => 'taskforce-edit@example.invalid',
+        ]);
+        $originalPassword = $user->password;
+
+        $this->actingAs($admin)->patch("/admin/users/{$user->id}", [
+            'name' => 'Petugas Provinsi Contoh',
+            'username' => 'taskforce-edit',
+            'email' => 'taskforce-edit@example.invalid',
+            'password' => '',
+            'role' => 'province_admin',
+            'provinceId' => '32',
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $user->refresh();
+        $this->assertSame('Petugas Provinsi Contoh', $user->name);
+        $this->assertSame($originalPassword, $user->password);
+        $this->assertSame('province_admin', $user->roles()->value('name'));
+        $this->assertSame('32', $user->province_id);
+        $this->assertSame('provinsi', $user->scope_level);
+        $this->assertDatabaseHas('audit_logs', [
+            'user_id' => $admin->id,
+            'action_type' => 'AKUN_HAK_AKSES',
+            'entity_id' => (string) $user->id,
+            'justification_reason' => 'Data akun dan peran pengguna diperbarui.',
+        ]);
+    }
+
+    public function test_super_admin_can_soft_delete_users_with_an_audit_reason(): void
+    {
+        $admin = $this->userWithRole('super_admin');
+        $user = $this->userWithRole('task_force', [
+            'username' => 'taskforce-arsip',
+            'email' => 'taskforce-arsip@example.invalid',
+            'password' => Hash::make('kata-sandi-awal-aman'),
+        ]);
+
+        $this->actingAs($admin)->delete("/admin/users/{$user->id}", [
+            'reason' => 'Akun tidak lagi digunakan.',
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $this->assertSoftDeleted('users', ['id' => $user->id]);
+        $this->assertDatabaseHas('model_has_roles', [
+            'model_id' => $user->id,
+            'model_type' => User::class,
+        ]);
+        $this->assertDatabaseHas('audit_logs', [
+            'user_id' => $admin->id,
+            'action_type' => 'AKUN_HAK_AKSES',
+            'entity_id' => (string) $user->id,
+            'justification_reason' => 'Akun dihapus: Akun tidak lagi digunakan.',
+        ]);
+        $this->post('/login', [
+            'identifier' => 'taskforce-arsip',
+            'password' => 'kata-sandi-awal-aman',
+        ])->assertSessionHasErrors('identifier');
+    }
+
+    public function test_super_admin_cannot_edit_or_delete_self_or_another_super_admin(): void
+    {
+        $admin = $this->userWithRole('super_admin');
+        $otherAdmin = $this->userWithRole('super_admin');
+        $this->actingAs($admin);
+
+        $payload = [
+            'name' => $otherAdmin->name,
+            'username' => $otherAdmin->username,
+            'email' => $otherAdmin->email,
+            'role' => 'task_force',
+        ];
+        $this->patch("/admin/users/{$admin->id}", $payload)->assertForbidden();
+        $this->patch("/admin/users/{$otherAdmin->id}", $payload)->assertForbidden();
+        $this->delete("/admin/users/{$admin->id}", ['reason' => 'Tidak boleh'])->assertForbidden();
+        $this->delete("/admin/users/{$otherAdmin->id}", ['reason' => 'Tidak boleh'])->assertForbidden();
+        $this->assertDatabaseCount('users', 2);
     }
 
     public function test_super_admin_can_start_and_end_an_audited_impersonation_session(): void

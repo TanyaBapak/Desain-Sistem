@@ -31,6 +31,10 @@ class UserManagementController extends Controller
                 'scopeName' => $user->scope_name,
                 'roleName' => $user->roles->first()?->name ?? '',
                 'roleTitle' => $user->roles->first()?->title ?? 'Tanpa peran',
+                'provinceId' => $user->province_id,
+                'districtId' => $user->district_id,
+                'institutionId' => $user->institution_id,
+                'employerId' => $user->employer_id,
             ]);
 
         return [
@@ -56,7 +60,7 @@ class UserManagementController extends Controller
             'name' => ['required', 'string', 'max:150'],
             'username' => ['required', 'string', 'max:100', 'alpha_dash', 'unique:users,username'],
             'email' => ['required', 'email', 'max:150', 'unique:users,email'],
-            'password' => ['required', 'string', 'min:12', 'max:255'],
+            'password' => ['required', 'string', 'min:10', 'max:255'],
             'role' => ['required', Rule::exists('roles', 'name'), Rule::notIn(['super_admin'])],
             'scopeName' => ['nullable', 'string', 'max:255'],
             'provinceId' => ['nullable', 'string', 'exists:provinces,id'],
@@ -88,6 +92,67 @@ class UserManagementController extends Controller
         });
 
         return back()->with('success', 'Akun pengguna berhasil dibuat.');
+    }
+
+    public function update(Request $request, User $user): RedirectResponse
+    {
+        $this->authorizeSuperAdmin($request);
+        $this->authorizeManagedUser($request, $user);
+
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:150'],
+            'username' => ['required', 'string', 'max:100', 'alpha_dash', Rule::unique('users', 'username')->ignore($user->id)],
+            'email' => ['required', 'email', 'max:150', Rule::unique('users', 'email')->ignore($user->id)],
+            'password' => ['nullable', 'string', 'min:10', 'max:255'],
+            'role' => ['required', Rule::exists('roles', 'name'), Rule::notIn(['super_admin'])],
+            'scopeName' => ['nullable', 'string', 'max:255'],
+            'provinceId' => ['nullable', 'string', 'exists:provinces,id'],
+            'districtId' => ['nullable', 'string', 'exists:districts,id'],
+            'institutionId' => ['nullable', 'string', 'exists:institutions,id'],
+            'employerId' => ['nullable', 'string', 'exists:employers,id'],
+        ]);
+        $scope = $this->resolveScope($data);
+
+        DB::transaction(function () use ($request, $user, $data, $scope): void {
+            $attributes = [
+                'name' => $data['name'],
+                'username' => $data['username'],
+                'email' => $data['email'],
+                'scope_level' => $scope['level'],
+                'scope_name' => $scope['name'],
+                'province_id' => $data['provinceId'] ?? null,
+                'district_id' => $data['districtId'] ?? null,
+                'institution_id' => $data['institutionId'] ?? null,
+                'employer_id' => $data['employerId'] ?? null,
+                'avatar_initials' => Str::upper(Str::substr($data['name'], 0, 2)),
+            ];
+            if (filled($data['password'] ?? null)) {
+                $attributes['password'] = Hash::make($data['password']);
+            }
+
+            $user->update($attributes);
+            $role = Role::query()->where('name', $data['role'])->firstOrFail();
+            $user->roles()->sync([$role->id]);
+            $this->writeAudit($request, $user, 'Data akun dan peran pengguna diperbarui.');
+        });
+
+        return back()->with('success', 'Data pengguna berhasil diperbarui.');
+    }
+
+    public function destroy(Request $request, User $user): RedirectResponse
+    {
+        $this->authorizeSuperAdmin($request);
+        $this->authorizeManagedUser($request, $user);
+        $data = $request->validate([
+            'reason' => ['required', 'string', 'max:1000'],
+        ]);
+
+        DB::transaction(function () use ($request, $user, $data): void {
+            $this->writeAudit($request, $user, 'Akun dihapus: '.$data['reason']);
+            $user->delete();
+        });
+
+        return back()->with('success', 'Akun pengguna dihapus dan diarsipkan.');
     }
 
     public function updateStatus(Request $request, User $user): RedirectResponse
@@ -162,6 +227,15 @@ class UserManagementController extends Controller
         abort_unless($user && $user->roles()->where('name', 'super_admin')->exists(), 403);
 
         return $user;
+    }
+
+    private function authorizeManagedUser(Request $request, User $user): void
+    {
+        abort_if(
+            $user->id === $request->user()->id
+            || $user->roles()->where('name', 'super_admin')->exists(),
+            403,
+        );
     }
 
     /**
