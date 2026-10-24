@@ -4,8 +4,6 @@ import { ArrowLeft, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { InstitutionRegistrationFiles } from "@/pages/InstitutionRegistrationFiles";
-import type { RegistrationDocumentField } from "@/pages/InstitutionRegistrationFiles";
 
 interface InstitutionRegistrationPageProps {
   provinces: { id: string; name: string }[];
@@ -36,9 +34,6 @@ export function InstitutionRegistrationPage({ provinces, districts }: Institutio
     password: "",
     password_confirmation: "",
     consent: false,
-    operationalPermit: null as File | null,
-    accreditationDocument: null as File | null,
-    institutionProfile: null as File | null,
   });
 
   const submit = (event: FormEvent<HTMLFormElement>) => {
@@ -65,8 +60,8 @@ export function InstitutionRegistrationPage({ provinces, districts }: Institutio
             </div>
           </div>
           <p className="max-w-3xl text-sm text-muted-foreground">
-            Data identitas mengikuti informasi profil lembaga vokasi. Akun akan aktif setelah data dan
-            dokumen pendukung diperiksa oleh verifikator.
+            Isi identitas lembaga dan informasi kesiapan. Akun akan aktif setelah data pendaftaran
+            diperiksa oleh verifikator.
           </p>
         </header>
 
@@ -148,15 +143,6 @@ export function InstitutionRegistrationPage({ provinces, districts }: Institutio
               </Field>
             </div>
           </section>
-
-          <InstitutionRegistrationFiles
-            errors={{
-              operationalPermit: errors.operationalPermit,
-              accreditationDocument: errors.accreditationDocument,
-              institutionProfile: errors.institutionProfile,
-            }}
-            onFileChange={(field: RegistrationDocumentField, file) => setData(field, file)}
-          />
 
           <section className="space-y-4 rounded-xl border border-border bg-card p-4 sm:p-6">
             <h2 className="text-lg font-semibold">Buat akun pengelola lembaga</h2>

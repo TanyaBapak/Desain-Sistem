@@ -7,7 +7,6 @@ use App\Models\User;
 use Database\Seeders\AccessControlSeeder;
 use Database\Seeders\ReferenceDataSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -17,9 +16,8 @@ class InstitutionRegistrationTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_public_registration_stores_institution_documents_and_suspended_account(): void
+    public function test_public_registration_without_documents_creates_a_suspended_account(): void
     {
-        Storage::fake('local');
         $this->seed([ReferenceDataSeeder::class, AccessControlSeeder::class]);
 
         $this->withoutVite()->get('/lembaga/daftar')
@@ -47,8 +45,7 @@ class InstitutionRegistrationTest extends TestCase
             'entity_id' => $institution->id,
             'status' => 'PENDING',
         ]);
-        $this->assertDatabaseCount('institution_registration_documents', 2);
-        $this->assertCount(2, Storage::disk('local')->allFiles('institution-registration/'.$institution->id));
+        $this->assertDatabaseCount('institution_registration_documents', 0);
     }
 
     public function test_only_authorized_verifiers_can_download_documents_and_approval_activates_applicant(): void
@@ -58,9 +55,19 @@ class InstitutionRegistrationTest extends TestCase
         $this->post('/lembaga/daftar', $this->registrationPayload())->assertRedirect('/login');
 
         $institution = DB::table('institutions')->where('npsn_or_vin', 'NPSN-CONTOH-001')->firstOrFail();
-        $document = DB::table('institution_registration_documents')
-            ->where('institution_id', $institution->id)
-            ->firstOrFail();
+        $documentPath = 'institution-registration/'.$institution->id.'/izin.pdf';
+        Storage::disk('local')->put($documentPath, 'Contoh dokumen lama');
+        $documentId = DB::table('institution_registration_documents')->insertGetId([
+            'institution_id' => $institution->id,
+            'document_type' => 'izin_operasional',
+            'original_name' => 'izin.pdf',
+            'document_path' => $documentPath,
+            'mime_type' => 'application/pdf',
+            'file_size' => 19,
+            'uploaded_at' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
         $approval = DB::table('approval_requests')
             ->where('entity_type', 'lembaga_vokasi')
             ->where('entity_id', $institution->id)
@@ -73,12 +80,12 @@ class InstitutionRegistrationTest extends TestCase
 
         $outsider = User::factory()->create();
         $this->actingAs($outsider)
-            ->get(route('approvals.documents.download', [$approval->id, $document->id]))
+            ->get(route('approvals.documents.download', [$approval->id, $documentId]))
             ->assertForbidden();
 
         $verifier = $this->userWithRole('task_force');
         $this->actingAs($verifier)
-            ->get(route('approvals.documents.download', [$approval->id, $document->id]))
+            ->get(route('approvals.documents.download', [$approval->id, $documentId]))
             ->assertOk();
         $this->actingAs($verifier)
             ->post("/approvals/{$approval->id}", ['action' => 'approve'])
@@ -93,9 +100,8 @@ class InstitutionRegistrationTest extends TestCase
         ])->assertRedirect('/app/modul-a');
     }
 
-    public function test_registration_rejects_invalid_region_duplicate_identifier_and_large_files(): void
+    public function test_registration_rejects_invalid_region_and_duplicate_identifier_without_documents(): void
     {
-        Storage::fake('local');
         $this->seed([ReferenceDataSeeder::class, AccessControlSeeder::class]);
 
         $invalidRegion = $this->registrationPayload();
@@ -104,14 +110,17 @@ class InstitutionRegistrationTest extends TestCase
             ->assertRedirect('/lembaga/daftar')
             ->assertSessionHasErrors('districtId');
 
-        $largeFile = $this->registrationPayload();
-        $largeFile['operationalPermit'] = UploadedFile::fake()->create('izin.pdf', 6000, 'application/pdf');
-        $this->from('/lembaga/daftar')->post('/lembaga/daftar', $largeFile)
-            ->assertRedirect('/lembaga/daftar')
-            ->assertSessionHasErrors('operationalPermit');
+        $this->post('/lembaga/daftar', $this->registrationPayload())->assertRedirect('/login');
 
-        $this->assertDatabaseCount('institutions', 0);
-        $this->assertDatabaseCount('users', 0);
+        $duplicate = $this->registrationPayload();
+        $duplicate['contactEmail'] = 'lembaga-kedua@example.test';
+        $this->from('/lembaga/daftar')->post('/lembaga/daftar', $duplicate)
+            ->assertRedirect('/lembaga/daftar')
+            ->assertSessionHasErrors('registrationNumber');
+
+        $this->assertDatabaseCount('institutions', 1);
+        $this->assertDatabaseCount('users', 1);
+        $this->assertDatabaseCount('institution_registration_documents', 0);
     }
 
     private function registrationPayload(): array
@@ -134,8 +143,6 @@ class InstitutionRegistrationTest extends TestCase
             'password' => 'Pendaftaran-Aman-123',
             'password_confirmation' => 'Pendaftaran-Aman-123',
             'consent' => '1',
-            'operationalPermit' => UploadedFile::fake()->create('izin.pdf', 100, 'application/pdf'),
-            'institutionProfile' => UploadedFile::fake()->create('profil.pdf', 100, 'application/pdf'),
         ];
     }
 

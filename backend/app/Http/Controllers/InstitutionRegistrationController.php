@@ -8,13 +8,10 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
-use RuntimeException;
-use Throwable;
 
 class InstitutionRegistrationController extends Controller
 {
@@ -56,149 +53,94 @@ class InstitutionRegistrationController extends Controller
             'supportedSectors' => ['required', 'string', 'max:1000'],
             'password' => ['required', 'string', 'min:10', 'max:255', 'confirmed'],
             'consent' => ['accepted'],
-            'operationalPermit' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
-            'accreditationDocument' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
-            'institutionProfile' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
         ], [
             'districtId.exists' => 'Kabupaten/kota harus berada di provinsi yang dipilih.',
             'registrationNumber.unique' => 'Nomor identitas lembaga tersebut sudah terdaftar.',
             'password.confirmed' => 'Konfirmasi kata sandi tidak cocok.',
-            '*.mimes' => 'Berkas harus berformat PDF, JPG, atau PNG.',
-            '*.max' => 'Ukuran setiap berkas maksimal 5 MB.',
         ]);
 
         $role = Role::query()->where('name', 'institution_admin')->firstOrFail();
         $institutionId = 'VOC-'.Str::upper(Str::random(12));
-        $uploadedDocuments = [];
-        $documents = [
-            'operationalPermit' => 'izin_operasional',
-            'accreditationDocument' => 'akreditasi',
-            'institutionProfile' => 'profil_lembaga',
-        ];
 
-        try {
-            foreach ($documents as $field => $documentType) {
-                if (! $request->hasFile($field)) {
-                    continue;
-                }
+        DB::transaction(function () use ($data, $role, $institutionId): void {
+            $now = now();
+            $provinceName = (string) DB::table('provinces')->where('id', $data['provinceId'])->value('name');
+            $district = DB::table('districts')->where('id', $data['districtId'])->first();
+            $sectors = collect(explode(',', $data['supportedSectors']))
+                ->map(fn (string $sector): string => trim($sector))
+                ->filter()
+                ->unique()
+                ->values()
+                ->all();
 
-                $file = $request->file($field);
-                $path = $file->store("institution-registration/{$institutionId}", 'local');
-                if (! is_string($path)) {
-                    throw new RuntimeException('Berkas pendaftaran gagal disimpan.');
-                }
-                $uploadedDocuments[$field] = ['file' => $file, 'path' => $path];
-            }
+            DB::table('institutions')->insert([
+                'id' => $institutionId,
+                'name' => $data['institutionName'],
+                'npsn_or_vin' => $data['registrationNumber'],
+                'institution_type' => $data['institutionType'],
+                'ownership_type' => $data['ownershipType'],
+                'province_id' => $data['provinceId'],
+                'district_id' => $data['districtId'],
+                'address' => $data['address'],
+                'head_name' => $data['headName'],
+                'phone' => $data['contactPhone'],
+                'email' => $data['contactEmail'],
+                'accreditation' => $data['accreditation'] ?: 'Belum ada',
+                'evokasi_status' => 'Belum Terverifikasi',
+                'instructor_count' => $data['instructorCount'],
+                'workshop_capacity' => $data['batchCapacity'],
+                'verification_status' => 'Pending Verification',
+                'status' => 'Aktif',
+                'supported_sectors' => json_encode($sectors, JSON_THROW_ON_ERROR),
+                'registration_consented_at' => $now,
+                'registration_consent_version' => '2026-10-v1',
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
 
-            DB::transaction(function () use ($data, $role, $institutionId, $documents, $uploadedDocuments): void {
-                $now = now();
-                $provinceName = (string) DB::table('provinces')->where('id', $data['provinceId'])->value('name');
-                $district = DB::table('districts')->where('id', $data['districtId'])->first();
-                $sectors = collect(explode(',', $data['supportedSectors']))
-                    ->map(fn (string $sector): string => trim($sector))
-                    ->filter()
-                    ->unique()
-                    ->values()
-                    ->all();
+            $usernameBase = Str::slug(Str::before($data['contactEmail'], '@'), '.');
+            $username = Str::limit($usernameBase, 80, '').'.'.Str::lower(Str::random(8));
+            $user = User::query()->create([
+                'user_code' => 'USR-'.Str::upper(Str::random(10)),
+                'name' => $data['headName'],
+                'username' => $username,
+                'email' => $data['contactEmail'],
+                'password' => Hash::make($data['password']),
+                'organization' => $data['institutionName'],
+                'scope_level' => 'lembaga',
+                'scope_name' => trim($district->name.', '.$provinceName),
+                'province_id' => $data['provinceId'],
+                'district_id' => $data['districtId'],
+                'institution_id' => $institutionId,
+                'status' => 'Ditangguhkan',
+                'avatar_initials' => Str::upper(Str::substr($data['headName'], 0, 2)),
+            ]);
+            $user->roles()->sync([$role->id]);
 
-                DB::table('institutions')->insert([
-                    'id' => $institutionId,
-                    'name' => $data['institutionName'],
-                    'npsn_or_vin' => $data['registrationNumber'],
-                    'institution_type' => $data['institutionType'],
-                    'ownership_type' => $data['ownershipType'],
-                    'province_id' => $data['provinceId'],
-                    'district_id' => $data['districtId'],
-                    'address' => $data['address'],
-                    'head_name' => $data['headName'],
-                    'phone' => $data['contactPhone'],
-                    'email' => $data['contactEmail'],
-                    'accreditation' => $data['accreditation'] ?: 'Belum ada',
-                    'evokasi_status' => 'Belum Terverifikasi',
-                    'instructor_count' => $data['instructorCount'],
-                    'workshop_capacity' => $data['batchCapacity'],
-                    'verification_status' => 'Pending Verification',
-                    'status' => 'Aktif',
-                    'supported_sectors' => json_encode($sectors, JSON_THROW_ON_ERROR),
-                    'registration_consented_at' => $now,
-                    'registration_consent_version' => '2026-10-v1',
-                    'created_at' => $now,
-                    'updated_at' => $now,
-                ]);
+            $approvalId = 'APP-'.Str::upper(Str::random(20));
+            DB::table('approval_requests')->insert([
+                'id' => $approvalId,
+                'entity_type' => 'lembaga_vokasi',
+                'entity_id' => $institutionId,
+                'title' => 'Pendaftaran lembaga vokasi: '.$data['institutionName'],
+                'submitted_by' => $data['headName'],
+                'submitted_role' => 'institution_admin',
+                'scope_label' => trim($district->name.', '.$provinceName),
+                'submitted_at' => $now,
+                'validation_status' => 'PASSED',
+                'status' => 'PENDING',
+                'data_snapshot' => json_encode(['source' => 'self_registration'], JSON_THROW_ON_ERROR),
+            ]);
+            DB::table('approval_histories')->insert([
+                'approval_request_id' => $approvalId,
+                'actor_id' => $user->id,
+                'actor_name' => $data['headName'],
+                'action' => 'SUBMIT',
+                'notes' => 'Pendaftaran mandiri menunggu verifikasi.',
+                'created_at' => $now,
+            ]);
 
-                $usernameBase = Str::slug(Str::before($data['contactEmail'], '@'), '.');
-                $username = Str::limit($usernameBase, 80, '').'.'.Str::lower(Str::random(8));
-                $user = User::query()->create([
-                    'user_code' => 'USR-'.Str::upper(Str::random(10)),
-                    'name' => $data['headName'],
-                    'username' => $username,
-                    'email' => $data['contactEmail'],
-                    'password' => Hash::make($data['password']),
-                    'organization' => $data['institutionName'],
-                    'scope_level' => 'lembaga',
-                    'scope_name' => trim($district->name.', '.$provinceName),
-                    'province_id' => $data['provinceId'],
-                    'district_id' => $data['districtId'],
-                    'institution_id' => $institutionId,
-                    'status' => 'Ditangguhkan',
-                    'avatar_initials' => Str::upper(Str::substr($data['headName'], 0, 2)),
-                ]);
-                $user->roles()->sync([$role->id]);
-
-                $approvalId = 'APP-'.Str::upper(Str::random(20));
-                DB::table('approval_requests')->insert([
-                    'id' => $approvalId,
-                    'entity_type' => 'lembaga_vokasi',
-                    'entity_id' => $institutionId,
-                    'title' => 'Pendaftaran lembaga vokasi: '.$data['institutionName'],
-                    'submitted_by' => $data['headName'],
-                    'submitted_role' => 'institution_admin',
-                    'scope_label' => trim($district->name.', '.$provinceName),
-                    'submitted_at' => $now,
-                    'validation_status' => 'PASSED',
-                    'status' => 'PENDING',
-                    'data_snapshot' => json_encode(['source' => 'self_registration'], JSON_THROW_ON_ERROR),
-                ]);
-                DB::table('approval_histories')->insert([
-                    'approval_request_id' => $approvalId,
-                    'actor_id' => $user->id,
-                    'actor_name' => $data['headName'],
-                    'action' => 'SUBMIT',
-                    'notes' => 'Pendaftaran mandiri menunggu verifikasi.',
-                    'created_at' => $now,
-                ]);
-
-                foreach ($documents as $field => $documentType) {
-                    if (! isset($uploadedDocuments[$field])) {
-                        continue;
-                    }
-
-                    $file = $uploadedDocuments[$field]['file'];
-                    $path = $uploadedDocuments[$field]['path'];
-                    if (! Storage::disk('local')->exists($path)) {
-                        throw new RuntimeException('Berkas pendaftaran tidak ditemukan setelah diunggah.');
-                    }
-
-                    DB::table('institution_registration_documents')->insert([
-                        'institution_id' => $institutionId,
-                        'document_type' => $documentType,
-                        'original_name' => $file->getClientOriginalName(),
-                        'document_path' => $path,
-                        'mime_type' => $file->getMimeType() ?? 'application/octet-stream',
-                        'file_size' => $file->getSize(),
-                        'uploaded_at' => $now,
-                        'created_at' => $now,
-                        'updated_at' => $now,
-                    ]);
-                }
-            });
-        } catch (Throwable $exception) {
-            foreach ($uploadedDocuments as $document) {
-                Storage::disk('local')->delete($document['path']);
-            }
-
-            throw $exception;
-        }
+        });
 
         return redirect()->route('login')->with('status', 'Pendaftaran berhasil dikirim. Akun dapat digunakan setelah lembaga diverifikasi.');
     }
