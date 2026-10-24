@@ -109,17 +109,53 @@ Setiap kabupaten/kota harus memiliki kode, nama, serta tipe `Kabupaten` atau
 opsional pada file masukan. Kolom `province_id` pada kabupaten/kota opsional
 karena dapat diturunkan dari dua digit pertama kode wilayah.
 
-Contoh setelah file diletakkan di `storage/app/reference/wilayah.json`:
+### Membuat file dari API publik
+
+Jika `jq` tersedia di server, API publik Wilayah.id dapat dipakai untuk
+mengunduh daftar provinsi dan kabupaten/kota lalu membentuk file impor:
+
+```sh
+cd /home/server/web/p2mi.sippmi.com/private/Desain-Sistem/backend
+command -v jq
+set -eu
+tmpdir=$(mktemp -d)
+curl --fail --silent --show-error --location https://wilayah.id/api/provinces.json \
+  --output "$tmpdir/provinces.json"
+for province_id in $(jq -r '.data[].code' "$tmpdir/provinces.json"); do
+  curl --fail --silent --show-error --location \
+    "https://wilayah.id/api/regencies/${province_id}.json" \
+    --output "$tmpdir/regencies-${province_id}.json"
+done
+mkdir -p storage/app/reference
+jq -s '{
+  provinces: (.[0].data | map({id: .code, name: .name})),
+  districts: (.[1:] | map(.data[]) | map({
+    id: .code,
+    province_id: (.code | split(".")[0]),
+    name: .name,
+    type: (if (.name | startswith("Kota ")) then "Kota" else "Kabupaten" end)
+  }))
+}' "$tmpdir/provinces.json" "$tmpdir"/regencies-*.json \
+  > storage/app/reference/wilayah.json
+```
+
+`Wilayah.id` adalah API publik pihak ketiga, bukan endpoint resmi Kemendagri.
+Periksa tanggal pembaruan pada metadata respons dan cocokkan hasilnya dengan
+referensi resmi Kemendagri sebelum digunakan sebagai master data produksi.
+Jika `jq` belum terpasang, minta administrator server memasangnya atau unggah
+file JSON dengan format di atas dari komputer lokal. Jangan mengunduh/menimpa
+data produksi tanpa meninjau file terlebih dahulu.
+
+Validasi file lalu impor dari direktori `backend/`:
 
 ```sh
 php artisan regions:import storage/app/reference/wilayah.json --dry-run
 php artisan regions:import storage/app/reference/wilayah.json
 ```
 
-Ambil dan tinjau file melalui mekanisme resmi yang disetujui pemilik proyek
-sebelum impor. Perintah ini tidak mengunduh dari URL tertentu karena endpoint
-resmi nasional belum dikonfirmasi. File impor tidak dicatat atau disimpan ulang
-oleh aplikasi.
+Jalankan perintah kedua hanya jika dry-run berhasil. File sementara unduhan
+berada pada direktori sementara server; file hasil yang akan dipakai importer
+berada di `backend/storage/app/reference/wilayah.json`.
 
 ## Autentikasi
 
