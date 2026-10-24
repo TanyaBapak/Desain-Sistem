@@ -1,5 +1,7 @@
 import React from 'react';
 import { BarChart3, Building2, GraduationCap, Users, BriefcaseBusiness, Database, Clock3 } from 'lucide-react';
+import { ExecutiveDashboardBreakdowns, ExecutiveDashboardBreakdownsData } from '@/components/reports/ExecutiveDashboardBreakdowns';
+import { InstitutionDirectory } from '@/components/dashboard/InstitutionDirectory';
 
 export interface ReportSummary {
   candidateCount: number;
@@ -18,6 +20,7 @@ export interface ReportSummary {
     recordsUpdated: number;
     recordsSkipped: number;
   };
+  dashboard?: ExecutiveDashboardBreakdownsData;
 }
 
 interface ReportsViewProps {
@@ -81,6 +84,13 @@ WIB
           </article>
         ))}
       </div>
+
+      <ExecutiveDashboardBreakdowns data={summary.dashboard} />
+      <InstitutionDirectory
+        institutions={summary.dashboard?.institutionDirectory ?? []}
+        totalCount={summary.institutionCount}
+        scopeLabel="seluruh wilayah"
+      />
 
       {isAuditor && (
         <p className="rounded-lg border border-border bg-muted/40 p-4 text-sm text-muted-foreground">

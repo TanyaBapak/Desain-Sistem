@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Role;
 use App\Models\User;
+use Database\Seeders\DemoDataSeeder;
 use Database\Seeders\ReferenceDataSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -45,6 +46,36 @@ class RoleAccessTest extends TestCase
         $this->actingAs($superAdmin)->get('/app/rbac')->assertOk();
         $this->actingAs($superAdmin)->get('/app/modul-a')->assertForbidden();
         $this->actingAs($superAdmin)->post('/business-data/candidates', [])->assertForbidden();
+    }
+
+    public function test_leadership_dashboard_includes_database_aggregates_without_personal_data(): void
+    {
+        $this->withoutVite();
+        $this->seed([
+            ReferenceDataSeeder::class,
+            DemoDataSeeder::class,
+        ]);
+        DB::table('job_demands')->where('id', 'DEM-DEMO-001')->update([
+            'verification_status' => 'Approved',
+            'filled_quota' => 1,
+        ]);
+
+        $this->actingAs($this->userWithRole('leadership'))
+            ->get('/app/dashboard')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('businessData.reportSummary.dashboard.candidateLifecycle.0.status', 'DRAFT')
+                ->where('businessData.reportSummary.dashboard.candidateLifecycle.0.count', 1)
+                ->where('businessData.reportSummary.dashboard.candidatesByProvince.0.province', 'Jawa Barat')
+                ->where('businessData.reportSummary.dashboard.candidatesByProvince.0.count', 1)
+                ->where('businessData.reportSummary.dashboard.institutionsByEvokasiStatus.0.status', 'Belum Terverifikasi')
+                ->where('businessData.reportSummary.dashboard.institutionDirectory.0.name', 'SMK Contoh Cibinong')
+                ->where('businessData.reportSummary.dashboard.institutionDirectory.0.district', 'Kabupaten Bogor')
+                ->missing('businessData.reportSummary.dashboard.institutionDirectory.0.phone')
+                ->where('businessData.reportSummary.dashboard.demandByCountry.0.country', 'Jepang')
+                ->where('businessData.reportSummary.dashboard.demandByCountry.0.quota', 2)
+                ->where('businessData.reportSummary.dashboard.demandByCountry.0.filledQuota', 1)
+                ->missing('businessData.reportSummary.dashboard.candidateLifecycle.0.nik'));
     }
 
     public function test_institution_admin_candidate_data_is_bound_to_its_institution(): void

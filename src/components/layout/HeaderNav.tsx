@@ -297,7 +297,7 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({ currentTab, onTabChange })
               Konfirmasi Selesai Bertugas (Logout)
             </h3>
             <p className="text-xs text-slate-300 mt-2 leading-relaxed">
-              Apakah Anda yakin ingin mengakhiri sesi kerja pada platform <strong>SMK Go Global Command Center</strong>?
+              Apakah Anda yakin ingin mengakhiri sesi kerja pada platform <strong>SGG-AC</strong>?
             </p>
 
             {/* Active Session Info Box */}

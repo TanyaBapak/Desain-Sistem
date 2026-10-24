@@ -1,6 +1,7 @@
 import React, { lazy, Suspense, useEffect, useLayoutEffect } from "react";
 import { useAppStore } from "@/store/useAppStore";
 import { AdminLayout } from "@/components/layout/AdminLayout";
+import type { ExecutiveDashboardBreakdownsData } from "@/components/reports/ExecutiveDashboardBreakdowns";
 import {
   CandidateParticipant,
   GlobalDemand,
@@ -103,6 +104,7 @@ interface AppProps {
       institutionCount: number;
       demandCount: number;
       updatedAt: string | null;
+      dashboard?: ExecutiveDashboardBreakdownsData;
       gardata: {
         candidateCount: number;
         trainingRecordCount: number;

@@ -93,7 +93,7 @@ export const ExecutiveCommandCenter: React.FC<ExecutiveCommandCenterProps> = ({ 
           <div className="space-y-3 max-w-3xl">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-600/20 border border-red-500/40 text-red-300 text-xs font-bold uppercase tracking-wider">
               <Activity className="w-3.5 h-3.5 text-red-400" />
-              <span>SMK Go Global Command Center (SGG-CC)</span>
+              <span>SGG-AC · Command Center SMK Go Global</span>
             </div>
 
             <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight leading-tight">

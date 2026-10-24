@@ -37,10 +37,10 @@ export const TopNav: React.FC<TopNavProps> = ({ currentTab, onOpenSidebar }) => 
           </button>
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold text-foreground">
-              {currentPage?.label ?? "SMK Go Global"}
+              {currentPage?.label ?? "SGG-AC"}
             </p>
             <p className="hidden truncate text-xs text-muted-foreground sm:block">
-              Platform Monitoring SMK Go Global
+              SGG-AC · Platform Monitoring SMK Go Global
             </p>
           </div>
         </div>

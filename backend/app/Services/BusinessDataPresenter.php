@@ -408,6 +408,89 @@ class BusinessDataPresenter
             'programCount' => DB::table('training_programs')->where('status', 'Aktif')->count(),
             'institutionCount' => DB::table('institutions')->where('status', 'Aktif')->count(),
             'demandCount' => DB::table('job_demands')->where('verification_status', 'Approved')->count(),
+            'dashboard' => [
+                'candidateLifecycle' => DB::table('job_seekers')
+                    ->whereNull('deleted_at')
+                    ->select('lifecycle_status')
+                    ->selectRaw('COUNT(*) as count')
+                    ->groupBy('lifecycle_status')
+                    ->orderBy('lifecycle_status')
+                    ->get()
+                    ->map(fn (object $row): array => [
+                        'status' => $row->lifecycle_status,
+                        'count' => (int) $row->count,
+                    ])->all(),
+                'candidatesByProvince' => DB::table('job_seekers')
+                    ->leftJoin('provinces', 'provinces.id', '=', 'job_seekers.province_id')
+                    ->whereNull('job_seekers.deleted_at')
+                    ->selectRaw("COALESCE(provinces.name, 'Belum dipetakan') as province")
+                    ->selectRaw('COUNT(*) as count')
+                    ->groupBy('provinces.name')
+                    ->orderByDesc('count')
+                    ->orderBy('province')
+                    ->limit(8)
+                    ->get()
+                    ->map(fn (object $row): array => [
+                        'province' => $row->province,
+                        'count' => (int) $row->count,
+                    ])->all(),
+                'institutionsByEvokasiStatus' => DB::table('institutions')
+                    ->where('status', 'Aktif')
+                    ->select('evokasi_status')
+                    ->selectRaw('COUNT(*) as count')
+                    ->groupBy('evokasi_status')
+                    ->orderBy('evokasi_status')
+                    ->get()
+                    ->map(fn (object $row): array => [
+                        'status' => $row->evokasi_status,
+                        'count' => (int) $row->count,
+                    ])->all(),
+                'institutionDirectory' => DB::table('institutions')
+                    ->leftJoin('provinces', 'provinces.id', '=', 'institutions.province_id')
+                    ->leftJoin('districts', 'districts.id', '=', 'institutions.district_id')
+                    ->where('institutions.status', 'Aktif')
+                    ->orderByRaw('institutions.readiness_score IS NULL')
+                    ->orderByDesc('institutions.readiness_score')
+                    ->orderBy('institutions.name')
+                    ->limit(8)
+                    ->get([
+                        'institutions.id',
+                        'institutions.name',
+                        'institutions.institution_type',
+                        'institutions.accreditation',
+                        'institutions.evokasi_status',
+                        'institutions.workshop_capacity',
+                        'provinces.name as province_name',
+                        'districts.name as district_name',
+                    ])
+                    ->map(fn (object $row): array => [
+                        'id' => $row->id,
+                        'name' => $row->name,
+                        'type' => $row->institution_type,
+                        'province' => $row->province_name ?? 'Belum diketahui',
+                        'district' => $row->district_name ?? 'Belum diketahui',
+                        'accreditation' => $row->accreditation,
+                        'evokasiStatus' => $row->evokasi_status,
+                        'capacity' => $row->workshop_capacity === null ? null : (int) $row->workshop_capacity,
+                    ])->all(),
+                'demandByCountry' => DB::table('job_demands')
+                    ->leftJoin('countries', 'countries.id', '=', 'job_demands.country_id')
+                    ->where('job_demands.verification_status', 'Approved')
+                    ->selectRaw("COALESCE(countries.name, 'Belum ditentukan') as country")
+                    ->selectRaw('COUNT(*) as demand_count')
+                    ->selectRaw('SUM(job_demands.headcount) as quota')
+                    ->selectRaw('SUM(job_demands.filled_quota) as filled_quota')
+                    ->groupBy('countries.name')
+                    ->orderByDesc('quota')
+                    ->orderBy('country')
+                    ->get()
+                    ->map(fn (object $row): array => [
+                        'country' => $row->country,
+                        'demandCount' => (int) $row->demand_count,
+                        'quota' => (int) $row->quota,
+                        'filledQuota' => (int) $row->filled_quota,
+                    ])->all(),
+            ],
             'gardata' => [
                 'candidateCount' => DB::table('job_seekers')
                     ->whereNull('deleted_at')

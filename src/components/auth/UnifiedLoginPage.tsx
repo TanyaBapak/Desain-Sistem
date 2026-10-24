@@ -50,13 +50,13 @@ export function UnifiedLoginPage() {
           <div className="absolute left-8 right-8 top-0 h-1 rounded-t-3xl bg-gradient-to-r from-red-600 via-amber-500 to-blue-600" />
 
           <div className="mb-6 flex items-center gap-3.5 border-b border-slate-800 pb-6">
-            <img src={LOGO_URL} alt="Logo SMK Go Global" className="h-12 w-12 shrink-0 object-contain" />
+            <img src={LOGO_URL} alt="Logo SGG-AC" className="h-12 w-12 shrink-0 object-contain" />
             <div>
               <p className="text-[10px] font-extrabold uppercase tracking-widest text-red-500">
                 REPUBLIK INDONESIA
               </p>
               <h1 className="text-base font-black leading-tight text-white sm:text-lg">
-                SMK GO GLOBAL COMMAND CENTER
+                SGG-AC
               </h1>
               <p className="mt-0.5 text-xs text-slate-400">
                 Masuk menggunakan akun yang telah terdaftar
@@ -156,7 +156,7 @@ export function UnifiedLoginPage() {
       </main>
 
       <footer className="z-10 w-full border-t border-slate-800/80 bg-slate-950 px-4 py-4 text-center text-xs text-slate-500">
-        © 2026 SMK Go Global · Portal autentikasi
+        © 2026 SGG-AC · Portal autentikasi
       </footer>
     </div>
   );

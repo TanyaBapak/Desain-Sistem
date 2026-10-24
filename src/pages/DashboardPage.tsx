@@ -3,97 +3,22 @@
 import * as React from "react";
 import { useAppStore } from "@/store/useAppStore";
 import {
+  ExecutiveDashboardBreakdowns,
+  ExecutiveDashboardBreakdownsData,
+} from "@/components/reports/ExecutiveDashboardBreakdowns";
+import { ProcessStages } from "@/components/dashboard/ProcessStages";
+import { InstitutionDirectory, InstitutionDirectoryItem } from "@/components/dashboard/InstitutionDirectory";
+import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/button";
-import {
-  Compass,
-  Users,
-  GraduationCap,
-  Building2,
-  Globe2,
-  Workflow,
-  CheckCircle2,
-  Monitor,
-  AlertTriangle,
-  Clock,
-  ArrowRight,
-} from "lucide-react";
-import { cn } from "@/lib/utils";
-import { useToast } from "@/hooks/use-toast";
+import { Users, GraduationCap, Building2, Globe2, Workflow, Monitor } from "lucide-react";
 import { STAKEHOLDER_ROLES } from "@/lib/stakeholder-roles";
-
-const TAHAP_DATA = [
-  {
-    id: 1,
-    title: "Pengumpulan Data",
-    subtitle: "Disnaker · BP3MI · LPK · Demand",
-    icon: Users,
-    status: "Selesai",
-    progress: 100,
-    color: "bg-emerald-500/10 text-emerald-700 border-emerald-200",
-    badge: "Data terkumpul",
-  },
-  {
-    id: 2,
-    title: "Validasi & Standardisasi",
-    subtitle: "Deduplikasi · Verifikasi lembaga · Klasifikasi sektor",
-    icon: CheckCircle2,
-    status: "Sedang Berjalan",
-    progress: 75,
-    color: "bg-blue-500/10 text-blue-700 border-blue-200",
-    badge: "Proses verifikasi",
-  },
-  {
-    id: 3,
-    title: "Analisis Gap & Matching",
-    subtitle: "Demand vs Supply · Kompetensi · Kapasitas",
-    icon: Workflow,
-    status: "Sedang Berjalan",
-    progress: 60,
-    color: "bg-indigo-500/10 text-indigo-700 border-indigo-200",
-    badge: "Matching engine",
-  },
-  {
-    id: 4,
-    title: "Penetapan Program & Lembaga",
-    subtitle: "Kuota · Wilayah · Penyelenggara · Peserta · Anggaran",
-    icon: Building2,
-    status: "Menunggu",
-    progress: 30,
-    color: "bg-amber-500/10 text-amber-700 border-amber-200",
-    badge: "SIPPMI Monitoring",
-    source: "sippmi",
-  },
-  {
-    id: 5,
-    title: "Pelaksanaan & Monitoring",
-    subtitle: "Kebukaan kelas · Kehadiran · JP · Asesmen · Sertifikasi",
-    icon: Clock,
-    status: "Menunggu",
-    progress: 15,
-    color: "bg-rose-500/10 text-rose-700 border-rose-200",
-    badge: "SIPPMI Monitoring",
-    source: "sippmi",
-  },
-  {
-    id: 6,
-    title: "Job Matching & Penempatan",
-    subtitle: "Seleksi employer · Persyaratan · Pen via sistem berwenang",
-    icon: ArrowRight,
-    status: "Menunggu",
-    progress: 5,
-    color: "bg-violet-500/10 text-violet-700 border-violet-200",
-    badge: "SIPPMI Monitoring",
-    source: "sippmi",
-  },
-];
 
 interface DashboardPageProps {
   currentTab: string;
@@ -104,14 +29,62 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   currentTab,
   setCurrentTab,
 }) => {
-  const { candidates, providers, demands, allocations, currentUser, currentRole, currentScope } =
+  const { candidates, programs, providers, demands, allocations, currentUser, currentRole, currentScope } =
     useAppStore();
-  const { toast } = useToast();
 
   const roleObj = getRoleInfo(currentRole);
   const stakeholder = STAKEHOLDER_ROLES.find((r) => r.id === currentRole);
+  const institutionDirectory = React.useMemo<InstitutionDirectoryItem[]>(
+    () =>
+      providers
+        .slice()
+        .sort((left, right) => (right.operationalReadinessScore ?? -1) - (left.operationalReadinessScore ?? -1))
+        .slice(0, 8)
+        .map((provider) => ({
+          id: provider.id,
+          name: provider.name,
+          type: provider.providerType,
+          province: provider.provinsi,
+          district: provider.kabupatenKota,
+          accreditation: provider.accreditation || null,
+          evokasiStatus: provider.evokasiVerificationStatus,
+          capacity: provider.capacityPerBatch,
+        })),
+    [providers],
+  );
 
-  const pendingApprovals = 0; // computed from store in real impl
+  const dashboardBreakdowns = React.useMemo<ExecutiveDashboardBreakdownsData>(() => {
+    const countBy = <T,>(items: T[], getKey: (item: T) => string) => {
+      const counts = new Map<string, number>();
+      items.forEach((item) => {
+        const key = getKey(item);
+        counts.set(key, (counts.get(key) ?? 0) + 1);
+      });
+      return Array.from(counts, ([status, count]) => ({ status, count }));
+    };
+    const demandByCountry = new Map<string, { demandCount: number; quota: number; filledQuota: number }>();
+
+    demands.forEach((demand) => {
+      const country = demand.country || "Belum ditentukan";
+      const current = demandByCountry.get(country) ?? { demandCount: 0, quota: 0, filledQuota: 0 };
+      demandByCountry.set(country, {
+        demandCount: current.demandCount + 1,
+        quota: current.quota + demand.requiredQuota,
+        filledQuota: current.filledQuota + demand.filledQuota,
+      });
+    });
+
+    return {
+      candidateLifecycle: countBy(candidates, (candidate) => candidate.lifecycleStatus ?? "Belum ditentukan"),
+      candidatesByProvince: countBy(candidates, (candidate) => candidate.provinsi || "Belum dipetakan")
+        .map(({ status, count }) => ({ province: status, count }))
+        .sort((left, right) => right.count - left.count)
+        .slice(0, 8),
+      institutionsByEvokasiStatus: countBy(providers, (provider) => provider.evokasiVerificationStatus),
+      demandByCountry: Array.from(demandByCountry, ([country, summary]) => ({ country, ...summary }))
+        .sort((left, right) => right.quota - left.quota),
+    };
+  }, [candidates, demands, providers]);
 
   return (
     <div className="space-y-6">
@@ -124,19 +97,6 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
             <span className="font-medium">{currentScope?.name}</span>
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button
-            onClick={() => {
-              toast("Data direstapkan", {
-                description: "Semua dataset kembali ke nilai sampel default.",
-              });
-            }}
-            variant="outline"
-            size="sm"
-          >
-            Reset Data
-          </Button>
-        </div>
       </div>
       {/* KPI Row */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
@@ -144,13 +104,13 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           label="Calon Peserta"
           value={candidates.length}
           icon={Users}
-          desc="Data supply terverifikasi"
+          desc="Seluruh peserta pada lingkup Anda"
         />
         <StatCard
           label="Program Pelatihan"
-          value={5}
+          value={programs.length}
           icon={GraduationCap}
-          desc="Katalog program aktif"
+          desc="Program pada katalog Anda"
         />
         <StatCard
           label="Lembaga Vokasi (LPK)"
@@ -172,11 +132,18 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         />
       </div>
 
+      <ExecutiveDashboardBreakdowns data={dashboardBreakdowns} />
+      <InstitutionDirectory
+        institutions={institutionDirectory}
+        totalCount={providers.length}
+        scopeLabel={currentScope?.name ?? "lingkup Anda"}
+      />
+
       {/* Role context info */}
       {stakeholder && (
-        <Card className="border-l-4 border-blue-500 bg-blue-50">
+        <Card className="border-l-4 border-primary bg-primary/5">
           <CardHeader className="flex flex-row items-center gap-3 p-4">
-            <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-white" style={{ backgroundColor: stakeholder.color === "bg-blue-500" ? "#3b82f6" : stakeholder.color === "bg-indigo-500" ? "#6366f1" : stakeholder.color === "bg-violet-500" ? "#a855f7" : stakeholder.color === "bg-emerald-500" ? "#10b981" : stakeholder.color === "bg-slate-500" ? "#64748b" : stakeholder.color === "bg-cyan-500" ? "#06b6d4" : stakeholder.color === "bg-amber-500" ? "#f59e0b" : stakeholder.color === "bg-rose-500" ? "#f43f5e" : "#3b82f6" }}>
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary font-bold text-primary-foreground">
               {stakeholder.name.charAt(0)}
             </div>
             <div>
@@ -185,21 +152,16 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
             </div>
           </CardHeader>
           <CardContent className="p-4 pt-0">
-            <div className="flex items-center gap-4 text-xs text-slate-600">
-              <span><span className="font-semibold text-slate-900">Scope:</span> {stakeholder.scope}</span>
-              <span><span className="font-semibold text-slate-900">Grup:</span> {stakeholder.group}</span>
+            <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
+              <span><span className="font-semibold text-foreground">Lingkup:</span> {stakeholder.scope}</span>
+              <span><span className="font-semibold text-foreground">Kelompok:</span> {stakeholder.group}</span>
               <Badge variant="outline">Hak akses: {getRoleInfo(currentRole).accessibleModules.length} modul</Badge>
             </div>
           </CardContent>
         </Card>
       )}
 
-      {/* Tahap 1-6 */}
-      <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {TAHAP_DATA.map((tahap) => (
-          <TahapCard key={tahap.id} tahap={tahap} />
-        ))}
-      </section>
+      <ProcessStages />
 
       {/* Quick actions */}
       <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -234,49 +196,12 @@ function StatCard({ label, value, icon: Icon, desc }: { label: string; value: nu
           <CardTitle className="text-sm font-semibold">{label}</CardTitle>
           <CardDescription className="text-xs">{desc}</CardDescription>
         </div>
-        <div className="w-8 h-8 rounded-lg flex items-center justify-center text-blue-500" style={{ backgroundColor: "rgba(59,130,246,0.1)" }}>
-          <Icon className="h-4 w-4" />
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+          <Icon className="h-4 w-4" aria-hidden="true" />
         </div>
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold">{value}</div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function TahapCard({ tahap }: { tahap: (typeof TAHAP_DATA)[number] }) {
-  const isSippmi = tahap.source === "sippmi";
-  return (
-    <Card className={cn("overflow-hidden", isSippmi ? "border-l-2 border-amber-500 bg-amber-50" : "")}>
-      <CardHeader className="p-4 pb-3 flex flex-row items-start justify-between">
-        <div className="flex items-center gap-3">
-          <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${tahap.color}`}>
-            <tahap.icon className="h-5 w-5" />
-          </div>
-          <div>
-            <CardTitle className="text-sm font-bold">{tahap.title}</CardTitle>
-            <CardDescription className="text-xs">{tahap.subtitle}</CardDescription>
-          </div>
-        </div>
-        <Badge variant={isSippmi ? "outline" : "secondary"} className="text-[10px]">
-          {tahap.badge}
-        </Badge>
-      </CardHeader>
-      <CardContent className="p-4 pt-0">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-xs font-medium">{tahap.status}</span>
-          <span className="text-xs font-mono text-muted-foreground">{tahap.progress}%</span>
-        </div>
-        <div className="w-full bg-slate-200 rounded-full h-1.5">
-          <div className={`h-1.5 rounded-full transition-all duration-500 ${tahap.color.replace("/10", "").replace("text-", "bg-")}`} style={{ width: `${tahap.progress}%` }} />
-        </div>
-        {isSippmi && (
-          <div className="mt-3 flex items-center gap-2 text-xs text-amber-600">
-            <AlertTriangle className="h-3 w-3" />
-            <span>Data dari SIPPMI (LPK)</span>
-          </div>
-        )}
+        <div className="text-2xl font-bold tabular-nums">{value.toLocaleString("id-ID")}</div>
       </CardContent>
     </Card>
   );
@@ -284,17 +209,20 @@ function TahapCard({ tahap }: { tahap: (typeof TAHAP_DATA)[number] }) {
 
 function QuickActionCard({ title, desc, icon: Icon, onClick }: { title: string; desc: string; icon: React.ElementType; onClick: () => void }) {
   return (
-    <Card onClick={onClick} className="cursor-pointer hover:border-blue-300 hover:bg-blue-50 transition">
-      <CardHeader className="p-4 pb-3 flex items-center gap-3">
-        <div className="w-9 h-9 rounded-lg flex items-center justify-center text-blue-500" style={{ backgroundColor: "rgba(59,130,246,0.1)" }}>
-          <Icon className="h-5 w-5" />
-        </div>
+    <Button
+      type="button"
+      variant="ghost"
+      onClick={onClick}
+      className="h-auto w-full justify-start gap-3 whitespace-normal rounded-xl border border-border bg-card p-4 text-left text-foreground shadow-sm hover:bg-muted"
+    >
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+        <Icon className="h-5 w-5" aria-hidden="true" />
+      </span>
         <div className="flex-1">
           <CardTitle className="text-sm font-bold">{title}</CardTitle>
           <CardDescription className="text-xs">{desc}</CardDescription>
         </div>
-      </CardHeader>
-    </Card>
+    </Button>
   );
 }
 

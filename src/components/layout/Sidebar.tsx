@@ -48,7 +48,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <span className="text-xs font-bold">SGG</span>
             </div>
             <span className="truncate font-semibold tracking-tight text-foreground">
-              SMK Go Global
+              SGG-AC
             </span>
           </div>
         )}
