@@ -72,6 +72,55 @@ diperbarui secara client-side oleh Inertia.
 Untuk memeriksa frontend produksi, jalankan `pnpm build` dari `backend/`.
 Tes backend: `php artisan test`.
 
+## Impor data wilayah nasional
+
+Seeder `ReferenceDataSeeder` hanya menyediakan sebagian kecil wilayah untuk
+pengembangan. Untuk memuat data nasional, siapkan JSON dari sumber resmi yang
+telah diverifikasi lalu jalankan perintah Artisan di server. Perintah ini
+menormalisasi kode kabupaten/kota seperti `32.01` menjadi `3201`, melakukan
+upsert dalam transaksi, dan tidak menghapus wilayah yang sudah ada.
+
+Format file:
+
+```json
+{
+  "provinces": [
+    { "id": "32", "name": "Jawa Barat" }
+  ],
+  "districts": [
+    {
+      "id": "32.01",
+      "province_id": "32",
+      "name": "Kabupaten Bogor",
+      "type": "Kabupaten"
+    },
+    {
+      "id": "32.71",
+      "province_id": "32",
+      "name": "Kota Bogor",
+      "type": "Kota"
+    }
+  ]
+}
+```
+
+Setiap kabupaten/kota harus memiliki kode, nama, serta tipe `Kabupaten` atau
+`Kota`. Kode provinsi dua digit; kode kabupaten/kota empat digit, dengan titik
+opsional pada file masukan. Kolom `province_id` pada kabupaten/kota opsional
+karena dapat diturunkan dari dua digit pertama kode wilayah.
+
+Contoh setelah file diletakkan di `storage/app/reference/wilayah.json`:
+
+```sh
+php artisan regions:import storage/app/reference/wilayah.json --dry-run
+php artisan regions:import storage/app/reference/wilayah.json
+```
+
+Ambil dan tinjau file melalui mekanisme resmi yang disetujui pemilik proyek
+sebelum impor. Perintah ini tidak mengunduh dari URL tertentu karena endpoint
+resmi nasional belum dikonfirmasi. File impor tidak dicatat atau disimpan ulang
+oleh aplikasi.
+
 ## Autentikasi
 
 - Form login menerima username, email, atau NIP dan memvalidasi kredensial di
