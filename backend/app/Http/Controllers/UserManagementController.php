@@ -4,13 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\Role;
 use App\Models\User;
-use App\Services\Bp3miScope;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
@@ -23,8 +21,8 @@ class UserManagementController extends Controller
         $users = User::query()
             ->with('roles:id,name,title')
             ->orderBy('name')
-            ->paginate(15)
-            ->through(fn (User $user): array => [
+            ->paginate(15);
+        $users->through(fn (User $user): array => [
                 'id' => (string) $user->id,
                 'name' => $user->name,
                 'username' => $user->username,
@@ -34,7 +32,6 @@ class UserManagementController extends Controller
                 'roleName' => $user->roles->first()?->name ?? '',
                 'roleTitle' => $user->roles->first()?->title ?? 'Tanpa peran',
                 'provinceId' => $user->province_id,
-                'bp3miCode' => $user->bp3mi_code,
                 'districtId' => $user->district_id,
                 'institutionId' => $user->institution_id,
                 'employerId' => $user->employer_id,
@@ -50,7 +47,6 @@ class UserManagementController extends Controller
                 ->orderBy('title')
                 ->get(['name', 'title']),
             'provinces' => DB::table('provinces')->orderBy('name')->get(['id', 'name']),
-            'bp3miAssignments' => app(Bp3miScope::class)->assignmentOptions(),
             'districts' => DB::table('districts')->orderBy('name')->get(['id', 'province_id', 'name']),
             'institutions' => DB::table('institutions')->where('status', 'Aktif')->orderBy('name')->get(['id', 'name']),
             'employers' => DB::table('employers')->orderBy('name')->get(['id', 'name']),
@@ -68,7 +64,6 @@ class UserManagementController extends Controller
             'role' => ['required', Rule::exists('roles', 'name'), Rule::notIn(['super_admin'])],
             'scopeName' => ['nullable', 'string', 'max:255'],
             'provinceId' => ['nullable', 'string', 'exists:provinces,id'],
-            'bp3miCode' => ['nullable', 'string', Rule::in(array_column(app(Bp3miScope::class)->assignmentOptions(), 'code'))],
             'districtId' => ['nullable', 'string', 'exists:districts,id'],
             'institutionId' => ['nullable', 'string', 'exists:institutions,id'],
             'employerId' => ['nullable', 'string', 'exists:employers,id'],
@@ -91,10 +86,6 @@ class UserManagementController extends Controller
                 'status' => 'Aktif',
                 'avatar_initials' => Str::upper(Str::substr($data['name'], 0, 2)),
             ];
-            if (Schema::hasColumn('users', 'bp3mi_code')) {
-                $attributes['bp3mi_code'] = $data['role'] === 'task_force' ? ($data['bp3miCode'] ?? null) : null;
-            }
-
             $user = User::query()->create($attributes);
             $role = Role::query()->where('name', $data['role'])->firstOrFail();
             $user->roles()->sync([$role->id]);
@@ -117,7 +108,6 @@ class UserManagementController extends Controller
             'role' => ['required', Rule::exists('roles', 'name'), Rule::notIn(['super_admin'])],
             'scopeName' => ['nullable', 'string', 'max:255'],
             'provinceId' => ['nullable', 'string', 'exists:provinces,id'],
-            'bp3miCode' => ['nullable', 'string', Rule::in(array_column(app(Bp3miScope::class)->assignmentOptions(), 'code'))],
             'districtId' => ['nullable', 'string', 'exists:districts,id'],
             'institutionId' => ['nullable', 'string', 'exists:institutions,id'],
             'employerId' => ['nullable', 'string', 'exists:employers,id'],
@@ -137,9 +127,6 @@ class UserManagementController extends Controller
                 'employer_id' => $data['employerId'] ?? null,
                 'avatar_initials' => Str::upper(Str::substr($data['name'], 0, 2)),
             ];
-            if (Schema::hasColumn('users', 'bp3mi_code')) {
-                $attributes['bp3mi_code'] = $data['role'] === 'task_force' ? ($data['bp3miCode'] ?? null) : null;
-            }
             if (filled($data['password'] ?? null)) {
                 $attributes['password'] = Hash::make($data['password']);
             }
@@ -276,14 +263,6 @@ class UserManagementController extends Controller
         if ($role === 'demand_admin') {
             validator($data, ['employerId' => ['required', 'exists:employers,id']])->validate();
         }
-        if ($role === 'task_force') {
-            validator($data, ['bp3miCode' => [
-                'required',
-                'string',
-                Rule::in(array_column(app(Bp3miScope::class)->assignmentOptions(), 'code')),
-            ]])->validate();
-        }
-
         if ($role === 'district_admin') {
             return ['level' => 'kabupaten', 'name' => (string) DB::table('districts')->where('id', $districtId)->value('name')];
         }
@@ -297,10 +276,7 @@ class UserManagementController extends Controller
             return ['level' => 'demand', 'name' => (string) DB::table('employers')->where('id', $employerId)->value('name')];
         }
         if ($role === 'task_force') {
-            $assignment = collect(app(Bp3miScope::class)->assignmentOptions())
-                ->firstWhere('code', $data['bp3miCode']);
-
-            return ['level' => 'provinsi', 'name' => $assignment['name']];
+            return ['level' => 'provinsi', 'name' => 'Area BP3MI dipilih di header'];
         }
 
         return ['level' => 'national', 'name' => ($data['scopeName'] ?? null) ?: 'Nasional'];

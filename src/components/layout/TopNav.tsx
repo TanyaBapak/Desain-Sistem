@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { router } from "@inertiajs/react";
 import { useAppStore } from "@/store/useAppStore";
 import { Bell, Shield, User, ChevronDown, Menu, LogOut, MapPin } from "lucide-react";
 import { NAV_ITEMS } from "@/lib/sidebar-items";
@@ -46,9 +47,28 @@ export const TopNav: React.FC<TopNavProps> = ({ currentTab, onOpenSidebar }) => 
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
+          {currentUser?.roleName === "task_force" && currentUser.bp3miAssignments?.length ? (
+            <label className="flex items-center gap-2">
+              <span className="sr-only">Area BP3MI aktif</span>
+              <select
+                aria-label="Area BP3MI aktif"
+                className="h-9 w-24 max-w-36 rounded-md border border-input bg-background px-2 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:w-auto sm:max-w-48 sm:px-3 sm:text-sm"
+                value={currentUser.bp3miCode ?? ""}
+                onChange={(event) => router.get(
+                  window.location.pathname,
+                  { bp3mi_area: event.target.value },
+                  { preserveScroll: true, preserveState: false, replace: true },
+                )}
+              >
+                {currentUser.bp3miAssignments.map((assignment) => (
+                  <option key={assignment.code} value={assignment.code}>{assignment.name}</option>
+                ))}
+              </select>
+            </label>
+          ) : null}
           {/* Notifications */}
           <button
-            className="relative rounded-md p-2 text-muted-foreground transition hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="relative hidden rounded-md p-2 text-muted-foreground transition hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:block"
             aria-label="Notifikasi"
           >
             <Bell className="h-4 w-4" />

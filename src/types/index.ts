@@ -229,6 +229,8 @@ export interface AuthUser {
   organization: string;
   scope: UserScope;
   bp3miCode?: string | null;
+  roleName?: string;
+  bp3miAssignments?: { code: string; name: string; provinces: string[] }[];
   nip?: string;
   mfaEnabled: boolean;
   mfaVerified: boolean;

@@ -73,30 +73,40 @@ class UserManagementTest extends TestCase
             'email' => 'pengguna@example.invalid',
             'password' => 'aman123456',
             'role' => 'task_force',
-            'bp3miCode' => 'BP3MI-JABAR',
         ])->assertRedirect()->assertSessionHasNoErrors();
 
         $created = User::query()->where('username', 'pengguna-contoh')->firstOrFail();
         $this->assertSame('task_force', $created->roles()->value('name'));
+        $this->assertNull($created->bp3mi_code);
+    }
 
-        $this->from('/app/rbac')->post('/admin/users', [
-            'name' => 'Pengguna Kedua',
-            'username' => 'pengguna-kedua',
-            'email' => 'pengguna-kedua@example.invalid',
-            'password' => 'aman12345',
+    public function test_super_admin_can_edit_task_force_without_a_fixed_bp3mi_assignment(): void
+    {
+        $admin = $this->userWithRole('super_admin');
+        $user = $this->userWithRole('task_force', [
+            'username' => 'taskforce-multi-area',
+            'email' => 'taskforce-multi-area@example.invalid',
+        ]);
+
+        $this->actingAs($admin)->patch("/admin/users/{$user->id}", [
+            'name' => $user->name,
+            'username' => $user->username,
+            'email' => $user->email,
+            'password' => '',
             'role' => 'task_force',
-            'bp3miCode' => 'BP3MI-JABAR',
-        ])->assertRedirect('/app/rbac')->assertSessionHasErrors('password');
+        ])->assertRedirect()->assertSessionHasNoErrors();
 
-        $this->from('/app/rbac')->post('/admin/users', [
-            'name' => 'Petugas Tanpa Wilayah',
-            'username' => 'petugas-tanpa-wilayah',
-            'email' => 'petugas-tanpa-wilayah@example.invalid',
-            'password' => 'aman123456',
-            'role' => 'task_force',
-        ])->assertRedirect('/app/rbac')->assertSessionHasErrors('bp3miCode');
+        $this->assertSame('Area BP3MI dipilih di header', $user->fresh()->scope_name);
+        $this->assertSame('BP3MI-JABAR', $user->fresh()->bp3mi_code);
 
-        $this->assertSame('BP3MI-JABAR', $created->bp3mi_code);
+        $this->get('/app/rbac')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('auth.user.bp3miAssignments', [])
+                ->where('adminUsers.data', fn ($users): bool => collect($users)->contains(
+                    fn ($item): bool => data_get($item, 'id') === (string) $user->id
+                        && ! array_key_exists('bp3miCode', (array) $item),
+                )));
     }
 
     public function test_super_admin_cannot_create_another_super_admin_or_mismatched_scope(): void

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Services\Bp3miScope;
 use App\Services\BusinessDataPresenter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -30,6 +31,7 @@ class AppController extends Controller
     public function __invoke(
         Request $request,
         string $tab,
+        Bp3miScope $bp3miScope,
         BusinessDataPresenter $businessDataPresenter,
         UserManagementController $userManagementController,
     ): Response|RedirectResponse {
@@ -42,6 +44,7 @@ class AppController extends Controller
 
         abort_unless($request->user()?->canAccessTab($tab), 403);
 
+        $bp3miScope->activeCodeForUser($request->user());
         $props = [
             'currentTab' => $tab,
             'isRoot' => false,

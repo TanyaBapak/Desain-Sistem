@@ -39,7 +39,8 @@ class BusinessDataPresenter
                 'bp3miScope' => [
                     'isRestricted' => $role === 'task_force',
                     'provinces' => $this->bp3miScope->provinceNamesForUser($user),
-                    'code' => $user->bp3mi_code,
+                    'codes' => $this->bp3miScope->codesForUser($user),
+                    'code' => $this->bp3miScope->activeCodeForUser($user),
                 ],
             ];
         });
@@ -52,7 +53,9 @@ class BusinessDataPresenter
 
     private function cacheKey(User $user, ?string $role): string
     {
-        return 'business_data:'.$user->id.':'.($role ?? 'none').':'.($user->province_id ?? 'na').':'.($user->district_id ?? 'na').':'.($user->institution_id ?? 'na').':'.($user->employer_id ?? 'na').':'.($user->bp3mi_code ?? 'na');
+        $bp3miCodes = implode(',', $this->bp3miScope->codesForUser($user));
+
+        return 'business_data:'.$user->id.':'.($role ?? 'none').':'.($user->province_id ?? 'na').':'.($user->district_id ?? 'na').':'.($user->institution_id ?? 'na').':'.($user->employer_id ?? 'na').':'.$bp3miCodes;
     }
 
     private function candidateMatches(?string $role, User $user): array

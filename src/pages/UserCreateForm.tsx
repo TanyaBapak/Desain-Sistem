@@ -14,7 +14,6 @@ export function UserCreateForm({ data }: { data: UserManagementData }) {
     role: data.roles[0]?.name ?? "",
     scopeName: "",
     provinceId: "",
-    bp3miCode: "",
     districtId: "",
     institutionId: "",
     employerId: "",
@@ -59,21 +58,10 @@ export function UserCreateForm({ data }: { data: UserManagementData }) {
           <Field label="Peran" error={form.errors.role}>
             <select className={selectClass} value={form.data.role} onChange={(event) => {
               form.setData("role", event.target.value);
-              if (event.target.value !== "task_force") form.setData("bp3miCode", "");
             }} required>
               {data.roles.map((role) => <option key={role.name} value={role.name}>{role.title}</option>)}
             </select>
           </Field>
-          {asksBp3mi && (
-            <Field label="Penetapan BP3MI" error={form.errors.bp3miCode}>
-              <select className={selectClass} value={form.data.bp3miCode} onChange={(event) => form.setData("bp3miCode", event.target.value)} required>
-                <option value="">Pilih wilayah BP3MI</option>
-                {data.bp3miAssignments.map((assignment) => (
-                  <option key={assignment.code} value={assignment.code}>{assignment.name}</option>
-                ))}
-              </select>
-            </Field>
-          )}
           {asksProvince && (
             <Field label="Provinsi" error={form.errors.provinceId}>
               <select className={selectClass} value={form.data.provinceId} onChange={(event) => { form.setData("provinceId", event.target.value); form.setData("districtId", ""); }} required>

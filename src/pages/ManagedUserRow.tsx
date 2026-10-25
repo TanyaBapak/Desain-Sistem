@@ -27,7 +27,6 @@ export function ManagedUserRow({ user, currentUserId, data }: { user: ManagedUse
                 user={user}
                 roles={data.roles}
                 provinces={data.provinces}
-                bp3miAssignments={data.bp3miAssignments}
                 districts={data.districts}
                 institutions={data.institutions}
                 employers={data.employers}

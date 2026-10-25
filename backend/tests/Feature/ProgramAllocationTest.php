@@ -91,13 +91,73 @@ class ProgramAllocationTest extends TestCase
         $response->assertForbidden();
     }
 
-    public function test_task_force_without_valid_bp3mi_assignment_is_denied(): void
+    public function test_task_force_can_change_active_bp3mi_area_and_manage_its_records(): void
+    {
+        $user = $this->userWithRole('task_force', ['bp3mi_code' => 'BP3MI-JKT']);
+        $this->createAllocationRecords();
+
+        $this->actingAs($user)
+            ->get('/app/dashboard?bp3mi_area=BP3MI-JABAR')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('auth.user.bp3miCode', 'BP3MI-JABAR')
+                ->where('auth.user.bp3miAssignments', fn ($areas): bool => count($areas) === 10)
+                ->where('businessData.bp3miScope.provinces', ['Jawa Barat']));
+
+        $this->post('/allocations', $this->allocationData())
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('program_allocations', [
+            'job_demand_id' => 'DEM-ALLOC-001',
+            'status' => 'Approved',
+        ]);
+    }
+
+    public function test_task_force_without_legacy_assignment_defaults_to_selectable_bp3mi_area(): void
+    {
+        $user = $this->userWithRole('task_force', ['bp3mi_code' => null]);
+
+        $this->actingAs($user)
+            ->get('/app/dashboard')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('auth.user.bp3miCode', 'BP3MI-JABAR')
+                ->where('businessData.bp3miScope.provinces', ['Jawa Barat']));
+    }
+
+    public function test_task_force_rejects_invalid_bp3mi_area_selection(): void
+    {
+        $user = $this->userWithRole('task_force');
+
+        $this->actingAs($user)
+            ->getJson('/app/dashboard?bp3mi_area=UNKNOWN')
+            ->assertUnprocessable();
+    }
+
+    public function test_recommended_providers_use_the_selected_bp3mi_area(): void
+    {
+        $this->createAllocationRecords();
+        $user = $this->userWithRole('task_force', ['bp3mi_code' => 'BP3MI-JKT']);
+
+        $this->actingAs($user)
+            ->get('/app/dashboard?bp3mi_area=BP3MI-JABAR')
+            ->assertOk();
+
+        $this->getJson('/business-data/recommended-providers?occupation_id=OCC-WL-01')
+            ->assertOk()
+            ->assertJsonCount(1, 'data');
+    }
+
+    public function test_task_force_without_legacy_bp3mi_assignment_can_open_scoped_page(): void
     {
         $user = $this->userWithRole('task_force', ['bp3mi_code' => null]);
 
         $this->actingAs($user)
             ->get('/app/matching')
-            ->assertForbidden();
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('businessData.bp3miScope.code', 'BP3MI-JABAR'));
     }
 
     public function test_recommended_providers_are_scoped_and_report_remaining_capacity(): void
@@ -115,6 +175,7 @@ class ProgramAllocationTest extends TestCase
             ->assertJsonPath('data.0.available', true);
 
         $user->update(['bp3mi_code' => 'BP3MI-JKT']);
+        $this->get('/app/dashboard?bp3mi_area=BP3MI-JKT')->assertOk();
         $this->getJson('/business-data/recommended-providers?occupation_id=OCC-WL-01')
             ->assertOk()
             ->assertJsonCount(0, 'data');

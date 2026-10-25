@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Models\User;
+use App\Services\Bp3miScope;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -15,6 +16,10 @@ class HandleInertiaRequests extends Middleware
         $user = $request->user();
         $user?->loadMissing('roles');
         $role = $user?->roles->first();
+        $bp3miScope = app(Bp3miScope::class);
+        $activeBp3miCode = $user ? $bp3miScope->activeCodeForUser($user) : null;
+        $activeBp3miAssignment = collect($bp3miScope->assignmentOptions())
+            ->firstWhere('code', $activeBp3miCode);
         $accessibleTabs = $user ? $this->accessibleTabs($user) : [];
         $defaultTab = in_array($role?->default_tab, $accessibleTabs, true)
             ? $role->default_tab
@@ -31,11 +36,12 @@ class HandleInertiaRequests extends Middleware
                     'roleName' => $role->name,
                     'roleTitle' => $role->title,
                     'badge' => $role->badge,
-                    'bp3miCode' => $user->bp3mi_code,
+                    'bp3miCode' => $activeBp3miCode ?? $user->bp3mi_code,
+                    'bp3miAssignments' => $role->name === 'task_force' ? $bp3miScope->assignmentOptions() : [],
                     'organization' => $user->organization ?? '',
                     'scope' => [
                         'level' => $user->scope_level,
-                        'name' => $user->scope_name,
+                        'name' => $activeBp3miAssignment['name'] ?? $user->scope_name,
                         'provinsi' => $user->province_id,
                         'kabupatenKota' => $user->district_id,
                         'institutionId' => $user->institution_id,

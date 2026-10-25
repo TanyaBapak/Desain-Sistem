@@ -13,7 +13,6 @@ interface EditableUser {
   roleName: string;
   scopeName: string;
   provinceId: string | null;
-  bp3miCode: string | null;
   districtId: string | null;
   institutionId: string | null;
   employerId: string | null;
@@ -23,13 +22,12 @@ interface UserEditDialogProps {
   user: EditableUser;
   roles: { name: string; title: string }[];
   provinces: { id: string; name: string }[];
-  bp3miAssignments: { code: string; name: string; provinces: string[] }[];
   districts: { id: string; province_id: string; name: string }[];
   institutions: { id: string; name: string }[];
   employers: { id: string; name: string }[];
 }
 
-export function UserEditDialog({ user, roles, provinces, bp3miAssignments, districts, institutions, employers }: UserEditDialogProps) {
+export function UserEditDialog({ user, roles, provinces, districts, institutions, employers }: UserEditDialogProps) {
   const [open, setOpen] = useState(false);
   const form = useForm({
     name: user.name,
@@ -39,7 +37,6 @@ export function UserEditDialog({ user, roles, provinces, bp3miAssignments, distr
     role: user.roleName,
     scopeName: user.scopeName,
     provinceId: user.provinceId ?? "",
-    bp3miCode: user.bp3miCode ?? "",
     districtId: user.districtId ?? "",
     institutionId: user.institutionId ?? "",
     employerId: user.employerId ?? "",
@@ -55,7 +52,6 @@ export function UserEditDialog({ user, roles, provinces, bp3miAssignments, distr
         role: user.roleName,
         scopeName: user.scopeName,
         provinceId: user.provinceId ?? "",
-        bp3miCode: user.bp3miCode ?? "",
         districtId: user.districtId ?? "",
         institutionId: user.institutionId ?? "",
         employerId: user.employerId ?? "",
@@ -82,7 +78,6 @@ export function UserEditDialog({ user, roles, provinces, bp3miAssignments, distr
     form.setData("role", role);
     form.setData("scopeName", "");
     form.setData("provinceId", "");
-    form.setData("bp3miCode", "");
     form.setData("districtId", "");
     form.setData("institutionId", "");
     form.setData("employerId", "");
@@ -116,16 +111,6 @@ export function UserEditDialog({ user, roles, provinces, bp3miAssignments, distr
               {roles.map((role) => <option key={role.name} value={role.name}>{role.title}</option>)}
             </select>
           </Field>
-          {asksBp3mi && (
-            <Field label="Penetapan BP3MI" error={form.errors.bp3miCode}>
-              <select className={selectClass} value={form.data.bp3miCode} onChange={(event) => form.setData("bp3miCode", event.target.value)} required>
-                <option value="">Pilih wilayah BP3MI</option>
-                {bp3miAssignments.map((assignment) => (
-                  <option key={assignment.code} value={assignment.code}>{assignment.name}</option>
-                ))}
-              </select>
-            </Field>
-          )}
           {asksProvince && (
             <Field label="Provinsi" error={form.errors.provinceId}>
               <select className={selectClass} value={form.data.provinceId} onChange={(event) => { form.setData("provinceId", event.target.value); form.setData("districtId", ""); }} required>

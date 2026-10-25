@@ -3,7 +3,7 @@
 namespace App\Services;
 
 use App\Models\User;
-use Illuminate\Support\Collection;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class Bp3miScope
@@ -21,20 +21,63 @@ class Bp3miScope
         'BP3MI-SUMSEL' => ['Sumatera Selatan'],
     ];
 
-    public function provinceNamesForUser(User $user): array
+    public function activeCodeForUser(User $user): ?string
     {
         $role = $user->roles()->value('name');
 
         if ($role !== 'task_force') {
-            return [];
+            return null;
         }
 
-        $bp3miCode = $user->bp3mi_code ?? null;
-        if (! is_string($bp3miCode) || ! isset(self::BP3MI_ASSIGNMENT[$bp3miCode])) {
-            abort(403, 'Akun Task Force belum memiliki penetapan BP3MI yang valid.');
+        /** @var Request $request */
+        $request = request();
+        $sessionKey = 'active_bp3mi_area_'.$user->id;
+        $requestedCode = $request->query('bp3mi_area');
+
+        if ($requestedCode !== null) {
+            if (! is_string($requestedCode) || ! isset(self::BP3MI_ASSIGNMENT[$requestedCode])) {
+                abort(422, 'Area BP3MI yang dipilih tidak valid.');
+            }
+
+            if ($request->hasSession()) {
+                $request->session()->put($sessionKey, $requestedCode);
+            }
+
+            return $requestedCode;
         }
 
-        return self::BP3MI_ASSIGNMENT[$bp3miCode];
+        $activeCode = $request->hasSession()
+            ? $request->session()->get($sessionKey)
+            : null;
+
+        if (! is_string($activeCode) || ! isset(self::BP3MI_ASSIGNMENT[$activeCode])) {
+            $legacyCode = $user->bp3mi_code;
+            $activeCode = is_string($legacyCode) && isset(self::BP3MI_ASSIGNMENT[$legacyCode])
+                ? $legacyCode
+                : 'BP3MI-JABAR';
+
+            if ($request->hasSession()) {
+                $request->session()->put($sessionKey, $activeCode);
+            }
+        }
+
+        return $activeCode;
+    }
+
+    public function codesForUser(User $user): array
+    {
+        $activeCode = $this->activeCodeForUser($user);
+
+        return $activeCode === null ? [] : [$activeCode];
+    }
+
+    public function provinceNamesForUser(User $user): array
+    {
+        return collect($this->codesForUser($user))
+            ->flatMap(fn (string $code): array => self::BP3MI_ASSIGNMENT[$code])
+            ->unique()
+            ->values()
+            ->all();
     }
 
     public function assignmentOptions(): array

@@ -8,7 +8,6 @@ export interface ManagedUser {
   roleName: string;
   roleTitle: string;
   provinceId: string | null;
-  bp3miCode: string | null;
   districtId: string | null;
   institutionId: string | null;
   employerId: string | null;
@@ -20,7 +19,6 @@ export interface UserManagementData {
   lastPage: number;
   total: number;
   roles: { name: string; title: string }[];
-  bp3miAssignments: { code: string; name: string; provinces: string[] }[];
   provinces: { id: string; name: string }[];
   districts: { id: string; province_id: string; name: string }[];
   institutions: { id: string; name: string }[];
