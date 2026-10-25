@@ -57,16 +57,20 @@ class BusinessDataPresenter
      */
     public function publicLandingProjection(int $year): array
     {
-        $countries = DB::table('job_demands')
-            ->join('countries', 'countries.id', '=', 'job_demands.country_id')
-            ->where('job_demands.verification_status', 'Approved')
-            ->whereYear('job_demands.created_at', $year)
+        $annualDemand = DB::table('job_demands')
+            ->where('verification_status', 'Approved')
+            ->whereYear('created_at', $year)
+            ->select('country_id')
+            ->selectRaw('SUM(headcount) as target')
+            ->selectRaw('SUM(filled_quota) as achieved')
+            ->groupBy('country_id');
+        $countries = DB::table('countries')
+            ->leftJoinSub($annualDemand, 'annual_demand', 'annual_demand.country_id', '=', 'countries.id')
             ->select('countries.name')
-            ->selectRaw('SUM(job_demands.headcount) as target')
-            ->selectRaw('SUM(job_demands.filled_quota) as achieved')
-            ->groupBy('countries.id', 'countries.name')
+            ->selectRaw('COALESCE(annual_demand.target, 0) as target')
+            ->selectRaw('COALESCE(annual_demand.achieved, 0) as achieved')
             ->orderByDesc('target')
-            ->limit(8)
+            ->orderBy('countries.name')
             ->get()
             ->map(fn (object $row): array => [
                 'name' => $row->name,

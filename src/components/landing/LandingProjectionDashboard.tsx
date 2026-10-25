@@ -42,14 +42,14 @@ export function LandingProjectionDashboard({ projection }: LandingProjectionDash
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div className="max-w-3xl space-y-2">
             <span className="block text-xs font-bold uppercase tracking-wider text-primary">
-              PROYEKSI PENEMPATAN DAN PELATIHAN
+              PROYEKSI INTERNASIONAL DAN PELATIHAN
             </span>
             <h2 id="projection-heading" className="text-2xl font-black tracking-tight sm:text-3xl">
-              Target, capaian, dan proyeksi nasional
+              Target, capaian, dan proyeksi penempatan internasional
             </h2>
             <p className="text-sm text-muted-foreground">
-              Bandingkan kuota permintaan penempatan dan program pelatihan dengan realisasi serta
-              sisa target pada periode yang dipilih.
+              Pantau daftar negara tujuan penempatan dan jenis pelatihan, termasuk kuota target,
+              capaian, dan proyeksi sisa pada periode yang dipilih.
             </p>
           </div>
           <label className="flex shrink-0 flex-col gap-1.5 text-sm font-medium">
@@ -71,10 +71,10 @@ export function LandingProjectionDashboard({ projection }: LandingProjectionDash
 
         <div className="grid gap-5 lg:grid-cols-2">
           <ProjectionCard
-            title="Negara penempatan"
-            description="Kuota demand yang disetujui dibanding peserta yang sudah dialokasikan."
+            title="Daftar negara tujuan"
+            description="Seluruh negara tujuan dalam master data, beserta kuota demand disetujui dan realisasinya."
             series={projection.countries}
-            emptyMessage="Belum ada demand tervalidasi pada periode ini."
+            emptyMessage="Daftar negara tujuan belum tersedia pada master data."
           />
           <ProjectionCard
             title="Jenis pelatihan"
