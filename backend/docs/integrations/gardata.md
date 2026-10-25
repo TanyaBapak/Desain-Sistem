@@ -34,11 +34,30 @@ GARDATA_SYNC_PAGE_SIZE=50
 GARDATA_SYNC_MAX_PAGES=1000
 
 # Endpoint opsional untuk sinkronisasi dari portal pusat sippmi.com
+# Wajib memakai kredensial SIPPMI sendiri; jangan memakai ulang GARDATA_API_KEY.
 SIPPMI_BASE_URL=https://sippmi.com
 SIPPMI_API_KEY=
 ```
 
+Jika `SIPPMI_BASE_URL` atau `SIPPMI_API_KEY` kosong, langkah sinkronisasi SIPPMI dilewati dan tidak mengubah status sinkronisasi Gardata. `GARDATA_API_KEY` tidak valid di `sippmi.com` (respons `401 Unauthorized`), sehingga kunci tidak boleh dipakai silang. Status "Sinkronisasi Gardata" pada halaman Pemantauan hanya membaca baris `integration_sync_logs` dengan `source = gardata`.
+
 Jangan menimpa `QUEUE_CONNECTION` produksi yang sudah menggunakan Redis atau queue terkelola. Jika menggunakan antrean database, atur `QUEUE_CONNECTION=database`, pastikan migrasi tabel queue tersedia, dan jalankan worker secara persisten.
+
+### Jadwal sinkronisasi
+
+`routes/console.php` menjadwalkan `SyncGardataPlacementData` setiap 15 menit pada zona `Asia/Jakarta`. Job tersebut menyinkronkan Gardata lalu SIPPMI (bila kredensial SIPPMI tersedia). Agar jadwal berjalan, cron server harus memanggil scheduler Laravel setiap menit sebagai user pemilik `storage/` (biasanya `server`), bukan root:
+
+```cron
+* * * * * su -s /bin/bash server -c 'cd /path/ke/backend && php artisan schedule:run' >> /dev/null 2>&1
+```
+
+Jalankan juga perintah `php artisan` manual sebagai user `server`. Jika dijalankan sebagai root, lock cache di `storage/framework/cache` akan dimiliki root dan PHP-FPM gagal memulai sinkronisasi manual dengan `Permission denied`. Perbaiki dengan:
+
+```bash
+chown -R server:server storage bootstrap/cache
+```
+
+Jangan menambahkan cron terpisah yang memanggil `php artisan gardata:sync` setiap hari karena akan menduplikasi jadwal di atas.
 
 ## Pemetaan yang diterapkan
 

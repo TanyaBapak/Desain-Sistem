@@ -22,6 +22,7 @@ class GardataSyncController extends Controller
         } catch (Throwable $exception) {
             Log::error('Gardata synchronization dispatch failed.', [
                 'exception' => $exception::class,
+                'message' => $exception->getMessage(),
             ]);
 
             return back()->withErrors([

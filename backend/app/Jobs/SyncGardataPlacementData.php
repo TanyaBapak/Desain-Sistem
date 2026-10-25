@@ -10,6 +10,7 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\Middleware\WithoutOverlapping;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Log;
 
 class SyncGardataPlacementData implements ShouldBeUnique, ShouldQueue
 {
@@ -42,14 +43,22 @@ class SyncGardataPlacementData implements ShouldBeUnique, ShouldQueue
 
         $sippmiBase = rtrim((string) config('services.sippmi.base_url', ''), '/');
         $gardataBase = rtrim((string) config('services.gardata.base_url', ''), '/');
-        $sippmiKey = (string) (config('services.sippmi.api_key') ?: config('services.gardata.api_key'));
+        $sippmiKey = (string) config('services.sippmi.api_key');
 
-        if ($sippmiBase !== '' && $sippmiBase !== $gardataBase && $sippmiKey !== '') {
-            try {
-                $syncService->syncSippmi();
-            } catch (\Throwable) {
-                // Jangan menggagalkan job utama bila endpoint sippmi opsional
-            }
+        // SIPPMI is optional and needs its own credentials. The Gardata key must not be
+        // reused because sippmi.com rejects it (HTTP 401), which used to mark this job failed.
+        if ($sippmiBase === '' || $sippmiKey === '' || $sippmiBase === $gardataBase) {
+            return;
+        }
+
+        try {
+            // SIPPMI stays gated on its own admin verification; the Gardata force flag
+            // must not bypass it. Use `php artisan sippmi:sync --force` for explicit overrides.
+            $syncService->syncSippmi();
+        } catch (\Throwable $exception) {
+            Log::warning('Optional SIPPMI synchronization failed; Gardata sync is unaffected.', [
+                'message' => $exception->getMessage(),
+            ]);
         }
     }
 }

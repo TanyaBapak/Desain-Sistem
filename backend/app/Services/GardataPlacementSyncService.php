@@ -223,6 +223,7 @@ class GardataPlacementSyncService
             $this->invalidateBusinessDataCache();
             Log::error("{$source} synchronization failed.", [
                 'exception' => $exception::class,
+                'message' => $exception->getMessage(),
             ]);
 
             throw new RuntimeException("Sinkronisasi {$source} gagal; lihat log integrasi untuk detail status.", 0, $exception);
@@ -240,12 +241,16 @@ class GardataPlacementSyncService
         }
     }
 
-    public function syncSippmi(?string $overrideBaseUrl = null, ?string $overrideApiKey = null): array
+    public function syncSippmi(?string $overrideBaseUrl = null, ?string $overrideApiKey = null, bool $force = false): array
     {
-        $baseUrl = $overrideBaseUrl ?: (string) (config('services.sippmi.base_url') ?: 'https://sippmi.com');
-        $apiKey = $overrideApiKey ?: (string) (config('services.sippmi.api_key') ?: config('services.gardata.api_key'));
+        $baseUrl = rtrim((string) ($overrideBaseUrl ?: config('services.sippmi.base_url')), '/');
+        $apiKey = (string) ($overrideApiKey ?: config('services.sippmi.api_key'));
 
-        return $this->syncCandidates($baseUrl, $apiKey, 'sippmi');
+        if ($baseUrl === '' || $apiKey === '') {
+            throw new RuntimeException('Konfigurasi API sippmi belum lengkap: atur SIPPMI_BASE_URL dan SIPPMI_API_KEY secara terpisah dari Gardata.');
+        }
+
+        return $this->syncCandidates($baseUrl, $apiKey, 'sippmi', $force);
     }
 
     private function persistCandidate(array $item, string $source = self::SOURCE, bool $force = false): array
@@ -498,7 +503,9 @@ class GardataPlacementSyncService
                 continue;
             }
 
-            $externalBatchId = $this->cleanString($class['batch_id'] ?? $class['id'] ?? $class['class_id'] ?? $class['class_code'] ?? null, 150);
+            $rawBatchId = $class['batch_id'] ?? $class['id'] ?? $class['class_id'] ?? $class['class_code'] ?? null;
+            // SIPPMI returns numeric batch IDs; cleanString() only accepts strings.
+            $externalBatchId = $this->cleanString(is_scalar($rawBatchId) ? (string) $rawBatchId : null, 150);
             $batchName = $this->cleanString($class['batch_name'] ?? $class['name'] ?? $class['program_name'] ?? $class['class_name'] ?? 'Pelatihan '.ucfirst($source), 255);
             if (! $externalBatchId) {
                 continue;
@@ -554,10 +561,10 @@ class GardataPlacementSyncService
 
     private function fallbackDistrictId(string $provinceId): string
     {
-        DB::table('provinces')->updateOrInsert(
-            ['id' => $provinceId],
-            ['name' => 'Provinsi '.$provinceId]
-        );
+        DB::table('provinces')->insertOrIgnore([
+            'id' => $provinceId,
+            'name' => 'Provinsi '.$provinceId,
+        ]);
 
         $first = DB::table('districts')->where('province_id', $provinceId)->orderBy('id')->first(['id']);
         if ($first) {

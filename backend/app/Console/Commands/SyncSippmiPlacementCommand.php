@@ -9,7 +9,7 @@ use Throwable;
 
 class SyncSippmiPlacementCommand extends Command
 {
-    protected $signature = 'sippmi:sync {--queue : Kirim proses ke antrean latar belakang}';
+    protected $signature = 'sippmi:sync {--queue : Kirim proses ke antrean latar belakang} {--force : Impor juga kandidat yang belum diverifikasi admin}';
 
     protected $description = 'Tarik dan sinkronkan data calon PMI dan riwayat kelas dari feeder sippmi.com';
 
@@ -25,7 +25,7 @@ class SyncSippmiPlacementCommand extends Command
         }
 
         try {
-            $result = $syncService->syncSippmi();
+            $result = $syncService->syncSippmi(null, null, (bool) $this->option('force'));
 
             $this->table(
                 ['Metrik', 'Jumlah'],

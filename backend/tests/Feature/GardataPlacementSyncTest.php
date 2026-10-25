@@ -145,6 +145,26 @@ class GardataPlacementSyncTest extends TestCase
         ]);
     }
 
+    public function test_sync_imports_training_history_with_numeric_batch_id(): void
+    {
+        $payload = $this->candidatePage();
+        $payload['data'][0]['classes_history'][0]['batch_id'] = 15;
+
+        Http::fake([
+            'gardata.test/api/v1/placement/candidates*' => Http::response($payload, 200),
+        ]);
+
+        $result = app(GardataPlacementSyncService::class)->syncCandidates();
+
+        $this->assertSame(1, $result['recordsInserted']);
+        $this->assertSame(1, DB::table('external_training_records')->count());
+        $this->assertDatabaseHas('external_training_records', [
+            'external_source' => 'gardata',
+            'external_batch_id' => '15',
+            'batch_name' => 'Pelatihan Contoh',
+        ]);
+    }
+
     public function test_sync_skips_candidates_without_verified_consent(): void
     {
         $payload = $this->candidatePage();
@@ -233,6 +253,27 @@ class GardataPlacementSyncTest extends TestCase
             ->assertSuccessful();
 
         $this->assertSame(1, DB::table('job_seekers')->where('external_source', 'gardata')->count());
+    }
+
+    public function test_job_skips_optional_sippmi_sync_without_its_own_credentials(): void
+    {
+        config([
+            'services.sippmi.base_url' => null,
+            'services.sippmi.api_key' => null,
+        ]);
+
+        Http::fake([
+            'gardata.test/api/v1/placement/candidates*' => Http::response($this->candidatePage(), 200),
+        ]);
+
+        (new SyncGardataPlacementData())
+            ->handle(app(GardataPlacementSyncService::class));
+
+        $this->assertDatabaseMissing('integration_sync_logs', ['source' => 'sippmi']);
+        $this->assertDatabaseHas('integration_sync_logs', [
+            'source' => 'gardata',
+            'status' => 'success',
+        ]);
     }
 
     public function test_webhook_rejects_unauthorized_requests(): void
