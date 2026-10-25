@@ -10,7 +10,10 @@ use Illuminate\Support\Str;
 
 class BusinessDataPresenter
 {
-    public function __construct(private readonly Bp3miScope $bp3miScope = new Bp3miScope) {}
+    public function __construct(
+        private readonly Bp3miScope $bp3miScope = new Bp3miScope,
+        private readonly DashboardTargetService $dashboardTargetService = new DashboardTargetService,
+    ) {}
 
     public function make(User $user, array $filters = []): array
     {
@@ -28,7 +31,12 @@ class BusinessDataPresenter
                 'candidateMatches' => $this->candidateMatches($role, $user),
                 'allocations' => $this->allocations($role, $user),
                 'nationalLpkCount' => $nationalLpkCount,
-                'reportSummary' => $this->reportSummary($role, $user, $nationalLpkCount),
+                'reportSummary' => $this->reportSummary(
+                    $role,
+                    $user,
+                    $nationalLpkCount,
+                    $role === 'leadership' ? $this->dashboardTargetService->currentTargets() : null,
+                ),
                 'approvalRequests' => $this->approvalRequests($role, $user, $filters),
                 'approvalPagination' => $this->approvalPagination($role, $user, $filters),
                 'approvalCounts' => $this->approvalCounts($role, $user, $filters),
@@ -91,7 +99,7 @@ class BusinessDataPresenter
                 'matching_runs.id = (SELECT latest_run.id FROM matching_runs AS latest_run WHERE latest_run.job_demand_id = candidate_matches.job_demand_id ORDER BY latest_run.created_at DESC, latest_run.run_date DESC, latest_run.id DESC LIMIT 1)',
             );
 
-        if ($role === 'task_force') {
+        if ($this->bp3miScope->hasActiveAreaFilter($user)) {
             $this->bp3miScope->applyToJobSeekers($query, $user);
         }
 
@@ -131,7 +139,7 @@ class BusinessDataPresenter
             ->when($role === 'institution_admin', fn ($query) => $query->where('job_seekers.institution_id', $user->institution_id ?? ''))
             ->leftJoin('provinces', 'provinces.id', '=', 'job_seekers.province_id')
             ->leftJoin('districts', 'districts.id', '=', 'job_seekers.district_id')
-            ->when($role === 'task_force', fn ($query) => $this->bp3miScope->applyToJobSeekers($query, $user))
+            ->when($this->bp3miScope->hasActiveAreaFilter($user), fn ($query) => $this->bp3miScope->applyToJobSeekers($query, $user))
             ->orderByDesc('job_seekers.created_at')
             ->limit(2000)
             ->get([
@@ -224,7 +232,7 @@ class BusinessDataPresenter
                 in_array($role, ['institution_admin', 'training_operator'], true),
                 fn ($q) => $q->where('training_programs.institution_id', $user->institution_id ?? ''),
             )
-            ->when($role === 'task_force', fn ($q) => $this->bp3miScope->applyToTrainingPrograms($q, $user));
+            ->when($this->bp3miScope->hasActiveAreaFilter($user), fn ($q) => $this->bp3miScope->applyToTrainingPrograms($q, $user));
 
         return $query
             ->orderByDesc('training_programs.created_at')
@@ -283,7 +291,7 @@ class BusinessDataPresenter
             ->leftJoin('districts', 'districts.id', '=', 'institutions.district_id')
             ->where('institutions.status', 'Aktif')
             ->when($role === 'institution_admin', fn ($q) => $q->where('institutions.id', $user->institution_id ?? ''))
-            ->when($role === 'task_force', fn ($q) => $this->bp3miScope->applyToInstitutions($q, $user));
+            ->when($this->bp3miScope->hasActiveAreaFilter($user), fn ($q) => $this->bp3miScope->applyToInstitutions($q, $user));
 
         return $query
             ->orderBy('institutions.name')
@@ -381,7 +389,7 @@ class BusinessDataPresenter
             ->leftJoin('occupations', 'occupations.id', '=', 'job_demands.occupation_id')
             ->where('job_demands.verification_status', '!=', 'Draft')
             ->when($role === 'demand_admin', fn ($q) => $q->where('job_demands.employer_id', $user->employer_id ?? ''))
-            ->when($role === 'task_force', fn ($q) => $this->bp3miScope->applyToJobDemands($q, $user));
+            ->when($this->bp3miScope->hasActiveAreaFilter($user), fn ($q) => $this->bp3miScope->applyToJobDemands($q, $user));
 
         return $query
             ->orderByDesc('job_demands.created_at')
@@ -435,7 +443,7 @@ class BusinessDataPresenter
             ->leftJoin('provinces', 'provinces.id', '=', 'job_seekers.province_id')
             ->whereNull('program_allocations.deleted_at')
             ->whereNull('job_seekers.deleted_at')
-            ->when($role === 'task_force', fn ($q) => $this->bp3miScope->applyToJobSeekers($q, $user))
+            ->when($this->bp3miScope->hasActiveAreaFilter($user), fn ($q) => $this->bp3miScope->applyToJobSeekers($q, $user))
             ->get(['program_allocation_candidates.program_allocation_id', 'program_allocation_candidates.job_seeker_id'])
             ->groupBy('program_allocation_id')
             ->map(fn ($rows): array => $rows->pluck('job_seeker_id')->all());
@@ -453,7 +461,7 @@ class BusinessDataPresenter
             ->leftJoin('institutions', 'institutions.id', '=', 'program_allocations.institution_id')
             ->leftJoin('provinces', 'provinces.id', '=', 'institutions.province_id')
             ->whereNull('program_allocations.deleted_at')
-            ->when($role === 'task_force', function ($q) use ($user, &$candidateIds, $allCandidateCounts) {
+            ->when($this->bp3miScope->hasActiveAreaFilter($user), function ($q) use ($user, &$candidateIds, $allCandidateCounts) {
                 $candidateIds = $candidateIds->filter(
                     fn (array $ids, $allocationId): bool => $ids !== []
                         && count($ids) === (int) $allCandidateCounts->get($allocationId, 0),
@@ -509,7 +517,7 @@ class BusinessDataPresenter
                 in_array($role, ['institution_admin', 'training_operator'], true),
                 fn ($query) => $query->where('institutions.id', $user->institution_id ?? ''),
             );
-        if ($role === 'task_force') {
+        if ($this->bp3miScope->hasActiveAreaFilter($user)) {
             $this->bp3miScope->applyToInstitutions($query, $user);
         }
 
@@ -519,8 +527,12 @@ class BusinessDataPresenter
             ->all();
     }
 
-    private function reportSummary(?string $role, User $user, int $nationalLpkCount): array
-    {
+    private function reportSummary(
+        ?string $role,
+        User $user,
+        int $nationalLpkCount,
+        ?array $dashboardTargets,
+    ): array {
         if (! in_array($role, ['super_admin', 'leadership', 'task_force', 'directorate_admin', 'auditor'], true)) {
             return [];
         }
@@ -539,7 +551,7 @@ class BusinessDataPresenter
             ->leftJoin('countries', 'countries.id', '=', 'job_demands.country_id')
             ->where('job_demands.verification_status', 'Approved');
 
-        if ($role === 'task_force') {
+        if ($this->bp3miScope->hasActiveAreaFilter($user)) {
             $this->bp3miScope->applyToJobSeekers($candidates, $user);
             $this->bp3miScope->applyToInstitutions($institutions, $user);
             $this->bp3miScope->applyToTrainingPrograms($programs, $user);
@@ -554,7 +566,7 @@ class BusinessDataPresenter
         $gardataCandidates = (clone $candidates)->whereIn('job_seekers.external_source', ['gardata', 'sippmi']);
         $gardataTraining = DB::table('external_training_records')
             ->whereIn('external_training_records.external_source', ['gardata', 'sippmi']);
-        if ($role === 'task_force') {
+        if ($this->bp3miScope->hasActiveAreaFilter($user)) {
             $gardataTraining
                 ->join('job_seekers', 'job_seekers.id', '=', 'external_training_records.job_seeker_id')
                 ->leftJoin('provinces', 'provinces.id', '=', 'job_seekers.province_id')
@@ -579,6 +591,7 @@ class BusinessDataPresenter
             'institutionCount' => (clone $institutions)->count('institutions.id'),
             'nationalLpkCount' => $nationalLpkCount,
             'demandCount' => (clone $demands)->count('job_demands.id'),
+            'dashboardTargets' => $dashboardTargets,
             'dashboard' => [
                 'candidateLifecycle' => (clone $candidates)
                     ->select('job_seekers.lifecycle_status')
@@ -829,7 +842,7 @@ class BusinessDataPresenter
         if (! in_array($role, ['super_admin', 'task_force', 'verifier'], true)) {
             return $requests->whereRaw('1 = 0');
         }
-        if ($role !== 'task_force') {
+        if (! $this->bp3miScope->hasActiveAreaFilter($user)) {
             return $requests;
         }
 
@@ -990,7 +1003,7 @@ class BusinessDataPresenter
             ->leftJoin('job_seekers', 'job_seekers.id', '=', 'external_training_records.job_seeker_id')
             ->whereIn('external_training_records.external_source', ['gardata', 'sippmi'])
             ->when(! $canViewGardata, fn ($query) => $query->whereRaw('1 = 0'));
-        if ($role === 'task_force') {
+        if ($this->bp3miScope->hasActiveAreaFilter($user)) {
             $externalClasses
                 ->leftJoin('provinces', 'provinces.id', '=', 'job_seekers.province_id')
                 ->whereNull('job_seekers.deleted_at');
@@ -1050,7 +1063,7 @@ class BusinessDataPresenter
                 in_array($role, ['bp3mi_admin', 'placement_officer'], true) && filled($user->province_id),
                 fn ($query) => $query->where('institutions.province_id', $user->province_id),
             );
-        if ($role === 'task_force') {
+        if ($this->bp3miScope->hasActiveAreaFilter($user)) {
             $this->bp3miScope->applyToInstitutions($localClasses, $user);
         }
 
@@ -1157,7 +1170,7 @@ class BusinessDataPresenter
             ->whereNull('job_seekers.deleted_at')
             ->where($candidateSourceFilter);
         $candidatePage = $this->pageWindow($filters, 'candidate', 25);
-        if ($role === 'task_force') {
+        if ($this->bp3miScope->hasActiveAreaFilter($user)) {
             $this->bp3miScope->applyToJobSeekers($gardataCandidatesQuery, $user);
             $candidateCountQuery->join('provinces', 'provinces.id', '=', 'job_seekers.province_id');
             $this->bp3miScope->applyToJobSeekers($candidateCountQuery, $user);
@@ -1218,7 +1231,7 @@ class BusinessDataPresenter
                 ->leftJoin('occupations', 'occupations.id', '=', 'job_demands.occupation_id')
                 ->leftJoin('provinces', 'provinces.id', '=', 'job_seekers.province_id')
                 ->when(
-                    $role === 'task_force',
+                    $this->bp3miScope->hasActiveAreaFilter($user),
                     fn ($query) => $this->bp3miScope->applyToJobSeekers($query, $user),
                 )
                 ->when(
@@ -1270,7 +1283,7 @@ class BusinessDataPresenter
                 ->whereNotExists(fn ($query) => $query->selectRaw('1')
                     ->from('placement_cases')
                     ->whereColumn('placement_cases.candidate_match_id', 'candidate_matches.id'))
-                ->when($role === 'task_force', fn ($query) => $this->bp3miScope->applyToJobSeekers($query, $user))
+                ->when($this->bp3miScope->hasActiveAreaFilter($user), fn ($query) => $this->bp3miScope->applyToJobSeekers($query, $user))
                 ->orderBy('job_seekers.full_name')
                 ->get([
                     'candidate_matches.id as candidate_match_id',

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Role;
 use App\Models\User;
+use App\Services\DashboardTargetService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -15,7 +16,7 @@ use Illuminate\Validation\ValidationException;
 
 class UserManagementController extends Controller
 {
-    public function indexData(Request $request): array
+    public function indexData(Request $request, DashboardTargetService $dashboardTargets): array
     {
         $this->authorizeSuperAdmin($request);
 
@@ -30,6 +31,7 @@ class UserManagementController extends Controller
             'email' => $user->email,
             'status' => $user->status,
             'scopeName' => $user->scope_name,
+            'scopeLevel' => $user->scope_level,
             'roleName' => $user->roles->first()?->name ?? '',
             'roleTitle' => $user->roles->first()?->title ?? 'Tanpa peran',
             'provinceId' => $user->province_id,
@@ -51,6 +53,7 @@ class UserManagementController extends Controller
             'districts' => DB::table('districts')->orderBy('name')->get(['id', 'province_id', 'name']),
             'institutions' => DB::table('institutions')->where('status', 'Aktif')->orderBy('name')->get(['id', 'name']),
             'employers' => DB::table('employers')->orderBy('name')->get(['id', 'name']),
+            'dashboardTargets' => $dashboardTargets->currentTargets(),
         ];
     }
 
@@ -151,8 +154,13 @@ class UserManagementController extends Controller
         abort_if($role === 'task_force', 422, 'Lingkup Task Force dipilih melalui dropdown area di header.');
 
         $data = $request->validate([
-            'scopeLevel' => ['required', Rule::in(['provinsi', 'kabupaten'])],
-            'provinceId' => ['required', 'string', 'exists:provinces,id'],
+            'scopeLevel' => ['required', Rule::in(['national', 'provinsi', 'kabupaten'])],
+            'provinceId' => [
+                Rule::requiredIf($request->input('scopeLevel') !== 'national'),
+                'nullable',
+                'string',
+                'exists:provinces,id',
+            ],
             'districtId' => [
                 Rule::requiredIf($request->input('scopeLevel') === 'kabupaten'),
                 'nullable',
@@ -172,13 +180,15 @@ class UserManagementController extends Controller
         }
 
         $isDistrictScope = $data['scopeLevel'] === 'kabupaten';
-        $scopeName = $isDistrictScope
-            ? (string) DB::table('districts')->where('id', $data['districtId'])->value('name')
-            : (string) DB::table('provinces')->where('id', $data['provinceId'])->value('name');
+        $scopeName = match ($data['scopeLevel']) {
+            'national' => 'Nasional',
+            'kabupaten' => (string) DB::table('districts')->where('id', $data['districtId'])->value('name'),
+            default => (string) DB::table('provinces')->where('id', $data['provinceId'])->value('name'),
+        };
         $attributes = [
             'scope_level' => $data['scopeLevel'],
             'scope_name' => $scopeName,
-            'province_id' => $data['provinceId'],
+            'province_id' => $data['provinceId'] ?? null,
             'district_id' => $isDistrictScope ? $data['districtId'] : null,
         ];
 

@@ -160,6 +160,47 @@ class ProgramAllocationTest extends TestCase
             ->assertUnprocessable();
     }
 
+    public function test_national_area_filter_scopes_read_data_without_restricting_write_authorization(): void
+    {
+        $this->createAllocationRecords();
+        DB::table('institutions')->insert([
+            'id' => 'VOC-ALLOC-JKT',
+            'name' => 'Lembaga Vokasi Jakarta Contoh',
+            'institution_type' => 'SMK',
+            'ownership_type' => 'Negeri',
+            'province_id' => '31',
+            'district_id' => '3171',
+            'verification_status' => 'Verified',
+            'status' => 'Aktif',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $user = $this->userWithRole('verifier', ['scope_level' => 'national']);
+
+        $this->actingAs($user)
+            ->getJson('/business-data/providers?bp3mi_area=BP3MI-JABAR')
+            ->assertOk()
+            ->assertJsonPath('pagination.total', 1);
+
+        $scope = app(Bp3miScope::class);
+        $this->assertTrue($scope->hasActiveAreaFilter($user));
+        $this->assertTrue($scope->allowsProvinceId($user, '31'));
+        $this->assertTrue($scope->allowsDemandCountry($user, 'JP'));
+
+        $this->getJson('/business-data/providers?bp3mi_area=all')
+            ->assertOk()
+            ->assertJsonPath('pagination.total', 2);
+    }
+
+    public function test_task_force_cannot_clear_its_required_area_filter(): void
+    {
+        $user = $this->userWithRole('task_force');
+
+        $this->actingAs($user)
+            ->getJson('/app/dashboard?bp3mi_area=all')
+            ->assertUnprocessable();
+    }
+
     public function test_recommended_providers_use_the_selected_bp3mi_area(): void
     {
         $this->createAllocationRecords();

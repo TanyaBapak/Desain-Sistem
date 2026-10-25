@@ -14,6 +14,7 @@ import {
   UserScope,
   VocationalProvider,
 } from "@/types";
+import type { DashboardTargets } from "@/types/dashboard-targets";
 
 const KemendagriLandingPage = lazy(() =>
   import("@/components/landing/KemendagriLandingPage").then((module) => ({
@@ -116,6 +117,7 @@ interface AppProps {
       institutionCount: number;
       nationalLpkCount: number;
       demandCount: number;
+      dashboardTargets: DashboardTargets | null;
       updatedAt: string | null;
       dashboard?: ExecutiveDashboardBreakdownsData;
       gardata: {
@@ -182,6 +184,7 @@ interface AppProps {
       email: string;
       status: string;
       scopeName: string;
+      scopeLevel: string;
       roleName: string;
       roleTitle: string;
       provinceId: string | null;
@@ -197,6 +200,7 @@ interface AppProps {
     districts: { id: string; province_id: string; name: string }[];
     institutions: { id: string; name: string }[];
     employers: { id: string; name: string }[];
+    dashboardTargets: DashboardTargets;
   };
 }
 
@@ -336,6 +340,7 @@ export function App({
               institutionCount: 0,
               nationalLpkCount: 0,
               demandCount: 0,
+              dashboardTargets: null,
               updatedAt: null,
               gardata: {
                 candidateCount: 0,
@@ -411,6 +416,7 @@ export function App({
             institutionCount: 0,
             nationalLpkCount: 0,
             demandCount: 0,
+            dashboardTargets: null,
             updatedAt: null,
             gardata: {
               candidateCount: 0,

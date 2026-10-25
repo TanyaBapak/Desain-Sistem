@@ -24,6 +24,8 @@ export const TopNav: React.FC<TopNavProps> = ({ currentTab, onOpenSidebar }) => 
   const { currentUser, currentRole, currentScope, logout } = useAppStore();
   const activeRoleObj = getRoleInfo(currentRole);
   const currentPage = NAV_ITEMS.find((item) => item.id === currentTab);
+  const isNationalAreaFilter = currentUser?.roleName !== "task_force" && currentUser?.scope.level === "national";
+  const canSelectBp3miArea = currentUser?.roleName === "task_force" || isNationalAreaFilter;
 
   return (
     <header className="fixed inset-x-0 top-0 z-50 flex h-16 items-center border-b border-border bg-background px-4 shadow-sm sm:px-6">
@@ -47,19 +49,20 @@ export const TopNav: React.FC<TopNavProps> = ({ currentTab, onOpenSidebar }) => 
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
-          {currentUser?.roleName === "task_force" && currentUser.bp3miAssignments?.length ? (
+          {canSelectBp3miArea && currentUser?.bp3miAssignments?.length ? (
             <label className="flex items-center gap-2">
-              <span className="sr-only">Area BP3MI aktif</span>
+              <span className="sr-only">Filter area wilayah</span>
               <select
-                aria-label="Area BP3MI aktif"
+                aria-label="Filter area wilayah"
                 className="h-9 w-24 max-w-36 rounded-md border border-input bg-background px-2 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:w-auto sm:max-w-48 sm:px-3 sm:text-sm"
-                value={currentUser.bp3miCode ?? ""}
+                value={currentUser.bp3miCode ?? (isNationalAreaFilter ? "all" : "")}
                 onChange={(event) => router.get(
                   window.location.pathname,
                   { bp3mi_area: event.target.value },
                   { preserveScroll: true, preserveState: false, replace: true },
                 )}
               >
+                {isNationalAreaFilter && <option value="all">Semua Nasional</option>}
                 {currentUser.bp3miAssignments.map((assignment) => (
                   <option key={assignment.code} value={assignment.code}>{assignment.name}</option>
                 ))}

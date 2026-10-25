@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Services\BusinessDataPresenter;
 use App\Services\Bp3miScope;
+use App\Services\BusinessDataPresenter;
 use App\Services\ProgramSyncFromProviders;
 use App\Services\ProviderRecommendationService;
 use Illuminate\Http\JsonResponse;
@@ -130,7 +130,7 @@ class BusinessDataController extends Controller
             ->leftJoin('provinces', 'provinces.id', '=', 'institutions.province_id')
             ->leftJoin('districts', 'districts.id', '=', 'institutions.district_id')
             ->where('institutions.status', 'Aktif')
-            ->when($role === 'task_force', fn ($q) => app(Bp3miScope::class)->applyToInstitutions($q, $user))
+            ->when(app(Bp3miScope::class)->hasActiveAreaFilter($user), fn ($q) => app(Bp3miScope::class)->applyToInstitutions($q, $user))
             ->when($role === 'institution_admin', fn ($q) => $q->where('institutions.id', $user->institution_id ?? ''));
 
         $filtered = (clone $baseQuery)
@@ -149,10 +149,12 @@ class BusinessDataController extends Controller
                 $lower = strtolower($type);
                 if ($lower === 'politeknik') {
                     $q->where('institutions.institution_type', 'Perguruan Tinggi / Politeknik');
+
                     return;
                 }
                 if ($lower === 'balai' || $lower === 'blkln') {
                     $q->where('institutions.institution_type', 'BLK');
+
                     return;
                 }
                 $q->whereRaw('LOWER(institutions.institution_type) = ?', [$lower]);
@@ -286,7 +288,7 @@ class BusinessDataController extends Controller
         $baseQuery = DB::table('job_seekers')
             ->whereNull('deleted_at')
             ->leftJoin('provinces', 'provinces.id', '=', 'job_seekers.province_id')
-            ->when($role === 'task_force', fn ($query) => app(Bp3miScope::class)->applyToJobSeekers($query, $user))
+            ->when(app(Bp3miScope::class)->hasActiveAreaFilter($user), fn ($query) => app(Bp3miScope::class)->applyToJobSeekers($query, $user))
             ->when($role === 'province_admin', fn ($query) => $query->where('job_seekers.province_id', $user->province_id))
             ->when($role === 'district_admin', fn ($query) => $query->where('job_seekers.district_id', $user->district_id))
             ->when($role === 'institution_admin', fn ($query) => $query->where('job_seekers.institution_id', $user->institution_id ?? ''));
@@ -348,6 +350,7 @@ class BusinessDataController extends Controller
                     return [];
                 }
                 $decoded = json_decode($value, true);
+
                 return is_array($decoded) ? $decoded : [];
             }, null, BusinessDataPresenter::class);
 
@@ -520,7 +523,7 @@ class BusinessDataController extends Controller
                 $district = DB::table('districts')
                     ->where('province_id', $provinceId)
                     ->where(function ($query) use ($baseName) {
-                        $query->whereRaw('LOWER(name) LIKE ?', ['%' . mb_strtolower($baseName) . '%']);
+                        $query->whereRaw('LOWER(name) LIKE ?', ['%'.mb_strtolower($baseName).'%']);
                     })
                     ->first();
             }
@@ -691,7 +694,7 @@ class BusinessDataController extends Controller
                     $district = DB::table('districts')
                         ->where('province_id', $provinceId)
                         ->where(function ($query) use ($baseName) {
-                            $query->whereRaw('LOWER(name) LIKE ?', ['%' . mb_strtolower($baseName) . '%']);
+                            $query->whereRaw('LOWER(name) LIKE ?', ['%'.mb_strtolower($baseName).'%']);
                         })
                         ->first();
                 }
@@ -1051,20 +1054,20 @@ class BusinessDataController extends Controller
         return is_array($decoded) ? $decoded : [];
     }
 
-    public function syncProgramsFromProviders(Request $request): \Illuminate\Http\RedirectResponse
+    public function syncProgramsFromProviders(Request $request): RedirectResponse
     {
         $user = $request->user();
         $role = $user->roles()->value('name');
 
         abort_unless(in_array($role, ['super_admin', 'task_force', 'directorate_admin'], true), 403);
 
-        $result = app(\App\Services\ProgramSyncFromProviders::class)->sync();
+        $result = app(ProgramSyncFromProviders::class)->sync();
         app(BusinessDataPresenter::class)->forget($user);
 
         return back()->with('success', "Sinkronisasi program dari lembaga vokasi selesai. Ditambahkan: {$result['created']}, Diperbarui: {$result['updated']}, Dilewati: {$result['skipped']}");
     }
 
-    public function recommendedProviders(Request $request): \Illuminate\Http\JsonResponse
+    public function recommendedProviders(Request $request): JsonResponse
     {
         $user = $request->user();
         $role = $user->roles()->value('name');
@@ -1072,7 +1075,7 @@ class BusinessDataController extends Controller
         abort_unless(in_array($role, ['task_force', 'directorate_admin', 'matching', 'verifikator', 'super_admin'], true), 403);
 
         $filters = $request->only(['occupation_id', 'sector_id', 'province', 'country_id']);
-        $result = app(\App\Services\ProviderRecommendationService::class)->recommend($filters, $user);
+        $result = app(ProviderRecommendationService::class)->recommend($filters, $user);
 
         return response()->json(['data' => $result]);
     }

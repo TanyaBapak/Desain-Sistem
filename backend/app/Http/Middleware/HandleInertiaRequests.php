@@ -36,8 +36,10 @@ class HandleInertiaRequests extends Middleware
                     'roleName' => $role->name,
                     'roleTitle' => $role->title,
                     'badge' => $role->badge,
-                    'bp3miCode' => $activeBp3miCode ?? $user->bp3mi_code,
-                    'bp3miAssignments' => $role->name === 'task_force' ? $bp3miScope->assignmentOptions() : [],
+                    'bp3miCode' => $activeBp3miCode ?? ($role->name === 'task_force' ? $user->bp3mi_code : null),
+                    'bp3miAssignments' => $role->name === 'task_force' || $user->scope_level === 'national'
+                        ? $bp3miScope->assignmentOptions()
+                        : [],
                     'organization' => $user->organization ?? '',
                     'scope' => [
                         'level' => $user->scope_level,

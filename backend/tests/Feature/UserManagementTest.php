@@ -103,7 +103,7 @@ class UserManagementTest extends TestCase
         $this->get('/app/rbac')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->where('auth.user.bp3miAssignments', [])
+                ->where('auth.user.bp3miAssignments', fn ($areas): bool => count($areas) === 10)
                 ->where('adminUsers.data', fn ($users): bool => collect($users)->contains(
                     fn ($item): bool => data_get($item, 'id') === (string) $user->id
                         && ! array_key_exists('bp3miCode', (array) $item),
@@ -304,6 +304,46 @@ class UserManagementTest extends TestCase
             'entity_id' => (string) $user->id,
             'justification_reason' => 'Lingkup wilayah pengguna diperbarui menjadi Jawa Barat.',
         ]);
+    }
+
+    public function test_super_admin_can_assign_national_scope_and_the_user_can_filter_optional_bp3mi_area(): void
+    {
+        $admin = $this->userWithRole('super_admin');
+        $user = $this->userWithRole('verifier', [
+            'username' => 'verifier-national-scope',
+            'email' => 'verifier-national-scope@example.invalid',
+            'province_id' => '32',
+            'district_id' => '3201',
+            'scope_level' => 'provinsi',
+            'scope_name' => 'Jawa Barat',
+        ]);
+
+        $this->actingAs($admin)->patch("/admin/users/{$user->id}/scope", [
+            'scopeLevel' => 'national',
+            'provinceId' => '',
+            'districtId' => '',
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $user->refresh();
+        $this->assertSame('national', $user->scope_level);
+        $this->assertSame('Nasional', $user->scope_name);
+        $this->assertNull($user->province_id);
+        $this->assertNull($user->district_id);
+
+        $this->actingAs($user)
+            ->get('/app/approvals?bp3mi_area=BP3MI-JABAR')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('auth.user.bp3miCode', 'BP3MI-JABAR')
+                ->where('auth.user.scope.level', 'national')
+                ->where('auth.user.scope.name', 'BP3MI Jawa Barat')
+                ->where('auth.user.bp3miAssignments', fn ($areas): bool => count($areas) === 10));
+
+        $this->get('/app/approvals?bp3mi_area=all')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('auth.user.bp3miCode', null)
+                ->where('auth.user.scope.name', 'Nasional'));
     }
 
     public function test_super_admin_can_soft_delete_users_with_an_audit_reason(): void

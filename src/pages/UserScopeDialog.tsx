@@ -13,7 +13,7 @@ interface UserScopeDialogProps {
 export function UserScopeDialog({ user, data }: UserScopeDialogProps) {
   const [open, setOpen] = useState(false);
   const form = useForm({
-    scopeLevel: user.districtId ? "kabupaten" : "provinsi",
+    scopeLevel: user.scopeLevel || (user.districtId ? "kabupaten" : user.provinceId ? "provinsi" : "national"),
     provinceId: user.provinceId ?? "",
     districtId: user.districtId ?? "",
   });
@@ -25,7 +25,7 @@ export function UserScopeDialog({ user, data }: UserScopeDialogProps) {
   useEffect(() => {
     if (!open) {
       form.setData({
-        scopeLevel: user.districtId ? "kabupaten" : "provinsi",
+        scopeLevel: user.scopeLevel || (user.districtId ? "kabupaten" : user.provinceId ? "provinsi" : "national"),
         provinceId: user.provinceId ?? "",
         districtId: user.districtId ?? "",
       });
@@ -71,11 +71,13 @@ export function UserScopeDialog({ user, data }: UserScopeDialogProps) {
                 onChange={(event) => {
                   const scopeLevel = event.target.value;
                   form.setData("scopeLevel", scopeLevel);
-                  if (scopeLevel === "provinsi") form.setData("districtId", "");
+                  if (scopeLevel !== "kabupaten") form.setData("districtId", "");
+                  if (scopeLevel === "national") form.setData("provinceId", "");
                 }}
                 disabled={isProvinceAdmin || isDistrictAdmin}
                 required
               >
+                <option value="national">Nasional</option>
                 <option value="provinsi">Provinsi</option>
                 <option value="kabupaten">Kabupaten/kota</option>
               </select>
@@ -85,22 +87,24 @@ export function UserScopeDialog({ user, data }: UserScopeDialogProps) {
                 </span>
               )}
             </Field>
-            <Field label="Provinsi" error={form.errors.provinceId}>
-              <select
-                className={selectClass}
-                value={form.data.provinceId}
-                onChange={(event) => {
-                  form.setData("provinceId", event.target.value);
-                  form.setData("districtId", "");
-                }}
-                required
-              >
-                <option value="">Pilih provinsi</option>
-                {data.provinces.map((province) => (
-                  <option key={province.id} value={province.id}>{province.name}</option>
-                ))}
-              </select>
-            </Field>
+            {form.data.scopeLevel !== "national" && (
+              <Field label="Provinsi" error={form.errors.provinceId}>
+                <select
+                  className={selectClass}
+                  value={form.data.provinceId}
+                  onChange={(event) => {
+                    form.setData("provinceId", event.target.value);
+                    form.setData("districtId", "");
+                  }}
+                  required
+                >
+                  <option value="">Pilih provinsi</option>
+                  {data.provinces.map((province) => (
+                    <option key={province.id} value={province.id}>{province.name}</option>
+                  ))}
+                </select>
+              </Field>
+            )}
             {form.data.scopeLevel === "kabupaten" && (
               <Field label="Kabupaten/kota" error={form.errors.districtId}>
                 <select
@@ -118,7 +122,7 @@ export function UserScopeDialog({ user, data }: UserScopeDialogProps) {
               </Field>
             )}
             <p className="text-xs text-muted-foreground">
-              Pengaturan ini mencatat wilayah pada akun. Hak akses tetap mengikuti peran yang diberikan.
+              Lingkup Nasional dapat memilih area sebagai filter opsional di header. Hak akses tetap mengikuti peran.
             </p>
             {Object.keys(form.errors).length > 0 && (
               <p role="alert" className="text-sm text-destructive">

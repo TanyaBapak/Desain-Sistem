@@ -4,6 +4,7 @@ use App\Http\Controllers\AppController;
 use App\Http\Controllers\ApprovalWorkflowController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\BusinessDataController;
+use App\Http\Controllers\DashboardTargetController;
 use App\Http\Controllers\GardataSyncController;
 use App\Http\Controllers\GardataTrainingMappingController;
 use App\Http\Controllers\GardataWebhookController;
@@ -50,6 +51,8 @@ Route::middleware(['auth', EnsureUserIsActive::class])->group(function () {
     Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
     Route::match(['get', 'post'], '/impersonation/stop', [UserManagementController::class, 'stopImpersonating'])->name('impersonation.stop');
     Route::post('/admin/users', [UserManagementController::class, 'store'])->name('admin.users.store');
+    Route::patch('/admin/dashboard-targets', [DashboardTargetController::class, 'update'])
+        ->name('admin.dashboard-targets.update');
     Route::patch('/admin/users/{user}', [UserManagementController::class, 'update'])
         ->whereNumber('user')
         ->name('admin.users.update');

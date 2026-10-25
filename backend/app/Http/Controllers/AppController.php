@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use App\Services\Bp3miScope;
 use App\Services\BusinessDataPresenter;
+use App\Services\DashboardTargetService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -33,6 +34,7 @@ class AppController extends Controller
         string $tab,
         Bp3miScope $bp3miScope,
         BusinessDataPresenter $businessDataPresenter,
+        DashboardTargetService $dashboardTargetService,
         UserManagementController $userManagementController,
     ): Response|RedirectResponse {
         if (! in_array($tab, self::TABS, true)) {
@@ -67,7 +69,7 @@ class AppController extends Controller
         ];
 
         if ($tab === 'rbac' && $request->user()->roles()->where('name', 'super_admin')->exists()) {
-            $props['adminUsers'] = $userManagementController->indexData($request);
+            $props['adminUsers'] = $userManagementController->indexData($request, $dashboardTargetService);
         }
 
         return Inertia::render('App', $props);

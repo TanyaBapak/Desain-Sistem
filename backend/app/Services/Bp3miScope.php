@@ -41,8 +41,10 @@ class Bp3miScope
     public function activeCodeForUser(User $user): ?string
     {
         $role = $user->roles()->value('name');
+        $isTaskForce = $role === 'task_force';
+        $isNationalScope = $user->scope_level === 'national';
 
-        if ($role !== 'task_force') {
+        if (! $isTaskForce && ! $isNationalScope) {
             return null;
         }
 
@@ -52,6 +54,13 @@ class Bp3miScope
         $requestedCode = $request->query('bp3mi_area');
 
         if ($requestedCode !== null) {
+            if ($isNationalScope && ! $isTaskForce && $requestedCode === 'all') {
+                if ($request->hasSession()) {
+                    $request->session()->forget($sessionKey);
+                }
+
+                return null;
+            }
             if (! is_string($requestedCode) || ! isset(self::BP3MI_ASSIGNMENT[$requestedCode])) {
                 abort(422, 'Area BP3MI yang dipilih tidak valid.');
             }
@@ -67,6 +76,12 @@ class Bp3miScope
             ? $request->session()->get($sessionKey)
             : null;
 
+        if ($isNationalScope && ! $isTaskForce) {
+            return is_string($activeCode) && isset(self::BP3MI_ASSIGNMENT[$activeCode])
+                ? $activeCode
+                : null;
+        }
+
         if (! is_string($activeCode) || ! isset(self::BP3MI_ASSIGNMENT[$activeCode])) {
             $legacyCode = $user->bp3mi_code;
             $activeCode = is_string($legacyCode) && isset(self::BP3MI_ASSIGNMENT[$legacyCode])
@@ -79,6 +94,11 @@ class Bp3miScope
         }
 
         return $activeCode;
+    }
+
+    public function hasActiveAreaFilter(User $user): bool
+    {
+        return $this->activeCodeForUser($user) !== null;
     }
 
     public function codesForUser(User $user): array
@@ -134,12 +154,18 @@ class Bp3miScope
         if ($provinceId === null) {
             return false;
         }
+        if ($user->roles()->value('name') !== 'task_force' || ! $this->hasActiveAreaFilter($user)) {
+            return true;
+        }
 
         return in_array((string) $provinceId, $this->provinceIdsForUser($user), true);
     }
 
     public function allowsDemandCountry(User $user, ?string $countryId): bool
     {
+        if ($user->roles()->value('name') !== 'task_force' || ! $this->hasActiveAreaFilter($user)) {
+            return true;
+        }
         if ($countryId === null) {
             return false;
         }
@@ -162,6 +188,9 @@ class Bp3miScope
 
     public function applyToJobSeekers($query, User $user)
     {
+        if (! $this->hasActiveAreaFilter($user)) {
+            return $query;
+        }
         $provinceIds = $this->provinceIdsForUser($user);
         if ($provinceIds === []) {
             return $query->whereRaw('1 = 0');
@@ -172,6 +201,9 @@ class Bp3miScope
 
     public function applyToInstitutions($query, User $user)
     {
+        if (! $this->hasActiveAreaFilter($user)) {
+            return $query;
+        }
         $provinceIds = $this->provinceIdsForUser($user);
         if ($provinceIds === []) {
             return $query->whereRaw('1 = 0');
@@ -182,6 +214,9 @@ class Bp3miScope
 
     public function applyToTrainingPrograms($query, User $user)
     {
+        if (! $this->hasActiveAreaFilter($user)) {
+            return $query;
+        }
         $provinceIds = $this->provinceIdsForUser($user);
         if ($provinceIds === []) {
             return $query->whereRaw('1 = 0');
@@ -192,6 +227,9 @@ class Bp3miScope
 
     public function applyToJobDemands($query, User $user)
     {
+        if (! $this->hasActiveAreaFilter($user)) {
+            return $query;
+        }
         $provinceIds = $this->provinceIdsForUser($user);
         if ($provinceIds === []) {
             return $query->whereRaw('1 = 0');

@@ -1,3 +1,5 @@
+import type { DashboardTargets } from "@/types/dashboard-targets";
+
 export interface ManagedUser {
   id: string;
   name: string;
@@ -5,6 +7,7 @@ export interface ManagedUser {
   email: string;
   status: string;
   scopeName: string;
+  scopeLevel: string;
   roleName: string;
   roleTitle: string;
   provinceId: string | null;
@@ -23,4 +26,5 @@ export interface UserManagementData {
   districts: { id: string; province_id: string; name: string }[];
   institutions: { id: string; name: string }[];
   employers: { id: string; name: string }[];
+  dashboardTargets: DashboardTargets;
 }

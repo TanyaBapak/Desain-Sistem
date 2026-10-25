@@ -7,9 +7,7 @@ use Illuminate\Support\Facades\DB;
 
 class ProviderRecommendationService
 {
-    public function __construct(private readonly Bp3miScope $bp3miScope = new Bp3miScope())
-    {
-    }
+    public function __construct(private readonly Bp3miScope $bp3miScope = new Bp3miScope) {}
 
     public function recommend(array $filters, ?User $user = null): array
     {
@@ -32,14 +30,8 @@ class ProviderRecommendationService
             ->when($countryId, fn ($q) => $q->where('training_programs.target_country_id', $countryId));
 
         if ($user) {
-            $role = $user->roles()->value('name');
-            if ($role === 'task_force') {
-                $bp3miProvinceIds = $this->bp3miScope->provinceIdsForUser($user);
-                if ($bp3miProvinceIds === []) {
-                    $query->whereRaw('1 = 0');
-                } else {
-                    $query->whereIn('institutions.province_id', $bp3miProvinceIds);
-                }
+            if ($this->bp3miScope->hasActiveAreaFilter($user)) {
+                $this->bp3miScope->applyToInstitutions($query, $user);
             }
         }
 
