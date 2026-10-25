@@ -215,6 +215,8 @@ class GardataPlacementSyncService
         $defaultInstitution = $source === 'sippmi'
             ? 'SIPPMI - Pusat Penempatan PMI'
             : 'Gardata - Pusat Pelatihan CPMI';
+        $institutionName = $this->cleanString($item['institution_name'] ?? $biodata['institution_name'] ?? $education['school_origin'] ?? $biodata['school_origin'] ?? null, 255) ?? $defaultInstitution;
+        $institutionId = $this->resolveOrCreateInstitution($institutionName, $provinceId, $districtId);
 
         $attributes = [
             'registration_number' => ($source === 'sippmi' ? 'SIPPMI-' : 'GDT-').Str::upper(substr(hash('sha256', $externalId), 0, 32)),
@@ -224,8 +226,8 @@ class GardataPlacementSyncService
             'province_id' => $provinceId,
             'district_id' => $districtId,
             'education_level' => $this->educationLevel($education['school_origin'] ?? $biodata['school_origin'] ?? null),
-            'institution_name' => $this->cleanString($education['school_origin'] ?? $biodata['school_origin'] ?? null, 255) ?? $defaultInstitution,
-            'institution_id' => null,
+            'institution_name' => $institutionName,
+            'institution_id' => $institutionId,
             'major' => $major,
             'source_type' => 'Gardata',
             'source_reference' => Str::limit($externalId, 100, ''),
@@ -512,6 +514,53 @@ class GardataPlacementSyncService
         $date = \DateTimeImmutable::createFromFormat('!Y-m-d', $value);
 
         return $date && $date->format('Y-m-d') === $value ? $value : null;
+    }
+
+    private function resolveOrCreateInstitution(string $name, string $provinceId, string $districtId): string
+    {
+        $cleanName = $this->cleanString($name, 255) ?? 'LPK / Lembaga Mitra';
+
+        $existing = DB::table('institutions')
+            ->whereRaw('LOWER(name) = ?', [mb_strtolower($cleanName)])
+            ->first(['id']);
+        if ($existing) {
+            return (string) $existing->id;
+        }
+
+        $lower = mb_strtolower($cleanName);
+        $type = match (true) {
+            str_contains($lower, 'lpk') || str_contains($lower, 'pelatihan') => 'LPK',
+            str_contains($lower, 'blk') || str_contains($lower, 'bpvp') || str_contains($lower, 'balai') => 'BLK',
+            str_contains($lower, 'smk') || str_contains($lower, 'kejuruan') => 'SMK',
+            str_contains($lower, 'lkp') || str_contains($lower, 'kursus') => 'LKP',
+            str_contains($lower, 'universitas') || str_contains($lower, 'politeknik') || str_contains($lower, 'institut') || str_contains($lower, 'akademi') => 'Perguruan Tinggi / Politeknik',
+            default => 'LPK',
+        };
+
+        $ownership = str_contains($lower, 'negeri') ? 'Negeri' : 'Swasta';
+        $institutionId = 'INS-'.Str::upper(substr(hash('sha256', mb_strtolower($cleanName)), 0, 16));
+
+        $now = now();
+        DB::table('institutions')->updateOrInsert(
+            ['id' => $institutionId],
+            [
+                'name' => $cleanName,
+                'institution_type' => $type,
+                'ownership_type' => $ownership,
+                'province_id' => $provinceId,
+                'district_id' => $districtId,
+                'status' => 'Aktif',
+                'verification_status' => 'Verified',
+                'accreditation' => 'B',
+                'evokasi_status' => 'Terverifikasi e-Vokasi',
+                'external_source' => self::SOURCE,
+                'external_id' => $institutionId,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]
+        );
+
+        return $institutionId;
     }
 
     private function cleanString(mixed $value, int $maxLength): ?string

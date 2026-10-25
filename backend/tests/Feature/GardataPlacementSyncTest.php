@@ -66,6 +66,13 @@ class GardataPlacementSyncTest extends TestCase
             'achieved_jp' => 120,
             'status' => 'GRADUATED',
         ]);
+        $candidate = DB::table('job_seekers')->where('external_source', 'gardata')->first();
+        $this->assertNotNull($candidate?->institution_id);
+        $this->assertDatabaseHas('institutions', [
+            'id' => $candidate->institution_id,
+            'name' => 'SMK Contoh',
+            'institution_type' => 'SMK',
+        ]);
         $this->assertSame(1, DB::table('external_training_records')->count());
         $this->assertSame(2, DB::table('integration_sync_logs')->where('status', 'success')->count());
         $this->assertSame(1, DB::table('approval_requests')
