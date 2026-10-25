@@ -34,9 +34,11 @@ class ProviderRecommendationService
         if ($user) {
             $role = $user->roles()->value('name');
             if ($role === 'task_force') {
-                $bp3miProvinces = $this->bp3miScope->provinceNamesForUser($user);
-                if ($bp3miProvinces !== []) {
-                    $query->whereIn('provinces.name', $bp3miProvinces);
+                $bp3miProvinceIds = $this->bp3miScope->provinceIdsForUser($user);
+                if ($bp3miProvinceIds === []) {
+                    $query->whereRaw('1 = 0');
+                } else {
+                    $query->whereIn('institutions.province_id', $bp3miProvinceIds);
                 }
             }
         }

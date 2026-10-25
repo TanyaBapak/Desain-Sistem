@@ -833,20 +833,17 @@ class BusinessDataPresenter
             return $requests;
         }
 
-        $provinceNames = $this->bp3miScope->provinceNamesForUser($user);
+        $provinceIds = $this->bp3miScope->provinceIdsForUser($user);
         $candidateIds = DB::table('job_seekers')
-            ->join('provinces', 'provinces.id', '=', 'job_seekers.province_id')
             ->whereNull('job_seekers.deleted_at')
-            ->whereIn('provinces.name', $provinceNames)
+            ->whereIn('job_seekers.province_id', $provinceIds)
             ->select('job_seekers.id');
         $institutionIds = DB::table('institutions')
-            ->join('provinces', 'provinces.id', '=', 'institutions.province_id')
-            ->whereIn('provinces.name', $provinceNames)
+            ->whereIn('institutions.province_id', $provinceIds)
             ->select('institutions.id');
         $programIds = DB::table('training_programs')
             ->join('institutions', 'institutions.id', '=', 'training_programs.institution_id')
-            ->join('provinces', 'provinces.id', '=', 'institutions.province_id')
-            ->whereIn('provinces.name', $provinceNames)
+            ->whereIn('institutions.province_id', $provinceIds)
             ->select('training_programs.id');
         $demandIds = DB::table('job_demands');
         $this->bp3miScope->applyToJobDemands($demandIds, $user);

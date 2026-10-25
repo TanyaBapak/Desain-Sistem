@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Role;
 use App\Models\User;
+use App\Services\Bp3miScope;
 use App\Services\BusinessDataPresenter;
 use App\Services\ProgramSyncFromProviders;
 use Database\Seeders\ReferenceDataSeeder;
@@ -125,6 +126,29 @@ class ProgramAllocationTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->where('auth.user.bp3miCode', 'BP3MI-JABAR')
                 ->where('businessData.bp3miScope.provinces', ['Jawa Barat']));
+    }
+
+    public function test_bp3mi_scope_uses_province_codes_when_province_names_are_placeholders(): void
+    {
+        $this->createAllocationRecords();
+        DB::table('provinces')->where('id', '32')->update(['name' => 'Provinsi 32']);
+        $user = $this->userWithRole('task_force', ['bp3mi_code' => 'BP3MI-JABAR']);
+
+        $this->actingAs($user)
+            ->getJson('/business-data/providers?bp3mi_area=BP3MI-JABAR')
+            ->assertOk()
+            ->assertJsonPath('pagination.total', 1)
+            ->assertJsonPath('data.0.name', 'Lembaga Vokasi Contoh');
+    }
+
+    public function test_bp3mi_scope_matches_jateng_by_province_code(): void
+    {
+        DB::table('provinces')->where('id', '33')->update(['name' => 'Provinsi 33']);
+        $user = $this->userWithRole('task_force', ['bp3mi_code' => 'BP3MI-JATENG']);
+        $scope = app(Bp3miScope::class);
+
+        $this->assertTrue($scope->allowsProvinceId($user, '33'));
+        $this->assertFalse($scope->allowsProvinceId($user, '32'));
     }
 
     public function test_task_force_rejects_invalid_bp3mi_area_selection(): void

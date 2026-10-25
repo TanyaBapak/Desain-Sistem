@@ -21,6 +21,23 @@ class Bp3miScope
         'BP3MI-SUMSEL' => ['Sumatera Selatan'],
     ];
 
+    /**
+     * Kode provinsi Kemendagri per area BP3MI. Filter data memakai kode ini
+     * agar tidak bergantung pada teks nama provinsi.
+     */
+    private const BP3MI_PROVINCE_IDS = [
+        'BP3MI-JKT' => ['31'],
+        'BP3MI-JABAR' => ['32'],
+        'BP3MI-JATIM' => ['35'],
+        'BP3MI-JATENG' => ['33'],
+        'BP3MI-BANTEN' => ['36'],
+        'BP3MI-LAMPUNG' => ['18'],
+        'BP3MI-NTB' => ['52'],
+        'BP3MI-DIY' => ['34'],
+        'BP3MI-SULSEL' => ['73'],
+        'BP3MI-SUMSEL' => ['16'],
+    ];
+
     public function activeCodeForUser(User $user): ?string
     {
         $role = $user->roles()->value('name');
@@ -80,6 +97,13 @@ class Bp3miScope
             ->all();
     }
 
+    public function provinceIdsForUser(User $user): array
+    {
+        $activeCode = $this->activeCodeForUser($user);
+
+        return $activeCode === null ? [] : self::BP3MI_PROVINCE_IDS[$activeCode];
+    }
+
     public function assignmentOptions(): array
     {
         $labels = [
@@ -111,9 +135,7 @@ class Bp3miScope
             return false;
         }
 
-        $provinceName = DB::table('provinces')->where('id', $provinceId)->value('name');
-
-        return is_string($provinceName) && in_array($provinceName, $this->provinceNamesForUser($user), true);
+        return in_array((string) $provinceId, $this->provinceIdsForUser($user), true);
     }
 
     public function allowsDemandCountry(User $user, ?string $countryId): bool
@@ -127,50 +149,52 @@ class Bp3miScope
             return false;
         }
 
+        $provinceIds = $this->provinceIdsForUser($user);
+        if ($provinceIds === []) {
+            return false;
+        }
+
         return DB::table('job_seekers')
-            ->join('provinces', 'provinces.id', '=', 'job_seekers.province_id')
-            ->whereIn('provinces.name', $this->provinceNamesForUser($user))
+            ->whereIn('job_seekers.province_id', $provinceIds)
             ->whereJsonContains('job_seekers.preferred_countries', $countryName)
             ->exists();
     }
 
     public function applyToJobSeekers($query, User $user)
     {
-        $provinces = $this->provinceNamesForUser($user);
-        if ($provinces === []) {
-            return $query;
+        $provinceIds = $this->provinceIdsForUser($user);
+        if ($provinceIds === []) {
+            return $query->whereRaw('1 = 0');
         }
 
-        return $query->whereIn('provinces.name', $provinces);
+        return $query->whereIn('job_seekers.province_id', $provinceIds);
     }
 
     public function applyToInstitutions($query, User $user)
     {
-        $provinces = $this->provinceNamesForUser($user);
-        if ($provinces === []) {
-            return $query;
+        $provinceIds = $this->provinceIdsForUser($user);
+        if ($provinceIds === []) {
+            return $query->whereRaw('1 = 0');
         }
 
-        return $query->whereIn('provinces.name', $provinces);
+        return $query->whereIn('institutions.province_id', $provinceIds);
     }
 
     public function applyToTrainingPrograms($query, User $user)
     {
-        $provinces = $this->provinceNamesForUser($user);
-        if ($provinces === []) {
-            return $query;
+        $provinceIds = $this->provinceIdsForUser($user);
+        if ($provinceIds === []) {
+            return $query->whereRaw('1 = 0');
         }
 
-        return $query->whereIn('institutions.province_id', function ($sub) use ($provinces) {
-            $sub->select('id')->from('provinces')->whereIn('name', $provinces);
-        });
+        return $query->whereIn('institutions.province_id', $provinceIds);
     }
 
     public function applyToJobDemands($query, User $user)
     {
-        $provinces = $this->provinceNamesForUser($user);
-        if ($provinces === []) {
-            return $query;
+        $provinceIds = $this->provinceIdsForUser($user);
+        if ($provinceIds === []) {
+            return $query->whereRaw('1 = 0');
         }
 
         $countries = DB::table('countries')->get(['id', 'name']);
@@ -178,15 +202,14 @@ class Bp3miScope
             return $query->whereRaw('1 = 0');
         }
 
-        return $query->where(function ($demands) use ($countries, $provinces): void {
+        return $query->where(function ($demands) use ($countries, $provinceIds): void {
             foreach ($countries as $country) {
-                $demands->orWhere(function ($demand) use ($country, $provinces): void {
+                $demands->orWhere(function ($demand) use ($country, $provinceIds): void {
                     $demand->where('job_demands.country_id', $country->id)
-                        ->whereExists(function ($candidates) use ($country, $provinces): void {
+                        ->whereExists(function ($candidates) use ($country, $provinceIds): void {
                             $candidates->select(DB::raw(1))
                                 ->from('job_seekers')
-                                ->join('provinces', 'provinces.id', '=', 'job_seekers.province_id')
-                                ->whereIn('provinces.name', $provinces)
+                                ->whereIn('job_seekers.province_id', $provinceIds)
                                 ->whereJsonContains('job_seekers.preferred_countries', $country->name);
                         });
                 });
