@@ -1,5 +1,6 @@
 import { router } from "@inertiajs/react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { CountryProjectionCard } from "@/components/landing/CountryProjectionCard";
 
 export interface LandingProjectionSeries {
   name: string;
@@ -25,8 +26,6 @@ export interface LandingProjectionData {
 interface LandingProjectionDashboardProps {
   projection: LandingProjectionData;
 }
-
-const numberFormat = new Intl.NumberFormat("id-ID");
 
 export function LandingProjectionDashboard({ projection }: LandingProjectionDashboardProps) {
   const currentYear = new Date().getFullYear();
@@ -62,8 +61,7 @@ export function LandingProjectionDashboard({ projection }: LandingProjectionDash
               Target, capaian, dan proyeksi penempatan internasional
             </h2>
             <p className="text-sm text-muted-foreground">
-              Pantau target, capaian, dan sisa target per negara serta sektor untuk seluruh periode
-              atau periode pilihan.
+              Pilih negara untuk melihat sektor, jabatan, dan target penempatan secara lebih rinci.
             </p>
           </div>
           <label className="flex shrink-0 flex-col gap-1.5 text-sm font-medium">
@@ -84,18 +82,8 @@ export function LandingProjectionDashboard({ projection }: LandingProjectionDash
           </label>
         </div>
 
-        <div className="grid gap-5 lg:grid-cols-2">
-          <ProjectionCard
-            title="Daftar negara tujuan"
-            description="Target proyeksi penempatan dan realisasi demand yang disetujui per negara."
-            series={projection.countries}
-            emptyMessage="Daftar negara tujuan belum tersedia pada master data."
-          />
-        </div>
-        <PlacementProjectionCard
-          year={projection.year}
-          items={projection.placementTargets}
-        />
+        <CountryProjectionCard projection={projection} />
+
         <p className="text-xs text-muted-foreground">
           Proyeksi menunjukkan sisa target dari kuota yang tercatat, bukan perkiraan otomatis
           keberangkatan. Capaian memakai demand berstatus disetujui berdasarkan tahun pembuatan
@@ -103,135 +91,5 @@ export function LandingProjectionDashboard({ projection }: LandingProjectionDash
         </p>
       </div>
     </section>
-  );
-}
-
-function PlacementProjectionCard({
-  year,
-  items,
-}: {
-  year: number | null;
-  items: LandingProjectionData["placementTargets"];
-}) {
-  const targetsBySector = items.reduce((groups, item) => {
-    const sectorTargets = groups.get(item.sectorName) ?? [];
-    sectorTargets.push(item);
-    groups.set(item.sectorName, sectorTargets);
-    return groups;
-  }, new Map<string, LandingProjectionData["placementTargets"]>());
-
-  return (
-    <Card className="shadow-sm">
-      <CardHeader className="space-y-1.5 p-5">
-        <CardTitle className="text-lg">Proyeksi program penempatan</CardTitle>
-        <CardDescription>
-          Seluruh target manual dikelompokkan berdasarkan sektor, termasuk jabatan dan negara atau
-          wilayah tujuan.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-5 p-5 pt-0">
-        {items.length === 0 ? (
-          <p className="rounded-lg border border-dashed border-border p-5 text-center text-sm text-muted-foreground">
-            Belum ada proyeksi penempatan untuk periode ini.
-          </p>
-        ) : (
-          Array.from(targetsBySector, ([sectorName, sectorTargets]) => (
-            <section key={sectorName} aria-labelledby={`placement-sector-${sectorName}`}>
-              <h3
-                id={`placement-sector-${sectorName}`}
-                className="mb-3 border-b border-border pb-2 text-base font-semibold"
-              >
-                {sectorName}
-              </h3>
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                {sectorTargets.map((item) => (
-                  <article
-                    key={`${item.year}-${item.occupationName}-${item.projectionPlacement}`}
-                    className="space-y-1 rounded-md border border-border p-3"
-                  >
-                    <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-                      <span className="text-sm font-semibold">{item.occupationName}</span>
-                      <span className="text-xs tabular-nums text-muted-foreground">
-                        {numberFormat.format(item.target)} target
-                      </span>
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      {year === null ? `${item.year} · ` : ""}
-                      {item.projectionPlacement}
-                    </p>
-                  </article>
-                ))}
-              </div>
-            </section>
-          ))
-        )}
-      </CardContent>
-    </Card>
-  );
-}
-
-function ProjectionCard({
-  title,
-  description,
-  series,
-  emptyMessage,
-}: {
-  title: string;
-  description: string;
-  series: LandingProjectionSeries[];
-  emptyMessage: string;
-}) {
-  return (
-    <Card className="shadow-sm">
-      <CardHeader className="space-y-1.5 p-5">
-        <CardTitle className="text-lg">{title}</CardTitle>
-        <CardDescription>{description}</CardDescription>
-        <div className="flex flex-wrap gap-x-4 gap-y-1 pt-2 text-xs text-muted-foreground" aria-label="Keterangan grafik">
-          <span className="inline-flex items-center gap-1.5">
-            <span className="h-2.5 w-2.5 rounded-sm bg-primary" aria-hidden="true" />
-            Tercapai
-          </span>
-          <span className="inline-flex items-center gap-1.5">
-            <span className="h-2.5 w-2.5 rounded-sm bg-muted-foreground/30" aria-hidden="true" />
-            Sisa target
-          </span>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-4 p-5 pt-0">
-        {series.length === 0 ? (
-          <p className="rounded-lg border border-dashed border-border p-5 text-center text-sm text-muted-foreground">
-            {emptyMessage}
-          </p>
-        ) : (
-          series.map((item) => {
-            const target = Math.max(0, item.target);
-            const achievedPercent = target ? Math.min(100, (item.achieved / target) * 100) : 0;
-            const projectedPercent = target ? Math.min(100 - achievedPercent, (item.projected / target) * 100) : 0;
-
-            return (
-              <div key={item.name} className="space-y-2">
-                <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-                  <span className="text-sm font-semibold text-foreground">{item.name}</span>
-                  <span className="text-xs tabular-nums text-muted-foreground">
-                    {numberFormat.format(item.achieved)} tercapai / {numberFormat.format(target)} target
-                  </span>
-                </div>
-                <div
-                  className="flex h-3 overflow-hidden rounded-full bg-muted"
-                  role="img"
-                  aria-label={`${item.name}: ${numberFormat.format(item.achieved)} tercapai dari target ${numberFormat.format(target)}, sisa ${numberFormat.format(item.projected)}`}
-                >
-                  <span className="h-full bg-primary" style={{ width: `${achievedPercent}%` }} />
-                  <span className="h-full bg-muted-foreground/30" style={{ width: `${projectedPercent}%` }} />
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Proyeksi sisa target: {numberFormat.format(item.projected)}
-                </p>
-              </div>
-            );
-          })
-        )}
-      </CardContent>
-    </Card>
   );
 }
