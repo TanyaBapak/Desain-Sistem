@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Role;
 use App\Models\User;
 use Database\Seeders\AccessControlSeeder;
+use Database\Seeders\DemoDataSeeder;
 use Database\Seeders\ReferenceDataSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -178,7 +179,7 @@ class UserManagementTest extends TestCase
             'scope_name' => 'Kabupaten Bogor',
         ]);
 
-        $this->actingAs($admin)->patch("/admin/users/{$user->id}/regional-scope", [
+        $this->actingAs($admin)->patch("/admin/users/{$user->id}/scope", [
             'provinceId' => '32',
             'districtId' => '3202',
         ])->assertRedirect()->assertSessionHasNoErrors();
@@ -192,7 +193,7 @@ class UserManagementTest extends TestCase
             'user_id' => $admin->id,
             'action_type' => 'AKUN_HAK_AKSES',
             'entity_id' => (string) $user->id,
-            'justification_reason' => 'Lingkup daerah pengguna diperbarui menjadi Kabupaten Sukabumi.',
+            'justification_reason' => 'Lingkup pengguna diperbarui menjadi Kabupaten Sukabumi.',
         ]);
     }
 
@@ -208,7 +209,7 @@ class UserManagementTest extends TestCase
 
         $this->actingAs($admin)
             ->from('/app/rbac')
-            ->patch("/admin/users/{$user->id}/regional-scope", [
+            ->patch("/admin/users/{$user->id}/scope", [
                 'provinceId' => '32',
                 'districtId' => '3171',
             ])
@@ -218,7 +219,7 @@ class UserManagementTest extends TestCase
         $this->assertSame('3201', $user->fresh()->district_id);
     }
 
-    public function test_regional_scope_update_does_not_assign_a_fixed_bp3mi_area_to_task_force(): void
+    public function test_scope_update_does_not_assign_a_fixed_bp3mi_area_to_task_force(): void
     {
         $admin = $this->userWithRole('super_admin');
         $user = $this->userWithRole('task_force', [
@@ -228,13 +229,71 @@ class UserManagementTest extends TestCase
         $originalBp3miCode = $user->bp3mi_code;
 
         $this->actingAs($admin)
-            ->patch("/admin/users/{$user->id}/regional-scope", [
+            ->patch("/admin/users/{$user->id}/scope", [
                 'provinceId' => '32',
             ])
             ->assertUnprocessable();
 
         $this->assertNull($user->fresh()->province_id);
         $this->assertSame($originalBp3miCode, $user->fresh()->bp3mi_code);
+    }
+
+    public function test_super_admin_can_edit_institution_and_employer_scope_for_their_roles(): void
+    {
+        $this->seed(DemoDataSeeder::class);
+        $admin = $this->userWithRole('super_admin');
+        $institutionUser = $this->userWithRole('institution_admin', [
+            'username' => 'institution-scope-edit',
+            'email' => 'institution-scope-edit@example.invalid',
+        ]);
+        $employerId = 'EMP-SCOPE-TEST';
+        DB::table('employers')->insert([
+            'id' => $employerId,
+            'name' => 'Pemberi Kerja Contoh',
+            'country_id' => DB::table('countries')->value('id'),
+            'industry' => 'Hospitality',
+            'verification_status' => 'Verified',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $employerUser = $this->userWithRole('demand_admin', [
+            'username' => 'employer-scope-edit',
+            'email' => 'employer-scope-edit@example.invalid',
+        ]);
+
+        $this->actingAs($admin)->patch("/admin/users/{$institutionUser->id}/scope", [
+            'institutionId' => 'VOC-DEMO-001',
+        ])->assertRedirect()->assertSessionHasNoErrors();
+        $this->patch("/admin/users/{$employerUser->id}/scope", [
+            'employerId' => $employerId,
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $this->assertSame('VOC-DEMO-001', $institutionUser->fresh()->institution_id);
+        $this->assertSame('SMK Contoh Cibinong', $institutionUser->fresh()->scope_name);
+        $this->assertSame($employerId, $employerUser->fresh()->employer_id);
+        $this->assertSame('Pemberi Kerja Contoh', $employerUser->fresh()->scope_name);
+    }
+
+    public function test_super_admin_can_edit_scope_label_for_roles_without_a_bound_entity(): void
+    {
+        $admin = $this->userWithRole('super_admin');
+        $user = $this->userWithRole('verifier', [
+            'username' => 'verifier-scope-edit',
+            'email' => 'verifier-scope-edit@example.invalid',
+        ]);
+
+        $this->actingAs($admin)->patch("/admin/users/{$user->id}/scope", [
+            'scopeName' => 'Pengawasan Nasional',
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $user->refresh();
+        $this->assertSame('national', $user->scope_level);
+        $this->assertSame('Pengawasan Nasional', $user->scope_name);
+        $this->assertNull($user->province_id);
+        $this->assertDatabaseHas('audit_logs', [
+            'entity_id' => (string) $user->id,
+            'justification_reason' => 'Lingkup pengguna diperbarui menjadi Pengawasan Nasional.',
+        ]);
     }
 
     public function test_super_admin_can_soft_delete_users_with_an_audit_reason(): void

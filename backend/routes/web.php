@@ -53,9 +53,9 @@ Route::middleware(['auth', EnsureUserIsActive::class])->group(function () {
     Route::patch('/admin/users/{user}', [UserManagementController::class, 'update'])
         ->whereNumber('user')
         ->name('admin.users.update');
-    Route::patch('/admin/users/{user}/regional-scope', [UserManagementController::class, 'updateRegionalScope'])
+    Route::patch('/admin/users/{user}/scope', [UserManagementController::class, 'updateScope'])
         ->whereNumber('user')
-        ->name('admin.users.regional-scope');
+        ->name('admin.users.scope');
     Route::delete('/admin/users/{user}', [UserManagementController::class, 'destroy'])
         ->whereNumber('user')
         ->name('admin.users.destroy');

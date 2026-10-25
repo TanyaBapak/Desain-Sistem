@@ -4,7 +4,7 @@ import { ArrowLeftRight, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DeleteConfirmModal } from "@/components/ui/DeleteConfirmModal";
 import { UserEditDialog } from "@/pages/UserEditDialog";
-import { UserRegionalScopeDialog } from "@/pages/UserRegionalScopeDialog";
+import { UserScopeDialog } from "@/pages/UserScopeDialog";
 import type { ManagedUser, UserManagementData } from "@/pages/user-management-types";
 
 export function ManagedUserRow({ user, currentUserId, data }: { user: ManagedUser; currentUserId: string; data: UserManagementData }) {
@@ -32,13 +32,7 @@ export function ManagedUserRow({ user, currentUserId, data }: { user: ManagedUse
                 institutions={data.institutions}
                 employers={data.employers}
               />
-              {(user.roleName === "province_admin" || user.roleName === "district_admin") && (
-                <UserRegionalScopeDialog
-                  user={user}
-                  provinces={data.provinces}
-                  districts={data.districts}
-                />
-              )}
+              <UserScopeDialog user={user} data={data} />
               <Button type="button" variant="outline" size="sm" disabled={user.status !== "Aktif"} onClick={() => router.post(`/admin/users/${user.id}/impersonate`)}>
                 <ArrowLeftRight className="mr-2 h-4 w-4" />Login sebagai
               </Button>

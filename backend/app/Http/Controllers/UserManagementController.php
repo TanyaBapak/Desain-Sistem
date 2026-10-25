@@ -140,42 +140,62 @@ class UserManagementController extends Controller
         return back()->with('success', 'Data pengguna berhasil diperbarui.');
     }
 
-    public function updateRegionalScope(Request $request, User $user): RedirectResponse
+    public function updateScope(Request $request, User $user): RedirectResponse
     {
         $this->authorizeSuperAdmin($request);
         $this->authorizeManagedUser($request, $user);
 
         $role = $user->roles()->value('name');
-        abort_unless(in_array($role, ['province_admin', 'district_admin'], true), 422);
+        abort_unless(is_string($role) && $role !== 'super_admin', 422);
+        abort_if($role === 'task_force', 422, 'Lingkup Task Force dipilih melalui dropdown area di header.');
 
-        $rules = [
-            'provinceId' => ['required', 'string', 'exists:provinces,id'],
-        ];
-        if ($role === 'district_admin') {
-            $rules['districtId'] = [
-                'required',
-                'string',
-                Rule::exists('districts', 'id')->where('province_id', $request->input('provinceId')),
-            ];
-        }
+        $rules = match ($role) {
+            'province_admin' => [
+                'provinceId' => ['required', 'string', 'exists:provinces,id'],
+            ],
+            'district_admin' => [
+                'provinceId' => ['required', 'string', 'exists:provinces,id'],
+                'districtId' => [
+                    'required',
+                    'string',
+                    Rule::exists('districts', 'id')->where('province_id', $request->input('provinceId')),
+                ],
+            ],
+            'institution_admin', 'training_operator' => [
+                'institutionId' => ['required', 'string', 'exists:institutions,id'],
+            ],
+            'demand_admin' => [
+                'employerId' => ['required', 'string', 'exists:employers,id'],
+            ],
+            default => [
+                'scopeName' => ['nullable', 'string', 'max:255'],
+            ],
+        };
         $data = $request->validate($rules);
-        $scope = $this->resolveScope([
+        $scopeData = [
             'role' => $role,
-            'provinceId' => $data['provinceId'],
+            'scopeName' => $data['scopeName'] ?? null,
+            'provinceId' => $data['provinceId'] ?? null,
             'districtId' => $data['districtId'] ?? null,
-        ]);
+            'institutionId' => $data['institutionId'] ?? null,
+            'employerId' => $data['employerId'] ?? null,
+        ];
+        $scope = $this->resolveScope($scopeData);
+        $attributes = [
+            'scope_level' => $scope['level'],
+            'scope_name' => $scope['name'],
+            'province_id' => $data['provinceId'] ?? null,
+            'district_id' => $data['districtId'] ?? null,
+            'institution_id' => $data['institutionId'] ?? null,
+            'employer_id' => $data['employerId'] ?? null,
+        ];
 
-        DB::transaction(function () use ($request, $user, $role, $data, $scope): void {
-            $user->update([
-                'scope_level' => $scope['level'],
-                'scope_name' => $scope['name'],
-                'province_id' => $data['provinceId'],
-                'district_id' => $role === 'district_admin' ? $data['districtId'] : null,
-            ]);
-            $this->writeAudit($request, $user, 'Lingkup daerah pengguna diperbarui menjadi '.$scope['name'].'.');
+        DB::transaction(function () use ($request, $user, $scope, $attributes): void {
+            $user->update($attributes);
+            $this->writeAudit($request, $user, 'Lingkup pengguna diperbarui menjadi '.$scope['name'].'.');
         });
 
-        return back()->with('success', 'Lingkup daerah pengguna berhasil diperbarui.');
+        return back()->with('success', 'Lingkup pengguna berhasil diperbarui.');
     }
 
     public function destroy(Request $request, User $user): RedirectResponse
