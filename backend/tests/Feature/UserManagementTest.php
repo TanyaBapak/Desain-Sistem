@@ -166,6 +166,77 @@ class UserManagementTest extends TestCase
         ]);
     }
 
+    public function test_super_admin_can_update_a_district_users_regional_scope(): void
+    {
+        $admin = $this->userWithRole('super_admin');
+        $user = $this->userWithRole('district_admin', [
+            'username' => 'district-scope-edit',
+            'email' => 'district-scope-edit@example.invalid',
+            'province_id' => '32',
+            'district_id' => '3201',
+            'scope_level' => 'kabupaten',
+            'scope_name' => 'Kabupaten Bogor',
+        ]);
+
+        $this->actingAs($admin)->patch("/admin/users/{$user->id}/regional-scope", [
+            'provinceId' => '32',
+            'districtId' => '3202',
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $user->refresh();
+        $this->assertSame('32', $user->province_id);
+        $this->assertSame('3202', $user->district_id);
+        $this->assertSame('Kabupaten Sukabumi', $user->scope_name);
+        $this->assertSame('district_admin', $user->roles()->value('name'));
+        $this->assertDatabaseHas('audit_logs', [
+            'user_id' => $admin->id,
+            'action_type' => 'AKUN_HAK_AKSES',
+            'entity_id' => (string) $user->id,
+            'justification_reason' => 'Lingkup daerah pengguna diperbarui menjadi Kabupaten Sukabumi.',
+        ]);
+    }
+
+    public function test_regional_scope_update_rejects_a_district_outside_the_selected_province(): void
+    {
+        $admin = $this->userWithRole('super_admin');
+        $user = $this->userWithRole('district_admin', [
+            'username' => 'district-scope-invalid',
+            'email' => 'district-scope-invalid@example.invalid',
+            'province_id' => '32',
+            'district_id' => '3201',
+        ]);
+
+        $this->actingAs($admin)
+            ->from('/app/rbac')
+            ->patch("/admin/users/{$user->id}/regional-scope", [
+                'provinceId' => '32',
+                'districtId' => '3171',
+            ])
+            ->assertRedirect('/app/rbac')
+            ->assertSessionHasErrors('districtId');
+
+        $this->assertSame('3201', $user->fresh()->district_id);
+    }
+
+    public function test_regional_scope_update_does_not_assign_a_fixed_bp3mi_area_to_task_force(): void
+    {
+        $admin = $this->userWithRole('super_admin');
+        $user = $this->userWithRole('task_force', [
+            'username' => 'taskforce-scope-edit',
+            'email' => 'taskforce-scope-edit@example.invalid',
+        ]);
+        $originalBp3miCode = $user->bp3mi_code;
+
+        $this->actingAs($admin)
+            ->patch("/admin/users/{$user->id}/regional-scope", [
+                'provinceId' => '32',
+            ])
+            ->assertUnprocessable();
+
+        $this->assertNull($user->fresh()->province_id);
+        $this->assertSame($originalBp3miCode, $user->fresh()->bp3mi_code);
+    }
+
     public function test_super_admin_can_soft_delete_users_with_an_audit_reason(): void
     {
         $admin = $this->userWithRole('super_admin');

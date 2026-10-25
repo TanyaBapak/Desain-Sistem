@@ -23,19 +23,19 @@ class UserManagementController extends Controller
             ->orderBy('name')
             ->paginate(15);
         $users->through(fn (User $user): array => [
-                'id' => (string) $user->id,
-                'name' => $user->name,
-                'username' => $user->username,
-                'email' => $user->email,
-                'status' => $user->status,
-                'scopeName' => $user->scope_name,
-                'roleName' => $user->roles->first()?->name ?? '',
-                'roleTitle' => $user->roles->first()?->title ?? 'Tanpa peran',
-                'provinceId' => $user->province_id,
-                'districtId' => $user->district_id,
-                'institutionId' => $user->institution_id,
-                'employerId' => $user->employer_id,
-            ]);
+            'id' => (string) $user->id,
+            'name' => $user->name,
+            'username' => $user->username,
+            'email' => $user->email,
+            'status' => $user->status,
+            'scopeName' => $user->scope_name,
+            'roleName' => $user->roles->first()?->name ?? '',
+            'roleTitle' => $user->roles->first()?->title ?? 'Tanpa peran',
+            'provinceId' => $user->province_id,
+            'districtId' => $user->district_id,
+            'institutionId' => $user->institution_id,
+            'employerId' => $user->employer_id,
+        ]);
 
         return [
             'data' => $users->items(),
@@ -138,6 +138,44 @@ class UserManagementController extends Controller
         });
 
         return back()->with('success', 'Data pengguna berhasil diperbarui.');
+    }
+
+    public function updateRegionalScope(Request $request, User $user): RedirectResponse
+    {
+        $this->authorizeSuperAdmin($request);
+        $this->authorizeManagedUser($request, $user);
+
+        $role = $user->roles()->value('name');
+        abort_unless(in_array($role, ['province_admin', 'district_admin'], true), 422);
+
+        $rules = [
+            'provinceId' => ['required', 'string', 'exists:provinces,id'],
+        ];
+        if ($role === 'district_admin') {
+            $rules['districtId'] = [
+                'required',
+                'string',
+                Rule::exists('districts', 'id')->where('province_id', $request->input('provinceId')),
+            ];
+        }
+        $data = $request->validate($rules);
+        $scope = $this->resolveScope([
+            'role' => $role,
+            'provinceId' => $data['provinceId'],
+            'districtId' => $data['districtId'] ?? null,
+        ]);
+
+        DB::transaction(function () use ($request, $user, $role, $data, $scope): void {
+            $user->update([
+                'scope_level' => $scope['level'],
+                'scope_name' => $scope['name'],
+                'province_id' => $data['provinceId'],
+                'district_id' => $role === 'district_admin' ? $data['districtId'] : null,
+            ]);
+            $this->writeAudit($request, $user, 'Lingkup daerah pengguna diperbarui menjadi '.$scope['name'].'.');
+        });
+
+        return back()->with('success', 'Lingkup daerah pengguna berhasil diperbarui.');
     }
 
     public function destroy(Request $request, User $user): RedirectResponse
