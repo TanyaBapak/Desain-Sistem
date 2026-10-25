@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Role;
 use App\Models\User;
+use App\Services\ProgramSyncFromProviders;
 use Database\Seeders\ReferenceDataSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -77,6 +78,78 @@ class ProgramAllocationTest extends TestCase
         $this->assertDatabaseCount('training_classes', 0);
     }
 
+    public function test_task_force_cannot_allocate_records_outside_its_bp3mi_province(): void
+    {
+        $user = $this->userWithRole('task_force', ['bp3mi_code' => 'BP3MI-JKT']);
+        $this->createAllocationRecords();
+        $this->assertSame('BP3MI-JKT', $user->bp3mi_code);
+        $this->assertSame('task_force', $user->roles()->value('name'));
+
+        $response = $this->actingAs($user)->postJson('/allocations', $this->allocationData());
+
+        $this->assertDatabaseCount('program_allocations', 0);
+        $response->assertForbidden();
+    }
+
+    public function test_task_force_without_valid_bp3mi_assignment_is_denied(): void
+    {
+        $user = $this->userWithRole('task_force', ['bp3mi_code' => null]);
+
+        $this->actingAs($user)
+            ->get('/app/matching')
+            ->assertForbidden();
+    }
+
+    public function test_recommended_providers_are_scoped_and_report_remaining_capacity(): void
+    {
+        $this->createAllocationRecords();
+        DB::table('training_programs')->where('id', 'PROG-ALLOC-001')->update([
+            'enrolled_count' => 3,
+        ]);
+        $user = $this->userWithRole('task_force');
+
+        $this->actingAs($user)
+            ->getJson('/business-data/recommended-providers?occupation_id=OCC-WL-01')
+            ->assertOk()
+            ->assertJsonPath('data.0.remainingCapacity', 7)
+            ->assertJsonPath('data.0.available', true);
+
+        $user->update(['bp3mi_code' => 'BP3MI-JKT']);
+        $this->getJson('/business-data/recommended-providers?occupation_id=OCC-WL-01')
+            ->assertOk()
+            ->assertJsonCount(0, 'data');
+    }
+
+    public function test_program_sync_preserves_enrolled_count_when_updating_existing_programs(): void
+    {
+        $this->createAllocationRecords();
+        DB::table('training_programs')->where('id', 'PROG-ALLOC-001')->update([
+            'enrolled_count' => 4,
+        ]);
+        DB::table('institutions')->where('id', 'VOC-ALLOC-001')->update([
+            'external_metadata' => json_encode([
+                'programs' => [[
+                    'name' => 'Program Welder Contoh',
+                    'occupation' => 'Welder SMAW / GMAW',
+                    'sector' => 'Manufaktur / Pengelasan',
+                    'target_country' => 'Jepang',
+                    'quota' => 10,
+                ]],
+            ], JSON_THROW_ON_ERROR),
+        ]);
+
+        $firstSync = app(ProgramSyncFromProviders::class)->sync();
+        $secondSync = app(ProgramSyncFromProviders::class)->sync();
+
+        $this->assertSame(1, $firstSync['updated']);
+        $this->assertSame(1, $secondSync['updated']);
+        $this->assertDatabaseCount('training_programs', 1);
+        $this->assertDatabaseHas('training_programs', [
+            'id' => 'PROG-ALLOC-001',
+            'enrolled_count' => 4,
+        ]);
+    }
+
     public function test_non_task_force_users_cannot_create_allocations(): void
     {
         $this->createAllocationRecords();
@@ -90,6 +163,7 @@ class ProgramAllocationTest extends TestCase
 
     public function test_matching_stage_uses_persisted_candidate_match_results(): void
     {
+        $user = $this->userWithRole('task_force');
         $this->createAllocationRecords();
         DB::table('job_seekers')->where('id', 'CAND-ALLOC-001')->update([
             'verification_status' => 'Verified',
@@ -113,7 +187,7 @@ class ProgramAllocationTest extends TestCase
             'updated_at' => now(),
         ]);
 
-        $this->actingAs($this->userWithRole('task_force'))
+        $this->actingAs($user)
             ->get('/app/matching')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
@@ -123,6 +197,7 @@ class ProgramAllocationTest extends TestCase
                 ->where('businessData.demands.0.verificationStatus', 'Approved'));
 
         DB::table('job_demands')->where('id', 'DEM-ALLOC-001')->update(['verification_status' => 'Pending']);
+        app(\App\Services\BusinessDataPresenter::class)->forget($user);
 
         $this->get('/app/matching')
             ->assertOk()
@@ -176,6 +251,16 @@ class ProgramAllocationTest extends TestCase
                 ->where('businessData.monitoring.classes.0.averageAssessmentScore', 91)
                 ->where('businessData.monitoring.placements.0.id', 'PLACEMENT-ALLOC-001')
                 ->where('businessData.monitoring.placements.0.siskop2miId', 'SISKOP-CONTOH-001'));
+
+        DB::table('job_seekers')->where('id', 'CAND-ALLOC-001')->update([
+            'province_id' => '31',
+            'district_id' => '3171',
+        ]);
+        app(\App\Services\BusinessDataPresenter::class)->forget($user);
+
+        $this->get('/app/matching')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->has('businessData.monitoring.placements', 0));
     }
 
     public function test_allocation_can_be_finalized_and_archived_with_quota_restored(): void
@@ -292,6 +377,7 @@ class ProgramAllocationTest extends TestCase
                 'major' => 'Teknik Pengelasan',
                 'source_type' => 'Disnaker',
                 'readiness_status' => 'Ready for Placement',
+                'preferred_countries' => json_encode(['Jepang'], JSON_THROW_ON_ERROR),
                 'verification_status' => 'Verified',
                 'lifecycle_status' => 'APPROVED',
                 'created_at' => now(),
@@ -312,9 +398,9 @@ class ProgramAllocationTest extends TestCase
         ];
     }
 
-    private function userWithRole(string $roleName): User
+    private function userWithRole(string $roleName, array $attributes = []): User
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create($attributes);
         $role = Role::query()->create([
             'name' => $roleName,
             'title' => str_replace('_', ' ', $roleName),

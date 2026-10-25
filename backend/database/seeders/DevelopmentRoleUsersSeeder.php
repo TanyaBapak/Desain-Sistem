@@ -31,7 +31,7 @@ class DevelopmentRoleUsersSeeder extends Seeder
 
         $accounts = [
             ['pimpinan', 'Pimpinan Contoh', 'pimpinan@example.invalid', 'leadership', 'Nasional (data contoh)', 'national', null, null, null, null],
-            ['taskforce', 'Koordinator Contoh Task Force', 'taskforce@example.invalid', 'task_force', 'Nasional (data contoh)', 'national', null, null, null, null],
+            ['taskforce', 'Koordinator Contoh Task Force', 'taskforce@example.invalid', 'task_force', 'BP3MI Jawa Barat (data contoh)', 'provinsi', '32', null, null, null, 'BP3MI-JABAR'],
             ['direktorat', 'Administrator Contoh Direktorat', 'direktorat@example.invalid', 'directorate_admin', 'Nasional (data contoh)', 'national', null, null, null, null],
             ['disnaker-provinsi', 'Petugas Contoh Disnaker Provinsi', 'disnaker-provinsi@example.invalid', 'province_admin', 'Jawa Barat (data contoh)', 'provinsi', '32', null, null, null],
             ['disnaker-kabupaten', 'Petugas Contoh Disnaker Kabupaten', 'disnaker-kabupaten@example.invalid', 'district_admin', 'Kota Bogor (data contoh)', 'kabupaten', '32', '3271', null, null],
@@ -55,6 +55,7 @@ class DevelopmentRoleUsersSeeder extends Seeder
             $districtId,
             $institutionId,
             $employerId,
+            $bp3miCode,
         ]) {
             $role = Role::query()->where('name', $roleName)->firstOrFail();
             $user = User::query()->updateOrCreate(
@@ -68,6 +69,7 @@ class DevelopmentRoleUsersSeeder extends Seeder
                     'scope_level' => $scopeLevel,
                     'scope_name' => $scopeName,
                     'province_id' => $provinceId,
+                    'bp3mi_code' => $bp3miCode,
                     'district_id' => $districtId,
                     'institution_id' => $institutionId,
                     'employer_id' => $employerId,

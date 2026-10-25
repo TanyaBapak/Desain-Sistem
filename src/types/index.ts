@@ -228,6 +228,7 @@ export interface AuthUser {
   badge?: string;
   organization: string;
   scope: UserScope;
+  bp3miCode?: string | null;
   nip?: string;
   mfaEnabled: boolean;
   mfaVerified: boolean;
@@ -473,10 +474,10 @@ export interface MonitoringData {
     status: string;
     startedAt: string | null;
     finishedAt: string | null;
-    recordsFetched: number;
-    recordsInserted: number;
-    recordsUpdated: number;
-    recordsSkipped: number;
+    recordsFetched: number | null;
+    recordsInserted: number | null;
+    recordsUpdated: number | null;
+    recordsSkipped: number | null;
   } | null;
 }
 

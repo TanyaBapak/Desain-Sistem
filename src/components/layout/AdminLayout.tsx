@@ -1,8 +1,10 @@
 "use client";
 
 import * as React from "react";
+import { router } from "@inertiajs/react";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { TopNav } from "@/components/layout/TopNav";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 interface AdminLayoutProps {
@@ -53,9 +55,38 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
           setCollapsed={setCollapsed}
           mobileOpen={mobileSidebarOpen}
           onMobileClose={() => setMobileSidebarOpen(false)}
-          impersonationAdminName={impersonationAdminName}
         />
-        <main className="min-h-[calc(100vh-4rem)] w-full min-w-0 px-4 py-5 sm:px-6 lg:px-8">
+        <main
+          className={cn(
+            "min-h-[calc(100vh-4rem)] w-full min-w-0 px-4 py-5 sm:px-6 lg:px-8",
+            impersonationAdminName && "pb-32"
+          )}
+        >
+          {impersonationAdminName && !mobileSidebarOpen && (
+            <div
+              className={cn(
+                "fixed bottom-3 z-50 mx-auto flex max-w-xl flex-col gap-2 rounded-lg border border-destructive/40 bg-background/95 p-3 text-foreground shadow-lg backdrop-blur transition-[left,right]",
+                "left-3 right-3 sm:left-4 sm:right-4",
+                collapsed ? "lg:left-20" : "lg:left-80"
+              )}
+            >
+              <div className="min-w-0">
+                <p className="text-xs font-semibold text-destructive">Anda sedang masuk sebagai pengguna lain</p>
+                <p className="text-xs text-muted-foreground">
+                  Sesi dimulai oleh {impersonationAdminName}. Aktivitas tetap tercatat pada jejak audit.
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="destructive"
+                size="sm"
+                className="shrink-0"
+                onClick={() => router.post("/impersonation/stop")}
+              >
+                Kembali ke Super Admin
+              </Button>
+            </div>
+          )}
           <div className="mx-auto w-full min-w-0 max-w-screen-2xl">{children}</div>
         </main>
       </div>

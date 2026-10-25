@@ -8,46 +8,75 @@ use Illuminate\Support\Facades\DB;
 
 class BusinessDataPresenter
 {
+    public function __construct(private readonly Bp3miScope $bp3miScope = new Bp3miScope())
+    {
+    }
+
     public function make(User $user): array
     {
         $role = $user->roles()->value('name');
+        $cacheKey = $this->cacheKey($user, $role);
 
-        return [
-            'candidates' => $this->candidates($role, $user),
-            'programs' => $this->programs($role, $user),
-            'providers' => $this->providers($role, $user),
-            'demands' => $this->demands($role, $user),
-            'candidateMatches' => $this->candidateMatches($role),
-            'allocations' => $this->allocations($role),
-            'reportSummary' => $this->reportSummary($role),
-            'approvalRequests' => $this->approvalRequests($role),
-            'monitoring' => $this->monitoring($role, $user),
-            'options' => [
-                'provinces' => DB::table('provinces')->orderBy('name')->get(['id', 'name']),
-                'districts' => DB::table('districts')->orderBy('name')->get(['id', 'province_id', 'name']),
-                'sectors' => DB::table('sectors')->orderBy('name')->get(['id', 'name']),
-                'occupations' => DB::table('occupations')->orderBy('title')->get(['id', 'sector_id', 'title']),
-                'countries' => DB::table('countries')->orderBy('name')->get(['id', 'name']),
-                'institutions' => $this->institutionOptions($role, $user),
-            ],
-        ];
+        return Cache::remember($cacheKey, 30, function () use ($role, $user): array {
+            return [
+                'candidates' => $this->candidates($role, $user),
+                'programs' => $this->programs($role, $user),
+                'providers' => $this->providers($role, $user),
+                'demands' => $this->demands($role, $user),
+                'candidateMatches' => $this->candidateMatches($role, $user),
+                'allocations' => $this->allocations($role, $user),
+                'reportSummary' => $this->reportSummary($role, $user),
+                'approvalRequests' => $this->approvalRequests($role, $user),
+                'monitoring' => $this->monitoring($role, $user),
+                'options' => [
+                    'provinces' => DB::table('provinces')->orderBy('name')->get(['id', 'name']),
+                    'districts' => DB::table('districts')->orderBy('name')->get(['id', 'province_id', 'name']),
+                    'sectors' => DB::table('sectors')->orderBy('name')->get(['id', 'name']),
+                    'occupations' => DB::table('occupations')->orderBy('title')->get(['id', 'sector_id', 'title']),
+                    'countries' => DB::table('countries')->orderBy('name')->get(['id', 'name']),
+                    'institutions' => $this->institutionOptions($role, $user),
+                ],
+                'bp3miScope' => [
+                    'isRestricted' => $role === 'task_force',
+                    'provinces' => $this->bp3miScope->provinceNamesForUser($user),
+                    'code' => $user->bp3mi_code,
+                ],
+            ];
+        });
     }
 
-    private function candidateMatches(?string $role): array
+    public function forget(User $user): void
+    {
+        Cache::forget($this->cacheKey($user, $user->roles()->value('name')));
+    }
+
+    private function cacheKey(User $user, ?string $role): string
+    {
+        return 'business_data:'.$user->id.':'.($role ?? 'none').':'.($user->province_id ?? 'na').':'.($user->district_id ?? 'na').':'.($user->institution_id ?? 'na').':'.($user->employer_id ?? 'na').':'.($user->bp3mi_code ?? 'na');
+    }
+
+    private function candidateMatches(?string $role, User $user): array
     {
         if (! in_array($role, ['super_admin', 'task_force', 'directorate_admin'], true)) {
             return [];
         }
 
-        return DB::table('candidate_matches')
+        $query = DB::table('candidate_matches')
             ->join('job_seekers', 'job_seekers.id', '=', 'candidate_matches.job_seeker_id')
             ->join('job_demands', 'job_demands.id', '=', 'candidate_matches.job_demand_id')
+            ->leftJoin('provinces', 'provinces.id', '=', 'job_seekers.province_id')
             ->leftJoin('training_classes', 'training_classes.id', '=', 'candidate_matches.training_class_id')
             ->leftJoin('training_programs', 'training_programs.id', '=', 'training_classes.training_program_id')
             ->whereNull('job_seekers.deleted_at')
             ->where('job_seekers.verification_status', 'Verified')
             ->where('job_demands.verification_status', 'Approved')
-            ->where('candidate_matches.match_status', 'Rekomendasi')
+            ->where('candidate_matches.match_status', 'Rekomendasi');
+
+        if ($role === 'task_force') {
+            $this->bp3miScope->applyToJobSeekers($query, $user);
+        }
+
+        return $query
             ->orderByDesc('candidate_matches.match_score')
             ->orderBy('job_seekers.full_name')
             ->get([
@@ -83,7 +112,7 @@ class BusinessDataPresenter
             ->when($role === 'institution_admin', fn ($query) => $query->where('job_seekers.institution_id', $user->institution_id ?? ''))
             ->leftJoin('provinces', 'provinces.id', '=', 'job_seekers.province_id')
             ->leftJoin('districts', 'districts.id', '=', 'job_seekers.district_id')
-            ->orderByDesc('job_seekers.updated_at')
+            ->when($role === 'task_force', fn ($query) => $this->bp3miScope->applyToJobSeekers($query, $user))
             ->orderByDesc('job_seekers.created_at')
             ->limit(2000)
             ->get([
@@ -165,16 +194,20 @@ class BusinessDataPresenter
             return [];
         }
 
-        return DB::table('training_programs')
+        $query = DB::table('training_programs')
             ->leftJoin('sectors', 'sectors.id', '=', 'training_programs.sector_id')
             ->leftJoin('occupations', 'occupations.id', '=', 'training_programs.occupation_id')
             ->leftJoin('countries', 'countries.id', '=', 'training_programs.target_country_id')
             ->leftJoin('institutions', 'institutions.id', '=', 'training_programs.institution_id')
+            ->leftJoin('provinces', 'provinces.id', '=', 'institutions.province_id')
             ->where('training_programs.status', '!=', 'Nonaktif')
             ->when(
                 in_array($role, ['institution_admin', 'training_operator'], true),
-                fn ($query) => $query->where('training_programs.institution_id', $user->institution_id ?? ''),
+                fn ($q) => $q->where('training_programs.institution_id', $user->institution_id ?? ''),
             )
+            ->when($role === 'task_force', fn ($q) => $this->bp3miScope->applyToTrainingPrograms($q, $user));
+
+        return $query
             ->orderByDesc('training_programs.created_at')
             ->get([
                 'training_programs.id',
@@ -226,11 +259,14 @@ class BusinessDataPresenter
             ->groupBy('institution_id')
             ->map(fn ($rows) => $rows->pluck('facility_name')->all());
 
-        return DB::table('institutions')
+        $query = DB::table('institutions')
             ->leftJoin('provinces', 'provinces.id', '=', 'institutions.province_id')
             ->leftJoin('districts', 'districts.id', '=', 'institutions.district_id')
             ->where('institutions.status', 'Aktif')
-            ->when($role === 'institution_admin', fn ($query) => $query->where('institutions.id', $user->institution_id ?? ''))
+            ->when($role === 'institution_admin', fn ($q) => $q->where('institutions.id', $user->institution_id ?? ''))
+            ->when($role === 'task_force', fn ($q) => $this->bp3miScope->applyToInstitutions($q, $user));
+
+        return $query
             ->orderBy('institutions.name')
             ->get([
                 'institutions.id',
@@ -319,13 +355,16 @@ class BusinessDataPresenter
             return [];
         }
 
-        return DB::table('job_demands')
+        $query = DB::table('job_demands')
             ->join('employers', 'employers.id', '=', 'job_demands.employer_id')
             ->leftJoin('countries', 'countries.id', '=', 'job_demands.country_id')
             ->leftJoin('sectors', 'sectors.id', '=', 'job_demands.sector_id')
             ->leftJoin('occupations', 'occupations.id', '=', 'job_demands.occupation_id')
             ->where('job_demands.verification_status', '!=', 'Draft')
-            ->when($role === 'demand_admin', fn ($query) => $query->where('job_demands.employer_id', $user->employer_id ?? ''))
+            ->when($role === 'demand_admin', fn ($q) => $q->where('job_demands.employer_id', $user->employer_id ?? ''))
+            ->when($role === 'task_force', fn ($q) => $this->bp3miScope->applyToJobDemands($q, $user));
+
+        return $query
             ->orderByDesc('job_demands.created_at')
             ->get([
                 'job_demands.id',
@@ -365,7 +404,7 @@ class BusinessDataPresenter
             ])->all();
     }
 
-    private function allocations(?string $role): array
+    private function allocations(?string $role, User $user): array
     {
         if (! in_array($role, ['super_admin', 'task_force', 'directorate_admin'], true)) {
             return [];
@@ -373,16 +412,42 @@ class BusinessDataPresenter
 
         $candidateIds = DB::table('program_allocation_candidates')
             ->join('program_allocations', 'program_allocations.id', '=', 'program_allocation_candidates.program_allocation_id')
+            ->join('job_seekers', 'job_seekers.id', '=', 'program_allocation_candidates.job_seeker_id')
+            ->leftJoin('provinces', 'provinces.id', '=', 'job_seekers.province_id')
             ->whereNull('program_allocations.deleted_at')
+            ->whereNull('job_seekers.deleted_at')
+            ->when($role === 'task_force', fn ($q) => $this->bp3miScope->applyToJobSeekers($q, $user))
             ->get(['program_allocation_candidates.program_allocation_id', 'program_allocation_candidates.job_seeker_id'])
             ->groupBy('program_allocation_id')
             ->map(fn ($rows): array => $rows->pluck('job_seeker_id')->all());
+        $allCandidateCounts = DB::table('program_allocation_candidates')
+            ->join('program_allocations', 'program_allocations.id', '=', 'program_allocation_candidates.program_allocation_id')
+            ->whereNull('program_allocations.deleted_at')
+            ->select('program_allocation_candidates.program_allocation_id')
+            ->selectRaw('COUNT(*) as candidate_count')
+            ->groupBy('program_allocation_candidates.program_allocation_id')
+            ->pluck('candidate_count', 'program_allocation_id');
 
-        return DB::table('program_allocations')
+        $query = DB::table('program_allocations')
             ->join('job_demands', 'job_demands.id', '=', 'program_allocations.job_demand_id')
             ->leftJoin('training_programs', 'training_programs.id', '=', 'program_allocations.training_program_id')
             ->leftJoin('institutions', 'institutions.id', '=', 'program_allocations.institution_id')
+            ->leftJoin('provinces', 'provinces.id', '=', 'institutions.province_id')
             ->whereNull('program_allocations.deleted_at')
+            ->when($role === 'task_force', function ($q) use ($user, &$candidateIds, $allCandidateCounts) {
+                $candidateIds = $candidateIds->filter(
+                    fn (array $ids, $allocationId): bool => $ids !== []
+                        && count($ids) === (int) $allCandidateCounts->get($allocationId, 0),
+                );
+                $allocIds = $candidateIds->keys()->all();
+                $this->bp3miScope->applyToInstitutions($q, $user);
+                $demandIds = DB::table('job_demands');
+                $this->bp3miScope->applyToJobDemands($demandIds, $user);
+                $q->whereIn('program_allocations.id', $allocIds)
+                    ->whereIn('program_allocations.job_demand_id', $demandIds->select('job_demands.id'));
+            });
+
+        return $query
             ->orderByDesc('program_allocations.created_at')
             ->get([
                 'program_allocations.id',
@@ -418,60 +483,94 @@ class BusinessDataPresenter
             return [];
         }
 
-        return DB::table('institutions')
-            ->where('status', 'Aktif')
+        $query = DB::table('institutions')
+            ->leftJoin('provinces', 'provinces.id', '=', 'institutions.province_id')
+            ->where('institutions.status', 'Aktif')
             ->when(
                 in_array($role, ['institution_admin', 'training_operator'], true),
-                fn ($query) => $query->where('id', $user->institution_id ?? ''),
-            )
-            ->orderBy('name')
-            ->get(['id', 'name'])
+                fn ($query) => $query->where('institutions.id', $user->institution_id ?? ''),
+            );
+        if ($role === 'task_force') {
+            $this->bp3miScope->applyToInstitutions($query, $user);
+        }
+
+        return $query
+            ->orderBy('institutions.name')
+            ->get(['institutions.id', 'institutions.name'])
             ->all();
     }
 
-    private function reportSummary(?string $role): array
+    private function reportSummary(?string $role, User $user): array
     {
         if (! in_array($role, ['super_admin', 'leadership', 'task_force', 'directorate_admin', 'auditor'], true)) {
             return [];
         }
 
+        $candidates = DB::table('job_seekers')
+            ->leftJoin('provinces', 'provinces.id', '=', 'job_seekers.province_id')
+            ->whereNull('job_seekers.deleted_at');
+        $institutions = DB::table('institutions')
+            ->leftJoin('provinces', 'provinces.id', '=', 'institutions.province_id')
+            ->where('institutions.status', 'Aktif');
+        $programs = DB::table('training_programs')
+            ->leftJoin('institutions', 'institutions.id', '=', 'training_programs.institution_id')
+            ->leftJoin('provinces', 'provinces.id', '=', 'institutions.province_id')
+            ->where('training_programs.status', 'Aktif');
+        $demands = DB::table('job_demands')
+            ->leftJoin('countries', 'countries.id', '=', 'job_demands.country_id')
+            ->where('job_demands.verification_status', 'Approved');
+
+        if ($role === 'task_force') {
+            $this->bp3miScope->applyToJobSeekers($candidates, $user);
+            $this->bp3miScope->applyToInstitutions($institutions, $user);
+            $this->bp3miScope->applyToTrainingPrograms($programs, $user);
+            $this->bp3miScope->applyToJobDemands($demands, $user);
+        }
+
         $gardataLastSync = DB::table('integration_sync_logs')
-            ->where('source', 'gardata')
+            ->whereIn('source', ['gardata', 'sippmi'])
             ->orderByDesc('started_at')
             ->first(['status', 'started_at', 'finished_at', 'records_fetched', 'records_inserted', 'records_updated', 'records_skipped']);
 
+        $gardataCandidates = (clone $candidates)->whereIn('job_seekers.external_source', ['gardata', 'sippmi']);
+        $gardataTraining = DB::table('external_training_records')
+            ->whereIn('external_training_records.external_source', ['gardata', 'sippmi']);
+        if ($role === 'task_force') {
+            $gardataTraining
+                ->join('job_seekers', 'job_seekers.id', '=', 'external_training_records.job_seeker_id')
+                ->leftJoin('provinces', 'provinces.id', '=', 'job_seekers.province_id')
+                ->whereNull('job_seekers.deleted_at');
+            $this->bp3miScope->applyToJobSeekers($gardataTraining, $user);
+        }
+
         $updatedAt = collect([
-            DB::table('job_seekers')->whereNull('deleted_at')->max('updated_at'),
-            DB::table('training_programs')->max('updated_at'),
-            DB::table('institutions')->max('updated_at'),
-            DB::table('job_demands')->max('updated_at'),
+            (clone $candidates)->max('job_seekers.updated_at'),
+            (clone $programs)->max('training_programs.updated_at'),
+            (clone $institutions)->max('institutions.updated_at'),
+            (clone $demands)->max('job_demands.updated_at'),
             $gardataLastSync?->finished_at,
         ])->filter()->max();
 
         return [
-            'candidateCount' => DB::table('job_seekers')->whereNull('deleted_at')->count(),
-            'readyCandidateCount' => DB::table('job_seekers')
-                ->whereNull('deleted_at')
-                ->where('readiness_status', 'Ready for Placement')
+            'candidateCount' => (clone $candidates)->count('job_seekers.id'),
+            'readyCandidateCount' => (clone $candidates)
+                ->where('job_seekers.readiness_status', 'Ready for Placement')
                 ->count(),
-            'programCount' => DB::table('training_programs')->where('status', 'Aktif')->count(),
-            'institutionCount' => DB::table('institutions')->where('status', 'Aktif')->count(),
-            'demandCount' => DB::table('job_demands')->where('verification_status', 'Approved')->count(),
+            'programCount' => (clone $programs)->count('training_programs.id'),
+            'institutionCount' => (clone $institutions)->count('institutions.id'),
+            'demandCount' => (clone $demands)->count('job_demands.id'),
             'dashboard' => [
-                'candidateLifecycle' => DB::table('job_seekers')
-                    ->whereNull('deleted_at')
-                    ->select('lifecycle_status')
+                'candidateLifecycle' => (clone $candidates)
+                    ->select('job_seekers.lifecycle_status')
                     ->selectRaw('COUNT(*) as count')
-                    ->groupBy('lifecycle_status')
-                    ->orderBy('lifecycle_status')
+                    ->groupBy('job_seekers.lifecycle_status')
+                    ->orderBy('job_seekers.lifecycle_status')
                     ->get()
                     ->map(fn (object $row): array => [
                         'status' => $row->lifecycle_status,
                         'count' => (int) $row->count,
                     ])->all(),
-                'candidatesByProvince' => DB::table('job_seekers')
-                    ->leftJoin('provinces', 'provinces.id', '=', 'job_seekers.province_id')
-                    ->whereNull('job_seekers.deleted_at')
+                'candidatesByProvince' => (clone $candidates)
                     ->selectRaw("COALESCE(provinces.name, 'Belum dipetakan') as province")
                     ->selectRaw('COUNT(*) as count')
                     ->groupBy('provinces.name')
@@ -483,21 +582,18 @@ class BusinessDataPresenter
                         'province' => $row->province,
                         'count' => (int) $row->count,
                     ])->all(),
-                'institutionsByEvokasiStatus' => DB::table('institutions')
-                    ->where('status', 'Aktif')
-                    ->select('evokasi_status')
+                'institutionsByEvokasiStatus' => (clone $institutions)
+                    ->select('institutions.evokasi_status')
                     ->selectRaw('COUNT(*) as count')
-                    ->groupBy('evokasi_status')
-                    ->orderBy('evokasi_status')
+                    ->groupBy('institutions.evokasi_status')
+                    ->orderBy('institutions.evokasi_status')
                     ->get()
                     ->map(fn (object $row): array => [
                         'status' => $row->evokasi_status,
                         'count' => (int) $row->count,
                     ])->all(),
-                'institutionDirectory' => DB::table('institutions')
-                    ->leftJoin('provinces', 'provinces.id', '=', 'institutions.province_id')
+                'institutionDirectory' => (clone $institutions)
                     ->leftJoin('districts', 'districts.id', '=', 'institutions.district_id')
-                    ->where('institutions.status', 'Aktif')
                     ->orderByRaw('institutions.readiness_score IS NULL')
                     ->orderByDesc('institutions.readiness_score')
                     ->orderBy('institutions.name')
@@ -524,9 +620,7 @@ class BusinessDataPresenter
                         'classCount' => $row->class_count === null ? null : (int) $row->class_count,
                         'readyParticipantCount' => $row->ready_participant_count === null ? null : (int) $row->ready_participant_count,
                     ])->all(),
-                'demandByCountry' => DB::table('job_demands')
-                    ->leftJoin('countries', 'countries.id', '=', 'job_demands.country_id')
-                    ->where('job_demands.verification_status', 'Approved')
+                'demandByCountry' => (clone $demands)
                     ->selectRaw("COALESCE(countries.name, 'Belum ditentukan') as country")
                     ->selectRaw('COUNT(*) as demand_count')
                     ->selectRaw('SUM(job_demands.headcount) as quota')
@@ -543,36 +637,61 @@ class BusinessDataPresenter
                     ])->all(),
             ],
             'gardata' => [
-                'candidateCount' => DB::table('job_seekers')
-                    ->whereNull('deleted_at')
-                    ->where('external_source', 'gardata')
-                    ->count(),
-                'trainingRecordCount' => DB::table('external_training_records')
-                    ->where('external_source', 'gardata')
-                    ->count(),
+                'candidateCount' => (clone $gardataCandidates)->count('job_seekers.id'),
+                'trainingRecordCount' => (clone $gardataTraining)->count('external_training_records.id'),
                 'lastSyncStatus' => $gardataLastSync?->status,
                 'lastSyncAt' => $gardataLastSync?->finished_at,
-                'recordsFetched' => (int) ($gardataLastSync?->records_fetched ?? 0),
-                'recordsInserted' => (int) ($gardataLastSync?->records_inserted ?? 0),
-                'recordsUpdated' => (int) ($gardataLastSync?->records_updated ?? 0),
-                'recordsSkipped' => (int) ($gardataLastSync?->records_skipped ?? 0),
+                'recordsFetched' => $role === 'task_force' ? null : (int) ($gardataLastSync?->records_fetched ?? 0),
+                'recordsInserted' => $role === 'task_force' ? null : (int) ($gardataLastSync?->records_inserted ?? 0),
+                'recordsUpdated' => $role === 'task_force' ? null : (int) ($gardataLastSync?->records_updated ?? 0),
+                'recordsSkipped' => $role === 'task_force' ? null : (int) ($gardataLastSync?->records_skipped ?? 0),
             ],
             'updatedAt' => $updatedAt,
         ];
     }
 
-    private function approvalRequests(?string $role): array
+    private function approvalRequests(?string $role, User $user): array
     {
         if (! in_array($role, ['super_admin', 'task_force', 'verifier'], true)) {
             return [];
         }
 
-        $registrationDocuments = DB::table('institution_registration_documents')
+        $registrationDocumentQuery = DB::table('institution_registration_documents');
+        $requests = DB::table('approval_requests');
+        if ($role === 'task_force') {
+            $provinceNames = $this->bp3miScope->provinceNamesForUser($user);
+            $candidateIds = DB::table('job_seekers')
+                ->join('provinces', 'provinces.id', '=', 'job_seekers.province_id')
+                ->whereNull('job_seekers.deleted_at')
+                ->whereIn('provinces.name', $provinceNames)
+                ->select('job_seekers.id');
+            $institutionIds = DB::table('institutions')
+                ->join('provinces', 'provinces.id', '=', 'institutions.province_id')
+                ->whereIn('provinces.name', $provinceNames)
+                ->select('institutions.id');
+            $programIds = DB::table('training_programs')
+                ->join('institutions', 'institutions.id', '=', 'training_programs.institution_id')
+                ->join('provinces', 'provinces.id', '=', 'institutions.province_id')
+                ->whereIn('provinces.name', $provinceNames)
+                ->select('training_programs.id');
+            $demandIds = DB::table('job_demands');
+            $this->bp3miScope->applyToJobDemands($demandIds, $user);
+
+            $requests->where(function ($query) use ($candidateIds, $institutionIds, $programIds, $demandIds): void {
+                $query->where(fn ($item) => $item->where('entity_type', 'calon_peserta')->whereIn('entity_id', $candidateIds))
+                    ->orWhere(fn ($item) => $item->where('entity_type', 'lembaga_vokasi')->whereIn('entity_id', $institutionIds))
+                    ->orWhere(fn ($item) => $item->where('entity_type', 'program_pelatihan')->whereIn('entity_id', $programIds))
+                    ->orWhere(fn ($item) => $item->where('entity_type', 'demand_luar_negeri')->whereIn('entity_id', $demandIds->select('job_demands.id')));
+            });
+            $registrationDocumentQuery->whereIn('institution_id', $institutionIds);
+        }
+
+        $registrationDocuments = $registrationDocumentQuery
             ->orderBy('document_type')
             ->get(['id', 'institution_id', 'document_type', 'original_name'])
             ->groupBy('institution_id');
 
-        return DB::table('approval_requests')
+        return $requests
             ->orderByRaw("CASE WHEN status = 'PENDING' THEN 0 ELSE 1 END")
             ->orderByDesc('submitted_at')
             ->get([
@@ -755,9 +874,19 @@ class BusinessDataPresenter
 
         $canViewGardata = in_array($role, ['super_admin', 'task_force', 'directorate_admin'], true);
         $externalClasses = DB::table('external_training_records')
-            ->whereIn('external_source', ['gardata', 'sippmi'])
-            ->when(! $canViewGardata, fn ($query) => $query->whereRaw('1 = 0'))
-            ->orderByDesc('updated_at')
+            ->whereIn('external_training_records.external_source', ['gardata', 'sippmi'])
+            ->when(! $canViewGardata, fn ($query) => $query->whereRaw('1 = 0'));
+        if ($role === 'task_force') {
+            $externalClasses
+                ->join('job_seekers', 'job_seekers.id', '=', 'external_training_records.job_seeker_id')
+                ->leftJoin('provinces', 'provinces.id', '=', 'job_seekers.province_id')
+                ->whereNull('job_seekers.deleted_at');
+            $this->bp3miScope->applyToJobSeekers($externalClasses, $user);
+        }
+
+        $externalClasses = $externalClasses
+            ->select('external_training_records.*')
+            ->orderByDesc('external_training_records.updated_at')
             ->get()
             ->groupBy('external_batch_id')
             ->map(fn ($records): array => [
@@ -780,6 +909,7 @@ class BusinessDataPresenter
         $localClasses = DB::table('training_classes')
             ->join('training_programs', 'training_programs.id', '=', 'training_classes.training_program_id')
             ->leftJoin('institutions', 'institutions.id', '=', 'training_classes.institution_id')
+            ->leftJoin('provinces', 'provinces.id', '=', 'institutions.province_id')
             ->leftJoin('training_enrollments', 'training_enrollments.training_class_id', '=', 'training_classes.id')
             ->when(
                 in_array($role, ['institution_admin', 'training_operator'], true),
@@ -789,6 +919,12 @@ class BusinessDataPresenter
                 in_array($role, ['bp3mi_admin', 'placement_officer'], true),
                 fn ($query) => $query->where('institutions.province_id', $user->province_id ?? ''),
             )
+            ;
+        if ($role === 'task_force') {
+            $this->bp3miScope->applyToInstitutions($localClasses, $user);
+        }
+
+        $localClasses = $localClasses
             ->select([
                 'training_classes.id',
                 'training_classes.class_name',
@@ -838,6 +974,15 @@ class BusinessDataPresenter
             ->whereIn('job_seekers.external_source', ['gardata', 'sippmi'])
             ->orderByDesc('job_seekers.updated_at')
             ->limit(100);
+        $gardataCandidateCountQuery = DB::table('job_seekers')
+            ->whereNull('job_seekers.deleted_at')
+            ->whereIn('job_seekers.external_source', ['gardata', 'sippmi']);
+        if ($role === 'task_force') {
+            $this->bp3miScope->applyToJobSeekers($gardataCandidatesQuery, $user);
+            $gardataCandidateCountQuery
+                ->join('provinces', 'provinces.id', '=', 'job_seekers.province_id');
+            $this->bp3miScope->applyToJobSeekers($gardataCandidateCountQuery, $user);
+        }
         $gardataCandidates = ($canViewGardata ? $gardataCandidatesQuery : $gardataCandidatesQuery->whereRaw('1 = 0'))
             ->get([
                 'job_seekers.id',
@@ -874,6 +1019,11 @@ class BusinessDataPresenter
                 ->join('employers', 'employers.id', '=', 'job_demands.employer_id')
                 ->leftJoin('countries', 'countries.id', '=', 'job_demands.country_id')
                 ->leftJoin('occupations', 'occupations.id', '=', 'job_demands.occupation_id')
+                ->leftJoin('provinces', 'provinces.id', '=', 'job_seekers.province_id')
+                ->when(
+                    $role === 'task_force',
+                    fn ($query) => $this->bp3miScope->applyToJobSeekers($query, $user),
+                )
                 ->when(
                     in_array($role, ['bp3mi_admin', 'placement_officer'], true),
                     fn ($query) => $query->where('job_seekers.province_id', $user->province_id ?? ''),
@@ -902,7 +1052,11 @@ class BusinessDataPresenter
                 ])->all()
             : [];
 
-        $activeExternalCount = $externalClasses->filter(fn ($c) => in_array(strtoupper((string) ($c['status'] ?? '')), ['IN_PROGRESS', 'BERJALAN', 'RUNNING', 'ACTIVE', 'GRADUATED'], true))->count();
+        $activeExternalCount = $externalClasses->filter(fn ($class) => in_array(
+            strtoupper((string) ($class['status'] ?? '')),
+            ['IN_PROGRESS', 'BERJALAN', 'RUNNING', 'ACTIVE', 'GRADUATED'],
+            true,
+        ))->count();
 
         return [
             'summary' => [
@@ -910,10 +1064,10 @@ class BusinessDataPresenter
                 'activeClasses' => $localClasses->whereIn('status', ['Sedang Berjalan', 'berjalan', 'aktif', 'Aktif'])->count()
                     + $activeExternalCount,
                 'gardataCandidates' => $canViewGardata
-                    ? DB::table('job_seekers')->whereNull('deleted_at')->whereIn('external_source', ['gardata', 'sippmi'])->count()
+                    ? $gardataCandidateCountQuery->count('job_seekers.id')
                     : 0,
                 'verifiedReports' => $canViewGardata
-                    ? (int) DB::table('external_training_records')->whereIn('external_source', ['gardata', 'sippmi'])->sum('verified_reports_count')
+                    ? (int) $externalClasses->sum('verifiedReportsCount')
                     : 0,
                 'averageAttendance' => $localClasses->whereNotNull('averageAttendance')->avg('averageAttendance'),
                 'averageAssessmentScore' => $localClasses->whereNotNull('averageAssessmentScore')->avg('averageAssessmentScore'),
@@ -927,10 +1081,10 @@ class BusinessDataPresenter
                 'status' => $lastSync->status,
                 'startedAt' => $lastSync->started_at,
                 'finishedAt' => $lastSync->finished_at,
-                'recordsFetched' => (int) $lastSync->records_fetched,
-                'recordsInserted' => (int) $lastSync->records_inserted,
-                'recordsUpdated' => (int) $lastSync->records_updated,
-                'recordsSkipped' => (int) $lastSync->records_skipped,
+                'recordsFetched' => $role === 'task_force' ? null : (int) $lastSync->records_fetched,
+                'recordsInserted' => $role === 'task_force' ? null : (int) $lastSync->records_inserted,
+                'recordsUpdated' => $role === 'task_force' ? null : (int) $lastSync->records_updated,
+                'recordsSkipped' => $role === 'task_force' ? null : (int) $lastSync->records_skipped,
             ] : null,
         ];
     }

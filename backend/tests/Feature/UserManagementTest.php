@@ -73,6 +73,7 @@ class UserManagementTest extends TestCase
             'email' => 'pengguna@example.invalid',
             'password' => 'aman123456',
             'role' => 'task_force',
+            'bp3miCode' => 'BP3MI-JABAR',
         ])->assertRedirect()->assertSessionHasNoErrors();
 
         $created = User::query()->where('username', 'pengguna-contoh')->firstOrFail();
@@ -84,7 +85,18 @@ class UserManagementTest extends TestCase
             'email' => 'pengguna-kedua@example.invalid',
             'password' => 'aman12345',
             'role' => 'task_force',
+            'bp3miCode' => 'BP3MI-JABAR',
         ])->assertRedirect('/app/rbac')->assertSessionHasErrors('password');
+
+        $this->from('/app/rbac')->post('/admin/users', [
+            'name' => 'Petugas Tanpa Wilayah',
+            'username' => 'petugas-tanpa-wilayah',
+            'email' => 'petugas-tanpa-wilayah@example.invalid',
+            'password' => 'aman123456',
+            'role' => 'task_force',
+        ])->assertRedirect('/app/rbac')->assertSessionHasErrors('bp3miCode');
+
+        $this->assertSame('BP3MI-JABAR', $created->bp3mi_code);
     }
 
     public function test_super_admin_cannot_create_another_super_admin_or_mismatched_scope(): void

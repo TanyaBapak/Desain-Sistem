@@ -226,9 +226,15 @@ export function SippmiMonitoringPage({ monitoring }: SippmiMonitoringPageProps) 
         {lastSync && (
           <CardContent className="grid gap-2 text-sm text-muted-foreground sm:grid-cols-2">
             <p>Terakhir dijalankan: {formatDateTime(lastSync.finishedAt ?? lastSync.startedAt)}</p>
-            <p>Data diterima: {lastSync.recordsFetched.toLocaleString("id-ID")}</p>
-            <p>Data baru / diperbarui: {lastSync.recordsInserted.toLocaleString("id-ID")} / {lastSync.recordsUpdated.toLocaleString("id-ID")}</p>
-            <p>Data dilewati: {lastSync.recordsSkipped.toLocaleString("id-ID")}</p>
+            {lastSync.recordsFetched === null ? (
+              <p>Jumlah rekaman sinkronisasi tidak tersedia per wilayah.</p>
+            ) : (
+              <>
+                <p>Data diterima: {lastSync.recordsFetched.toLocaleString("id-ID")}</p>
+                <p>Data baru / diperbarui: {lastSync.recordsInserted?.toLocaleString("id-ID") ?? "—"} / {lastSync.recordsUpdated?.toLocaleString("id-ID") ?? "—"}</p>
+                <p>Data dilewati: {lastSync.recordsSkipped?.toLocaleString("id-ID") ?? "—"}</p>
+              </>
+            )}
           </CardContent>
         )}
       </Card>

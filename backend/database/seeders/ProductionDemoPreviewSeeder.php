@@ -14,7 +14,7 @@ class ProductionDemoPreviewSeeder extends Seeder
 {
     private const ACCOUNTS = [
         ['pimpinan', 'Pimpinan Contoh', 'leadership', 'Nasional (data contoh)', 'national', null, null, null, null],
-        ['taskforce', 'Koordinator Contoh Task Force', 'task_force', 'Nasional (data contoh)', 'national', null, null, null, null],
+        ['taskforce', 'Koordinator Contoh Task Force', 'task_force', 'BP3MI Jawa Barat (data contoh)', 'provinsi', '32', null, null, null, 'BP3MI-JABAR'],
         ['direktorat', 'Administrator Contoh Direktorat', 'directorate_admin', 'Nasional (data contoh)', 'national', null, null, null, null],
         ['disnaker-provinsi', 'Petugas Contoh Disnaker Provinsi', 'province_admin', 'Jawa Barat (data contoh)', 'provinsi', '32', null, null, null],
         ['disnaker-kabupaten', 'Petugas Contoh Disnaker Kabupaten', 'district_admin', 'Kota Bogor (data contoh)', 'kabupaten', '32', '3271', null, null],
@@ -77,6 +77,7 @@ class ProductionDemoPreviewSeeder extends Seeder
             $districtId,
             $institutionId,
             $employerId,
+            $bp3miCode,
         ]) {
             $user = User::query()->firstOrCreate(
                 ['username' => 'demo-'.$username],
@@ -89,6 +90,7 @@ class ProductionDemoPreviewSeeder extends Seeder
                     'scope_level' => $scopeLevel,
                     'scope_name' => $scopeName,
                     'province_id' => $provinceId,
+                    'bp3mi_code' => $bp3miCode,
                     'district_id' => $districtId,
                     'institution_id' => $institutionId,
                     'employer_id' => $employerId,

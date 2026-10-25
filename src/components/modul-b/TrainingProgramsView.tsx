@@ -1,5 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useAppStore } from '../../store/useAppStore';
+import { router } from '@inertiajs/react';
+import { RefreshCw } from 'lucide-react';
 import { ProgramCard } from './ProgramCard';
 import { CurriculumModal } from './CurriculumModal';
 import { ProgramFormModal } from './ProgramFormModal';
@@ -10,6 +12,7 @@ import { Search, GraduationCap, Award, BookOpen, Layers, Plus } from 'lucide-rea
 
 export const TrainingProgramsView: React.FC = () => {
   const {
+    currentRole,
     programs,
     searchProgram,
     setSearchProgram,
@@ -19,6 +22,16 @@ export const TrainingProgramsView: React.FC = () => {
     setFilterProgramCountry,
     businessOptions,
   } = useAppStore();
+
+  const [syncing, setSyncing] = useState(false);
+
+  const handleSyncFromProviders = () => {
+    setSyncing(true);
+    router.post('/business-data/programs/sync-from-providers', {}, {
+      preserveScroll: true,
+      onFinish: () => setSyncing(false),
+    });
+  };
 
   const [activeModalProgram, setActiveModalProgram] = useState<TrainingProgram | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -89,6 +102,16 @@ export const TrainingProgramsView: React.FC = () => {
             <Plus className="w-4 h-4" />
             <span>+ Tambah Program</span>
           </button>
+          {(currentRole === 'superadmin' || currentRole === 'taskforce' || (currentRole as string) === 'direktorat' || (currentRole as string) === 'directorate_admin') && (
+            <button
+              onClick={handleSyncFromProviders}
+              disabled={syncing}
+              className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors shadow-sm disabled:opacity-60"
+            >
+              <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
+              <span>{syncing ? 'Menarik Program...' : 'Tarik Program dari Lembaga Vokasi'}</span>
+            </button>
+          )}
         </div>
       </div>
 

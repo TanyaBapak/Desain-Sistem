@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
+use App\Services\BusinessDataPresenter;
+use App\Services\Bp3miScope;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -24,6 +27,7 @@ class ApprovalWorkflowController extends Controller
             ->where('entity_type', 'lembaga_vokasi')
             ->first();
         abort_unless($approval, 404);
+        $this->assertTaskForceApprovalScope($request->user(), $approval);
 
         $document = DB::table('institution_registration_documents')
             ->where('id', $documentId)
@@ -53,6 +57,7 @@ class ApprovalWorkflowController extends Controller
             $approval = DB::table('approval_requests')->where('id', $id)->lockForUpdate()->first();
             abort_unless($approval, 404);
             abort_unless($approval->status === 'PENDING', 409, 'Usulan ini sudah ditindaklanjuti.');
+            $this->assertTaskForceApprovalScope($request->user(), $approval);
             $entityTable = match ($approval->entity_type) {
                 'calon_peserta' => 'job_seekers',
                 'lembaga_vokasi' => 'institutions',
@@ -87,6 +92,11 @@ class ApprovalWorkflowController extends Controller
                 'rejection_reason' => $data['action'] === 'reject' ? $notes : null,
                 'revision_notes' => in_array($data['action'], ['revision', 'approve'], true) ? ($notes ?: null) : null,
             ]);
+
+            // Cek duplikasi lembaga vokasi saat disetujui
+            if ($approval->entity_type === 'lembaga_vokasi' && $data['action'] === 'approve') {
+                $this->handleLembagaVokasiDuplicate($approval->entity_id, $request->user());
+            }
 
             DB::table('approval_histories')->insert([
                 'approval_request_id' => $id,
@@ -128,8 +138,42 @@ class ApprovalWorkflowController extends Controller
             }
             DB::table('audit_logs')->insert($audit);
         });
+        app(BusinessDataPresenter::class)->forget($request->user());
 
         return back()->with('success', 'Keputusan verifikasi berhasil disimpan.');
+    }
+
+    private function assertTaskForceApprovalScope(User $user, object $approval): void
+    {
+        if ($user->roles()->value('name') !== 'task_force') {
+            return;
+        }
+
+        $scope = app(Bp3miScope::class);
+        $isAllowed = match ($approval->entity_type) {
+            'calon_peserta' => $scope->allowsProvinceId(
+                $user,
+                DB::table('job_seekers')->where('id', $approval->entity_id)->value('province_id'),
+            ),
+            'lembaga_vokasi' => $scope->allowsProvinceId(
+                $user,
+                DB::table('institutions')->where('id', $approval->entity_id)->value('province_id'),
+            ),
+            'program_pelatihan' => $scope->allowsProvinceId(
+                $user,
+                DB::table('institutions')
+                    ->join('training_programs', 'training_programs.institution_id', '=', 'institutions.id')
+                    ->where('training_programs.id', $approval->entity_id)
+                    ->value('institutions.province_id'),
+            ),
+            'demand_luar_negeri' => $scope->allowsDemandCountry(
+                $user,
+                DB::table('job_demands')->where('id', $approval->entity_id)->value('country_id'),
+            ),
+            default => false,
+        };
+
+        abort_unless($isAllowed, 403);
     }
 
     private function updateEntityVerification(string $entityType, string $entityId, string $action): void
@@ -171,5 +215,56 @@ class ApprovalWorkflowController extends Controller
             ]),
             default => null,
         };
+    }
+
+    private function handleLembagaVokasiDuplicate(string $institutionId, mixed $user): void
+    {
+        $inst = DB::table('institutions')->where('id', $institutionId)->first([
+            'id', 'name', 'province_id', 'district_id', 'npsn_or_vin',
+        ]);
+        if (! $inst) {
+            return;
+        }
+
+        $role = $user->roles()->first();
+        $now = now();
+
+        // Cari lembaga lain dengan nama sama (case-insensitive) di provinsi/kabupaten yang sama,
+        // kecuali yang sedang diapprove.
+        $duplicate = DB::table('institutions')
+            ->where('id', '!=', $institutionId)
+            ->whereRaw('LOWER(name) = ?', [Str::lower((string) $inst->name)])
+            ->when($inst->province_id, fn ($q) => $q->where('province_id', $inst->province_id))
+            ->when($inst->district_id, fn ($q) => $q->where('district_id', $inst->district_id))
+            ->where('status', '!=', 'Nonaktif')
+            ->first(['id', 'name', 'province_id', 'district_id']);
+
+        if (! $duplicate) {
+            return;
+        }
+
+        // Nonaktifkan duplikat lama, sisakan yang baru diapprove.
+        DB::table('institutions')->where('id', $duplicate->id)->update([
+            'status' => 'Nonaktif',
+            'updated_at' => $now,
+        ]);
+
+        // Catat audit untuk penanganan duplikasi.
+        DB::table('audit_logs')->insert([
+            'id' => 'AUD-'.Str::upper(Str::random(20)),
+            'user_id' => $user->id,
+            'actor_name' => $user->name,
+            'actor_role' => $role?->title ?? $role?->name ?? 'Verifikator',
+            'scope' => $user->scope_name,
+            'action_type' => 'DEDUPLEKASI_LEMBAGA',
+            'entity' => 'institutions',
+            'entity_id' => $duplicate->id,
+            'field_changed' => 'status',
+            'old_value' => 'Aktif',
+            'new_value' => 'Nonaktif',
+            'justification_reason' => 'Duplikasi lembaga vokasi dengan nama "'.$inst->name.'" di wilayah sama. Disaring otomatis saat verifikasi.',
+            'ip_address' => request()->ip() ?? '127.0.0.1',
+            'created_at' => $now,
+        ]);
     }
 }

@@ -121,10 +121,10 @@ interface AppProps {
         trainingRecordCount: number;
         lastSyncStatus: string | null;
         lastSyncAt: string | null;
-        recordsFetched: number;
-        recordsInserted: number;
-        recordsUpdated: number;
-        recordsSkipped: number;
+        recordsFetched: number | null;
+        recordsInserted: number | null;
+        recordsUpdated: number | null;
+        recordsSkipped: number | null;
       };
     };
     approvalRequests: DataApprovalRequest[];
@@ -148,6 +148,7 @@ interface AppProps {
       roleName: string;
       roleTitle: string;
       badge: string | null;
+      bp3miCode: string | null;
       organization: string;
       scope: UserScope;
       avatarInitials: string | null;
@@ -167,6 +168,7 @@ interface AppProps {
       roleName: string;
       roleTitle: string;
       provinceId: string | null;
+      bp3miCode: string | null;
       districtId: string | null;
       institutionId: string | null;
       employerId: string | null;
@@ -175,6 +177,7 @@ interface AppProps {
     lastPage: number;
     total: number;
     roles: { name: string; title: string }[];
+    bp3miAssignments: { code: string; name: string; provinces: string[] }[];
     provinces: { id: string; name: string }[];
     districts: { id: string; province_id: string; name: string }[];
     institutions: { id: string; name: string }[];
@@ -227,6 +230,7 @@ export function App({
         role: authenticatedUser.frontendRole,
         roleTitle: authenticatedUser.roleTitle,
         badge: authenticatedUser.badge ?? undefined,
+        bp3miCode: authenticatedUser.bp3miCode,
         organization: authenticatedUser.organization,
         scope: authenticatedUser.scope,
         mfaEnabled: authenticatedUser.mfaEnabled,

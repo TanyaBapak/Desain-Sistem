@@ -31,6 +31,7 @@ class HandleInertiaRequests extends Middleware
                     'roleName' => $role->name,
                     'roleTitle' => $role->title,
                     'badge' => $role->badge,
+                    'bp3miCode' => $user->bp3mi_code,
                     'organization' => $user->organization ?? '',
                     'scope' => [
                         'level' => $user->scope_level,

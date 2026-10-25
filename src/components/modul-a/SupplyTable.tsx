@@ -26,8 +26,10 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAppStore } from '../../store/useAppStore';
+import { getBp3miByCode } from '../../lib/constants/bp3mi';
 import { CandidateParticipant } from '../../types';
 import { Badge } from '../ui/Badge';
+import { StatCard } from '@/components/shared/StatCard';
 import { CandidateDetailModal } from './CandidateDetailModal';
 import { CandidateFormModal } from './CandidateFormModal';
 import { DeleteConfirmModal } from '../ui/DeleteConfirmModal';
@@ -44,6 +46,8 @@ function topCounts(values: string[]): Array<{ label: string; count: number }> {
 
 export const SupplyTable: React.FC = () => {
   const {
+    currentRole,
+    currentUser,
     candidates,
     selectedCandidateIds,
     toggleCandidateSelection,
@@ -72,10 +76,11 @@ export const SupplyTable: React.FC = () => {
     filterLanguage,
     setFilterLanguage,
     setActiveStage,
-    currentRole,
     currentScope,
     setCurrentTab,
   } = useAppStore();
+
+  const bp3miInfo = getBp3miByCode(currentUser?.bp3miCode);
 
   const [activeCandidate, setActiveCandidate] = useState<CandidateParticipant | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -484,37 +489,32 @@ export const SupplyTable: React.FC = () => {
           </div>
         </div>
 
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
-          <span className="text-xs text-slate-500 font-semibold block">Siap Penempatan (Job Ready)</span>
-          <div className="flex items-baseline gap-2 mt-1">
-            <span className="text-2xl font-extrabold text-emerald-600 tabular-nums">{readyCount}</span>
-            <span className="text-xs text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded font-bold">
-              {Math.round(candidates.length ? (readyCount / candidates.length) * 100 : 0)}%
-            </span>
-          </div>
-          <span className="text-[11px] text-slate-400 mt-1 block">Bahasa & Teknis Terstandar</span>
-        </div>
-
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
-          <span className="text-xs text-slate-500 font-semibold block">Sertifikasi / Berpengalaman</span>
-          <div className="flex items-baseline gap-2 mt-1">
-            <span className="text-2xl font-extrabold text-indigo-600 tabular-nums">{certifiedCount}</span>
-            <span className="text-xs text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded font-bold">
-              {experiencedCount} Magang/Kerja
-            </span>
-          </div>
-          <span className="text-[11px] text-slate-400 mt-1 block">Memiliki Portofolio Kompetensi</span>
-        </div>
-
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
-          <span className="text-xs text-slate-500 font-semibold block">Terverifikasi Sah Dukcapil</span>
-          <div className="flex items-baseline gap-2 mt-1">
-            <span className="text-2xl font-extrabold text-blue-700 tabular-nums">{verifiedCount}</span>
-            <span className="text-xs text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded font-bold">
-              Validitas Tinggi
-            </span>
-          </div>
-          <span className="text-[11px] text-slate-400 mt-1 block">Siap Alokasi Matching Tahap 3</span>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <StatCard
+            title="Siap Penempatan (Job Ready)"
+            value={readyCount}
+            change={
+              candidates.length
+                ? Math.round((readyCount / candidates.length) * 100) + '%'
+                : '0%'
+            }
+            changeType="positive"
+            description="Bahasa & Teknis Terstandar"
+          />
+          <StatCard
+            title="Sertifikasi / Berpengalaman"
+            value={certifiedCount}
+            change={experiencedCount + ' Magang/Kerja'}
+            changeType="positive"
+            description="Memiliki Portofolio Kompetensi"
+          />
+          <StatCard
+            title="Terverifikasi Sah Dukcapil"
+            value={verifiedCount}
+            change="Validitas Tinggi"
+            changeType="positive"
+            description="Siap Alokasi Matching Tahap 3"
+          />
         </div>
       </div>
 

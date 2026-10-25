@@ -3,6 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Services\BusinessDataPresenter;
+use App\Services\Bp3miScope;
+use App\Services\ProgramSyncFromProviders;
+use App\Services\ProviderRecommendationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -40,6 +43,7 @@ class BusinessDataController extends Controller
             };
             $this->createApprovalRequest($request, $type, $id);
         });
+        app(BusinessDataPresenter::class)->forget($request->user());
 
         return back()->with('success', 'Data berhasil disimpan ke database.');
     }
@@ -62,6 +66,7 @@ class BusinessDataController extends Controller
             };
             $this->createApprovalRequest($request, $type, $id);
         });
+        app(BusinessDataPresenter::class)->forget($request->user());
 
         return back()->with('success', 'Perubahan berhasil disimpan.');
     }
@@ -98,8 +103,173 @@ class BusinessDataController extends Controller
 
             $this->writeAudit($request, $type, $id, 'HAPUS_DATA', $reason);
         });
+        app(BusinessDataPresenter::class)->forget($request->user());
 
         return back()->with('success', 'Data berhasil dinonaktifkan.');
+    }
+
+    public function providers(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $role = $user->roles()->value('name');
+
+        abort_unless(in_array($role, ['task_force', 'directorate_admin', 'institution_admin', 'verifier'], true), 403);
+
+        $page = max(1, (int) $request->query('page', 1));
+        $perPage = min(24, max(12, (int) $request->query('per_page', 12)));
+        $offset = ($page - 1) * $perPage;
+
+        $search = trim((string) $request->query('search', ''));
+        $type = trim((string) $request->query('type', 'ALL'));
+        $province = trim((string) $request->query('province', 'ALL'));
+        $sector = trim((string) $request->query('sector', 'ALL'));
+        $status = trim((string) $request->query('status', 'ALL'));
+        $evokasi = trim((string) $request->query('evokasi', 'ALL'));
+
+        $baseQuery = DB::table('institutions')
+            ->leftJoin('provinces', 'provinces.id', '=', 'institutions.province_id')
+            ->leftJoin('districts', 'districts.id', '=', 'institutions.district_id')
+            ->where('institutions.status', 'Aktif')
+            ->when($role === 'task_force', fn ($q) => app(Bp3miScope::class)->applyToInstitutions($q, $user))
+            ->when($role === 'institution_admin', fn ($q) => $q->where('institutions.id', $user->institution_id ?? ''));
+
+        $filtered = (clone $baseQuery)
+            ->when($search !== '', function ($q) use ($search) {
+                $q->where(function ($qq) use ($search) {
+                    $qq->where('institutions.name', 'like', "%{$search}%")
+                        ->orWhere('provinces.name', 'like', "%{$search}%")
+                        ->orWhere('districts.name', 'like', "%{$search}%")
+                        ->orWhere('institutions.npsn_or_vin', 'like', "%{$search}%");
+                });
+            })
+            ->when($province !== 'ALL', fn ($q) => $q->where('provinces.name', 'like', "%{$province}%"))
+            ->when($status !== 'ALL', fn ($q) => $q->where('institutions.ownership_type', $status))
+            ->when($evokasi !== 'ALL', fn ($q) => $q->where('institutions.evokasi_status', $evokasi))
+            ->when($type !== 'ALL', function ($q) use ($type) {
+                $lower = strtolower($type);
+                if ($lower === 'politeknik') {
+                    $q->where('institutions.institution_type', 'Perguruan Tinggi / Politeknik');
+                    return;
+                }
+                if ($lower === 'balai' || $lower === 'blkln') {
+                    $q->where('institutions.institution_type', 'BLK');
+                    return;
+                }
+                $q->whereRaw('LOWER(institutions.institution_type) = ?', [$lower]);
+            })
+            ->when($sector !== 'ALL', function ($q) use ($sector) {
+                $q->where(function ($qq) use ($sector) {
+                    $qq->where('institutions.supported_sectors', 'like', "%{$sector}%")
+                        ->orWhere('institutions.external_metadata', 'like', "%{$sector}%");
+                });
+            });
+
+        $total = (clone $filtered)->count();
+
+        $rows = $filtered
+            ->orderBy('institutions.name')
+            ->offset($offset)
+            ->limit($perPage)
+            ->get([
+                'institutions.id',
+                'institutions.name',
+                'institutions.institution_type',
+                'institutions.province_id',
+                'institutions.district_id',
+                'institutions.accreditation',
+                'institutions.procurement_method',
+                'institutions.evokasi_status',
+                'institutions.verification_status',
+                'institutions.instructor_count',
+                'institutions.class_count',
+                'institutions.ready_participant_count',
+                'institutions.workshop_capacity',
+                'institutions.readiness_score',
+                'institutions.supported_sectors',
+                'institutions.ownership_type',
+                'institutions.address',
+                'institutions.email',
+                'institutions.phone',
+                'institutions.head_name',
+                'institutions.external_id',
+                'institutions.external_source',
+                'institutions.external_metadata',
+                'provinces.name as province_name',
+                'districts.name as district_name',
+            ]);
+
+        $ids = $rows->pluck('id')->filter()->values()->all();
+
+        $facilitiesByInst = $ids === []
+            ? collect()
+            : DB::table('institution_facilities')
+                ->whereIn('institution_id', $ids)
+                ->orderBy('facility_name')
+                ->get(['institution_id', 'facility_name'])
+                ->groupBy('institution_id')
+                ->map(fn ($g) => $g->pluck('facility_name')->values()->all());
+
+        $items = $rows->map(function (object $row) use ($facilitiesByInst): array {
+            $metadata = json_decode($row->external_metadata ?? '[]', true);
+            if (! is_array($metadata)) {
+                $metadata = [];
+            }
+
+            $offerings = is_array($metadata['programs'] ?? null)
+                ? collect($metadata['programs'])
+                    ->filter(fn ($o) => is_array($o) && isset($o['sector'], $o['occupation']))
+                    ->values()
+                    ->all()
+                : [];
+
+            $supported = json_decode($row->supported_sectors ?? '[]', true);
+            if (! is_array($supported)) {
+                $supported = [];
+            }
+
+            return [
+                'id' => $row->id,
+                'name' => $row->name,
+                'providerType' => $row->institution_type,
+                'provinsi' => $row->province_name ?? 'Belum diketahui',
+                'kabupatenKota' => $row->district_name ?? 'Belum diketahui',
+                'evokasiVerificationStatus' => $row->evokasi_status,
+                'verificationStatus' => $row->verification_status,
+                'accreditation' => $row->accreditation,
+                'procurementMethod' => $row->procurement_method,
+                'capacityPerBatch' => $row->workshop_capacity === null ? null : (int) $row->workshop_capacity,
+                'classCount' => $row->class_count === null ? null : (int) $row->class_count,
+                'readyParticipantCount' => $row->ready_participant_count === null ? null : (int) $row->ready_participant_count,
+                'certifiedInstructorsCount' => $row->instructor_count === null ? null : (int) $row->instructor_count,
+                'facilities' => $facilitiesByInst->get($row->id, []),
+                'supportedSectors' => $supported,
+                'operationalReadinessScore' => $row->readiness_score === null ? null : (int) $row->readiness_score,
+                'address' => $row->address,
+                'email' => $row->email,
+                'phone' => $row->phone,
+                'leaderName' => $row->head_name,
+                'institutionStatus' => $metadata['sourceStatus'] ?? $row->ownership_type,
+                'slug' => $row->external_id,
+                'logo' => $metadata['logo'] ?? null,
+                'website' => $metadata['website'] ?? null,
+                'leaderPosition' => $metadata['leaderPosition'] ?? null,
+                'institutionForm' => $metadata['institutionForm'] ?? $metadata['institutionCategory'] ?? null,
+                'sectorals' => is_array($metadata['sectorals'] ?? null) ? $metadata['sectorals'] : [],
+                'programs' => is_array($metadata['programs'] ?? null) ? $metadata['programs'] : [],
+                'offerings' => $offerings,
+                'source' => $row->external_source === 'kp2mi' ? 'kp2mi-api' : 'local',
+            ];
+        })->all();
+
+        return response()->json([
+            'data' => $items,
+            'pagination' => [
+                'page' => $page,
+                'per_page' => $perPage,
+                'total' => $total,
+                'last_page' => (int) ceil($total / $perPage),
+            ],
+        ]);
     }
 
     public function candidates(Request $request): JsonResponse
@@ -115,6 +285,8 @@ class BusinessDataController extends Controller
 
         $baseQuery = DB::table('job_seekers')
             ->whereNull('deleted_at')
+            ->leftJoin('provinces', 'provinces.id', '=', 'job_seekers.province_id')
+            ->when($role === 'task_force', fn ($query) => app(Bp3miScope::class)->applyToJobSeekers($query, $user))
             ->when($role === 'province_admin', fn ($query) => $query->where('job_seekers.province_id', $user->province_id))
             ->when($role === 'district_admin', fn ($query) => $query->where('job_seekers.district_id', $user->district_id))
             ->when($role === 'institution_admin', fn ($query) => $query->where('job_seekers.institution_id', $user->institution_id ?? ''));
@@ -122,7 +294,6 @@ class BusinessDataController extends Controller
         $total = (clone $baseQuery)->count();
 
         $rows = $baseQuery
-            ->leftJoin('provinces', 'provinces.id', '=', 'job_seekers.province_id')
             ->leftJoin('districts', 'districts.id', '=', 'job_seekers.district_id')
             ->orderByDesc('job_seekers.created_at')
             ->offset($offset)
@@ -364,6 +535,9 @@ class BusinessDataController extends Controller
         if ($role === 'district_admin' && $district->id !== $user->district_id) {
             abort(403);
         }
+        if ($role === 'task_force' && ! app(Bp3miScope::class)->allowsProvinceId($user, $provinceId)) {
+            abort(403);
+        }
         if ($role === 'institution_admin' && ! $user->institution_id) {
             abort(403);
         }
@@ -451,6 +625,10 @@ class BusinessDataController extends Controller
         $institutionId = in_array($request->user()->roles()->value('name'), ['institution_admin', 'training_operator'], true)
             ? $request->user()->institution_id
             : $data['institutionId'];
+        if ($request->user()->roles()->value('name') === 'task_force') {
+            $provinceId = DB::table('institutions')->where('id', $institutionId)->value('province_id');
+            abort_unless(app(Bp3miScope::class)->allowsProvinceId($request->user(), $provinceId), 403);
+        }
 
         $attributes = [
             'name' => $data['title'],
@@ -481,6 +659,7 @@ class BusinessDataController extends Controller
 
     private function saveProvider(Request $request, array $data, string $id, bool $creating): void
     {
+        $role = $request->user()->roles()->value('name');
         $provinceId = null;
         if (! in_array($data['provinsi'] ?? '', ['Belum diketahui', '', null], true)) {
             $provinceId = DB::table('provinces')->where('name', $data['provinsi'])->value('id');
@@ -538,6 +717,12 @@ class BusinessDataController extends Controller
 
         $finalProvinceId = $provinceId ?: $existing?->province_id;
         $finalDistrictId = $district?->id ?: ($finalProvinceId === $existing?->province_id ? $existing?->district_id : null);
+        if (
+            $role === 'task_force'
+            && ! app(Bp3miScope::class)->allowsProvinceId($request->user(), $finalProvinceId)
+        ) {
+            abort(403);
+        }
 
         $attributes = [
             'name' => $data['name'],
@@ -599,6 +784,12 @@ class BusinessDataController extends Controller
             ->first();
 
         if ($request->user()->employer_id && (! $employer || $employer->id !== $request->user()->employer_id)) {
+            abort(403);
+        }
+        if (
+            $request->user()->roles()->value('name') === 'task_force'
+            && ! app(Bp3miScope::class)->allowsDemandCountry($request->user(), $countryId)
+        ) {
             abort(403);
         }
         if (! $employer) {
@@ -796,20 +987,36 @@ class BusinessDataController extends Controller
     {
         $user = $request->user();
         $role = $user->roles()->value('name');
-        if (in_array($role, ['task_force', 'directorate_admin'], true)) {
+        if ($role === 'directorate_admin') {
             return;
         }
 
         $allowed = match ($type) {
             'candidates' => match ($role) {
+                'task_force' => app(Bp3miScope::class)->allowsProvinceId($user, $record->province_id),
                 'province_admin' => $record->province_id === $user->province_id,
                 'district_admin' => $record->district_id === $user->district_id,
                 'institution_admin' => $record->institution_id === $user->institution_id,
                 default => true,
             },
-            'programs' => ! in_array($role, ['institution_admin', 'training_operator'], true) || $record->institution_id === $user->institution_id,
-            'providers' => $role !== 'institution_admin' || $record->id === $user->institution_id,
-            'demands' => $role !== 'demand_admin' || $record->employer_id === $user->employer_id,
+            'programs' => match ($role) {
+                'task_force' => app(Bp3miScope::class)->allowsProvinceId(
+                    $user,
+                    DB::table('institutions')->where('id', $record->institution_id)->value('province_id'),
+                ),
+                'institution_admin', 'training_operator' => $record->institution_id === $user->institution_id,
+                default => true,
+            },
+            'providers' => match ($role) {
+                'task_force' => app(Bp3miScope::class)->allowsProvinceId($user, $record->province_id),
+                'institution_admin' => $record->id === $user->institution_id,
+                default => true,
+            },
+            'demands' => match ($role) {
+                'task_force' => app(Bp3miScope::class)->allowsDemandCountry($user, $record->country_id),
+                'demand_admin' => $record->employer_id === $user->employer_id,
+                default => true,
+            },
         };
         abort_unless($allowed, 403);
     }
@@ -842,5 +1049,31 @@ class BusinessDataController extends Controller
         $decoded = json_decode($payload, true);
 
         return is_array($decoded) ? $decoded : [];
+    }
+
+    public function syncProgramsFromProviders(Request $request): \Illuminate\Http\RedirectResponse
+    {
+        $user = $request->user();
+        $role = $user->roles()->value('name');
+
+        abort_unless(in_array($role, ['super_admin', 'task_force', 'directorate_admin'], true), 403);
+
+        $result = app(\App\Services\ProgramSyncFromProviders::class)->sync();
+        app(BusinessDataPresenter::class)->forget($user);
+
+        return back()->with('success', "Sinkronisasi program dari lembaga vokasi selesai. Ditambahkan: {$result['created']}, Diperbarui: {$result['updated']}, Dilewati: {$result['skipped']}");
+    }
+
+    public function recommendedProviders(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $user = $request->user();
+        $role = $user->roles()->value('name');
+
+        abort_unless(in_array($role, ['task_force', 'directorate_admin', 'matching', 'verifikator', 'super_admin'], true), 403);
+
+        $filters = $request->only(['occupation_id', 'sector_id', 'province', 'country_id']);
+        $result = app(\App\Services\ProviderRecommendationService::class)->recommend($filters, $user);
+
+        return response()->json(['data' => $result]);
     }
 }

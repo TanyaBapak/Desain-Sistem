@@ -30,6 +30,7 @@ class User extends Authenticatable
         'scope_level',
         'scope_name',
         'province_id',
+        'bp3mi_code',
         'district_id',
         'institution_id',
         'employer_id',

@@ -249,7 +249,7 @@ class BusinessDataPersistenceTest extends TestCase
     public function test_users_cannot_write_outside_their_assigned_region(): void
     {
         $this->seed(ReferenceDataSeeder::class);
-        $owner = $this->userWithRole('task_force');
+        $owner = $this->userWithRole('task_force', ['bp3mi_code' => 'BP3MI-JKT']);
         $this->actingAs($owner)->post('/business-data/candidates', [
             'nik' => '3300000000000002',
             'fullName' => 'Peserta Luar Wilayah',

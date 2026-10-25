@@ -15,10 +15,10 @@ export interface ReportSummary {
     trainingRecordCount: number;
     lastSyncStatus: string | null;
     lastSyncAt: string | null;
-    recordsFetched: number;
-    recordsInserted: number;
-    recordsUpdated: number;
-    recordsSkipped: number;
+    recordsFetched: number | null;
+    recordsInserted: number | null;
+    recordsUpdated: number | null;
+    recordsSkipped: number | null;
   };
   dashboard?: ExecutiveDashboardBreakdownsData;
 }
@@ -132,9 +132,11 @@ WIB
               </p>
             </div>
             <p className="text-xs text-muted-foreground sm:col-span-2 lg:col-span-4">
-              Baru: {summary.gardata.recordsInserted.toLocaleString('id-ID')} ·
-              Diperbarui: {summary.gardata.recordsUpdated.toLocaleString('id-ID')} ·
-              Dilewati: {summary.gardata.recordsSkipped.toLocaleString('id-ID')}
+              {summary.gardata.recordsInserted === null
+                ? 'Rincian sinkronisasi tidak tersedia per wilayah.'
+                : `Baru: ${summary.gardata.recordsInserted.toLocaleString('id-ID')} ·
+                  Diperbarui: ${summary.gardata.recordsUpdated?.toLocaleString('id-ID') ?? '—'} ·
+                  Dilewati: ${summary.gardata.recordsSkipped?.toLocaleString('id-ID') ?? '—'}`}
             </p>
           </div>
         ) : (
@@ -147,12 +149,12 @@ WIB
   );
 }
 
-function GardataMetric({ label, value }: { label: string; value: number }) {
+function GardataMetric({ label, value }: { label: string; value: number | null }) {
   return (
     <div>
       <p className="text-xs text-muted-foreground">{label}</p>
       <p className="mt-1 text-xl font-bold tabular-nums text-foreground">
-        {value.toLocaleString('id-ID')}
+        {value === null ? 'Tidak tersedia per wilayah' : value.toLocaleString('id-ID')}
       </p>
     </div>
   );

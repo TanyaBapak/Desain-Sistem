@@ -72,6 +72,27 @@ class ApprovalWorkflowTest extends TestCase
         ]);
     }
 
+    public function test_task_force_cannot_decide_an_approval_outside_its_bp3mi_province(): void
+    {
+        $this->createCandidateAndApproval();
+        DB::table('job_seekers')->where('id', 'CAND-APPROVAL-001')->update([
+            'province_id' => '31',
+            'district_id' => '3171',
+        ]);
+
+        $this->actingAs($this->userWithRole('task_force'))
+            ->post('/approvals/APP-TEST-001', [
+                'action' => 'approve',
+                'notes' => 'Data telah diperiksa.',
+            ])
+            ->assertForbidden();
+
+        $this->assertDatabaseHas('approval_requests', [
+            'id' => 'APP-TEST-001',
+            'status' => 'PENDING',
+        ]);
+    }
+
     public function test_revision_request_keeps_candidate_unverified_and_records_reason(): void
     {
         $this->createCandidateAndApproval();
@@ -128,7 +149,9 @@ class ApprovalWorkflowTest extends TestCase
                 ->where('businessData.monitoring.classes.0.achievedJp', 60)
                 ->where('businessData.monitoring.summary.gardataTargetJp', 120)
                 ->where('businessData.monitoring.summary.gardataAchievedJp', 60)
-                ->where('businessData.monitoring.lastSync.status', 'success'));
+                ->where('businessData.monitoring.lastSync.status', 'success')
+                ->where('businessData.monitoring.lastSync.recordsFetched', null)
+                ->where('businessData.reportSummary.gardata.recordsFetched', null));
 
         $this->actingAs($this->userWithRole('leadership'))
             ->get('/app/reports')

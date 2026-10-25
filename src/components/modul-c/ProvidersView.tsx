@@ -1,5 +1,7 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { router } from '@inertiajs/react';
+import axios from 'axios';
+import { getBp3miByCode } from '../../lib/constants/bp3mi';
 import { toast } from 'sonner';
 import { useAppStore } from '../../store/useAppStore';
 import { ProviderCard } from './ProviderCard';
@@ -20,13 +22,15 @@ import {
   Check,
   ChevronLeft,
   ChevronRight,
-  Sparkles
+  Sparkles,
+  Loader2
 } from 'lucide-react';
 
 export const ProvidersView: React.FC = () => {
   const {
     currentRole,
-    providers,
+    currentUser,
+    providers: storeProviders,
     searchProvider,
     setSearchProvider,
     filterProviderType,
@@ -41,6 +45,8 @@ export const ProvidersView: React.FC = () => {
     setFilterInstitutionStatus,
   } = useAppStore();
 
+  const bp3miInfo = getBp3miByCode(currentUser?.bp3miCode);
+
   const [activeModalProvider, setActiveModalProvider] = useState<VocationalProvider | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [formMode, setFormMode] = useState<'create' | 'edit'>('create');
@@ -51,9 +57,56 @@ export const ProvidersView: React.FC = () => {
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncSuccess, setSyncSuccess] = useState(false);
   const canSync = currentRole === 'superadmin' || currentRole === 'taskforce';
-  // Pagination State
+
+  const [providersList, setProvidersList] = useState<VocationalProvider[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [totalItems, setTotalItems] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(24);
+
+  const [debouncedSearch, setDebouncedSearch] = useState(searchProvider);
+
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(searchProvider), 400);
+    return () => clearTimeout(t);
+  }, [searchProvider]);
+
+  const fetchProviders = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await axios.get('/business-data/providers', {
+        params: {
+          page: currentPage,
+          per_page: itemsPerPage,
+          search: debouncedSearch,
+          type: filterProviderType,
+          province: filterProviderProvince,
+          sector: filterProviderSector,
+          status: filterInstitutionStatus,
+          evokasi: filterEvokasiStatus,
+        },
+      });
+      setProvidersList(res.data.data || []);
+      setTotalItems(res.data.pagination?.total || 0);
+      setTotalPages(res.data.pagination?.last_page || 1);
+    } catch (e) {
+      toast.error('Gagal memuat data lembaga vokasi. Silakan coba lagi.');
+      setProvidersList([]);
+      setTotalItems(0);
+      setTotalPages(1);
+    } finally {
+      setLoading(false);
+    }
+  }, [currentPage, debouncedSearch, filterProviderType, filterProviderProvince, filterProviderSector, filterInstitutionStatus, filterEvokasiStatus]);
+
+  useEffect(() => {
+    fetchProviders();
+  }, [fetchProviders]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearch, filterProviderType, filterProviderProvince, filterProviderSector, filterInstitutionStatus, filterEvokasiStatus]);
 
   const handleLiveSync = () => {
     setIsSyncing(true);
@@ -64,9 +117,10 @@ export const ProvidersView: React.FC = () => {
         setSyncSuccess(true);
         toast.success('Sinkronisasi KP2MI berhasil.');
         setTimeout(() => setSyncSuccess(false), 4000);
+        fetchProviders();
       },
-      onError: (errors) => {
-        toast.error(errors.sync ?? 'Sinkronisasi gagal. Coba kembali beberapa saat lagi.');
+      onError: (errors: any) => {
+        toast.error(errors?.sync ?? 'Sinkronisasi gagal. Coba kembali beberapa saat lagi.');
       },
       onFinish: () => setIsSyncing(false),
     });
@@ -94,13 +148,13 @@ export const ProvidersView: React.FC = () => {
     'Seni dan Ekonomi Kreatif',
     'Adminstrasi dan Keuangan',
     'Worker',
-    ...providers.flatMap((provider) => [
-      ...provider.supportedSectors,
-      ...(provider.offerings ?? []).map((offering) => offering.sector),
+    ...providersList.flatMap((provider: VocationalProvider) => [
+      ...(provider.supportedSectors || []),
+      ...(provider.offerings ?? []).map((offering: any) => offering.sector),
     ]),
   ].filter((sector, index, sectors) =>
-    sectors.findIndex((candidate) => candidate.toLocaleLowerCase('id-ID') === sector.toLocaleLowerCase('id-ID')) === index
-  ).sort((left, right) => left.localeCompare(right, 'id-ID')), [providers]);
+    sectors.findIndex((candidate) => (candidate || '').toLocaleLowerCase('id-ID') === (sector || '').toLocaleLowerCase('id-ID')) === index
+  ).sort((left, right) => (left || '').localeCompare(right || '', 'id-ID')), [providersList]);
 
   const provinceOptions = [
     'ALL',
@@ -117,80 +171,8 @@ export const ProvidersView: React.FC = () => {
     'Daerah Istimewa Yogyakarta',
   ];
 
-  const filteredProviders = useMemo(() => {
-    return providers.filter((p) => {
-      const matchSearch =
-        !searchProvider ||
-        p.name.toLowerCase().includes(searchProvider.toLowerCase()) ||
-        p.provinsi.toLowerCase().includes(searchProvider.toLowerCase()) ||
-        p.kabupatenKota.toLowerCase().includes(searchProvider.toLowerCase()) ||
-        p.supportedSectors.some((s) => s.toLowerCase().includes(searchProvider.toLowerCase())) ||
-        p.facilities.some((f) => f.toLowerCase().includes(searchProvider.toLowerCase())) ||
-        (p.sectorals && p.sectorals.some((sec) => 
-          sec.sectoral.toLowerCase().includes(searchProvider.toLowerCase()) || 
-          sec.position.toLowerCase().includes(searchProvider.toLowerCase())
-        )) ||
-        p.offerings?.some((offering) =>
-          offering.sector.toLowerCase().includes(searchProvider.toLowerCase()) ||
-          offering.occupation.toLowerCase().includes(searchProvider.toLowerCase())
-        );
-
-      const matchType =
-        filterProviderType === 'ALL' ||
-        p.providerType.toLowerCase() === filterProviderType.toLowerCase() ||
-        (filterProviderType === 'Politeknik' && p.providerType.includes('Politeknik'));
-
-      const matchProvince =
-        filterProviderProvince === 'ALL' ||
-        p.provinsi.toLowerCase().includes(filterProviderProvince.toLowerCase());
-
-      const matchSector =
-        filterProviderSector === 'ALL' ||
-        p.supportedSectors.some((s) => s.toLowerCase().includes(filterProviderSector.toLowerCase())) ||
-        (p.sectorals && p.sectorals.some((sec) => sec.sectoral.toLowerCase().includes(filterProviderSector.toLowerCase()))) ||
-        p.offerings?.some((offering) => offering.sector.toLowerCase().includes(filterProviderSector.toLowerCase()));
-
-      const matchStatus =
-        filterInstitutionStatus === 'ALL' ||
-        p.institutionStatus?.toLowerCase() === filterInstitutionStatus.toLowerCase();
-
-      const matchEvokasi =
-        filterEvokasiStatus === 'ALL' || p.evokasiVerificationStatus === filterEvokasiStatus;
-
-      return matchSearch && matchType && matchProvince && matchSector && matchStatus && matchEvokasi;
-    });
-  }, [
-    providers,
-    searchProvider,
-    filterProviderType,
-    filterProviderProvince,
-    filterProviderSector,
-    filterInstitutionStatus,
-    filterEvokasiStatus,
-  ]);
-
-  // Reset to page 1 whenever filters change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [
-    searchProvider,
-    filterProviderType,
-    filterProviderProvince,
-    filterProviderSector,
-    filterInstitutionStatus,
-    filterEvokasiStatus,
-  ]);
-
-  // Paginated Slices
-  const totalItems = filteredProviders.length;
-  const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
-  const paginatedProviders = useMemo(() => {
-    const start = (currentPage - 1) * itemsPerPage;
-    return filteredProviders.slice(start, start + itemsPerPage);
-  }, [filteredProviders, currentPage, itemsPerPage]);
-
-  const verifiedCount = providers.filter(
-    (p) => p.evokasiVerificationStatus === 'Terverifikasi e-Vokasi'
+  const verifiedCount = providersList.filter(
+    (p: VocationalProvider) => p.evokasiVerificationStatus === 'Terverifikasi e-Vokasi'
   ).length;
 
   return (
@@ -225,7 +207,7 @@ export const ProvidersView: React.FC = () => {
             </span>
             <div className="flex items-center justify-center gap-2 mt-0.5">
               <span className="text-lg font-black text-emerald-400">
-                {providers.length.toLocaleString('id-ID')}
+                {(totalItems || storeProviders.length).toLocaleString('id-ID')}
               </span>
                 <span className="text-xs text-slate-400">Lembaga tersimpan</span>
             </div>
@@ -375,9 +357,10 @@ export const ProvidersView: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-slate-500 px-1">
         <div className="flex items-center gap-2">
           <span className="font-semibold text-slate-800">
-            Ditemukan {totalItems} Lembaga
+            Ditemukan {totalItems.toLocaleString('id-ID')} Lembaga
           </span>
           <span>(Menampilkan halaman {currentPage} dari {totalPages})</span>
+          {loading && <Loader2 className="w-3.5 h-3.5 animate-spin text-slate-400" />}
         </div>
 
         {(searchProvider || filterProviderType !== 'ALL' || filterProviderProvince !== 'ALL' || filterProviderSector !== 'ALL' || filterInstitutionStatus !== 'ALL' || filterEvokasiStatus !== 'ALL') && (
@@ -398,9 +381,15 @@ export const ProvidersView: React.FC = () => {
       </div>
 
       {/* Grid Provider Cards */}
-      {paginatedProviders.length > 0 ? (
+      {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {paginatedProviders.map((provider) => (
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="h-[280px] rounded-2xl bg-slate-100 animate-pulse" />
+          ))}
+        </div>
+      ) : providersList.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {providersList.map((provider) => (
             <ProviderCard
               key={provider.id}
               provider={provider}

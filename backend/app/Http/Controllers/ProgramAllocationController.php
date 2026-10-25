@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\Bp3miScope;
+use App\Services\BusinessDataPresenter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -36,6 +38,12 @@ class ProgramAllocationController extends Controller
             if (! $demand || $demand->verification_status !== 'Approved') {
                 throw ValidationException::withMessages(['demandId' => 'Demand harus disetujui sebelum alokasi.']);
             }
+            $scope = app(Bp3miScope::class);
+            abort_unless(
+                $scope->allowsProvinceId($request->user(), $institution->province_id)
+                && $scope->allowsDemandCountry($request->user(), $demand->country_id),
+                403,
+            );
 
             if ($program->institution_id && $program->institution_id !== $institution->id) {
                 throw ValidationException::withMessages([
@@ -53,12 +61,16 @@ class ProgramAllocationController extends Controller
                 ->whereNull('deleted_at')
                 ->where('verification_status', 'Verified')
                 ->lockForUpdate()
-                ->get(['id']);
+                ->get(['id', 'province_id']);
             if ($candidates->count() !== count($data['candidateIds'])) {
                 throw ValidationException::withMessages([
                     'candidateIds' => 'Semua peserta harus aktif dan sudah terverifikasi.',
                 ]);
             }
+            abort_unless(
+                $candidates->every(fn (object $candidate): bool => $scope->allowsProvinceId($request->user(), $candidate->province_id)),
+                403,
+            );
 
             $remainingDemand = max(0, (int) $demand->headcount - (int) $demand->filled_quota);
             $remainingProgramQuota = max(0, (int) $program->quota - (int) $program->enrolled_count);
@@ -119,6 +131,7 @@ class ProgramAllocationController extends Controller
             DB::table('job_demands')->where('id', $demand->id)->increment('filled_quota', count($data['candidateIds']));
             $this->writeAudit($request, 'ALOKASI_MATCHING', $allocationId, 'Keputusan alokasi batch diterbitkan.');
         });
+        app(BusinessDataPresenter::class)->forget($request->user());
 
         return back()->with('success', 'Keputusan alokasi batch berhasil disimpan.');
     }
@@ -133,6 +146,7 @@ class ProgramAllocationController extends Controller
         DB::transaction(function () use ($request, $id, $data): void {
             $allocation = DB::table('program_allocations')->where('id', $id)->whereNull('deleted_at')->lockForUpdate()->first();
             abort_unless($allocation, 404);
+            $this->assertAllocationScope($request, $allocation);
             abort_unless($allocation->status === 'Approved', 409, 'Hanya alokasi yang disetujui dapat difinalisasi.');
 
             DB::table('program_allocations')->where('id', $id)->update([
@@ -145,6 +159,7 @@ class ProgramAllocationController extends Controller
             ]);
             $this->writeAudit($request, 'ALOKASI_MATCHING', $id, 'Status alokasi difinalisasi.');
         });
+        app(BusinessDataPresenter::class)->forget($request->user());
 
         return back()->with('success', 'Alokasi berhasil difinalisasi.');
     }
@@ -159,6 +174,7 @@ class ProgramAllocationController extends Controller
         DB::transaction(function () use ($request, $id, $data): void {
             $allocation = DB::table('program_allocations')->where('id', $id)->whereNull('deleted_at')->lockForUpdate()->first();
             abort_unless($allocation, 404);
+            $this->assertAllocationScope($request, $allocation);
             abort_unless($allocation->status !== 'Finalized', 409, 'Alokasi yang sudah difinalisasi tidak dapat dibatalkan.');
 
             $candidateCount = DB::table('program_allocation_candidates')
@@ -179,6 +195,7 @@ class ProgramAllocationController extends Controller
             DB::table('job_demands')->where('id', $allocation->job_demand_id)->decrement('filled_quota', $candidateCount);
             $this->writeAudit($request, 'HAPUS_DATA', $id, $data['reason']);
         });
+        app(BusinessDataPresenter::class)->forget($request->user());
 
         return back()->with('success', 'Alokasi berhasil dibatalkan dan diarsipkan.');
     }
@@ -186,6 +203,29 @@ class ProgramAllocationController extends Controller
     private function authorizeAllocation(Request $request): void
     {
         abort_unless($request->user()->roles()->value('name') === 'task_force', 403);
+    }
+
+    private function assertAllocationScope(Request $request, object $allocation): void
+    {
+        $scope = app(Bp3miScope::class);
+        $institution = DB::table('institutions')->where('id', $allocation->institution_id)->first();
+        $demand = DB::table('job_demands')->where('id', $allocation->job_demand_id)->first();
+        abort_unless(
+            $institution
+            && $demand
+            && $scope->allowsProvinceId($request->user(), $institution->province_id)
+            && $scope->allowsDemandCountry($request->user(), $demand->country_id),
+            403,
+        );
+
+        $candidateProvinces = DB::table('program_allocation_candidates')
+            ->join('job_seekers', 'job_seekers.id', '=', 'program_allocation_candidates.job_seeker_id')
+            ->where('program_allocation_candidates.program_allocation_id', $allocation->id)
+            ->pluck('job_seekers.province_id');
+        abort_unless(
+            $candidateProvinces->every(fn (?string $provinceId): bool => $scope->allowsProvinceId($request->user(), $provinceId)),
+            403,
+        );
     }
 
     private function writeAudit(Request $request, string $action, string $id, string $reason): void

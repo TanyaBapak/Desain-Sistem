@@ -47,6 +47,8 @@ Sebuah tugas dianggap **selesai** hanya jika semua ini terpenuhi:
 - Jangan commit atau menulis file `.env`, kunci API, token, atau kredensial.
 - Jangan menghapus data atau migrasi destruktif tanpa konfirmasi.
 - Jangan menonaktifkan aturan lint/TypeScript demi "supaya jalan".
+- Jangan commit artefak hasil build di `backend/public/build/`; ubah file sumber dan buat ulang aset secara lokal dengan `pnpm build` bila diperlukan.
+- Jalankan `pnpm install` setelah clone agar hook Git Husky aktif. Hook pre-commit dan pre-push menolak artefak build tersebut.
 - Jangan memanggil API pihak ketiga (e-Vokasi, Smart MI, SISKOP2MI, SISKOTKLN) langsung dari browser. Semua lewat backend (Bagian 9).
 - Jangan menampilkan NIK, paspor, atau nomor HP penuh kepada peran yang tidak berhak (Bagian 8).
 

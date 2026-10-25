@@ -33,6 +33,7 @@ class UserFactory extends Factory
             'password' => static::$password ??= Hash::make('password'),
             'scope_level' => 'national',
             'scope_name' => 'Nasional (pengujian)',
+            'bp3mi_code' => 'BP3MI-JABAR',
             'status' => 'Aktif',
             'remember_token' => Str::random(10),
         ];
