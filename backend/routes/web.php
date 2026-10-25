@@ -45,7 +45,7 @@ Route::post('/integrations/sippmi/webhook', GardataWebhookController::class)->na
 
 Route::middleware(['auth', EnsureUserIsActive::class])->group(function () {
     Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
-    Route::post('/impersonation/stop', [UserManagementController::class, 'stopImpersonating'])->name('impersonation.stop');
+    Route::match(['get', 'post'], '/impersonation/stop', [UserManagementController::class, 'stopImpersonating'])->name('impersonation.stop');
     Route::post('/admin/users', [UserManagementController::class, 'store'])->name('admin.users.store');
     Route::patch('/admin/users/{user}', [UserManagementController::class, 'update'])
         ->whereNumber('user')
