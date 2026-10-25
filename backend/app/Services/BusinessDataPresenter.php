@@ -61,23 +61,30 @@ class BusinessDataPresenter
             ->where('verification_status', 'Approved')
             ->whereYear('created_at', $year)
             ->select('country_id')
-            ->selectRaw('SUM(headcount) as target')
+            ->selectRaw('SUM(headcount) as demand_target')
             ->selectRaw('SUM(filled_quota) as achieved')
             ->groupBy('country_id');
+        $manualCountryTargets = $this->dashboardTargetService->landingCountryTargets($year);
         $countries = DB::table('countries')
             ->leftJoinSub($annualDemand, 'annual_demand', 'annual_demand.country_id', '=', 'countries.id')
-            ->select('countries.name')
-            ->selectRaw('COALESCE(annual_demand.target, 0) as target')
+            ->select('countries.id', 'countries.name')
+            ->selectRaw('COALESCE(annual_demand.demand_target, 0) as demand_target')
             ->selectRaw('COALESCE(annual_demand.achieved, 0) as achieved')
-            ->orderByDesc('target')
             ->orderBy('countries.name')
             ->get()
-            ->map(fn (object $row): array => [
-                'name' => $row->name,
-                'target' => (int) $row->target,
-                'achieved' => (int) $row->achieved,
-                'projected' => max(0, (int) $row->target - (int) $row->achieved),
-            ])
+            ->map(function (object $row) use ($manualCountryTargets): array {
+                $target = $manualCountryTargets[$row->id] ?? (int) $row->demand_target;
+                $achieved = (int) $row->achieved;
+
+                return [
+                    'name' => $row->name,
+                    'target' => $target,
+                    'achieved' => $achieved,
+                    'projected' => max(0, $target - $achieved),
+                ];
+            })
+            ->sortByDesc('target')
+            ->values()
             ->all();
 
         $trainingTypes = DB::table('training_programs')

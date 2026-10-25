@@ -35,4 +35,18 @@ export interface UserManagementData {
       validatedDemandCount: number | null;
     };
   }[];
+  landingCountries: { id: string; name: string }[];
+  landingCountryTargets: {
+    year: number;
+    targets: Record<string, number | null>;
+  }[];
+  landingCountryPerformance: {
+    year: number;
+    countryId: string;
+    countryName: string;
+    target: number;
+    achieved: number;
+    projected: number;
+    percentage: number;
+  }[];
 }

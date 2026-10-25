@@ -8,6 +8,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class DashboardTargetController extends Controller
 {
@@ -27,10 +28,27 @@ class DashboardTargetController extends Controller
             'targets.activeVocationalInstitutions' => ['required', 'integer', 'min:1', 'max:999999999'],
             'targets.nationalLpkCount' => ['required', 'integer', 'min:1', 'max:999999999'],
             'targets.validatedDemandCount' => ['required', 'integer', 'min:1', 'max:999999999'],
+            'targets.countries' => ['required', 'array'],
+            'targets.countries.*' => ['nullable', 'integer', 'min:0', 'max:999999999'],
         ]);
+        $countryIds = DB::table('countries')->pluck('id')->map(fn (string $id): string => $id)->all();
+        $submittedCountryIds = array_map('strval', array_keys($data['targets']['countries']));
+        if (array_diff($countryIds, $submittedCountryIds) !== [] || array_diff($submittedCountryIds, $countryIds) !== []) {
+            throw ValidationException::withMessages([
+                'targets.countries' => 'Daftar target negara tidak sesuai dengan data negara yang tersedia. Muat ulang halaman.',
+            ]);
+        }
+        $countryTargets = $data['targets']['countries'];
+        $kpiTargets = $data['targets'];
+        unset($kpiTargets['countries']);
 
-        DB::transaction(function () use ($request, $targets, $data, $user): void {
-            $targets->saveLandingKpiTargets((int) $data['year'], $data['targets'], (int) $user->id);
+        DB::transaction(function () use ($request, $targets, $data, $user, $kpiTargets, $countryTargets): void {
+            $targets->saveLandingKpiTargets((int) $data['year'], $kpiTargets, (int) $user->id);
+            $targets->saveLandingCountryTargets(
+                (int) $data['year'],
+                $countryTargets,
+                (int) $user->id,
+            );
             DB::table('audit_logs')->insert([
                 'id' => 'AUD-'.Str::upper(Str::random(12)),
                 'user_id' => $user->id,
@@ -41,7 +59,7 @@ class DashboardTargetController extends Controller
                 'entity' => 'dashboard_targets',
                 'entity_id' => (string) $data['year'],
                 'new_value' => json_encode($data, JSON_THROW_ON_ERROR),
-                'justification_reason' => 'Enam target KPI landing page untuk tahun '.$data['year'].' diperbarui.',
+                'justification_reason' => 'Target KPI dan negara tujuan landing page untuk tahun '.$data['year'].' diperbarui.',
                 'ip_address' => $request->ip() ?? '127.0.0.1',
                 'created_at' => now(),
             ]);
@@ -49,6 +67,6 @@ class DashboardTargetController extends Controller
 
         $businessDataPresenter->forgetAll();
 
-        return back()->with('success', 'Target KPI landing page untuk tahun '.$data['year'].' berhasil diperbarui.');
+        return back()->with('success', 'Target KPI dan negara tujuan landing page untuk tahun '.$data['year'].' berhasil diperbarui.');
     }
 }

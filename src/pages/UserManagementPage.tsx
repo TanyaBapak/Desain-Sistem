@@ -23,7 +23,12 @@ export function UserManagementPage({ adminUsers, currentUserId }: UserManagement
         <h1 className="text-2xl font-semibold tracking-tight">Pengelola Pengguna</h1>
         <p className="mt-1 text-sm text-muted-foreground">Buat akun, atur status akses, dan uji tampilan melalui sesi pengguna.</p>
       </header>
-      <DashboardTargetSettings targets={adminUsers.landingKpiTargets} />
+      <DashboardTargetSettings
+        targets={adminUsers.landingKpiTargets}
+        countries={adminUsers.landingCountries}
+        countryTargets={adminUsers.landingCountryTargets}
+        countryPerformance={adminUsers.landingCountryPerformance}
+      />
       <UserCreateForm data={adminUsers} />
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">

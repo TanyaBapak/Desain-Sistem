@@ -40,7 +40,9 @@ class DashboardTargetTest extends TestCase
             ->get('/app/rbac')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->where('adminUsers.landingKpiTargets', []));
+                ->where('adminUsers.landingKpiTargets', [])
+                ->has('adminUsers.landingCountries', 5)
+                ->where('adminUsers.landingCountryTargets', []));
 
         $this->patch('/admin/dashboard-targets', $this->targetPayload())
             ->assertRedirect()
@@ -51,7 +53,12 @@ class DashboardTargetTest extends TestCase
             'target_value' => 200,
             'updated_by' => $admin->id,
         ]);
-        $this->assertDatabaseCount('dashboard_targets', 6);
+        $this->assertDatabaseCount('dashboard_targets', 11);
+        $this->assertDatabaseHas('dashboard_targets', [
+            'metric_key' => 'countryTarget_JP_'.now()->year,
+            'target_value' => 30,
+            'updated_by' => $admin->id,
+        ]);
         $this->assertDatabaseHas('audit_logs', [
             'user_id' => $admin->id,
             'entity' => 'dashboard_targets',
@@ -62,7 +69,15 @@ class DashboardTargetTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->where('adminUsers.landingKpiTargets.0.year', now()->year)
                 ->where('adminUsers.landingKpiTargets.0.targets.registeredJobSeekers', 10000)
-                ->where('adminUsers.landingKpiTargets.0.targets.validatedDemandCount', 200));
+                ->where('adminUsers.landingKpiTargets.0.targets.validatedDemandCount', 200)
+                ->has('adminUsers.landingCountryPerformance', 5)
+                ->where('adminUsers.landingCountryPerformance', fn ($rows): bool => collect($rows)->contains(
+                    fn (array $row): bool => $row['year'] === now()->year
+                        && $row['countryId'] === 'JP'
+                        && $row['target'] === 30
+                        && $row['achieved'] === 5
+                        && $row['percentage'] === 16.7,
+                )));
 
         auth()->logout();
         $this->get('/')
@@ -110,6 +125,36 @@ class DashboardTargetTest extends TestCase
                 ->where('landingKpiSummary.year', $year)
                 ->where('landingKpiSummary.metrics.5.value', 0)
                 ->where('landingKpiSummary.metrics.5.target', 25));
+
+        DB::table('job_demands')->where('id', 'DEM-DEMO-001')->update([
+            'verification_status' => 'Approved',
+            'headcount' => 15,
+            'filled_quota' => 6,
+            'created_at' => now(),
+        ]);
+        $this->actingAs($this->userWithRole('super_admin'))
+            ->get('/app/rbac')
+            ->assertInertia(fn (Assert $page) => $page
+                ->has('adminUsers.landingCountryPerformance', 10)
+                ->where('adminUsers.landingCountryPerformance', function ($rows) use ($year, $previousYear): bool {
+                    $periods = collect($rows);
+
+                    return $periods->contains(
+                        fn (array $row): bool => $row['year'] === $previousYear
+                        && $row['countryId'] === 'JP'
+                        && $row['target'] === 100
+                        && $row['achieved'] === 50
+                        && $row['projected'] === 50
+                        && $row['percentage'] == 50,
+                    ) && $periods->contains(
+                        fn (array $row): bool => $row['year'] === $year
+                            && $row['countryId'] === 'JP'
+                            && $row['target'] === 15
+                            && $row['achieved'] === 6
+                            && $row['projected'] === 9
+                            && $row['percentage'] == 40,
+                    );
+                }));
     }
 
     public function test_public_landing_projection_filters_demand_and_programs_by_selected_year(): void
@@ -128,6 +173,12 @@ class DashboardTargetTest extends TestCase
             'enrolled_count' => 6,
             'created_at' => now()->setYear($year),
         ]);
+        DB::table('dashboard_targets')->insert([
+            'metric_key' => "countryTarget_JP_{$year}",
+            'target_value' => 30,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
 
         $this->get('/?projectionYear='.$year)
             ->assertOk()
@@ -135,9 +186,9 @@ class DashboardTargetTest extends TestCase
                 ->where('landingProjection.year', $year)
                 ->has('landingProjection.countries', 5)
                 ->where('landingProjection.countries.0.name', 'Jepang')
-                ->where('landingProjection.countries.0.target', 20)
+                ->where('landingProjection.countries.0.target', 30)
                 ->where('landingProjection.countries.0.achieved', 8)
-                ->where('landingProjection.countries.0.projected', 12)
+                ->where('landingProjection.countries.0.projected', 22)
                 ->where('landingProjection.countries.1.target', 0)
                 ->where('landingProjection.countries.1.achieved', 0)
                 ->where('landingProjection.countries.1.projected', 0)
@@ -158,6 +209,13 @@ class DashboardTargetTest extends TestCase
                 'activeVocationalInstitutions' => 200,
                 'nationalLpkCount' => 200,
                 'validatedDemandCount' => 200,
+                'countries' => [
+                    'JP' => 30,
+                    'DE' => null,
+                    'KR' => null,
+                    'TW' => null,
+                    'SA' => null,
+                ],
             ],
         ];
     }

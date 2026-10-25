@@ -54,6 +54,9 @@ class UserManagementController extends Controller
             'institutions' => DB::table('institutions')->where('status', 'Aktif')->orderBy('name')->get(['id', 'name']),
             'employers' => DB::table('employers')->orderBy('name')->get(['id', 'name']),
             'landingKpiTargets' => $dashboardTargets->allLandingKpiTargets(),
+            'landingCountries' => DB::table('countries')->orderBy('name')->get(['id', 'name']),
+            'landingCountryTargets' => $dashboardTargets->allLandingCountryTargets(),
+            'landingCountryPerformance' => $dashboardTargets->allLandingCountryPerformance(),
         ];
     }
 
