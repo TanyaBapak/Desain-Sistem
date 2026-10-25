@@ -749,13 +749,13 @@ class BusinessDataPresenter
 
     private function monitoring(?string $role, User $user): array
     {
-        if (! in_array($role, ['task_force', 'directorate_admin', 'institution_admin', 'training_operator', 'bp3mi_admin', 'placement_officer'], true)) {
+        if (! in_array($role, ['super_admin', 'task_force', 'directorate_admin', 'institution_admin', 'training_operator', 'bp3mi_admin', 'placement_officer'], true)) {
             return [];
         }
 
-        $canViewGardata = in_array($role, ['task_force', 'directorate_admin'], true);
+        $canViewGardata = in_array($role, ['super_admin', 'task_force', 'directorate_admin'], true);
         $externalClasses = DB::table('external_training_records')
-            ->where('external_source', 'gardata')
+            ->whereIn('external_source', ['gardata', 'sippmi'])
             ->when(! $canViewGardata, fn ($query) => $query->whereRaw('1 = 0'))
             ->orderByDesc('updated_at')
             ->get()
@@ -835,7 +835,7 @@ class BusinessDataPresenter
             ->leftJoin('provinces', 'provinces.id', '=', 'job_seekers.province_id')
             ->leftJoin('districts', 'districts.id', '=', 'job_seekers.district_id')
             ->whereNull('job_seekers.deleted_at')
-            ->where('job_seekers.external_source', 'gardata')
+            ->whereIn('job_seekers.external_source', ['gardata', 'sippmi'])
             ->orderByDesc('job_seekers.updated_at')
             ->limit(100);
         $gardataCandidates = ($canViewGardata ? $gardataCandidatesQuery : $gardataCandidatesQuery->whereRaw('1 = 0'))
@@ -862,11 +862,11 @@ class BusinessDataPresenter
             ])->all();
 
         $lastSync = $canViewGardata ? DB::table('integration_sync_logs')
-            ->where('source', 'gardata')
+            ->whereIn('source', ['gardata', 'sippmi'])
             ->orderByDesc('started_at')
             ->first(['status', 'started_at', 'finished_at', 'records_fetched', 'records_inserted', 'records_updated', 'records_skipped']) : null;
 
-        $placements = in_array($role, ['task_force', 'directorate_admin', 'bp3mi_admin', 'placement_officer'], true)
+        $placements = in_array($role, ['super_admin', 'task_force', 'directorate_admin', 'bp3mi_admin', 'placement_officer'], true)
             ? DB::table('placement_cases')
                 ->join('candidate_matches', 'candidate_matches.id', '=', 'placement_cases.candidate_match_id')
                 ->join('job_seekers', 'job_seekers.id', '=', 'candidate_matches.job_seeker_id')
@@ -902,16 +902,18 @@ class BusinessDataPresenter
                 ])->all()
             : [];
 
+        $activeExternalCount = $externalClasses->filter(fn ($c) => in_array(strtoupper((string) ($c['status'] ?? '')), ['IN_PROGRESS', 'BERJALAN', 'RUNNING', 'ACTIVE', 'GRADUATED'], true))->count();
+
         return [
             'summary' => [
                 'totalClasses' => $localClasses->count() + $externalClasses->count(),
-                'activeClasses' => $localClasses->where('status', 'Sedang Berjalan')->count()
-                    + $externalClasses->where('status', 'IN_PROGRESS')->count(),
+                'activeClasses' => $localClasses->whereIn('status', ['Sedang Berjalan', 'berjalan', 'aktif', 'Aktif'])->count()
+                    + $activeExternalCount,
                 'gardataCandidates' => $canViewGardata
-                    ? DB::table('job_seekers')->whereNull('deleted_at')->where('external_source', 'gardata')->count()
+                    ? DB::table('job_seekers')->whereNull('deleted_at')->whereIn('external_source', ['gardata', 'sippmi'])->count()
                     : 0,
                 'verifiedReports' => $canViewGardata
-                    ? (int) DB::table('external_training_records')->where('external_source', 'gardata')->sum('verified_reports_count')
+                    ? (int) DB::table('external_training_records')->whereIn('external_source', ['gardata', 'sippmi'])->sum('verified_reports_count')
                     : 0,
                 'averageAttendance' => $localClasses->whereNotNull('averageAttendance')->avg('averageAttendance'),
                 'averageAssessmentScore' => $localClasses->whereNotNull('averageAssessmentScore')->avg('averageAssessmentScore'),

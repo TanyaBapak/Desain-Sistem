@@ -52,20 +52,33 @@ class ReferenceDataSeeder extends Seeder
             DB::table('provinces')->updateOrInsert(['id' => $id], ['name' => $name]);
         }
 
-        foreach ([
-            ['3201', '32', 'Kabupaten Bogor', 'Kabupaten'],
-            ['3271', '32', 'Kota Bogor', 'Kota'],
-            ['3273', '32', 'Kota Bandung', 'Kota'],
-            ['3275', '32', 'Kota Bekasi', 'Kota'],
-            ['3301', '33', 'Kabupaten Cilacap', 'Kabupaten'],
-            ['3578', '35', 'Kota Surabaya', 'Kota'],
-            ['3507', '35', 'Kabupaten Malang', 'Kabupaten'],
-            ['3171', '31', 'Kota Jakarta Pusat', 'Kota'],
-        ] as [$id, $provinceId, $name, $type]) {
-            DB::table('districts')->updateOrInsert(
-                ['id' => $id],
-                ['province_id' => $provinceId, 'name' => $name, 'type' => $type],
-            );
+        $wilayahFile = storage_path('app/reference/wilayah.json');
+        if (is_file($wilayahFile) && is_readable($wilayahFile)) {
+            $data = json_decode((string) file_get_contents($wilayahFile), true);
+            if (isset($data['districts']) && is_array($data['districts'])) {
+                foreach ($data['districts'] as $d) {
+                    DB::table('districts')->updateOrInsert(
+                        ['id' => $d['id']],
+                        ['province_id' => $d['province_id'], 'name' => $d['name'], 'type' => $d['type'] ?? 'Kabupaten'],
+                    );
+                }
+            }
+        } else {
+            foreach ([
+                ['3201', '32', 'Kabupaten Bogor', 'Kabupaten'],
+                ['3271', '32', 'Kota Bogor', 'Kota'],
+                ['3273', '32', 'Kota Bandung', 'Kota'],
+                ['3275', '32', 'Kota Bekasi', 'Kota'],
+                ['3301', '33', 'Kabupaten Cilacap', 'Kabupaten'],
+                ['3578', '35', 'Kota Surabaya', 'Kota'],
+                ['3507', '35', 'Kabupaten Malang', 'Kabupaten'],
+                ['3171', '31', 'Kota Jakarta Pusat', 'Kota'],
+            ] as [$id, $provinceId, $name, $type]) {
+                DB::table('districts')->updateOrInsert(
+                    ['id' => $id],
+                    ['province_id' => $provinceId, 'name' => $name, 'type' => $type],
+                );
+            }
         }
 
         foreach ([

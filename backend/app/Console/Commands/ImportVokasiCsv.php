@@ -279,17 +279,33 @@ class ImportVokasiCsv extends Command
                     '',
                     $districtName,
                 ) ?? $districtName;
-                $districtNames = array_unique([
-                    $districtName,
-                    $districtBaseName,
-                    'kota '.$districtBaseName,
-                    'kabupaten '.$districtBaseName,
-                    'kota administrasi '.$districtBaseName,
-                ]);
-                $districtId = DB::table('districts')
+                $districtExact = DB::table('districts')
                     ->where('province_id', $provinceId)
-                    ->whereIn(DB::raw('LOWER(name)'), $districtNames)
+                    ->whereRaw('LOWER(name) = ?', [$districtName])
                     ->value('id');
+
+                if ($districtExact) {
+                    $districtId = $districtExact;
+                } else {
+                    $isKota = str_starts_with($districtName, 'kota');
+                    $isKab = str_starts_with($districtName, 'kabupaten') || str_starts_with($districtName, 'kab.');
+                    $orderedNames = $isKota
+                        ? ['kota '.$districtBaseName, 'kota administrasi '.$districtBaseName, $districtBaseName, 'kabupaten '.$districtBaseName]
+                        : ($isKab
+                            ? ['kabupaten '.$districtBaseName, $districtBaseName, 'kota '.$districtBaseName]
+                            : [$districtBaseName, 'kota '.$districtBaseName, 'kabupaten '.$districtBaseName]);
+
+                    foreach ($orderedNames as $candidateName) {
+                        $candidateMatch = DB::table('districts')
+                            ->where('province_id', $provinceId)
+                            ->whereRaw('LOWER(name) = ?', [$candidateName])
+                            ->value('id');
+                        if ($candidateMatch) {
+                            $districtId = $candidateMatch;
+                            break;
+                        }
+                    }
+                }
             }
 
             $locations[$externalId] = [

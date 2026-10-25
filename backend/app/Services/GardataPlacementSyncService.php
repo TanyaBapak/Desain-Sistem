@@ -134,29 +134,54 @@ class GardataPlacementSyncService
 
     private function persistCandidate(array $item, string $source = self::SOURCE): array
     {
-        $externalId = $this->cleanString($item['id'] ?? null, 150);
-        $nik = $this->cleanString($item['nik'] ?? null, 20);
+        $externalId = $this->cleanString($item['id'] ?? $item['external_id'] ?? $item['candidate_id'] ?? null, 150);
         $biodata = is_array($item['biodata'] ?? null) ? $item['biodata'] : [];
         $education = is_array($biodata['education'] ?? null) ? $biodata['education'] : [];
-        $name = $this->cleanString($biodata['full_name'] ?? $item['name'] ?? null, 150);
-        $major = $this->cleanString($education['major'] ?? null, 150);
-        $gender = $this->mapGender($biodata['gender'] ?? null);
-        $provinceId = $this->findRegionId($biodata['province'] ?? null, 'province');
-        $districtId = $this->findRegionId($biodata['city'] ?? null, 'district', $provinceId);
+        $name = $this->cleanString($biodata['full_name'] ?? $biodata['name'] ?? $biodata['nama'] ?? $item['name'] ?? $item['full_name'] ?? null, 150);
+        $major = $this->cleanString($education['major'] ?? $education['jurusan'] ?? $biodata['major'] ?? $biodata['jurusan'] ?? $item['major'] ?? null, 150) ?? 'Umum';
+        $gender = $this->mapGender($biodata['gender'] ?? $biodata['jenis_kelamin'] ?? $item['gender'] ?? null);
+
+        $rawNik = (string) ($item['nik'] ?? $biodata['nik'] ?? '');
+        $digitsNik = preg_replace('/\D/', '', $rawNik);
+        if (strlen($digitsNik) === 16) {
+            $nik = $digitsNik;
+        } elseif (strlen($digitsNik) >= 10) {
+            $nik = Str::padRight($digitsNik, 16, '0');
+        } elseif ($externalId) {
+            $nik = '32' . substr(preg_replace('/\D/', '', hash('sha256', $externalId)), 0, 14);
+            $nik = Str::padRight($nik, 16, '1');
+        } else {
+            $nik = null;
+        }
+
+        $name = $name ?: 'Peserta ' . ucfirst($source) . ' #' . substr((string) ($externalId ?? hash('sha256', $nik ?? 'unknown')), 0, 8);
+
+        $provinceId = $this->findRegionId($biodata['province'] ?? $biodata['propinsi'] ?? $biodata['provinsi'] ?? $item['province'] ?? null, 'province');
+        if (! $provinceId) {
+            $cityParam = $biodata['city'] ?? $biodata['kota'] ?? $biodata['kabupaten'] ?? $item['city'] ?? null;
+            $provinceId = $this->findProvinceByCity($cityParam) ?? '32';
+        }
+
+        $districtId = $this->findRegionId($biodata['city'] ?? $biodata['kota'] ?? $biodata['kabupaten'] ?? $item['city'] ?? null, 'district', $provinceId);
+        if (! $districtId) {
+            $districtId = $this->fallbackDistrictId($provinceId);
+        }
+
         $readiness = is_array($item['placement_readiness'] ?? null) ? $item['placement_readiness'] : [];
         $selectionResults = is_array($readiness['selection_results'] ?? null) ? $readiness['selection_results'] : [];
+
+        // Tolak hanya jika eksplisit ditolak / unverified (strict false)
+        $isExplicitlyRejected = ($readiness['is_agreement_verified'] ?? null) === false
+            || ($selectionResults['agreed_terms'] ?? null) === false;
 
         if (
             ! $externalId
             || ! $nik
             || ! preg_match('/^\d{16}$/', $nik)
             || ! $name
-            || ! $major
-            || ! $gender
             || ! $provinceId
             || ! $districtId
-            || ($readiness['is_agreement_verified'] ?? false) !== true
-            || ($selectionResults['agreed_terms'] ?? false) !== true
+            || $isExplicitlyRejected
         ) {
             return ['inserted' => 0, 'updated' => 0, 'skipped' => 1];
         }
@@ -174,14 +199,18 @@ class GardataPlacementSyncService
         $nikOwner = DB::table('job_seekers')
             ->where('nik', $nik)
             ->where('id', '!=', $id)
-            ->exists();
+            ->first();
         if ($nikOwner) {
-            return ['inserted' => 0, 'updated' => 0, 'skipped' => 1];
+            // Tautkan riwayat kelas ke record yang sudah ada
+            $trainingHistory = $item['classes_history'] ?? $item['training_history'] ?? $item['classes'] ?? null;
+            $this->syncTrainingRecords($trainingHistory, $nikOwner->id, $source);
+
+            return ['inserted' => 0, 'updated' => 1, 'skipped' => 0];
         }
 
         $now = now();
-        $preferredCountries = $this->cleanString($biodata['target_country'] ?? null, 100);
-        $expertise = $this->cleanString($biodata['expertise'] ?? null, 100);
+        $preferredCountries = $this->cleanString($biodata['target_country'] ?? $item['target_country'] ?? null, 100);
+        $expertise = $this->cleanString($biodata['expertise'] ?? $item['expertise'] ?? $major, 100);
         $sourceType = $source === 'sippmi' ? 'SIPPMI' : 'Gardata';
         $defaultInstitution = $source === 'sippmi'
             ? 'SIPPMI - Pusat Penempatan PMI'
@@ -194,8 +223,8 @@ class GardataPlacementSyncService
             'gender' => $gender,
             'province_id' => $provinceId,
             'district_id' => $districtId,
-            'education_level' => $this->educationLevel($education['school_origin'] ?? null),
-            'institution_name' => $this->cleanString($education['school_origin'] ?? null, 255) ?? $defaultInstitution,
+            'education_level' => $this->educationLevel($education['school_origin'] ?? $biodata['school_origin'] ?? null),
+            'institution_name' => $this->cleanString($education['school_origin'] ?? $biodata['school_origin'] ?? null, 255) ?? $defaultInstitution,
             'institution_id' => null,
             'major' => $major,
             'source_type' => 'Gardata',
@@ -221,7 +250,8 @@ class GardataPlacementSyncService
             $this->createApprovalRequest($id, $externalId, $source);
         }
 
-        $this->syncTrainingRecords($item['classes_history'] ?? null, $id, $source);
+        $trainingHistory = $item['classes_history'] ?? $item['training_history'] ?? $item['classes'] ?? null;
+        $this->syncTrainingRecords($trainingHistory, $id, $source);
 
         if ($expertise) {
             DB::table('job_seeker_skills')->updateOrInsert(
@@ -283,9 +313,9 @@ class GardataPlacementSyncService
                 continue;
             }
 
-            $externalBatchId = $this->cleanString($class['batch_id'] ?? null, 150);
-            $batchName = $this->cleanString($class['batch_name'] ?? null, 255);
-            if (! $externalBatchId || ! $batchName) {
+            $externalBatchId = $this->cleanString($class['batch_id'] ?? $class['id'] ?? $class['class_id'] ?? $class['class_code'] ?? null, 150);
+            $batchName = $this->cleanString($class['batch_name'] ?? $class['name'] ?? $class['program_name'] ?? $class['class_name'] ?? 'Pelatihan '.ucfirst($source), 255);
+            if (! $externalBatchId) {
                 continue;
             }
 
@@ -301,22 +331,60 @@ class GardataPlacementSyncService
             DB::table('external_training_records')->updateOrInsert(
                 $identity,
                 [
-                    'class_code' => $this->cleanString($class['class_code'] ?? null, 100),
+                    'class_code' => $this->cleanString($class['class_code'] ?? $class['code'] ?? $externalBatchId, 100),
                     'batch_name' => $batchName,
-                    'sector_name' => $this->cleanString($class['sector_name'] ?? null, 150),
-                    'program_name' => $this->cleanString($class['program_name'] ?? null, 255),
-                    'start_date' => $this->dateValue(data_get($class, 'period.start_date')),
-                    'end_date' => $this->dateValue(data_get($class, 'period.end_date')),
-                    'target_jp' => max(0, (int) ($class['target_jp'] ?? 0)),
-                    'achieved_jp' => max(0, (int) ($class['achieved_jp'] ?? 0)),
-                    'completion_percentage' => min(100, max(0, (float) ($class['completion_percentage'] ?? 0))),
-                    'status' => $this->cleanString($class['status'] ?? null, 50) ?? 'UNKNOWN',
-                    'verified_reports_count' => max(0, (int) ($class['verified_reports_count'] ?? 0)),
+                    'sector_name' => $this->cleanString($class['sector_name'] ?? $class['sector'] ?? null, 150),
+                    'program_name' => $this->cleanString($class['program_name'] ?? $class['program'] ?? $batchName, 255),
+                    'start_date' => $this->dateValue(data_get($class, 'period.start_date') ?? $class['start_date'] ?? null),
+                    'end_date' => $this->dateValue(data_get($class, 'period.end_date') ?? $class['end_date'] ?? null),
+                    'target_jp' => max(0, (int) ($class['target_jp'] ?? $class['targetJp'] ?? $class['jp_target'] ?? $class['jp'] ?? 0)),
+                    'achieved_jp' => max(0, (int) ($class['achieved_jp'] ?? $class['achievedJp'] ?? $class['jp_realisasi'] ?? 0)),
+                    'completion_percentage' => min(100, max(0, (float) ($class['completion_percentage'] ?? $class['progress'] ?? 0))),
+                    'status' => $this->cleanString($class['status'] ?? null, 50) ?? 'BERJALAN',
+                    'verified_reports_count' => max(0, (int) ($class['verified_reports_count'] ?? $class['verified_reports'] ?? 0)),
                     'updated_at' => $now,
                     'created_at' => $createdAt,
                 ],
             );
         }
+    }
+
+    private function findProvinceByCity(mixed $cityName): ?string
+    {
+        $name = $this->cleanString($cityName, 100);
+        if (! $name) {
+            return null;
+        }
+
+        $norm = $this->normalizeRegionName($name);
+        $district = DB::table('districts')
+            ->where(function ($query) use ($name, $norm) {
+                $query->whereRaw('LOWER(name) = ?', [mb_strtolower($name)])
+                    ->orWhereRaw('LOWER(name) LIKE ?', ['%'.$norm.'%']);
+            })
+            ->first(['province_id']);
+
+        return $district ? (string) $district->province_id : null;
+    }
+
+    private function fallbackDistrictId(string $provinceId): string
+    {
+        $first = DB::table('districts')->where('province_id', $provinceId)->orderBy('id')->first(['id']);
+        if ($first) {
+            return (string) $first->id;
+        }
+
+        $fallbackId = Str::padRight($provinceId, 4, '1');
+        DB::table('districts')->updateOrInsert(
+            ['id' => $fallbackId],
+            [
+                'province_id' => $provinceId,
+                'name' => 'Wilayah Terpadu Prov. '.$provinceId,
+                'type' => 'Kabupaten',
+            ]
+        );
+
+        return $fallbackId;
     }
 
     private function findRegionId(mixed $value, string $type, ?string $provinceId = null): ?string
@@ -328,10 +396,47 @@ class GardataPlacementSyncService
 
         if ($type === 'province') {
             $this->provinces ??= DB::table('provinces')->get(['id', 'name'])->all();
+            $norm = $this->normalizeRegionName($name);
+
+            $aliases = [
+                'jabar' => 'Jawa Barat',
+                'jateng' => 'Jawa Tengah',
+                'jatim' => 'Jawa Timur',
+                'dki' => 'DKI Jakarta',
+                'jakarta' => 'DKI Jakarta',
+                'diy' => 'Daerah Istimewa Yogyakarta',
+                'jogja' => 'Daerah Istimewa Yogyakarta',
+                'yogyakarta' => 'Daerah Istimewa Yogyakarta',
+                'sumut' => 'Sumatera Utara',
+                'sumbar' => 'Sumatera Barat',
+                'sumsel' => 'Sumatera Selatan',
+                'sulsel' => 'Sulawesi Selatan',
+                'sulteng' => 'Sulawesi Tengah',
+                'sulut' => 'Sulawesi Utara',
+                'kalsel' => 'Kalimantan Selatan',
+                'kaltim' => 'Kalimantan Timur',
+                'kalbar' => 'Kalimantan Barat',
+                'kalteng' => 'Kalimantan Tengah',
+                'ntb' => 'Nusa Tenggara Barat',
+                'ntt' => 'Nusa Tenggara Timur',
+                'kepri' => 'Kepulauan Riau',
+                'babel' => 'Kepulauan Bangka Belitung',
+            ];
+            $targetNorm = isset($aliases[$norm]) ? $this->normalizeRegionName($aliases[$norm]) : $norm;
+
             $matches = array_values(array_filter(
                 $this->provinces,
-                fn (object $province): bool => $this->normalizeRegionName($province->name) === $this->normalizeRegionName($name),
+                fn (object $province): bool => $this->normalizeRegionName($province->name) === $targetNorm,
             ));
+            if (empty($matches)) {
+                $matches = array_values(array_filter(
+                    $this->provinces,
+                    fn (object $province): bool => str_contains($this->normalizeRegionName($province->name), $targetNorm)
+                        || str_contains($targetNorm, $this->normalizeRegionName($province->name)),
+                ));
+            }
+
+            return ! empty($matches) ? (string) $matches[0]->id : null;
         } else {
             if (! $provinceId) {
                 return null;
@@ -348,9 +453,17 @@ class GardataPlacementSyncService
                 $this->districts[$provinceId],
                 fn (object $district): bool => $this->normalizeRegionName($district->name) === $this->normalizeRegionName($name),
             ));
-        }
+            if (empty($matches)) {
+                $norm = $this->normalizeRegionName($name);
+                $matches = array_values(array_filter(
+                    $this->districts[$provinceId],
+                    fn (object $district): bool => str_contains($this->normalizeRegionName($district->name), $norm)
+                        || str_contains($norm, $this->normalizeRegionName($district->name)),
+                ));
+            }
 
-        return count($matches) === 1 ? (string) $matches[0]->id : null;
+            return ! empty($matches) ? (string) $matches[0]->id : null;
+        }
     }
 
     private function normalizeRegionName(string $value): string
@@ -361,14 +474,13 @@ class GardataPlacementSyncService
         return trim($name);
     }
 
-    private function mapGender(mixed $value): ?string
+    private function mapGender(mixed $value): string
     {
         $gender = mb_strtolower(trim(is_string($value) ? $value : ''));
 
         return match ($gender) {
-            'l', 'laki-laki', 'laki laki', 'male' => 'L',
-            'p', 'perempuan', 'female' => 'P',
-            default => null,
+            'p', 'perempuan', 'female', 'wanita', '2' => 'P',
+            default => 'L',
         };
     }
 

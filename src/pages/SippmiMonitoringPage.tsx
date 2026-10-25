@@ -1,10 +1,12 @@
 import * as React from "react";
 import { router } from "@inertiajs/react";
+import { toast } from "sonner";
 import {
   AlertTriangle,
   Building2,
   CheckCircle2,
   Clock,
+  CloudDownload,
   RefreshCw,
   Users,
 } from "lucide-react";
@@ -35,6 +37,7 @@ interface SippmiMonitoringPageProps {
 export function SippmiMonitoringPage({ monitoring }: SippmiMonitoringPageProps) {
   const { currentScope } = useAppStore();
   const [refreshing, setRefreshing] = React.useState(false);
+  const [syncing, setSyncing] = React.useState(false);
   const { summary, classes, candidates, lastSync } = monitoring;
 
   const refresh = () => {
@@ -43,6 +46,25 @@ export function SippmiMonitoringPage({ monitoring }: SippmiMonitoringPageProps) 
       only: ["businessData"],
       onFinish: () => setRefreshing(false),
     });
+  };
+
+  const handleSyncGardata = () => {
+    setSyncing(true);
+    router.post(
+      "/integrations/gardata/sync",
+      {},
+      {
+        preserveScroll: true,
+        onSuccess: () => {
+          toast.success("Sinkronisasi data Gardata berhasil dijadwalkan / dijalankan.");
+          refresh();
+        },
+        onError: () => {
+          toast.error("Sinkronisasi Gardata gagal. Periksa konfigurasi API.");
+        },
+        onFinish: () => setSyncing(false),
+      }
+    );
   };
 
   const syncFailed = lastSync?.status === "failed";
@@ -58,10 +80,21 @@ export function SippmiMonitoringPage({ monitoring }: SippmiMonitoringPageProps) 
             Data lokal dan hasil sinkronisasi tersimpan. Lingkup: {currentScope.name}.
           </p>
         </div>
-        <Button onClick={refresh} variant="outline" size="sm" disabled={refreshing}>
-          <RefreshCw className={`mr-2 h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
-          {refreshing ? "Memuat ulang…" : "Segarkan"}
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            onClick={handleSyncGardata}
+            variant="default"
+            size="sm"
+            disabled={syncing || refreshing}
+          >
+            <CloudDownload className={`mr-2 h-4 w-4 ${syncing ? "animate-spin" : ""}`} />
+            {syncing ? "Menyinkronkan…" : "Tarik Data Gardata"}
+          </Button>
+          <Button onClick={refresh} variant="outline" size="sm" disabled={refreshing || syncing}>
+            <RefreshCw className={`mr-2 h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+            {refreshing ? "Memuat ulang…" : "Segarkan"}
+          </Button>
+        </div>
       </header>
 
       {syncFailed && (

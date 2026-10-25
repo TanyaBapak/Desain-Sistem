@@ -94,6 +94,34 @@ class GardataPlacementSyncTest extends TestCase
         ]);
     }
 
+    public function test_sync_tolerates_flexible_region_and_implicit_consent_payloads(): void
+    {
+        $payload = $this->candidatePage();
+        unset($payload['data'][0]['placement_readiness']['is_agreement_verified']);
+        unset($payload['data'][0]['placement_readiness']['selection_results']['agreed_terms']);
+        $payload['data'][0]['biodata']['city'] = 'Kota Cimahi';
+        $payload['data'][0]['biodata']['gender'] = 'Pria';
+
+        Http::fake([
+            'gardata.test/api/v1/placement/candidates*' => Http::response($payload, 200),
+        ]);
+
+        $result = app(GardataPlacementSyncService::class)->syncCandidates();
+
+        $this->assertSame(1, $result['recordsInserted']);
+        $this->assertSame(0, $result['recordsSkipped']);
+        $this->assertSame('success', $result['status']);
+        $this->assertDatabaseHas('job_seekers', [
+            'external_source' => 'gardata',
+            'external_id' => 'candidate-42',
+            'gender' => 'L',
+        ]);
+        $this->assertDatabaseHas('external_training_records', [
+            'external_source' => 'gardata',
+            'external_batch_id' => 'batch-7',
+        ]);
+    }
+
     public function test_failed_sync_records_only_generic_errors(): void
     {
         Http::fake([
