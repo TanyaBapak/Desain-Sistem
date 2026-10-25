@@ -34,6 +34,7 @@ import {
   MonitoringData,
   MonitoringCandidateData,
 } from "@/types";
+import { parseServerDate } from "@/lib/utils";
 
 interface SippmiMonitoringPageProps {
   monitoring: MonitoringData;
@@ -163,7 +164,9 @@ export function SippmiMonitoringPage({ monitoring }: SippmiMonitoringPageProps) 
           toast.info("Sinkronisasi dijadwalkan. Status akan diperbarui setelah proses selesai.");
         },
         onError: () => {
-          toast.error("Sinkronisasi Gardata gagal. Periksa konfigurasi API.");
+          toast.error(
+            "Sinkronisasi Gardata gagal dimulai. Periksa konfigurasi antrean atau cache."
+          );
         },
         onFinish: () => setSyncing(false),
       }
@@ -684,7 +687,7 @@ function SummaryCard({
 
 function formatDate(value: string | null): string {
   if (!value) return "—";
-  return new Intl.DateTimeFormat("id-ID", { dateStyle: "medium", timeZone: "Asia/Jakarta" }).format(new Date(value));
+  return new Intl.DateTimeFormat("id-ID", { dateStyle: "medium", timeZone: "Asia/Jakarta" }).format(parseServerDate(value));
 }
 
 function formatDateTime(value: string | null): string {
@@ -693,5 +696,5 @@ function formatDateTime(value: string | null): string {
     dateStyle: "medium",
     timeStyle: "short",
     timeZone: "Asia/Jakarta",
-  }).format(new Date(value)) + " WIB";
+  }).format(parseServerDate(value)) + " WIB";
 }

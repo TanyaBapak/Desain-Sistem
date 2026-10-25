@@ -25,6 +25,7 @@ import { Button } from '../ui/button';
 import { SystemStageStepper } from '../layout/SystemStageStepper';
 import { DeleteConfirmModal } from '../ui/DeleteConfirmModal';
 import { MonitoringData, PersistedCandidateMatch } from '../../types';
+import { parseServerDate } from '@/lib/utils';
 
 interface MatchingEngineViewProps {
   candidateMatches: PersistedCandidateMatch[];
@@ -926,7 +927,7 @@ export const MatchingEngineView: React.FC<MatchingEngineViewProps> = ({ candidat
                   Status sinkronisasi Gardata:{' '}
                   <strong>{monitoringData.lastSync?.status ?? 'Belum pernah disinkronkan'}</strong>
                   {monitoringData.lastSync?.finishedAt
-                    ? ` · Pembaruan ${new Date(monitoringData.lastSync.finishedAt).toLocaleString('id-ID')}`
+                    ? ` · Pembaruan ${parseServerDate(monitoringData.lastSync.finishedAt).toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' })} WIB`
                     : ''}
                 </span>
               </div>

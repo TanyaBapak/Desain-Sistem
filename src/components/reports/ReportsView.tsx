@@ -2,6 +2,7 @@ import React from 'react';
 import { BarChart3, Building2, GraduationCap, Users, BriefcaseBusiness, Database, Clock3 } from 'lucide-react';
 import { ExecutiveDashboardBreakdowns, ExecutiveDashboardBreakdownsData } from '@/components/reports/ExecutiveDashboardBreakdowns';
 import { InstitutionDirectory } from '@/components/dashboard/InstitutionDirectory';
+import { parseServerDate } from '@/lib/utils';
 
 export interface ReportSummary {
   candidateCount: number;
@@ -59,7 +60,7 @@ export function ReportsView({ summary, isAuditor, title = 'Laporan' }: ReportsVi
               dateStyle: 'medium',
               timeStyle: 'short',
               timeZone: 'Asia/Jakarta',
-            }).format(new Date(summary.updatedAt))}
+            }).format(parseServerDate(summary.updatedAt))}
           </time>{' '}
 WIB
         </p>
@@ -129,7 +130,7 @@ WIB
                     dateStyle: 'medium',
                     timeStyle: 'short',
                     timeZone: 'Asia/Jakarta',
-                  }).format(new Date(summary.gardata.lastSyncAt))} WIB`
+                  }).format(parseServerDate(summary.gardata.lastSyncAt))} WIB`
                   : 'Waktu selesai belum tersedia'}
               </p>
             </div>
