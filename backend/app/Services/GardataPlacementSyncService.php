@@ -17,8 +17,10 @@ class GardataPlacementSyncService
 
     private array $districts = [];
 
-    public function syncCandidates(?string $overrideBaseUrl = null, ?string $overrideApiKey = null, string $source = self::SOURCE): array
+    public function syncCandidates(?string $overrideBaseUrl = null, ?string $overrideApiKey = null, string $source = self::SOURCE, bool $force = false): array
     {
+        $this->ensureProvincesSeeded();
+
         $baseUrl = rtrim((string) ($overrideBaseUrl ?: config("services.{$source}.base_url") ?: config('services.gardata.base_url')), '/');
         $apiKey = (string) ($overrideApiKey ?: config("services.{$source}.api_key") ?: config('services.gardata.api_key'));
         $startedAt = now();
@@ -82,7 +84,7 @@ class GardataPlacementSyncService
                         continue;
                     }
 
-                    $persisted = DB::transaction(fn (): array => $this->persistCandidate($item, $source));
+                    $persisted = DB::transaction(fn (): array => $this->persistCandidate($item, $source, $force));
                     $result['recordsInserted'] += $persisted['inserted'];
                     $result['recordsUpdated'] += $persisted['updated'];
                     $result['recordsSkipped'] += $persisted['skipped'];
@@ -132,16 +134,32 @@ class GardataPlacementSyncService
         return $this->syncCandidates($baseUrl, $apiKey, 'sippmi');
     }
 
-    private function persistCandidate(array $item, string $source = self::SOURCE): array
+    private function persistCandidate(array $item, string $source = self::SOURCE, bool $force = false): array
     {
-        $externalId = $this->cleanString($item['id'] ?? $item['external_id'] ?? $item['candidate_id'] ?? null, 150);
         $biodata = is_array($item['biodata'] ?? null) ? $item['biodata'] : [];
-        $education = is_array($biodata['education'] ?? null) ? $biodata['education'] : [];
-        $name = $this->cleanString($biodata['full_name'] ?? $biodata['name'] ?? $biodata['nama'] ?? $item['name'] ?? $item['full_name'] ?? null, 150);
-        $major = $this->cleanString($education['major'] ?? $education['jurusan'] ?? $biodata['major'] ?? $biodata['jurusan'] ?? $item['major'] ?? null, 150) ?? 'Umum';
-        $gender = $this->mapGender($biodata['gender'] ?? $biodata['jenis_kelamin'] ?? $item['gender'] ?? null);
+        $education = is_array($biodata['education'] ?? null) ? $biodata['education'] : (is_array($item['education'] ?? null) ? $item['education'] : []);
 
-        $rawNik = (string) ($item['nik'] ?? $biodata['nik'] ?? '');
+        $externalId = $this->cleanString(
+            $item['id'] ?? $item['external_id'] ?? $item['candidate_id'] ?? $item['peserta_id'] ?? $item['id_peserta'] ?? $item['cpm_id']
+            ?? $item['registration_number'] ?? $item['nomor_peserta'] ?? $item['nik'] ?? $biodata['nik'] ?? null,
+            150
+        );
+
+        $name = $this->cleanString(
+            $biodata['full_name'] ?? $biodata['name'] ?? $biodata['nama'] ?? $biodata['nama_lengkap']
+            ?? $item['name'] ?? $item['full_name'] ?? $item['nama'] ?? $item['nama_lengkap'] ?? null,
+            150
+        );
+        $major = $this->cleanString(
+            $education['major'] ?? $education['jurusan'] ?? $biodata['major'] ?? $biodata['jurusan']
+            ?? $item['major'] ?? $item['jurusan'] ?? $item['keahlian'] ?? $biodata['expertise'] ?? $item['expertise'] ?? null,
+            150
+        ) ?? 'Umum';
+        $gender = $this->mapGender(
+            $biodata['gender'] ?? $biodata['jenis_kelamin'] ?? $item['gender'] ?? $item['jenis_kelamin'] ?? null
+        );
+
+        $rawNik = (string) ($item['nik'] ?? $biodata['nik'] ?? $item['nomor_induk'] ?? '');
         $digitsNik = preg_replace('/\D/', '', $rawNik);
         if (strlen($digitsNik) === 16) {
             $nik = $digitsNik;
@@ -151,18 +169,26 @@ class GardataPlacementSyncService
             $nik = '32' . substr(preg_replace('/\D/', '', hash('sha256', $externalId)), 0, 14);
             $nik = Str::padRight($nik, 16, '1');
         } else {
-            $nik = null;
+            $nik = '32' . Str::padRight(substr(preg_replace('/\D/', '', hash('sha256', json_encode($item))), 0, 14), 14, '1');
         }
 
-        $name = $name ?: 'Peserta ' . ucfirst($source) . ' #' . substr((string) ($externalId ?? hash('sha256', $nik ?? 'unknown')), 0, 8);
+        $externalId ??= 'GDT-' . substr(hash('sha256', ($nik ?? '').json_encode($item)), 0, 16);
+        $name = $name ?: 'Peserta ' . ucfirst($source) . ' #' . substr((string) $externalId, 0, 8);
 
-        $provinceId = $this->findRegionId($biodata['province'] ?? $biodata['propinsi'] ?? $biodata['provinsi'] ?? $item['province'] ?? null, 'province');
+        $provinceId = $this->findRegionId(
+            $biodata['province'] ?? $biodata['propinsi'] ?? $biodata['provinsi'] ?? $item['province'] ?? $item['provinsi'] ?? $item['propinsi'] ?? null,
+            'province'
+        );
         if (! $provinceId) {
-            $cityParam = $biodata['city'] ?? $biodata['kota'] ?? $biodata['kabupaten'] ?? $item['city'] ?? null;
+            $cityParam = $biodata['city'] ?? $biodata['kota'] ?? $biodata['kabupaten'] ?? $biodata['kab'] ?? $item['city'] ?? $item['kota'] ?? $item['kabupaten'] ?? $item['kab'] ?? null;
             $provinceId = $this->findProvinceByCity($cityParam) ?? '32';
         }
 
-        $districtId = $this->findRegionId($biodata['city'] ?? $biodata['kota'] ?? $biodata['kabupaten'] ?? $item['city'] ?? null, 'district', $provinceId);
+        $districtId = $this->findRegionId(
+            $biodata['city'] ?? $biodata['kota'] ?? $biodata['kabupaten'] ?? $biodata['kab'] ?? $item['city'] ?? $item['kota'] ?? $item['kabupaten'] ?? $item['kab'] ?? null,
+            'district',
+            $provinceId
+        );
         if (! $districtId) {
             $districtId = $this->fallbackDistrictId($provinceId);
         }
@@ -170,9 +196,17 @@ class GardataPlacementSyncService
         $readiness = is_array($item['placement_readiness'] ?? null) ? $item['placement_readiness'] : [];
         $selectionResults = is_array($readiness['selection_results'] ?? null) ? $readiness['selection_results'] : [];
 
-        // Tolak hanya jika eksplisit ditolak / unverified (strict false)
-        $isExplicitlyRejected = ($readiness['is_agreement_verified'] ?? null) === false
-            || ($selectionResults['agreed_terms'] ?? null) === false;
+        // Tolak hanya jika eksplisit ditolak / unverified (strict false) dan force tidak aktif
+        $isExplicitlyRejected = ! $force && (
+            ($readiness['is_agreement_verified'] ?? null) === false
+            || ($selectionResults['agreed_terms'] ?? null) === false
+        );
+
+        if ($isExplicitlyRejected) {
+            Log::info("Gardata candidate {$externalId} skipped: placement_readiness agreement not verified.");
+
+            return ['inserted' => 0, 'updated' => 0, 'skipped' => 1];
+        }
 
         if (
             ! $externalId
@@ -181,8 +215,15 @@ class GardataPlacementSyncService
             || ! $name
             || ! $provinceId
             || ! $districtId
-            || $isExplicitlyRejected
         ) {
+            Log::warning("Gardata candidate {$externalId} skipped due to invalid fields", [
+                'externalId' => $externalId,
+                'nik' => $nik,
+                'name' => $name,
+                'provinceId' => $provinceId,
+                'districtId' => $districtId,
+            ]);
+
             return ['inserted' => 0, 'updated' => 0, 'skipped' => 1];
         }
 
@@ -371,6 +412,11 @@ class GardataPlacementSyncService
 
     private function fallbackDistrictId(string $provinceId): string
     {
+        DB::table('provinces')->updateOrInsert(
+            ['id' => $provinceId],
+            ['name' => 'Provinsi '.$provinceId]
+        );
+
         $first = DB::table('districts')->where('province_id', $provinceId)->orderBy('id')->first(['id']);
         if ($first) {
             return (string) $first->id;
@@ -387,6 +433,39 @@ class GardataPlacementSyncService
         );
 
         return $fallbackId;
+    }
+
+    private function ensureProvincesSeeded(): void
+    {
+        if (DB::table('provinces')->count() < 30) {
+            $provinces = [
+                ['11', 'Aceh'], ['12', 'Sumatera Utara'], ['13', 'Sumatera Barat'], ['14', 'Riau'],
+                ['15', 'Jambi'], ['16', 'Sumatera Selatan'], ['17', 'Bengkulu'], ['18', 'Lampung'],
+                ['19', 'Kepulauan Bangka Belitung'], ['21', 'Kepulauan Riau'], ['31', 'DKI Jakarta'],
+                ['32', 'Jawa Barat'], ['33', 'Jawa Tengah'], ['34', 'Daerah Istimewa Yogyakarta'],
+                ['35', 'Jawa Timur'], ['36', 'Banten'], ['51', 'Bali'], ['52', 'Nusa Tenggara Barat'],
+                ['53', 'Nusa Tenggara Timur'], ['61', 'Kalimantan Barat'], ['62', 'Kalimantan Tengah'],
+                ['63', 'Kalimantan Selatan'], ['64', 'Kalimantan Timur'], ['65', 'Kalimantan Utara'],
+                ['71', 'Sulawesi Utara'], ['72', 'Sulawesi Tengah'], ['73', 'Sulawesi Selatan'],
+                ['74', 'Sulawesi Tenggara'], ['75', 'Gorontalo'], ['76', 'Sulawesi Barat'],
+                ['81', 'Maluku'], ['82', 'Maluku Utara'], ['91', 'Papua'], ['92', 'Papua Barat'],
+                ['93', 'Papua Selatan'], ['94', 'Papua Tengah'], ['95', 'Papua Pegunungan'],
+                ['96', 'Papua Barat Daya'],
+            ];
+            foreach ($provinces as [$id, $name]) {
+                DB::table('provinces')->updateOrInsert(['id' => $id], ['name' => $name]);
+            }
+
+            $wilayahFile = storage_path('app/reference/wilayah.json');
+            if (is_file($wilayahFile) && is_readable($wilayahFile)) {
+                $data = json_decode((string) file_get_contents($wilayahFile), true);
+                if (! empty($data['districts'])) {
+                    foreach (array_chunk($data['districts'], 100) as $chunk) {
+                        DB::table('districts')->upsert($chunk, ['id'], ['name', 'type', 'province_id']);
+                    }
+                }
+            }
+        }
     }
 
     private function findRegionId(mixed $value, string $type, ?string $provinceId = null): ?string

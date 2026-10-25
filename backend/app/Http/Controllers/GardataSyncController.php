@@ -18,7 +18,7 @@ class GardataSyncController extends Controller
         );
 
         try {
-            SyncGardataPlacementData::dispatch();
+            SyncGardataPlacementData::dispatch(true);
         } catch (Throwable $exception) {
             Log::error('Gardata synchronization dispatch failed.', [
                 'exception' => $exception::class,

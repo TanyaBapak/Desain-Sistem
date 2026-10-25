@@ -9,7 +9,7 @@ use Throwable;
 
 class SyncGardataPlacementCommand extends Command
 {
-    protected $signature = 'gardata:sync {--queue : Kirim proses ke antrean latar belakang bukannya sinkron langsung}';
+    protected $signature = 'gardata:sync {--queue : Kirim proses ke antrean latar belakang bukannya sinkron langsung} {--force : Paksa simpan semua data calon peserta dari Gardata}';
 
     protected $description = 'Tarik dan sinkronkan data calon PMI dan riwayat kelas dari feeder gardata.sippmi.com';
 
@@ -17,15 +17,17 @@ class SyncGardataPlacementCommand extends Command
     {
         $this->info('Memulai sinkronisasi data dari gardata.sippmi.com...');
 
+        $force = (bool) $this->option('force');
+
         if ($this->option('queue')) {
-            SyncGardataPlacementData::dispatch();
+            SyncGardataPlacementData::dispatch($force);
             $this->info('Job sinkronisasi Gardata telah dimasukkan ke antrean (queue).');
 
             return self::SUCCESS;
         }
 
         try {
-            $result = $syncService->syncCandidates();
+            $result = $syncService->syncCandidates(null, null, 'gardata', $force);
 
             $this->table(
                 ['Metrik', 'Jumlah'],

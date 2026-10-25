@@ -22,7 +22,9 @@ class SyncGardataPlacementData implements ShouldBeUnique, ShouldQueue
 
     public int $timeout = 300;
 
-    public int $uniqueFor = 3600;
+    public int $uniqueFor = 60;
+
+    public function __construct(public bool $force = false) {}
 
     public function uniqueId(): string
     {
@@ -31,12 +33,12 @@ class SyncGardataPlacementData implements ShouldBeUnique, ShouldQueue
 
     public function middleware(): array
     {
-        return [(new WithoutOverlapping('gardata-placement-sync'))->expireAfter(1800)];
+        return [(new WithoutOverlapping('gardata-placement-sync'))->expireAfter(120)];
     }
 
     public function handle(GardataPlacementSyncService $syncService): void
     {
-        $syncService->syncCandidates();
+        $syncService->syncCandidates(null, null, 'gardata', $this->force);
 
         $sippmiBase = rtrim((string) config('services.sippmi.base_url', ''), '/');
         $gardataBase = rtrim((string) config('services.gardata.base_url', ''), '/');
