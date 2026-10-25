@@ -3,7 +3,6 @@ import { useForm } from "@inertiajs/react";
 import { MapPinned } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import type { ManagedUser, UserManagementData } from "@/pages/user-management-types";
 
 interface UserScopeDialogProps {
@@ -14,27 +13,21 @@ interface UserScopeDialogProps {
 export function UserScopeDialog({ user, data }: UserScopeDialogProps) {
   const [open, setOpen] = useState(false);
   const form = useForm({
-    scopeName: user.scopeName,
+    scopeLevel: user.districtId ? "kabupaten" : "provinsi",
     provinceId: user.provinceId ?? "",
     districtId: user.districtId ?? "",
-    institutionId: user.institutionId ?? "",
-    employerId: user.employerId ?? "",
   });
   const isProvinceAdmin = user.roleName === "province_admin";
   const isDistrictAdmin = user.roleName === "district_admin";
-  const isInstitutionRole = user.roleName === "institution_admin" || user.roleName === "training_operator";
-  const isDemandRole = user.roleName === "demand_admin";
   const isTaskForce = user.roleName === "task_force";
   const visibleDistricts = data.districts.filter((district) => district.province_id === form.data.provinceId);
 
   useEffect(() => {
     if (!open) {
       form.setData({
-        scopeName: user.scopeName,
+        scopeLevel: user.districtId ? "kabupaten" : "provinsi",
         provinceId: user.provinceId ?? "",
         districtId: user.districtId ?? "",
-        institutionId: user.institutionId ?? "",
-        employerId: user.employerId ?? "",
       });
     }
   }, [open, user]);
@@ -57,7 +50,7 @@ export function UserScopeDialog({ user, data }: UserScopeDialogProps) {
         <DialogHeader>
           <DialogTitle>Edit lingkup pengguna</DialogTitle>
           <DialogDescription>
-            Ubah lingkup yang terhubung dengan peran {user.roleTitle} milik {user.name}.
+            Atur wilayah yang tercatat untuk akun {user.name}. Peran dan aturan aksesnya tidak berubah.
           </DialogDescription>
         </DialogHeader>
         {isTaskForce ? (
@@ -71,82 +64,62 @@ export function UserScopeDialog({ user, data }: UserScopeDialogProps) {
           </div>
         ) : (
           <form onSubmit={submit} className="space-y-4">
-            {(isProvinceAdmin || isDistrictAdmin) && (
-              <Field label="Provinsi" error={form.errors.provinceId}>
-                <select
-                  className={selectClass}
-                  value={form.data.provinceId}
-                  onChange={(event) => {
-                    form.setData("provinceId", event.target.value);
-                    form.setData("districtId", "");
-                  }}
-                  required
-                >
-                  <option value="">Pilih provinsi</option>
-                  {data.provinces.map((province) => (
-                    <option key={province.id} value={province.id}>{province.name}</option>
-                  ))}
-                </select>
-              </Field>
-            )}
-            {isDistrictAdmin && (
-            <Field label="Kabupaten/kota" error={form.errors.districtId}>
+            <Field label="Tingkat wilayah" error={form.errors.scopeLevel}>
               <select
                 className={selectClass}
-                value={form.data.districtId}
-                onChange={(event) => form.setData("districtId", event.target.value)}
-                disabled={!form.data.provinceId}
+                value={form.data.scopeLevel}
+                onChange={(event) => {
+                  const scopeLevel = event.target.value;
+                  form.setData("scopeLevel", scopeLevel);
+                  if (scopeLevel === "provinsi") form.setData("districtId", "");
+                }}
+                disabled={isProvinceAdmin || isDistrictAdmin}
                 required
               >
-                <option value="">Pilih kabupaten/kota</option>
-                {visibleDistricts.map((district) => (
-                  <option key={district.id} value={district.id}>{district.name}</option>
+                <option value="provinsi">Provinsi</option>
+                <option value="kabupaten">Kabupaten/kota</option>
+              </select>
+              {(isProvinceAdmin || isDistrictAdmin) && (
+                <span className="block text-xs font-normal text-muted-foreground">
+                  Tingkat wilayah mengikuti peran {user.roleTitle}.
+                </span>
+              )}
+            </Field>
+            <Field label="Provinsi" error={form.errors.provinceId}>
+              <select
+                className={selectClass}
+                value={form.data.provinceId}
+                onChange={(event) => {
+                  form.setData("provinceId", event.target.value);
+                  form.setData("districtId", "");
+                }}
+                required
+              >
+                <option value="">Pilih provinsi</option>
+                {data.provinces.map((province) => (
+                  <option key={province.id} value={province.id}>{province.name}</option>
                 ))}
               </select>
             </Field>
-          )}
-            {isInstitutionRole && (
-              <Field label="Lembaga" error={form.errors.institutionId}>
+            {form.data.scopeLevel === "kabupaten" && (
+              <Field label="Kabupaten/kota" error={form.errors.districtId}>
                 <select
                   className={selectClass}
-                  value={form.data.institutionId}
-                  onChange={(event) => form.setData("institutionId", event.target.value)}
+                  value={form.data.districtId}
+                  onChange={(event) => form.setData("districtId", event.target.value)}
+                  disabled={!form.data.provinceId}
                   required
                 >
-                  <option value="">Pilih lembaga</option>
-                  {data.institutions.map((institution) => (
-                    <option key={institution.id} value={institution.id}>{institution.name}</option>
+                  <option value="">Pilih kabupaten/kota</option>
+                  {visibleDistricts.map((district) => (
+                    <option key={district.id} value={district.id}>{district.name}</option>
                   ))}
                 </select>
               </Field>
             )}
-            {isDemandRole && (
-              <Field label="Pemberi kerja" error={form.errors.employerId}>
-                <select
-                  className={selectClass}
-                  value={form.data.employerId}
-                  onChange={(event) => form.setData("employerId", event.target.value)}
-                  required
-                >
-                  <option value="">Pilih pemberi kerja</option>
-                  {data.employers.map((employer) => (
-                    <option key={employer.id} value={employer.id}>{employer.name}</option>
-                  ))}
-                </select>
-              </Field>
-            )}
-            {!isProvinceAdmin && !isDistrictAdmin && !isInstitutionRole && !isDemandRole && (
-              <Field label="Nama lingkup" error={form.errors.scopeName}>
-                <Input
-                  value={form.data.scopeName}
-                  onChange={(event) => form.setData("scopeName", event.target.value)}
-                  placeholder="Nasional"
-                />
-                <span className="block text-xs font-normal text-muted-foreground">
-                  Mengubah label lingkup pada akun dan audit, tidak mengubah aturan akses berbasis peran.
-                </span>
-              </Field>
-            )}
+            <p className="text-xs text-muted-foreground">
+              Pengaturan ini mencatat wilayah pada akun. Hak akses tetap mengikuti peran yang diberikan.
+            </p>
             {Object.keys(form.errors).length > 0 && (
               <p role="alert" className="text-sm text-destructive">
                 Periksa kembali lingkup yang dipilih.

@@ -180,6 +180,7 @@ class UserManagementTest extends TestCase
         ]);
 
         $this->actingAs($admin)->patch("/admin/users/{$user->id}/scope", [
+            'scopeLevel' => 'kabupaten',
             'provinceId' => '32',
             'districtId' => '3202',
         ])->assertRedirect()->assertSessionHasNoErrors();
@@ -193,7 +194,7 @@ class UserManagementTest extends TestCase
             'user_id' => $admin->id,
             'action_type' => 'AKUN_HAK_AKSES',
             'entity_id' => (string) $user->id,
-            'justification_reason' => 'Lingkup pengguna diperbarui menjadi Kabupaten Sukabumi.',
+            'justification_reason' => 'Lingkup wilayah pengguna diperbarui menjadi Kabupaten Sukabumi.',
         ]);
     }
 
@@ -210,6 +211,7 @@ class UserManagementTest extends TestCase
         $this->actingAs($admin)
             ->from('/app/rbac')
             ->patch("/admin/users/{$user->id}/scope", [
+                'scopeLevel' => 'kabupaten',
                 'provinceId' => '32',
                 'districtId' => '3171',
             ])
@@ -238,13 +240,14 @@ class UserManagementTest extends TestCase
         $this->assertSame($originalBp3miCode, $user->fresh()->bp3mi_code);
     }
 
-    public function test_super_admin_can_edit_institution_and_employer_scope_for_their_roles(): void
+    public function test_super_admin_can_edit_regional_scope_for_institution_and_employer_roles(): void
     {
         $this->seed(DemoDataSeeder::class);
         $admin = $this->userWithRole('super_admin');
         $institutionUser = $this->userWithRole('institution_admin', [
             'username' => 'institution-scope-edit',
             'email' => 'institution-scope-edit@example.invalid',
+            'institution_id' => 'VOC-DEMO-001',
         ]);
         $employerId = 'EMP-SCOPE-TEST';
         DB::table('employers')->insert([
@@ -259,22 +262,28 @@ class UserManagementTest extends TestCase
         $employerUser = $this->userWithRole('demand_admin', [
             'username' => 'employer-scope-edit',
             'email' => 'employer-scope-edit@example.invalid',
+            'employer_id' => $employerId,
         ]);
 
         $this->actingAs($admin)->patch("/admin/users/{$institutionUser->id}/scope", [
-            'institutionId' => 'VOC-DEMO-001',
+            'scopeLevel' => 'kabupaten',
+            'provinceId' => '32',
+            'districtId' => '3201',
         ])->assertRedirect()->assertSessionHasNoErrors();
         $this->patch("/admin/users/{$employerUser->id}/scope", [
-            'employerId' => $employerId,
+            'scopeLevel' => 'provinsi',
+            'provinceId' => '32',
         ])->assertRedirect()->assertSessionHasNoErrors();
 
+        $this->assertSame('3201', $institutionUser->fresh()->district_id);
         $this->assertSame('VOC-DEMO-001', $institutionUser->fresh()->institution_id);
-        $this->assertSame('SMK Contoh Cibinong', $institutionUser->fresh()->scope_name);
+        $this->assertSame('Kabupaten Bogor', $institutionUser->fresh()->scope_name);
+        $this->assertSame('32', $employerUser->fresh()->province_id);
         $this->assertSame($employerId, $employerUser->fresh()->employer_id);
-        $this->assertSame('Pemberi Kerja Contoh', $employerUser->fresh()->scope_name);
+        $this->assertSame('Jawa Barat', $employerUser->fresh()->scope_name);
     }
 
-    public function test_super_admin_can_edit_scope_label_for_roles_without_a_bound_entity(): void
+    public function test_super_admin_can_edit_regional_scope_for_roles_without_a_bound_entity(): void
     {
         $admin = $this->userWithRole('super_admin');
         $user = $this->userWithRole('verifier', [
@@ -283,16 +292,17 @@ class UserManagementTest extends TestCase
         ]);
 
         $this->actingAs($admin)->patch("/admin/users/{$user->id}/scope", [
-            'scopeName' => 'Pengawasan Nasional',
+            'scopeLevel' => 'provinsi',
+            'provinceId' => '32',
         ])->assertRedirect()->assertSessionHasNoErrors();
 
         $user->refresh();
-        $this->assertSame('national', $user->scope_level);
-        $this->assertSame('Pengawasan Nasional', $user->scope_name);
-        $this->assertNull($user->province_id);
+        $this->assertSame('provinsi', $user->scope_level);
+        $this->assertSame('Jawa Barat', $user->scope_name);
+        $this->assertSame('32', $user->province_id);
         $this->assertDatabaseHas('audit_logs', [
             'entity_id' => (string) $user->id,
-            'justification_reason' => 'Lingkup pengguna diperbarui menjadi Pengawasan Nasional.',
+            'justification_reason' => 'Lingkup wilayah pengguna diperbarui menjadi Jawa Barat.',
         ]);
     }
 
