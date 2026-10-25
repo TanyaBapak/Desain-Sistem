@@ -9,9 +9,10 @@ export interface LandingProjectionSeries {
 }
 
 export interface LandingProjectionData {
-  year: number;
+  year: number | null;
+  periods: number[];
   countries: LandingProjectionSeries[];
-  trainingTypes: LandingProjectionSeries[];
+  sectors: LandingProjectionSeries[];
 }
 
 interface LandingProjectionDashboardProps {
@@ -22,12 +23,18 @@ const numberFormat = new Intl.NumberFormat("id-ID");
 
 export function LandingProjectionDashboard({ projection }: LandingProjectionDashboardProps) {
   const currentYear = new Date().getFullYear();
-  const years = Array.from({ length: 8 }, (_, index) => currentYear - 3 + index);
+  const years = Array.from(
+    new Set([
+      currentYear,
+      ...projection.periods,
+      ...(projection.year === null ? [] : [projection.year]),
+    ]),
+  ).sort((left, right) => right - left);
 
-  function changeYear(value: string) {
+  function changePeriod(value: string) {
     router.get(
       "/",
-      { projectionYear: Number(value) },
+      { projectionYear: value },
       { preserveScroll: true, preserveState: true, replace: true },
     );
   }
@@ -42,24 +49,25 @@ export function LandingProjectionDashboard({ projection }: LandingProjectionDash
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div className="max-w-3xl space-y-2">
             <span className="block text-xs font-bold uppercase tracking-wider text-primary">
-              PROYEKSI INTERNASIONAL DAN PELATIHAN
+              PROYEKSI INTERNASIONAL DAN SEKTOR
             </span>
             <h2 id="projection-heading" className="text-2xl font-black tracking-tight sm:text-3xl">
               Target, capaian, dan proyeksi penempatan internasional
             </h2>
             <p className="text-sm text-muted-foreground">
-              Pantau daftar negara tujuan penempatan dan jenis pelatihan, termasuk kuota target,
-              capaian, dan proyeksi sisa pada periode yang dipilih.
+              Pantau target, capaian, dan sisa target per negara serta sektor untuk seluruh periode
+              atau periode pilihan.
             </p>
           </div>
           <label className="flex shrink-0 flex-col gap-1.5 text-sm font-medium">
             <span>Periode tahunan</span>
             <select
-              aria-label="Pilih periode proyeksi tahunan"
+              aria-label="Pilih periode proyeksi"
               className="h-10 min-w-36 rounded-md border border-input bg-background px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              value={projection.year}
-              onChange={(event) => changeYear(event.target.value)}
+              value={projection.year?.toString() ?? "all"}
+              onChange={(event) => changePeriod(event.target.value)}
             >
+              <option value="all">Semua periode</option>
               {years.map((year) => (
                 <option key={year} value={year}>
                   {year}
@@ -72,20 +80,21 @@ export function LandingProjectionDashboard({ projection }: LandingProjectionDash
         <div className="grid gap-5 lg:grid-cols-2">
           <ProjectionCard
             title="Daftar negara tujuan"
-            description="Seluruh negara tujuan dalam master data, beserta kuota demand disetujui dan realisasinya."
+            description="Target dan realisasi demand yang disetujui per negara."
             series={projection.countries}
             emptyMessage="Daftar negara tujuan belum tersedia pada master data."
           />
           <ProjectionCard
-            title="Jenis pelatihan"
-            description="Kuota program pelatihan dibanding peserta yang sudah terdaftar."
-            series={projection.trainingTypes}
-            emptyMessage="Belum ada program pelatihan pada periode ini."
+            title="Target negara dan sektor"
+            description="Target manual atau kuota demand dibanding jumlah kuota yang sudah terisi."
+            series={projection.sectors}
+            emptyMessage="Belum ada target sektor atau demand pada periode ini."
           />
         </div>
         <p className="text-xs text-muted-foreground">
           Proyeksi menunjukkan sisa target dari kuota yang tercatat, bukan perkiraan otomatis
-          keberangkatan. Data ditampilkan berdasarkan tahun pembuatan demand dan program.
+          keberangkatan. Capaian memakai demand berstatus disetujui berdasarkan tahun pembuatan
+          demand.
         </p>
       </div>
     </section>

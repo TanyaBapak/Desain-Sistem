@@ -63,10 +63,13 @@ class UserManagementController extends Controller
         return [
             'landingKpiTargets' => $dashboardTargets->allLandingKpiTargets(),
             'landingCountries' => DB::table('countries')->orderBy('name')->get(['id', 'name']),
+            'landingSectors' => DB::table('sectors')->orderBy('name')->get(['id', 'name']),
             'landingCountryTargets' => $dashboardTargets->allLandingCountryTargets(),
             'landingCountryPerformance' => $dashboardTargets->allLandingCountryPerformance(),
             'landingCountryTrainingTargets' => $dashboardTargets->allLandingCountryTrainingTargets(),
             'landingCountryTrainingPerformance' => $dashboardTargets->allLandingCountryTrainingPerformance(),
+            'landingCountrySectorTargets' => $dashboardTargets->allLandingCountrySectorTargets(),
+            'landingCountrySectorPerformance' => $dashboardTargets->allLandingCountrySectorPerformance(),
         ];
     }
 

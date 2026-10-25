@@ -39,10 +39,7 @@ export interface DashboardTargetManagementData {
     };
   }[];
   landingCountries: { id: string; name: string }[];
-  landingCountryTargets: {
-    year: number;
-    targets: Record<string, number | null>;
-  }[];
+  landingSectors: { id: string; name: string }[];
   landingCountryPerformance: {
     year: number;
     countryId: string;
@@ -52,16 +49,16 @@ export interface DashboardTargetManagementData {
     projected: number;
     percentage: number;
   }[];
-  landingCountryTrainingTargets: {
+  landingCountrySectorTargets: {
     year: number;
     targets: Record<string, Record<string, number | null>>;
   }[];
-  landingCountryTrainingPerformance: {
+  landingCountrySectorPerformance: {
     year: number;
     countryId: string;
     countryName: string;
-    trainingType: string;
-    trainingTypeKey: string;
+    sectorId: string;
+    sectorName: string;
     target: number;
     achieved: number;
     projected: number;

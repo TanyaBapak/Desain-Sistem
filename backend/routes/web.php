@@ -34,9 +34,10 @@ Route::get('/', function (Request $request, BusinessDataPresenter $businessDataP
     }
 
     $filters = $request->validate([
-        'projectionYear' => ['nullable', 'integer', 'min:2000', 'max:2200'],
+        'projectionYear' => ['nullable', 'regex:/^(all|20\d{2}|21\d{2}|2200)$/'],
     ]);
-    $projectionYear = (int) ($filters['projectionYear'] ?? now()->year);
+    $projectionPeriod = $filters['projectionYear'] ?? (string) now()->year;
+    $projectionYear = $projectionPeriod === 'all' ? null : (int) $projectionPeriod;
 
     return Inertia::render('App', [
         'currentTab' => 'overview',

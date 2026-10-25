@@ -22,9 +22,10 @@ const KemendagriLandingPage = lazy(() =>
   })),
 );
 interface LandingProjectionData {
-  year: number;
+  year: number | null;
+  periods: number[];
   countries: { name: string; target: number; achieved: number; projected: number }[];
-  trainingTypes: { name: string; target: number; achieved: number; projected: number }[];
+  sectors: { name: string; target: number; achieved: number; projected: number }[];
 }
 const UnifiedLoginPage = lazy(() =>
   import("@/components/auth/UnifiedLoginPage").then((module) => ({
