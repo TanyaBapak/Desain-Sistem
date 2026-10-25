@@ -15,6 +15,9 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(append: [
             HandleInertiaRequests::class,
         ]);
+        $middleware->validateCsrfTokens(except: [
+            'integrations/gardata/webhook',
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

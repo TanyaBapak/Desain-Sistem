@@ -46,12 +46,24 @@ Jangan menimpa `QUEUE_CONNECTION` produksi yang sudah menggunakan Redis atau que
 - Field yang tidak diperlukan untuk daftar pencari kerja—misalnya data keluarga, kontak darurat, nomor telepon, alamat rinci, URL dokumen, token verifikasi—tidak disimpan.
 - ID eksternal disimpan untuk upsert idempoten. Riwayat kelas berada di `external_training_records`, tidak membuat program atau lembaga internal fiktif.
 
-## Operasional
+## Operasional dan Sinkronisasi Otomatis
 
-- Job otomatis berjalan setiap hari pukul 02.00 WIB. Server harus menjalankan scheduler Laravel (`php artisan schedule:run` setiap menit) dan worker antrean (`php artisan queue:work`) untuk proses asinkron. `QUEUE_CONNECTION=sync` cocok hanya untuk pengembangan.
-- Sinkronisasi manual tersedia melalui `POST /integrations/gardata/sync` bagi `super_admin` dan `task_force`.
-- Proses memakai retry, mencegah job tumpang tindih, dan menulis hitungan serta status ke `integration_sync_logs`; isi payload/PII tidak ditulis ke log.
-- Migrasikan database sebelum sinkronisasi. Periksa `status`, jumlah berhasil/diperbarui/dilewati, lalu tinjau kandidat berstatus menunggu verifikasi.
+1. **Jadwal Otomatis (Scheduler):**
+   - Job berjalan otomatis setiap **15 menit** (`everyFifteenMinutes()`) pada zona WIB tanpa tumpang tindih (`withoutOverlapping()`).
+   - Server menjalankan cron Laravel: `* * * * * cd /home/server/web/p2mi.sippmi.com/private/Desain-Sistem/backend && php artisan schedule:run >> /dev/null 2>&1`.
+
+2. **Webhook Real-Time (Setiap Ada Pembaruan di Gardata):**
+   - Endpoint: `POST /integrations/gardata/webhook` (bebas CSRF).
+   - Header otorisasi: `X-API-KEY: <GARDATA_API_KEY>` atau `X-GARDATA-WEBHOOK-SECRET: <SECRET>`.
+   - Begitu sistem Gardata mengirim HTTP POST ke endpoint ini saat terjadi perubahan data, sinkronisasi langsung dipicu secara instan.
+
+3. **Perintah CLI Artisan:**
+   - Jalankan langsung kapan saja: `php artisan gardata:sync`
+   - Opsi antrean: `php artisan gardata:sync --queue`
+
+4. **Sinkronisasi Manual UI:**
+   - Tombol "Sinkronisasi Gardata" di modul Pencari Kerja (`/app/modul-a`) bagi `super_admin` dan `task_force`.
+   - Riwayat dan status tercatat di tabel `integration_sync_logs` serta panel Laporan Eksekutif (`/app/reports`).
 
 ## Hal yang perlu dikonfirmasi pemilik SIPPMI
 

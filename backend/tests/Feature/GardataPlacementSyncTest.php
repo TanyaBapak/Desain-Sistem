@@ -129,6 +129,38 @@ class GardataPlacementSyncTest extends TestCase
         Queue::assertPushed(SyncGardataPlacementData::class);
     }
 
+    public function test_artisan_command_syncs_candidates(): void
+    {
+        Http::fake([
+            'gardata.test/api/v1/placement/candidates*' => Http::response($this->candidatePage(), 200),
+        ]);
+
+        $this->artisan('gardata:sync')
+            ->assertSuccessful();
+
+        $this->assertSame(1, DB::table('job_seekers')->where('external_source', 'gardata')->count());
+    }
+
+    public function test_webhook_rejects_unauthorized_requests(): void
+    {
+        $this->postJson('/integrations/gardata/webhook', [])
+            ->assertUnauthorized();
+
+        $this->postJson('/integrations/gardata/webhook', [], ['X-API-KEY' => 'wrong-key'])
+            ->assertUnauthorized();
+    }
+
+    public function test_webhook_accepts_valid_key_and_triggers_sync(): void
+    {
+        Queue::fake();
+
+        $this->postJson('/integrations/gardata/webhook', [], ['X-API-KEY' => 'gardata-test-key'])
+            ->assertAccepted()
+            ->assertJson(['status' => 'success']);
+
+        Queue::assertPushed(SyncGardataPlacementData::class);
+    }
+
     private function candidatePage(): array
     {
         return [

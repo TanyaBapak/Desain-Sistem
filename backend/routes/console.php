@@ -9,7 +9,8 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
+// Otomatis sinkronkan pembaruan data kandidat & kelas dari gardata.sippmi.com setiap 15 menit
 Schedule::job(new SyncGardataPlacementData)
-    ->dailyAt('02:00')
+    ->everyFifteenMinutes()
     ->timezone('Asia/Jakarta')
     ->withoutOverlapping();
