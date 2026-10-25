@@ -13,16 +13,22 @@ class GardataWebhookController extends Controller
 {
     public function __invoke(Request $request, GardataPlacementSyncService $syncService): JsonResponse
     {
-        $configuredSecret = (string) (config('services.gardata.webhook_secret') ?: config('services.gardata.api_key'));
+        $isSippmi = str_contains($request->path(), 'sippmi');
+        $configuredSecret = (string) (
+            $isSippmi
+                ? (config('services.sippmi.webhook_secret') ?: config('services.sippmi.api_key') ?: config('services.gardata.webhook_secret') ?: config('services.gardata.api_key'))
+                : (config('services.gardata.webhook_secret') ?: config('services.gardata.api_key') ?: config('services.sippmi.webhook_secret') ?: config('services.sippmi.api_key'))
+        );
 
         if ($configuredSecret === '') {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Konfigurasi webhook Gardata belum diatur di server.',
+                'message' => 'Konfigurasi webhook integrasi belum diatur di server.',
             ], 503);
         }
 
         $providedKey = $request->header('X-API-KEY')
+            ?: $request->header('X-SIPPMI-WEBHOOK-SECRET')
             ?: $request->header('X-GARDATA-WEBHOOK-SECRET')
             ?: $request->bearerToken();
 
@@ -36,11 +42,11 @@ class GardataWebhookController extends Controller
         // Jika request meminta sinkronisasi langsung (sync=true)
         if ($request->boolean('sync')) {
             try {
-                $result = $syncService->syncCandidates();
+                $result = $isSippmi ? $syncService->syncSippmi() : $syncService->syncCandidates();
 
                 return response()->json([
                     'status' => 'success',
-                    'message' => 'Sinkronisasi data Gardata berhasil diproses secara langsung.',
+                    'message' => 'Sinkronisasi data berhasil diproses secara langsung.',
                     'data' => $result,
                 ]);
             } catch (Throwable $e) {

@@ -32,6 +32,10 @@ GARDATA_BASE_URL=https://gardata.sippmi.com
 GARDATA_API_KEY=
 GARDATA_SYNC_PAGE_SIZE=50
 GARDATA_SYNC_MAX_PAGES=1000
+
+# Endpoint opsional untuk sinkronisasi dari portal pusat sippmi.com
+SIPPMI_BASE_URL=https://sippmi.com
+SIPPMI_API_KEY=
 ```
 
 Jangan menimpa `QUEUE_CONNECTION` produksi yang sudah menggunakan Redis atau queue terkelola. Jika menggunakan antrean database, atur `QUEUE_CONNECTION=database`, pastikan migrasi tabel queue tersedia, dan jalankan worker secara persisten.

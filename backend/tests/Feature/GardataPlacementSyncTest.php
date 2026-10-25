@@ -161,6 +161,42 @@ class GardataPlacementSyncTest extends TestCase
         Queue::assertPushed(SyncGardataPlacementData::class);
     }
 
+    public function test_sippmi_artisan_command_syncs_candidates(): void
+    {
+        config([
+            'services.sippmi.base_url' => 'https://sippmi.test',
+            'services.sippmi.api_key' => 'sippmi-test-key',
+        ]);
+
+        Http::fake([
+            'sippmi.test/api/v1/placement/candidates*' => Http::response($this->candidatePage(), 200),
+        ]);
+
+        $this->artisan('sippmi:sync')
+            ->assertSuccessful();
+
+        $this->assertSame(1, DB::table('job_seekers')->where('external_source', 'sippmi')->count());
+        $this->assertDatabaseHas('job_seekers', [
+            'external_source' => 'sippmi',
+            'source_type' => 'Gardata',
+        ]);
+    }
+
+    public function test_sippmi_webhook_triggers_sync(): void
+    {
+        Queue::fake();
+
+        config([
+            'services.sippmi.webhook_secret' => 'sippmi-webhook-key',
+        ]);
+
+        $this->postJson('/integrations/sippmi/webhook', [], ['X-SIPPMI-WEBHOOK-SECRET' => 'sippmi-webhook-key'])
+            ->assertAccepted()
+            ->assertJson(['status' => 'success']);
+
+        Queue::assertPushed(SyncGardataPlacementData::class);
+    }
+
     private function candidatePage(): array
     {
         return [

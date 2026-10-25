@@ -47,4 +47,12 @@ return [
         'sync_page_size' => (int) env('GARDATA_SYNC_PAGE_SIZE', 50),
         'max_pages' => (int) env('GARDATA_SYNC_MAX_PAGES', 1000),
     ],
+
+    'sippmi' => [
+        'base_url' => env('SIPPMI_BASE_URL', env('SIPPMI_API_BASE', 'https://sippmi.com')),
+        'api_key' => env('SIPPMI_API_KEY', env('GARDATA_API_KEY')),
+        'webhook_secret' => env('SIPPMI_WEBHOOK_SECRET', env('GARDATA_WEBHOOK_SECRET')),
+        'sync_page_size' => (int) env('SIPPMI_SYNC_PAGE_SIZE', 50),
+        'max_pages' => (int) env('SIPPMI_SYNC_MAX_PAGES', 1000),
+    ],
 ];

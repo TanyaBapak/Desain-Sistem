@@ -17,6 +17,7 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
         $middleware->validateCsrfTokens(except: [
             'integrations/gardata/webhook',
+            'integrations/sippmi/webhook',
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

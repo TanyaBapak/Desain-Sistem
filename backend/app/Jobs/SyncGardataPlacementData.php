@@ -37,5 +37,17 @@ class SyncGardataPlacementData implements ShouldBeUnique, ShouldQueue
     public function handle(GardataPlacementSyncService $syncService): void
     {
         $syncService->syncCandidates();
+
+        $sippmiBase = rtrim((string) config('services.sippmi.base_url', ''), '/');
+        $gardataBase = rtrim((string) config('services.gardata.base_url', ''), '/');
+        $sippmiKey = (string) (config('services.sippmi.api_key') ?: config('services.gardata.api_key'));
+
+        if ($sippmiBase !== '' && $sippmiBase !== $gardataBase && $sippmiKey !== '') {
+            try {
+                $syncService->syncSippmi();
+            } catch (\Throwable) {
+                // Jangan menggagalkan job utama bila endpoint sippmi opsional
+            }
+        }
     }
 }

@@ -41,6 +41,7 @@ Route::post('/lembaga/daftar', [InstitutionRegistrationController::class, 'store
     ->middleware('throttle:3,1')
     ->name('institutions.register.store');
 Route::post('/integrations/gardata/webhook', GardataWebhookController::class)->name('integrations.gardata.webhook');
+Route::post('/integrations/sippmi/webhook', GardataWebhookController::class)->name('integrations.sippmi.webhook');
 
 Route::middleware(['auth', EnsureUserIsActive::class])->group(function () {
     Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');

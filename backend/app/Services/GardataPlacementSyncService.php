@@ -17,12 +17,13 @@ class GardataPlacementSyncService
 
     private array $districts = [];
 
-    public function syncCandidates(): array
+    public function syncCandidates(?string $overrideBaseUrl = null, ?string $overrideApiKey = null, string $source = self::SOURCE): array
     {
-        $apiKey = (string) config('services.gardata.api_key');
+        $baseUrl = rtrim((string) ($overrideBaseUrl ?: config("services.{$source}.base_url") ?: config('services.gardata.base_url')), '/');
+        $apiKey = (string) ($overrideApiKey ?: config("services.{$source}.api_key") ?: config('services.gardata.api_key'));
         $startedAt = now();
         $logId = DB::table('integration_sync_logs')->insertGetId([
-            'source' => self::SOURCE,
+            'source' => $source,
             'entity' => 'candidates_and_training_records',
             'status' => 'running',
             'started_at' => $startedAt,
@@ -32,11 +33,11 @@ class GardataPlacementSyncService
 
         try {
             if ($apiKey === '') {
-                throw new RuntimeException('Konfigurasi API Gardata belum tersedia.');
+                throw new RuntimeException("Konfigurasi API {$source} belum tersedia.");
             }
 
-            $pageSize = min(max((int) config('services.gardata.sync_page_size', 50), 1), 100);
-            $maxPages = max((int) config('services.gardata.max_pages', 1000), 1);
+            $pageSize = min(max((int) (config("services.{$source}.sync_page_size") ?: config('services.gardata.sync_page_size', 50)), 1), 100);
+            $maxPages = max((int) (config("services.{$source}.max_pages") ?: config('services.gardata.max_pages', 1000)), 1);
             $page = 1;
             $result = [
                 'recordsFetched' => 0,
@@ -47,10 +48,10 @@ class GardataPlacementSyncService
 
             do {
                 if ($page > $maxPages) {
-                    throw new RuntimeException('Batas halaman sinkronisasi Gardata terlampaui.');
+                    throw new RuntimeException("Batas halaman sinkronisasi {$source} terlampaui.");
                 }
 
-                $response = Http::baseUrl(rtrim((string) config('services.gardata.base_url'), '/'))
+                $response = Http::baseUrl($baseUrl)
                     ->acceptJson()
                     ->withHeader('X-API-KEY', $apiKey)
                     ->connectTimeout(5)
@@ -69,7 +70,7 @@ class GardataPlacementSyncService
                     || ! is_array($response['data'] ?? null)
                     || ! is_array($response['meta'] ?? null)
                 ) {
-                    throw new RuntimeException('Format respons daftar kandidat Gardata tidak valid.');
+                    throw new RuntimeException("Format respons daftar kandidat {$source} tidak valid.");
                 }
 
                 $items = $response['data'];
@@ -81,7 +82,7 @@ class GardataPlacementSyncService
                         continue;
                     }
 
-                    $persisted = DB::transaction(fn (): array => $this->persistCandidate($item));
+                    $persisted = DB::transaction(fn (): array => $this->persistCandidate($item, $source));
                     $result['recordsInserted'] += $persisted['inserted'];
                     $result['recordsUpdated'] += $persisted['updated'];
                     $result['recordsSkipped'] += $persisted['skipped'];
@@ -90,7 +91,7 @@ class GardataPlacementSyncService
                 $currentPage = filter_var($response['meta']['current_page'] ?? null, FILTER_VALIDATE_INT);
                 $totalPages = filter_var($response['meta']['total_pages'] ?? null, FILTER_VALIDATE_INT);
                 if ($currentPage !== $page || $totalPages === false || $totalPages < 0) {
-                    throw new RuntimeException('Metadata paginasi Gardata tidak valid.');
+                    throw new RuntimeException("Metadata paginasi {$source} tidak valid.");
                 }
 
                 $page++;
@@ -111,19 +112,27 @@ class GardataPlacementSyncService
         } catch (Throwable $exception) {
             DB::table('integration_sync_logs')->where('id', $logId)->update([
                 'status' => 'failed',
-                'error_message' => 'Sinkronisasi Gardata gagal. Periksa konfigurasi, koneksi, dan kontrak API.',
+                'error_message' => "Sinkronisasi {$source} gagal. Periksa konfigurasi, koneksi, dan kontrak API.",
                 'finished_at' => now(),
                 'updated_at' => now(),
             ]);
-            Log::error('Gardata synchronization failed.', [
+            Log::error("{$source} synchronization failed.", [
                 'exception' => $exception::class,
             ]);
 
-            throw new RuntimeException('Sinkronisasi Gardata gagal; lihat log integrasi untuk detail status.', 0);
+            throw new RuntimeException("Sinkronisasi {$source} gagal; lihat log integrasi untuk detail status.", 0);
         }
     }
 
-    private function persistCandidate(array $item): array
+    public function syncSippmi(?string $overrideBaseUrl = null, ?string $overrideApiKey = null): array
+    {
+        $baseUrl = $overrideBaseUrl ?: (string) (config('services.sippmi.base_url') ?: 'https://sippmi.com');
+        $apiKey = $overrideApiKey ?: (string) (config('services.sippmi.api_key') ?: config('services.gardata.api_key'));
+
+        return $this->syncCandidates($baseUrl, $apiKey, 'sippmi');
+    }
+
+    private function persistCandidate(array $item, string $source = self::SOURCE): array
     {
         $externalId = $this->cleanString($item['id'] ?? null, 150);
         $nik = $this->cleanString($item['nik'] ?? null, 20);
@@ -153,10 +162,14 @@ class GardataPlacementSyncService
         }
 
         $existing = DB::table('job_seekers')
-            ->where('external_source', self::SOURCE)
+            ->where(function ($query) use ($source) {
+                $query->where('external_source', $source)
+                    ->orWhere('external_source', self::SOURCE);
+            })
             ->where('external_id', $externalId)
             ->first();
-        $id = $existing?->id ?? 'GD-'.Str::upper(substr(hash('sha256', $externalId), 0, 24));
+        $idPrefix = $source === 'sippmi' ? 'SIPPMI-' : 'GD-';
+        $id = $existing?->id ?? $idPrefix.Str::upper(substr(hash('sha256', $externalId), 0, 24));
 
         $nikOwner = DB::table('job_seekers')
             ->where('nik', $nik)
@@ -169,20 +182,25 @@ class GardataPlacementSyncService
         $now = now();
         $preferredCountries = $this->cleanString($biodata['target_country'] ?? null, 100);
         $expertise = $this->cleanString($biodata['expertise'] ?? null, 100);
+        $sourceType = $source === 'sippmi' ? 'SIPPMI' : 'Gardata';
+        $defaultInstitution = $source === 'sippmi'
+            ? 'SIPPMI - Pusat Penempatan PMI'
+            : 'Gardata - Pusat Pelatihan CPMI';
+
         $attributes = [
-            'registration_number' => 'GDT-'.Str::upper(substr(hash('sha256', $externalId), 0, 32)),
+            'registration_number' => ($source === 'sippmi' ? 'SIPPMI-' : 'GDT-').Str::upper(substr(hash('sha256', $externalId), 0, 32)),
             'nik' => $nik,
             'full_name' => $name,
             'gender' => $gender,
             'province_id' => $provinceId,
             'district_id' => $districtId,
             'education_level' => $this->educationLevel($education['school_origin'] ?? null),
-            'institution_name' => $this->cleanString($education['school_origin'] ?? null, 255) ?? 'Gardata - Pusat Pelatihan CPMI',
+            'institution_name' => $this->cleanString($education['school_origin'] ?? null, 255) ?? $defaultInstitution,
             'institution_id' => null,
             'major' => $major,
             'source_type' => 'Gardata',
             'source_reference' => Str::limit($externalId, 100, ''),
-            'external_source' => self::SOURCE,
+            'external_source' => $source,
             'external_id' => $externalId,
             'readiness_status' => $this->readinessStatus($readiness['status'] ?? null),
             'verification_status' => $existing?->verification_status ?? 'Pending Verification',
@@ -200,10 +218,10 @@ class GardataPlacementSyncService
                 ...$attributes,
                 'created_at' => $now,
             ]);
-            $this->createApprovalRequest($id, $externalId);
+            $this->createApprovalRequest($id, $externalId, $source);
         }
 
-        $this->syncTrainingRecords($item['classes_history'] ?? null, $id);
+        $this->syncTrainingRecords($item['classes_history'] ?? null, $id, $source);
 
         if ($expertise) {
             DB::table('job_seeker_skills')->updateOrInsert(
@@ -219,7 +237,7 @@ class GardataPlacementSyncService
         ];
     }
 
-    private function createApprovalRequest(string $candidateId, string $externalId): void
+    private function createApprovalRequest(string $candidateId, string $externalId, string $source = self::SOURCE): void
     {
         if (DB::table('approval_requests')
             ->where('entity_type', 'calon_peserta')
@@ -228,32 +246,33 @@ class GardataPlacementSyncService
             return;
         }
 
-        $requestId = 'GARDATA-'.Str::upper(substr(hash('sha256', $externalId), 0, 24));
+        $sourceLabel = $source === 'sippmi' ? 'SIPPMI' : 'Gardata';
+        $requestId = Str::upper($source).'-'.Str::upper(substr(hash('sha256', $externalId), 0, 24));
         $now = now();
         DB::table('approval_requests')->insert([
             'id' => $requestId,
             'entity_type' => 'calon_peserta',
             'entity_id' => $candidateId,
-            'title' => 'Verifikasi peserta Gardata #'.$candidateId,
-            'submitted_by' => 'Integrasi Gardata',
-            'submitted_role' => 'gardata',
+            'title' => "Verifikasi peserta {$sourceLabel} #".$candidateId,
+            'submitted_by' => "Integrasi {$sourceLabel}",
+            'submitted_role' => $source,
             'scope_label' => 'Data terintegrasi Gardata / SIPPMI',
             'submitted_at' => $now,
             'validation_status' => 'PASSED',
             'status' => 'PENDING',
-            'data_snapshot' => json_encode(['source' => self::SOURCE, 'external_id' => $externalId], JSON_THROW_ON_ERROR),
+            'data_snapshot' => json_encode(['source' => $source, 'external_id' => $externalId], JSON_THROW_ON_ERROR),
         ]);
         DB::table('approval_histories')->insert([
             'approval_request_id' => $requestId,
             'actor_id' => null,
-            'actor_name' => 'Integrasi Gardata',
+            'actor_name' => "Integrasi {$sourceLabel}",
             'action' => 'SUBMIT',
             'notes' => 'Data peserta tersinkron; menunggu verifikasi internal.',
             'created_at' => $now,
         ]);
     }
 
-    private function syncTrainingRecords(mixed $history, string $jobSeekerId): void
+    private function syncTrainingRecords(mixed $history, string $jobSeekerId, string $source = self::SOURCE): void
     {
         if (! is_array($history)) {
             return;
@@ -272,7 +291,7 @@ class GardataPlacementSyncService
 
             $now = now();
             $identity = [
-                'external_source' => self::SOURCE,
+                'external_source' => $source,
                 'external_batch_id' => $externalBatchId,
                 'job_seeker_id' => $jobSeekerId,
             ];
