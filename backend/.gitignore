@@ -17,6 +17,7 @@
 /public/hot
 /public/storage
 /storage/*.key
+/storage/app/import/data_vokasi.csv
 /storage/pail
 /vendor
 Homestead.json
