@@ -1,8 +1,9 @@
 # Backend Laravel + Inertia
 
 Laravel 12 menjalankan rute aplikasi dan mengirim halaman React melalui Inertia.
-Komponen mockup tetap berada di `../src`. Autentikasi menggunakan session Laravel;
-data bisnis pada halaman masih berupa mockup frontend.
+Komponen React berada di `../src`. Autentikasi menggunakan session Laravel;
+beberapa layar masih berupa prototipe, sementara data Modul A-D disediakan oleh
+`BusinessDataPresenter` dan disimpan melalui backend.
 
 ## Prasyarat
 
@@ -71,6 +72,24 @@ diperbarui secara client-side oleh Inertia.
 
 Untuk memeriksa frontend produksi, jalankan `pnpm build` dari `backend/`.
 Tes backend: `php artisan test`.
+
+## Dashboard calon PMI
+
+Modul A menyaring data calon PMI yang sudah berada dalam cakupan akses pengguna.
+Filter dapat dipakai bersama untuk wilayah, pendidikan/jurusan, keterampilan,
+pengalaman, sertifikasi, bahasa/level, negara tujuan, sektor, dan jabatan.
+Nama calon membuka profil detail; rekap mengikuti hasil filter.
+
+Tombol unduh menghasilkan CSV UTF-8 ber-BOM dengan pemisah titik koma agar dapat
+dibuka di Excel. Ekspor hanya memuat hasil filter dan tidak menyertakan NIK.
+Template unduhan adalah CSV dengan judul kolom, bukan workbook `.xlsx`, dan
+belum menjadi fitur unggah/impor. Data simulasi pada environment lokal berasal
+dari seeder yang menggunakan identitas fiktif.
+
+Pengalaman kerja, sertifikasi, dan sektor pilihan disimpan pada kolom JSON
+`work_experiences`, `certifications`, dan `preferred_sectors` di `job_seekers`.
+Migration `2026_10_25_000100_add_candidate_profile_details` menambah kolom-kolom
+tersebut; deploy perlu menjalankan `php artisan migrate --force`.
 
 ## Impor data wilayah nasional
 

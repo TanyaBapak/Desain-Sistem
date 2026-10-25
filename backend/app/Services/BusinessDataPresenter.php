@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\User;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 class BusinessDataPresenter
@@ -11,25 +12,29 @@ class BusinessDataPresenter
     {
         $role = $user->roles()->value('name');
 
-        return [
-            'candidates' => $this->candidates($role, $user),
-            'programs' => $this->programs($role, $user),
-            'providers' => $this->providers($role, $user),
-            'demands' => $this->demands($role, $user),
-            'candidateMatches' => $this->candidateMatches($role),
-            'allocations' => $this->allocations($role),
-            'reportSummary' => $this->reportSummary($role),
-            'approvalRequests' => $this->approvalRequests($role),
-            'monitoring' => $this->monitoring($role, $user),
-            'options' => [
-                'provinces' => DB::table('provinces')->orderBy('name')->get(['id', 'name']),
-                'districts' => DB::table('districts')->orderBy('name')->get(['id', 'province_id', 'name']),
-                'sectors' => DB::table('sectors')->orderBy('name')->get(['id', 'name']),
-                'occupations' => DB::table('occupations')->orderBy('title')->get(['id', 'sector_id', 'title']),
-                'countries' => DB::table('countries')->orderBy('name')->get(['id', 'name']),
-                'institutions' => $this->institutionOptions($role, $user),
-            ],
-        ];
+        $cacheKey = 'business_data:'.($user->id ?? 'guest').':'.($role ?? 'none').':'.($user->province_id ?? 'na').':'.($user->district_id ?? 'na').':'.($user->institution_id ?? 'na').':'.($user->employer_id ?? 'na');
+
+        return Cache::remember($cacheKey, 30, function () use ($role, $user): array {
+            return [
+                'candidates' => $this->candidates($role, $user),
+                'programs' => $this->programs($role, $user),
+                'providers' => $this->providers($role, $user),
+                'demands' => $this->demands($role, $user),
+                'candidateMatches' => $this->candidateMatches($role),
+                'allocations' => $this->allocations($role),
+                'reportSummary' => $this->reportSummary($role),
+                'approvalRequests' => $this->approvalRequests($role),
+                'monitoring' => $this->monitoring($role, $user),
+                'options' => [
+                    'provinces' => DB::table('provinces')->orderBy('name')->get(['id', 'name']),
+                    'districts' => DB::table('districts')->orderBy('name')->get(['id', 'province_id', 'name']),
+                    'sectors' => DB::table('sectors')->orderBy('name')->get(['id', 'name']),
+                    'occupations' => DB::table('occupations')->orderBy('title')->get(['id', 'sector_id', 'title']),
+                    'countries' => DB::table('countries')->orderBy('name')->get(['id', 'name']),
+                    'institutions' => $this->institutionOptions($role, $user),
+                ],
+            ];
+        });
     }
 
     private function candidateMatches(?string $role): array
@@ -75,59 +80,61 @@ class BusinessDataPresenter
             return [];
         }
 
-        $candidatesQuery = DB::table('job_seekers')
+        $rows = DB::table('job_seekers')
             ->whereNull('deleted_at')
             ->when($role === 'province_admin', fn ($query) => $query->where('job_seekers.province_id', $user->province_id))
             ->when($role === 'district_admin', fn ($query) => $query->where('job_seekers.district_id', $user->district_id))
             ->when($role === 'institution_admin', fn ($query) => $query->where('job_seekers.institution_id', $user->institution_id ?? ''))
             ->leftJoin('provinces', 'provinces.id', '=', 'job_seekers.province_id')
             ->leftJoin('districts', 'districts.id', '=', 'job_seekers.district_id')
-            ->orderByDesc('job_seekers.created_at');
+            ->orderByDesc('job_seekers.created_at')
+            ->limit(2000)
+            ->get([
+                'job_seekers.id',
+                'job_seekers.nik',
+                'job_seekers.full_name',
+                'job_seekers.gender',
+                'provinces.name as province_name',
+                'districts.name as district_name',
+                'job_seekers.education_level',
+                'job_seekers.institution_name',
+                'job_seekers.source_type',
+                'job_seekers.major',
+                'job_seekers.readiness_status',
+                'job_seekers.verification_status',
+                'job_seekers.lifecycle_status',
+                'job_seekers.preferred_countries',
+                'job_seekers.preferred_job_roles',
+                'job_seekers.work_experiences',
+                'job_seekers.certifications',
+                'job_seekers.preferred_sectors',
+            ]);
 
-        $rows = $candidatesQuery->get([
-            'job_seekers.id',
-            'job_seekers.nik',
-            'job_seekers.full_name',
-            'job_seekers.gender',
-            'provinces.name as province_name',
-            'districts.name as district_name',
-            'job_seekers.education_level',
-            'job_seekers.institution_name',
-            'job_seekers.source_type',
-            'job_seekers.major',
-            'job_seekers.readiness_status',
-            'job_seekers.verification_status',
-            'job_seekers.lifecycle_status',
-            'job_seekers.preferred_countries',
-            'job_seekers.preferred_job_roles',
-        ]);
-
-        if ($rows->isEmpty()) {
+        $ids = $rows->pluck('id')->filter()->values()->all();
+        if ($ids === []) {
             return [];
         }
 
-        $candidateIds = $rows->pluck('id')->all();
-
-        $skillsByJobSeeker = DB::table('job_seeker_skills')
-            ->whereIn('job_seeker_id', $candidateIds)
+        $skillsBySeeker = DB::table('job_seeker_skills')
+            ->whereIn('job_seeker_id', $ids)
             ->orderBy('skill_name')
             ->get(['job_seeker_id', 'skill_name'])
             ->groupBy('job_seeker_id')
-            ->map(fn ($items) => $items->pluck('skill_name')->all());
+            ->map(fn ($group) => $group->pluck('skill_name')->values()->all());
 
-        $languagesByJobSeeker = DB::table('job_seeker_languages')
-            ->whereIn('job_seeker_id', $candidateIds)
+        $languagesBySeeker = DB::table('job_seeker_languages')
+            ->whereIn('job_seeker_id', $ids)
             ->get(['job_seeker_id', 'language', 'level'])
             ->groupBy('job_seeker_id')
-            ->map(fn ($items) => $items->map(fn (object $l): array => [
-                'language' => $l->language,
-                'level' => $l->level,
-            ])->all());
+            ->map(fn ($group) => $group->map(fn ($language) => [
+                'language' => $language->language,
+                'level' => $language->level,
+            ])->values()->all());
 
-        return $rows->map(function (object $row) use ($skillsByJobSeeker, $languagesByJobSeeker): array {
+        return $rows->map(function (object $row) use ($skillsBySeeker, $languagesBySeeker): array {
             return [
                 'id' => $row->id,
-                'nik' => substr($row->nik, 0, 4).'••••••••'.substr($row->nik, -4),
+                'nik' => $row->nik ? substr($row->nik, 0, 4).'••••••••'.substr($row->nik, -4) : '••••••••••••••••',
                 'fullName' => $row->full_name,
                 'gender' => $row->gender,
                 'provinsi' => $row->province_name,
@@ -141,10 +148,13 @@ class BusinessDataPresenter
                     default => 'Disnaker Pemda',
                 },
                 'major' => $row->major,
-                'skills' => $skillsByJobSeeker->get($row->id, []),
-                'languageProficiency' => $languagesByJobSeeker->get($row->id, []),
+                'skills' => $skillsBySeeker->get($row->id, []),
+                'languageProficiency' => $languagesBySeeker->get($row->id, []),
                 'preferredCountry' => $this->decodeArray($row->preferred_countries),
                 'preferredJobRole' => $this->decodeArray($row->preferred_job_roles),
+                'workExperiences' => $this->decodeArray($row->work_experiences),
+                'certifications' => $this->decodeArray($row->certifications),
+                'preferredSectors' => $this->decodeArray($row->preferred_sectors),
                 'readinessStatus' => $row->readiness_status,
                 'verificationStatus' => $row->verification_status,
                 'lifecycleStatus' => $row->lifecycle_status,
@@ -213,12 +223,6 @@ class BusinessDataPresenter
             return [];
         }
 
-        $facilitiesByInstitution = DB::table('institution_facilities')
-            ->orderBy('facility_name')
-            ->get(['institution_id', 'facility_name'])
-            ->groupBy('institution_id')
-            ->map(fn ($rows) => $rows->pluck('facility_name')->all());
-
         return DB::table('institutions')
             ->leftJoin('provinces', 'provinces.id', '=', 'institutions.province_id')
             ->leftJoin('districts', 'districts.id', '=', 'institutions.district_id')
@@ -252,24 +256,22 @@ class BusinessDataPresenter
                 'provinces.name as province_name',
                 'districts.name as district_name',
             ])
-            ->map(function (object $row) use ($facilitiesByInstitution): array {
+            ->map(function (object $row): array {
                 $metadata = $this->decodeArray($row->external_metadata);
-                $offerings = [];
-                if (! empty($metadata['programs']) && is_array($metadata['programs'])) {
-                    $seen = [];
-                    foreach ($metadata['programs'] as $prog) {
-                        if (is_array($prog) && ! empty($prog['sector']) && ! empty($prog['occupation'])) {
-                            $key = mb_strtolower(trim($prog['sector'])."\0".trim($prog['occupation']));
-                            if (! isset($seen[$key])) {
-                                $seen[$key] = true;
-                                $offerings[] = [
-                                    'sector' => $prog['sector'],
-                                    'occupation' => $prog['occupation'],
-                                ];
-                            }
-                        }
-                    }
-                }
+                $offerings = is_array($metadata['programs'] ?? null)
+                    ? collect($metadata['programs'])
+                        ->filter(fn (mixed $offering): bool => is_array($offering)
+                            && is_string($offering['sector'] ?? null)
+                            && is_string($offering['occupation'] ?? null))
+                        ->unique(fn (array $offering): string => mb_strtolower(trim($offering['sector'])."\0".trim($offering['occupation'])))
+                        ->values()
+                        ->all()
+                    : [];
+                $facilities = DB::table('institution_facilities')
+                    ->where('institution_id', $row->id)
+                    ->orderBy('facility_name')
+                    ->pluck('facility_name')
+                    ->all();
 
                 return [
                     'id' => $row->id,
@@ -285,7 +287,7 @@ class BusinessDataPresenter
                     'classCount' => $row->class_count === null ? null : (int) $row->class_count,
                     'readyParticipantCount' => $row->ready_participant_count === null ? null : (int) $row->ready_participant_count,
                     'certifiedInstructorsCount' => $row->instructor_count === null ? null : (int) $row->instructor_count,
-                    'facilities' => $facilitiesByInstitution->get($row->id, []),
+                    'facilities' => $facilities,
                     'supportedSectors' => $this->decodeArray($row->supported_sectors),
                     'operationalReadinessScore' => $row->readiness_score === null ? null : (int) $row->readiness_score,
                     'address' => $row->address,
@@ -299,7 +301,7 @@ class BusinessDataPresenter
                     'leaderPosition' => $metadata['leaderPosition'] ?? null,
                     'institutionForm' => $metadata['institutionForm'] ?? $metadata['institutionCategory'] ?? null,
                     'sectorals' => is_array($metadata['sectorals'] ?? null) ? $metadata['sectorals'] : [],
-                    'programs' => [],
+                    'programs' => is_array($metadata['programs'] ?? null) ? $metadata['programs'] : [],
                     'offerings' => $offerings,
                     'source' => $row->external_source === 'kp2mi' ? 'kp2mi-api' : 'local',
                 ];
@@ -560,11 +562,6 @@ class BusinessDataPresenter
             return [];
         }
 
-        $registrationDocuments = DB::table('institution_registration_documents')
-            ->orderBy('document_type')
-            ->get(['id', 'institution_id', 'document_type', 'original_name'])
-            ->groupBy('institution_id');
-
         return DB::table('approval_requests')
             ->orderByRaw("CASE WHEN status = 'PENDING' THEN 0 ELSE 1 END")
             ->orderByDesc('submitted_at')
@@ -584,9 +581,17 @@ class BusinessDataPresenter
                 'rejection_reason',
                 'revision_notes',
             ])
-            ->map(function (object $row) use ($registrationDocuments): array {
-                $docs = $row->entity_type === 'lembaga_vokasi'
-                    ? ($registrationDocuments->get($row->entity_id, collect()))
+            ->map(fn (object $row): array => [
+                'id' => $row->id,
+                'entityType' => $row->entity_type,
+                'entityId' => $row->entity_id,
+                'entityTitle' => null,
+                'details' => $this->approvalDetails($row->entity_type, $row->entity_id),
+                'documents' => $row->entity_type === 'lembaga_vokasi'
+                    ? DB::table('institution_registration_documents')
+                        ->where('institution_id', $row->entity_id)
+                        ->orderBy('document_type')
+                        ->get(['id', 'document_type', 'original_name'])
                         ->map(fn (object $document): array => [
                             'id' => (int) $document->id,
                             'type' => $document->document_type,
@@ -596,19 +601,11 @@ class BusinessDataPresenter
                                 'documentId' => $document->id,
                             ]),
                         ])->all()
-                    : [];
-
-                return [
-                    'id' => $row->id,
-                    'entityType' => $row->entity_type,
-                    'entityId' => $row->entity_id,
-                    'entityTitle' => null,
-                    'details' => $this->approvalDetails($row->entity_type, $row->entity_id),
-                    'documents' => $docs,
-                    'title' => $row->title,
-                    'submittedBy' => $row->submitted_by,
-                    'submittedRole' => $row->submitted_role,
-                    'scopeLabel' => $row->scope_label,
+                    : [],
+                'title' => $row->title,
+                'submittedBy' => $row->submitted_by,
+                'submittedRole' => $row->submitted_role,
+                'scopeLabel' => $row->scope_label,
                 'submittedAt' => $row->submitted_at,
                 'validationStatus' => $row->validation_status,
                 'approvalStatus' => $row->status,
@@ -624,8 +621,7 @@ class BusinessDataPresenter
                         ? 'Data wajib telah lolos validasi server.'
                         : 'Perlu pemeriksaan manual sebelum keputusan.',
                 ]],
-            ];
-        })->all();
+            ])->all();
     }
 
     private function approvalDetails(string $entityType, string $entityId): array

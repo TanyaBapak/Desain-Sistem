@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\BusinessDataPresenter;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -100,6 +102,124 @@ class BusinessDataController extends Controller
         return back()->with('success', 'Data berhasil dinonaktifkan.');
     }
 
+    public function candidates(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $role = $user->roles()->value('name');
+
+        abort_unless(in_array($role, ['task_force', 'province_admin', 'district_admin', 'institution_admin', 'verifier'], true), 403);
+
+        $page = max(1, (int) $request->query('page', 1));
+        $perPage = min(100, max(25, (int) $request->query('per_page', 50)));
+        $offset = ($page - 1) * $perPage;
+
+        $baseQuery = DB::table('job_seekers')
+            ->whereNull('deleted_at')
+            ->when($role === 'province_admin', fn ($query) => $query->where('job_seekers.province_id', $user->province_id))
+            ->when($role === 'district_admin', fn ($query) => $query->where('job_seekers.district_id', $user->district_id))
+            ->when($role === 'institution_admin', fn ($query) => $query->where('job_seekers.institution_id', $user->institution_id ?? ''));
+
+        $total = (clone $baseQuery)->count();
+
+        $rows = $baseQuery
+            ->leftJoin('provinces', 'provinces.id', '=', 'job_seekers.province_id')
+            ->leftJoin('districts', 'districts.id', '=', 'job_seekers.district_id')
+            ->orderByDesc('job_seekers.created_at')
+            ->offset($offset)
+            ->limit($perPage)
+            ->get([
+                'job_seekers.id',
+                'job_seekers.nik',
+                'job_seekers.full_name',
+                'job_seekers.gender',
+                'provinces.name as province_name',
+                'districts.name as district_name',
+                'job_seekers.education_level',
+                'job_seekers.institution_name',
+                'job_seekers.source_type',
+                'job_seekers.major',
+                'job_seekers.readiness_status',
+                'job_seekers.verification_status',
+                'job_seekers.lifecycle_status',
+                'job_seekers.preferred_countries',
+                'job_seekers.preferred_job_roles',
+                'job_seekers.work_experiences',
+                'job_seekers.certifications',
+                'job_seekers.preferred_sectors',
+            ]);
+
+        $ids = $rows->pluck('id')->filter()->values()->all();
+
+        $skillsBySeeker = $ids === []
+            ? collect()
+            : DB::table('job_seeker_skills')
+                ->whereIn('job_seeker_id', $ids)
+                ->orderBy('skill_name')
+                ->get(['job_seeker_id', 'skill_name'])
+                ->groupBy('job_seeker_id')
+                ->map(fn ($group) => $group->pluck('skill_name')->values()->all());
+
+        $languagesBySeeker = $ids === []
+            ? collect()
+            : DB::table('job_seeker_languages')
+                ->whereIn('job_seeker_id', $ids)
+                ->get(['job_seeker_id', 'language', 'level'])
+                ->groupBy('job_seeker_id')
+                ->map(fn ($group) => $group->map(fn ($language) => [
+                    'language' => $language->language,
+                    'level' => $language->level,
+                ])->values()->all());
+
+        $items = $rows->map(function (object $row) use ($skillsBySeeker, $languagesBySeeker): array {
+            $presenter = app(BusinessDataPresenter::class);
+            $decodeArray = \Closure::bind(function ($value) {
+                if (! $value) {
+                    return [];
+                }
+                $decoded = json_decode($value, true);
+                return is_array($decoded) ? $decoded : [];
+            }, null, BusinessDataPresenter::class);
+
+            return [
+                'id' => $row->id,
+                'nik' => $row->nik ? substr($row->nik, 0, 4).'••••••••'.substr($row->nik, -4) : '••••••••••••••••',
+                'fullName' => $row->full_name,
+                'gender' => $row->gender,
+                'provinsi' => $row->province_name,
+                'kabupatenKota' => $row->district_name,
+                'educationLevel' => $row->education_level,
+                'institutionName' => $row->institution_name,
+                'sourceType' => match ($row->source_type) {
+                    'SMK', 'BLK', 'LPK' => 'Lembaga Vokasi',
+                    'Mandiri' => 'SMK / Pendidikan Vokasi',
+                    'Gardata', 'SIPPMI', 'sippmi' => 'Gardata / SIPPMI',
+                    default => 'Disnaker Pemda',
+                },
+                'major' => $row->major,
+                'skills' => $skillsBySeeker->get($row->id, []),
+                'languageProficiency' => $languagesBySeeker->get($row->id, []),
+                'preferredCountry' => $decodeArray($row->preferred_countries),
+                'preferredJobRole' => $decodeArray($row->preferred_job_roles),
+                'workExperiences' => $decodeArray($row->work_experiences),
+                'certifications' => $decodeArray($row->certifications),
+                'preferredSectors' => $decodeArray($row->preferred_sectors),
+                'readinessStatus' => $row->readiness_status,
+                'verificationStatus' => $row->verification_status,
+                'lifecycleStatus' => $row->lifecycle_status,
+            ];
+        })->all();
+
+        return response()->json([
+            'data' => $items,
+            'pagination' => [
+                'page' => $page,
+                'per_page' => $perPage,
+                'total' => $total,
+                'last_page' => (int) ceil($total / $perPage),
+            ],
+        ]);
+    }
+
     private function validateData(Request $request, string $type, ?string $id = null): array
     {
         abort_unless(isset(self::ENTITY_TABLES[$type]), 404);
@@ -120,6 +240,19 @@ class BusinessDataController extends Controller
                 'major' => ['required', 'string', 'max:150'],
                 'skills' => ['array'],
                 'skills.*' => ['string', 'max:100'],
+                'workExperiences' => ['array'],
+                'workExperiences.*.sector' => ['required', 'string', 'max:150'],
+                'workExperiences.*.role' => ['required', 'string', 'max:150'],
+                'workExperiences.*.durationYears' => ['required', 'numeric', 'min:0', 'max:100'],
+                'workExperiences.*.companyName' => ['nullable', 'string', 'max:150'],
+                'workExperiences.*.description' => ['nullable', 'string', 'max:2000'],
+                'certifications' => ['array'],
+                'certifications.*.name' => ['required', 'string', 'max:150'],
+                'certifications.*.issuer' => ['required', 'string', 'max:150'],
+                'certifications.*.issueYear' => ['nullable', 'integer', 'min:1900', 'max:'.now()->year],
+                'certifications.*.validUntil' => ['nullable', 'date'],
+                'preferredSectors' => ['array'],
+                'preferredSectors.*' => ['string', 'max:150'],
                 'languageProficiency' => ['array'],
                 'languageProficiency.*.language' => ['required', 'string', 'max:50'],
                 'languageProficiency.*.level' => ['required', 'string', 'max:50'],
@@ -255,6 +388,9 @@ class BusinessDataController extends Controller
             'lifecycle_status' => $creating ? 'SUBMITTED' : ($canVerify ? ($data['lifecycleStatus'] ?? 'SUBMITTED') : $existingLifecycle),
             'preferred_countries' => json_encode($data['preferredCountry'] ?? []),
             'preferred_job_roles' => json_encode($data['preferredJobRole'] ?? []),
+            'work_experiences' => json_encode($data['workExperiences'] ?? [], JSON_THROW_ON_ERROR),
+            'certifications' => json_encode($data['certifications'] ?? [], JSON_THROW_ON_ERROR),
+            'preferred_sectors' => json_encode($data['preferredSectors'] ?? [], JSON_THROW_ON_ERROR),
             'updated_at' => now(),
         ];
 

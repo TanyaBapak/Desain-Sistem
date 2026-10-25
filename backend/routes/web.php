@@ -74,6 +74,8 @@ Route::middleware(['auth', EnsureUserIsActive::class])->group(function () {
     Route::delete('/allocations/{id}', [ProgramAllocationController::class, 'destroy'])
         ->where('id', '[A-Za-z0-9-]+')
         ->name('allocations.destroy');
+    Route::get('/business-data/candidates', [BusinessDataController::class, 'candidates'])
+        ->name('business-data.candidates.index');
     Route::post('/business-data/{type}', [BusinessDataController::class, 'store'])
         ->where('type', 'candidates|programs|providers|demands')
         ->name('business-data.store');

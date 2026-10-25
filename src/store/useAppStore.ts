@@ -248,20 +248,24 @@ export const useAppStore = create<AppState>((set, get) => ({
   demands: [],
   businessDataLoaded: false,
   businessOptions: { provinces: [], districts: [], sectors: [], occupations: [], countries: [], institutions: [] },
-  setBusinessData: (data) => set((state) => ({
-    candidates: data.candidates.length > 0 ? data.candidates : mockSupply,
-    programs: data.programs,
-    providers: data.providers,
-    demands: data.demands,
-    approvalRequests: data.approvalRequests ?? [],
-    allocations: data.allocations ?? [],
-    businessOptions: data.options,
-    businessDataLoaded: true,
-    selectedCandidateIds: state.selectedCandidateIds.filter((id) => data.candidates.some((candidate) => candidate.id === id)),
-    selectedDemandId: data.demands.some((demand) => demand.id === state.selectedDemandId) ? state.selectedDemandId : null,
-    selectedProgramId: data.programs.some((program) => program.id === state.selectedProgramId) ? state.selectedProgramId : null,
-    selectedProviderId: data.providers.some((provider) => provider.id === state.selectedProviderId) ? state.selectedProviderId : null,
-  })),
+  setBusinessData: (data) => set((state) => {
+    const incomingCandidates = Array.isArray(data.candidates) ? data.candidates : [];
+    const candidates = incomingCandidates.length > 0 ? incomingCandidates : mockSupply;
+    return {
+      candidates,
+      programs: data.programs,
+      providers: data.providers,
+      demands: data.demands,
+      approvalRequests: data.approvalRequests ?? [],
+      allocations: data.allocations ?? [],
+      businessOptions: data.options,
+      businessDataLoaded: true,
+      selectedCandidateIds: state.selectedCandidateIds.filter((id) => candidates.some((candidate) => candidate.id === id)),
+      selectedDemandId: data.demands.some((demand) => demand.id === state.selectedDemandId) ? state.selectedDemandId : null,
+      selectedProgramId: data.programs.some((program) => program.id === state.selectedProgramId) ? state.selectedProgramId : null,
+      selectedProviderId: data.providers.some((provider) => provider.id === state.selectedProviderId) ? state.selectedProviderId : null,
+    };
+  }),
   allocations: [],
   approvalRequests: mockApprovals,
   auditLogs: mockAuditLogs,

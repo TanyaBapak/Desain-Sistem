@@ -31,6 +31,20 @@ class BusinessDataPersistenceTest extends TestCase
             'sourceType' => 'Disnaker Pemda',
             'major' => 'Teknik Pengelasan',
             'skills' => ['Pengelasan dasar'],
+            'workExperiences' => [[
+                'sector' => 'Manufaktur',
+                'role' => 'Juru Las',
+                'durationYears' => 1.5,
+                'companyName' => 'Perusahaan Contoh',
+                'description' => 'Pengalaman simulasi uji.',
+            ]],
+            'certifications' => [[
+                'name' => 'Sertifikasi Las Contoh',
+                'issuer' => 'LSP Contoh',
+                'issueYear' => 2025,
+                'validUntil' => '2027-12-31',
+            ]],
+            'preferredSectors' => ['Manufaktur'],
             'languageProficiency' => [['language' => 'Jepang', 'level' => 'N4']],
             'preferredCountry' => ['Jepang'],
             'preferredJobRole' => ['Welder SMAW / GMAW'],
@@ -40,6 +54,16 @@ class BusinessDataPersistenceTest extends TestCase
         ])->assertRedirect()->assertSessionHasNoErrors();
         $this->assertDatabaseHas('job_seekers', ['nik' => '3300000000000001', 'full_name' => 'Peserta Contoh Baru']);
         $this->assertDatabaseHas('job_seeker_skills', ['skill_name' => 'Pengelasan dasar']);
+        $this->assertDatabaseHas('job_seekers', [
+            'id' => DB::table('job_seekers')->where('nik', '3300000000000001')->value('id'),
+            'preferred_sectors' => json_encode(['Manufaktur']),
+        ]);
+        $this->get('/app/modul-a')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('businessData.candidates.0.workExperiences.0.role', 'Juru Las')
+                ->where('businessData.candidates.0.certifications.0.name', 'Sertifikasi Las Contoh')
+                ->where('businessData.candidates.0.preferredSectors.0', 'Manufaktur'));
         DB::table('institutions')->insert([
             'id' => 'VOC-TEST-001',
             'name' => 'Lembaga Program Contoh',
