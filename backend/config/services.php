@@ -43,8 +43,8 @@ return [
     'gardata' => [
         'base_url' => env('GARDATA_BASE_URL', 'https://gardata.sippmi.com'),
         'api_key' => env('GARDATA_API_KEY'),
+        'webhook_secret' => env('GARDATA_WEBHOOK_SECRET'),
         'sync_page_size' => (int) env('GARDATA_SYNC_PAGE_SIZE', 50),
         'max_pages' => (int) env('GARDATA_SYNC_MAX_PAGES', 1000),
     ],
-
 ];

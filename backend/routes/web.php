@@ -5,6 +5,7 @@ use App\Http\Controllers\ApprovalWorkflowController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\BusinessDataController;
 use App\Http\Controllers\GardataSyncController;
+use App\Http\Controllers\GardataWebhookController;
 use App\Http\Controllers\InstitutionRegistrationController;
 use App\Http\Controllers\Kp2miVokasiSyncController;
 use App\Http\Controllers\ProgramAllocationController;
@@ -39,6 +40,7 @@ Route::get('/lembaga/daftar', [InstitutionRegistrationController::class, 'create
 Route::post('/lembaga/daftar', [InstitutionRegistrationController::class, 'store'])
     ->middleware('throttle:3,1')
     ->name('institutions.register.store');
+Route::post('/integrations/gardata/webhook', GardataWebhookController::class)->name('integrations.gardata.webhook');
 
 Route::middleware(['auth', EnsureUserIsActive::class])->group(function () {
     Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
