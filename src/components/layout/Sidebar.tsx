@@ -1,10 +1,10 @@
 "use client";
 
-import * as React from "react";
+import { router } from "@inertiajs/react";
 import { useAppStore } from "@/store/useAppStore";
 import { NAV_ITEMS, type SidebarSection } from "@/lib/sidebar-items";
 import { cn } from "@/lib/utils";
-import { Menu, MapPin, X } from "lucide-react";
+import { Menu, MapPin, X, ShieldAlert, LogOut } from "lucide-react";
 
 interface SidebarProps {
   currentTab: string;
@@ -14,6 +14,7 @@ interface SidebarProps {
   setCollapsed: (collapsed: boolean) => void;
   mobileOpen: boolean;
   onMobileClose: () => void;
+  impersonationAdminName?: string | null;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -24,6 +25,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   setCollapsed,
   mobileOpen,
   onMobileClose,
+  impersonationAdminName,
 }) => {
   const { currentScope } = useAppStore();
 
@@ -111,14 +113,48 @@ export const Sidebar: React.FC<SidebarProps> = ({
         })}
       </nav>
 
-      <div className="shrink-0 border-t border-border bg-background p-3">
+      <div className="shrink-0 border-t border-border bg-background p-3 space-y-2.5">
+        {impersonationAdminName && (
+          <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-2">
+            {!compact ? (
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-1.5 text-[11px] font-semibold text-destructive">
+                  <ShieldAlert className="h-3.5 w-3.5 shrink-0" />
+                  <span>Sesi Impersonasi</span>
+                </div>
+                <p className="text-[10px] text-muted-foreground leading-tight">
+                  Sesi oleh {impersonationAdminName}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => router.post("/impersonation/stop")}
+                  className="flex w-full items-center justify-center gap-1.5 rounded-md bg-destructive px-2 py-1.5 text-xs font-semibold text-destructive-foreground shadow-xs transition hover:bg-destructive/90"
+                >
+                  <LogOut className="h-3.5 w-3.5 shrink-0" />
+                  <span className="truncate">Kembali ke Super Admin</span>
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => router.post("/impersonation/stop")}
+                title={`Kembali ke Super Admin (Sesi oleh ${impersonationAdminName})`}
+                className="flex h-8 w-8 mx-auto items-center justify-center rounded-md bg-destructive text-destructive-foreground shadow-xs transition hover:bg-destructive/90"
+                aria-label="Kembali ke Super Admin"
+              >
+                <LogOut className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+        )}
+
         <div
           className={cn("flex items-center gap-2 text-xs text-muted-foreground", compact && "justify-center")}
           aria-label={`Lingkup: ${currentScope.name}`}
           title={compact ? `Lingkup: ${currentScope.name}` : undefined}
         >
           <MapPin className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-          {!compact && <span className="truncate">Lingkup: {currentScope.name}</span>}
+          {!compact && <span className="truncate font-medium">Lingkup: {currentScope.name}</span>}
         </div>
       </div>
     </aside>
