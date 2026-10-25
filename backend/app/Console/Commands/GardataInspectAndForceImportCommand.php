@@ -39,6 +39,28 @@ class GardataInspectAndForceImportCommand extends Command
         try {
             Artisan::call('migrate', ['--force' => true]);
             $this->info("   Migrasi database berhasil diperiksa dan dijalankan.");
+
+            // Pastikan semua akun Task Force memiliki penetapan wilayah BP3MI yang valid
+            $taskForceRole = DB::table('roles')->where('name', 'task_force')->value('id');
+            if ($taskForceRole && Schema::hasTable('model_has_roles')) {
+                $tfUserIds = DB::table('model_has_roles')->where('role_id', $taskForceRole)->pluck('model_id');
+                $emptyCount = DB::table('users')
+                    ->whereIn('id', $tfUserIds)
+                    ->where(function ($q) {
+                        $q->whereNull('bp3mi_code')->orWhere('bp3mi_code', '');
+                    })
+                    ->count();
+
+                if ($emptyCount > 0) {
+                    DB::table('users')
+                        ->whereIn('id', $tfUserIds)
+                        ->where(function ($q) {
+                            $q->whereNull('bp3mi_code')->orWhere('bp3mi_code', '');
+                        })
+                        ->update(['bp3mi_code' => 'BP3MI-JABAR']);
+                    $this->info("   Menetapkan BP3MI-JABAR pada {$emptyCount} akun Task Force yang belum memiliki wilayah BP3MI.");
+                }
+            }
         } catch (Throwable $e) {
             $this->warn("   Catatan migrasi: " . $e->getMessage());
         }
