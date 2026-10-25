@@ -3,7 +3,9 @@
 import { useAppStore } from "@/store/useAppStore";
 import { NAV_ITEMS, type SidebarSection } from "@/lib/sidebar-items";
 import { cn } from "@/lib/utils";
-import { Menu, MapPin, X } from "lucide-react";
+import { router } from "@inertiajs/react";
+import { Button } from "@/components/ui/button";
+import { Menu, MapPin, X, Undo2 } from "lucide-react";
 
 interface SidebarProps {
   currentTab: string;
@@ -13,6 +15,7 @@ interface SidebarProps {
   setCollapsed: (collapsed: boolean) => void;
   mobileOpen: boolean;
   onMobileClose: () => void;
+  impersonationAdminName?: string | null;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -23,6 +26,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   setCollapsed,
   mobileOpen,
   onMobileClose,
+  impersonationAdminName,
 }) => {
   const { currentScope } = useAppStore();
 
@@ -111,6 +115,43 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </nav>
 
       <div className="shrink-0 border-t border-border bg-background p-3 space-y-2.5">
+        {impersonationAdminName && (
+          compact ? (
+            <div className="flex justify-center">
+              <Button
+                type="button"
+                variant="destructive"
+                size="icon"
+                className="h-8 w-8 rounded-md shadow-sm"
+                title={`Kembali ke Super Admin (Sesi oleh ${impersonationAdminName})`}
+                aria-label="Kembali ke Super Admin"
+                onClick={() => router.post("/impersonation/stop")}
+              >
+                <Undo2 className="h-4 w-4" />
+              </Button>
+            </div>
+          ) : (
+            <div className="rounded-lg border border-destructive/40 bg-destructive/10 p-2.5 text-foreground space-y-2 shadow-sm">
+              <div className="min-w-0">
+                <p className="text-xs font-semibold text-destructive">Sesi Impersonasi</p>
+                <p className="text-[11px] text-muted-foreground leading-snug">
+                  Sesi oleh {impersonationAdminName}.
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="destructive"
+                size="sm"
+                className="w-full h-7 text-xs font-medium justify-center gap-1.5 shadow-sm"
+                onClick={() => router.post("/impersonation/stop")}
+              >
+                <Undo2 className="h-3.5 w-3.5 shrink-0" />
+                <span className="truncate">Kembali ke Super Admin</span>
+              </Button>
+            </div>
+          )
+        )}
+
         <div
           className={cn("flex items-center gap-2 text-xs text-muted-foreground", compact && "justify-center")}
           aria-label={`Lingkup: ${currentScope.name}`}
