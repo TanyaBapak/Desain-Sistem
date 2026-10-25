@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   useAppStore,
 } from '../../store/useAppStore';
@@ -37,6 +37,17 @@ const KPI_LABELS: Record<string, string> = {
   validatedDemandCount: "Permintaan tervalidasi",
 };
 
+const WIB_DATE_TIME_FORMAT = new Intl.DateTimeFormat("id-ID", {
+  weekday: "long",
+  day: "numeric",
+  month: "long",
+  year: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+  hourCycle: "h23",
+  timeZone: "Asia/Jakarta",
+});
+
 export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({ kpiSummary, projection }) => {
   const {
     openLoginPage,
@@ -44,6 +55,15 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({ kp
   } = useAppStore();
 
   const [activeSlide, setActiveSlide] = useState(0);
+  const [currentTime, setCurrentTime] = useState<Date | null>(null);
+
+  useEffect(() => {
+    const updateTime = () => setCurrentTime(new Date());
+    updateTime();
+    const intervalId = window.setInterval(updateTime, 60_000);
+
+    return () => window.clearInterval(intervalId);
+  }, []);
 
   const slides = [
     {
@@ -78,7 +98,9 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({ kp
           <div className="flex items-center gap-3 text-slate-400">
             <span className="flex items-center gap-1.5">
               <Calendar className="w-3.5 h-3.5 text-red-500" />
-              <span>Jumat, 23 Oktober 2026 | 11:30 WIB</span>
+              <time dateTime={currentTime?.toISOString()}>
+                {currentTime ? `${WIB_DATE_TIME_FORMAT.format(currentTime)} WIB` : "Memuat waktu WIB…"}
+              </time>
             </span>
             <span className="text-slate-700">|</span>
             <span className="hidden md:inline text-slate-400 font-medium">
