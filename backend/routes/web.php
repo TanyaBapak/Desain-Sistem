@@ -67,6 +67,8 @@ Route::middleware(['auth', EnsureUserIsActive::class])->group(function () {
         ->where('classId', '[A-Za-z0-9-]+')
         ->name('training-classes.gardata-mapping.update');
     Route::post('/integrations/kp2mi/sync', Kp2miVokasiSyncController::class)->name('integrations.kp2mi.sync');
+    Route::post('/approvals/bulk', [ApprovalWorkflowController::class, 'bulkApprove'])
+        ->name('approvals.bulk');
     Route::post('/approvals/{id}', [ApprovalWorkflowController::class, 'update'])
         ->where('id', '[A-Za-z0-9-]+')
         ->name('approvals.update');

@@ -13,6 +13,8 @@ class GardataPlacementSyncService
 {
     private const SOURCE = 'gardata';
 
+    public const SIPPMI_INSTITUTION_NAME = 'Politeknik Indonusa Surakarta';
+
     public const KNOWN_SUBDOMAINS = [
         [
             'name' => 'Omega Cilacap',
@@ -50,7 +52,6 @@ class GardataPlacementSyncService
     public function syncCandidates(?string $overrideBaseUrl = null, ?string $overrideApiKey = null, string $source = self::SOURCE, bool $force = false): array
     {
         $this->ensureProvincesSeeded();
-        $this->ensureSubdomainTenantsRegistered();
 
         $baseUrl = rtrim((string) ($overrideBaseUrl ?: config("services.{$source}.base_url") ?: config('services.gardata.base_url')), '/');
         $apiKey = (string) ($overrideApiKey ?: config("services.{$source}.api_key") ?: config('services.gardata.api_key'));
@@ -78,6 +79,7 @@ class GardataPlacementSyncService
                 'recordsUpdated' => 0,
                 'recordsSkipped' => 0,
             ];
+            $subdomainSyncIncomplete = false;
 
             do {
                 if ($page > $maxPages) {
@@ -136,33 +138,68 @@ class GardataPlacementSyncService
                         continue;
                     }
                     try {
-                        $subResp = Http::baseUrl($tenant['url'])
-                            ->acceptJson()
-                            ->withHeader('X-API-KEY', $apiKey)
-                            ->timeout(10)
-                            ->get('/api/v1/placement/candidates', ['page' => 1, 'per_page' => $pageSize]);
-                        if ($subResp->successful()) {
-                            $subJson = $subResp->json();
-                            $subItems = $subJson['data'] ?? [];
-                            foreach ($subItems as $subItem) {
+                        $subPage = 1;
+                        $subTotalPages = 1;
+                        do {
+                            if ($subPage > $maxPages) {
+                                throw new RuntimeException("Batas halaman sinkronisasi {$source} terlampaui.");
+                            }
+
+                            $subJson = Http::baseUrl($tenant['url'])
+                                ->acceptJson()
+                                ->withHeader('X-API-KEY', $apiKey)
+                                ->connectTimeout(5)
+                                ->timeout(30)
+                                ->retry(2, 500)
+                                ->get('/api/v1/placement/candidates', [
+                                    'page' => $subPage,
+                                    'per_page' => $pageSize,
+                                ])
+                                ->throw()
+                                ->json();
+
+                            if (
+                                ! is_array($subJson)
+                                || ($subJson['status'] ?? null) !== 'success'
+                                || ! is_array($subJson['data'] ?? null)
+                                || ! is_array($subJson['meta'] ?? null)
+                            ) {
+                                throw new RuntimeException("Format respons daftar kandidat {$source} tidak valid.");
+                            }
+
+                            $subCurrentPage = filter_var($subJson['meta']['current_page'] ?? null, FILTER_VALIDATE_INT);
+                            $subTotalPages = filter_var($subJson['meta']['total_pages'] ?? null, FILTER_VALIDATE_INT);
+                            if ($subCurrentPage !== $subPage || $subTotalPages === false || $subTotalPages < 0) {
+                                throw new RuntimeException("Metadata paginasi {$source} tidak valid.");
+                            }
+
+                            $result['recordsFetched'] += count($subJson['data']);
+                            foreach ($subJson['data'] as $subItem) {
                                 if (! is_array($subItem)) {
+                                    $result['recordsSkipped']++;
+
                                     continue;
                                 }
+
                                 $subItem['institution_name'] ??= $tenant['name'];
                                 $subPersisted = DB::transaction(fn (): array => $this->persistCandidate($subItem, $source, $force));
                                 $result['recordsInserted'] += $subPersisted['inserted'];
                                 $result['recordsUpdated'] += $subPersisted['updated'];
                                 $result['recordsSkipped'] += $subPersisted['skipped'];
-                                $result['recordsFetched']++;
                             }
-                        }
+
+                            $subPage++;
+                        } while ($subPage <= $subTotalPages);
                     } catch (Throwable $e) {
-                        Log::info("Subdomain candidate fetch skipped for {$tenant['subdomain']}: " . $e->getMessage());
+                        $subdomainSyncIncomplete = true;
+                        Log::warning("Subdomain candidate sync failed for {$tenant['subdomain']}.", [
+                            'exception' => $e::class,
+                        ]);
                     }
                 }
             }
 
-            $result['status'] = $result['recordsSkipped'] > 0 ? 'partial' : 'success';
+            $result['status'] = $result['recordsSkipped'] > 0 || $subdomainSyncIncomplete ? 'partial' : 'success';
             DB::table('integration_sync_logs')->where('id', $logId)->update([
                 'status' => $result['status'],
                 'records_fetched' => $result['recordsFetched'],
@@ -173,6 +210,8 @@ class GardataPlacementSyncService
                 'updated_at' => now(),
             ]);
 
+            $this->invalidateBusinessDataCache();
+
             return $result;
         } catch (Throwable $exception) {
             DB::table('integration_sync_logs')->where('id', $logId)->update([
@@ -181,11 +220,23 @@ class GardataPlacementSyncService
                 'finished_at' => now(),
                 'updated_at' => now(),
             ]);
+            $this->invalidateBusinessDataCache();
             Log::error("{$source} synchronization failed.", [
                 'exception' => $exception::class,
             ]);
 
-            throw new RuntimeException("Sinkronisasi {$source} gagal; lihat log integrasi untuk detail status.", 0);
+            throw new RuntimeException("Sinkronisasi {$source} gagal; lihat log integrasi untuk detail status.", 0, $exception);
+        }
+    }
+
+    private function invalidateBusinessDataCache(): void
+    {
+        try {
+            app(BusinessDataPresenter::class)->forgetAll();
+        } catch (Throwable $exception) {
+            Log::warning('Business data cache invalidation failed after placement sync.', [
+                'exception' => $exception::class,
+            ]);
         }
     }
 
@@ -229,14 +280,14 @@ class GardataPlacementSyncService
         } elseif (strlen($digitsNik) >= 10) {
             $nik = Str::padRight($digitsNik, 16, '0');
         } elseif ($externalId) {
-            $nik = '32' . substr(preg_replace('/\D/', '', hash('sha256', $externalId)), 0, 14);
+            $nik = '32'.substr(preg_replace('/\D/', '', hash('sha256', $externalId)), 0, 14);
             $nik = Str::padRight($nik, 16, '1');
         } else {
-            $nik = '32' . Str::padRight(substr(preg_replace('/\D/', '', hash('sha256', json_encode($item))), 0, 14), 14, '1');
+            $nik = '32'.Str::padRight(substr(preg_replace('/\D/', '', hash('sha256', json_encode($item))), 0, 14), 14, '1');
         }
 
-        $externalId ??= 'GDT-' . substr(hash('sha256', ($nik ?? '').json_encode($item)), 0, 16);
-        $name = $name ?: 'Peserta ' . ucfirst($source) . ' #' . substr((string) $externalId, 0, 8);
+        $externalId ??= 'GDT-'.substr(hash('sha256', ($nik ?? '').json_encode($item)), 0, 16);
+        $name = $name ?: 'Peserta '.ucfirst($source).' #'.substr((string) $externalId, 0, 8);
 
         $provinceId = $this->findRegionId(
             $biodata['province'] ?? $biodata['propinsi'] ?? $biodata['provinsi'] ?? $item['province'] ?? $item['provinsi'] ?? $item['propinsi'] ?? null,
@@ -315,11 +366,12 @@ class GardataPlacementSyncService
         $now = now();
         $preferredCountries = $this->cleanString($biodata['target_country'] ?? $item['target_country'] ?? null, 100);
         $expertise = $this->cleanString($biodata['expertise'] ?? $item['expertise'] ?? $major, 100);
-        $sourceType = $source === 'sippmi' ? 'SIPPMI' : 'Gardata';
+        $sourceType = 'Gardata';
         $defaultInstitution = $source === 'sippmi'
-            ? 'SIPPMI - Pusat Penempatan PMI'
+            ? self::SIPPMI_INSTITUTION_NAME
             : 'Gardata - Pusat Pelatihan CPMI';
-        $rawInst = $item['institution_name']
+        $rawInst = $source === 'sippmi' ? self::SIPPMI_INSTITUTION_NAME : (
+            $item['institution_name']
             ?? $item['lpk_name']
             ?? $item['nama_lpk']
             ?? $item['lpk']
@@ -344,7 +396,8 @@ class GardataPlacementSyncService
             ?? data_get($item, 'classes_history.0.institution_name')
             ?? data_get($item, 'classes_history.0.lpk')
             ?? data_get($item, 'classes_history.0.provider_name')
-            ?? null;
+            ?? null
+        );
         $institutionName = $this->formatInstitutionName($this->cleanString($rawInst, 255) ?? $defaultInstitution);
         $institutionId = $this->resolveOrCreateInstitution($institutionName, $provinceId, $districtId);
 
@@ -359,7 +412,7 @@ class GardataPlacementSyncService
             'institution_name' => $institutionName,
             'institution_id' => $institutionId,
             'major' => $major,
-            'source_type' => 'Gardata',
+            'source_type' => $sourceType,
             'source_reference' => Str::limit($externalId, 100, ''),
             'external_source' => $source,
             'external_id' => $externalId,
@@ -759,443 +812,5 @@ class GardataPlacementSyncService
         }
 
         return $clean;
-    }
-
-    public function ensureSubdomainTenantsRegistered(bool $withInitialData = true): array
-    {
-        $registered = [];
-        foreach (self::KNOWN_SUBDOMAINS as $tenant) {
-            $provinceId = $this->findRegionId($tenant['province'], 'province') ?? '33';
-            $districtId = $this->findRegionId($tenant['district'], 'district', $provinceId) ?? '3301';
-            $instId = 'GDT-TENANT-' . Str::upper(substr(hash('sha256', $tenant['subdomain']), 0, 12));
-
-            DB::table('institutions')->updateOrInsert(
-                ['external_id' => $tenant['subdomain']],
-                [
-                    'id' => $instId,
-                    'name' => $tenant['name'],
-                    'institution_type' => 'LPK',
-                    'ownership_type' => 'Swasta',
-                    'province_id' => $provinceId,
-                    'district_id' => $districtId,
-                    'status' => 'Aktif',
-                    'verification_status' => 'Verified',
-                    'accreditation' => 'A',
-                    'evokasi_status' => 'Terverifikasi e-Vokasi',
-                    'external_source' => self::SOURCE,
-                    'external_metadata' => json_encode([
-                        'subdomain' => $tenant['subdomain'],
-                        'url' => $tenant['url'],
-                        'sector' => $tenant['sector'],
-                        'isTenant' => true,
-                    ]),
-                    'updated_at' => now(),
-                    'created_at' => now(),
-                ]
-            );
-            $registered[] = $tenant;
-        }
-
-        $hasTenantRecords = DB::table('external_training_records')
-            ->whereIn('class_code', ['OMEGA-HK-2026', 'OMEGA-FBS-2025', 'VHS-CUL-2026', 'DIC-JPN-2026'])
-            ->exists();
-
-        if (! app()->runningUnitTests() && $withInitialData && ! $hasTenantRecords) {
-            $this->seedInitialTenantCandidates();
-        }
-
-        // Pastikan kandidat yang terdaftar dari LPK tenant memiliki external_source gardata jika belum diset
-        DB::table('job_seekers')
-            ->where(function ($q) {
-                $q->whereNull('external_source')
-                    ->orWhere('external_source', '');
-            })
-            ->where(function ($q) {
-                $q->whereIn('institution_name', ['Omega Cilacap', 'VictoriaHotelSchool', 'DutaInternationalCourse'])
-                    ->orWhere('institution_name', 'LIKE', '%Omega%')
-                    ->orWhere('institution_name', 'LIKE', '%Victoria%')
-                    ->orWhere('institution_name', 'LIKE', '%Duta%');
-            })
-            ->update(['external_source' => self::SOURCE]);
-
-        return $registered;
-    }
-
-    public function seedInitialTenantCandidates(): void
-    {
-        $samples = [
-            // Omega Cilacap (5 candidates, 2 batches)
-            [
-                'id' => 'GDT-OMG-001',
-                'nik' => '3301011503020001',
-                'name' => 'Bagus Prasetyo',
-                'institution_name' => 'Omega Cilacap',
-                'biodata' => [
-                    'full_name' => 'Bagus Prasetyo',
-                    'gender' => 'Laki-laki',
-                    'city' => 'Kabupaten Cilacap',
-                    'province' => 'Jawa Tengah',
-                    'expertise' => 'Perhotelan & Tata Graha (Housekeeping)',
-                    'target_country' => 'Jepang',
-                    'education' => ['school_origin' => 'Omega Cilacap', 'major' => 'Perhotelan & Kapal Pesiar'],
-                ],
-                'placement_readiness' => ['status' => 'JOB_READY', 'is_agreement_verified' => true, 'selection_results' => ['agreed_terms' => true]],
-                'classes_history' => [[
-                    'batch_id' => 'batch-omega-hk-01',
-                    'class_code' => 'OMEGA-HK-2026',
-                    'batch_name' => 'Pelatihan Perhotelan & Kapal Pesiar International - Batch I/2026',
-                    'sector_name' => 'Perhotelan & Kapal Pesiar',
-                    'program_name' => 'Housekeeping Specialist',
-                    'period' => ['start_date' => '2026-01-15', 'end_date' => '2026-06-15'],
-                    'target_jp' => 400,
-                    'achieved_jp' => 320,
-                    'completion_percentage' => 80,
-                    'status' => 'IN_PROGRESS',
-                    'verified_reports_count' => 18,
-                ]],
-            ],
-            [
-                'id' => 'GDT-OMG-002',
-                'nik' => '3301015204010002',
-                'name' => 'Dewi Anggraini',
-                'institution_name' => 'Omega Cilacap',
-                'biodata' => [
-                    'full_name' => 'Dewi Anggraini',
-                    'gender' => 'Perempuan',
-                    'city' => 'Kabupaten Cilacap',
-                    'province' => 'Jawa Tengah',
-                    'expertise' => 'Food & Beverage Service Specialist',
-                    'target_country' => 'Jerman',
-                    'education' => ['school_origin' => 'Omega Cilacap', 'major' => 'Food & Beverage Service Specialist'],
-                ],
-                'placement_readiness' => ['status' => 'JOB_READY', 'is_agreement_verified' => true, 'selection_results' => ['agreed_terms' => true]],
-                'classes_history' => [[
-                    'batch_id' => 'batch-omega-fbs-04',
-                    'class_code' => 'OMEGA-FBS-2025',
-                    'batch_name' => 'Food & Beverage Service Specialist Batch IV',
-                    'sector_name' => 'Food & Beverage Service',
-                    'program_name' => 'Restaurant & Banquet Service',
-                    'period' => ['start_date' => '2025-08-01', 'end_date' => '2025-12-15'],
-                    'target_jp' => 350,
-                    'achieved_jp' => 350,
-                    'completion_percentage' => 100,
-                    'status' => 'GRADUATED',
-                    'verified_reports_count' => 24,
-                ]],
-            ],
-            [
-                'id' => 'GDT-OMG-003',
-                'nik' => '3301011807020003',
-                'name' => 'Rian Saputra',
-                'institution_name' => 'Omega Cilacap',
-                'biodata' => [
-                    'full_name' => 'Rian Saputra',
-                    'gender' => 'Laki-laki',
-                    'city' => 'Kabupaten Cilacap',
-                    'province' => 'Jawa Tengah',
-                    'expertise' => 'Perhotelan & Kapal Pesiar',
-                    'target_country' => 'Jepang',
-                    'education' => ['school_origin' => 'Omega Cilacap', 'major' => 'Perhotelan & Kapal Pesiar'],
-                ],
-                'placement_readiness' => ['status' => 'TRAINING_READY', 'is_agreement_verified' => true, 'selection_results' => ['agreed_terms' => true]],
-                'classes_history' => [[
-                    'batch_id' => 'batch-omega-hk-01',
-                    'class_code' => 'OMEGA-HK-2026',
-                    'batch_name' => 'Pelatihan Perhotelan & Kapal Pesiar International - Batch I/2026',
-                    'sector_name' => 'Perhotelan & Kapal Pesiar',
-                    'program_name' => 'Housekeeping Specialist',
-                    'period' => ['start_date' => '2026-01-15', 'end_date' => '2026-06-15'],
-                    'target_jp' => 400,
-                    'achieved_jp' => 320,
-                    'completion_percentage' => 80,
-                    'status' => 'IN_PROGRESS',
-                    'verified_reports_count' => 18,
-                ]],
-            ],
-            [
-                'id' => 'GDT-OMG-004',
-                'nik' => '3301014909010004',
-                'name' => 'Eka Wahyuni',
-                'institution_name' => 'Omega Cilacap',
-                'biodata' => [
-                    'full_name' => 'Eka Wahyuni',
-                    'gender' => 'Perempuan',
-                    'city' => 'Kabupaten Cilacap',
-                    'province' => 'Jawa Tengah',
-                    'expertise' => 'Hospitality Operations',
-                    'target_country' => 'Jerman',
-                    'education' => ['school_origin' => 'Omega Cilacap', 'major' => 'Hospitality Operations'],
-                ],
-                'placement_readiness' => ['status' => 'JOB_READY', 'is_agreement_verified' => true, 'selection_results' => ['agreed_terms' => true]],
-                'classes_history' => [[
-                    'batch_id' => 'batch-omega-fbs-04',
-                    'class_code' => 'OMEGA-FBS-2025',
-                    'batch_name' => 'Food & Beverage Service Specialist Batch IV',
-                    'sector_name' => 'Food & Beverage Service',
-                    'program_name' => 'Restaurant & Banquet Service',
-                    'period' => ['start_date' => '2025-08-01', 'end_date' => '2025-12-15'],
-                    'target_jp' => 350,
-                    'achieved_jp' => 350,
-                    'completion_percentage' => 100,
-                    'status' => 'GRADUATED',
-                    'verified_reports_count' => 24,
-                ]],
-            ],
-            [
-                'id' => 'GDT-OMG-005',
-                'nik' => '3301012111020005',
-                'name' => 'Fajar Nugroho',
-                'institution_name' => 'Omega Cilacap',
-                'biodata' => [
-                    'full_name' => 'Fajar Nugroho',
-                    'gender' => 'Laki-laki',
-                    'city' => 'Kabupaten Cilacap',
-                    'province' => 'Jawa Tengah',
-                    'expertise' => 'Housekeeping & Front Office',
-                    'target_country' => 'Jepang',
-                    'education' => ['school_origin' => 'Omega Cilacap', 'major' => 'Perhotelan & Kapal Pesiar'],
-                ],
-                'placement_readiness' => ['status' => 'TRAINING_READY', 'is_agreement_verified' => true, 'selection_results' => ['agreed_terms' => true]],
-                'classes_history' => [[
-                    'batch_id' => 'batch-omega-hk-01',
-                    'class_code' => 'OMEGA-HK-2026',
-                    'batch_name' => 'Pelatihan Perhotelan & Kapal Pesiar International - Batch I/2026',
-                    'sector_name' => 'Perhotelan & Kapal Pesiar',
-                    'program_name' => 'Housekeeping Specialist',
-                    'period' => ['start_date' => '2026-01-15', 'end_date' => '2026-06-15'],
-                    'target_jp' => 400,
-                    'achieved_jp' => 320,
-                    'completion_percentage' => 80,
-                    'status' => 'IN_PROGRESS',
-                    'verified_reports_count' => 18,
-                ]],
-            ],
-
-            // VictoriaHotelSchool (4 candidates, 1 batch)
-            [
-                'id' => 'GDT-VHS-001',
-                'nik' => '3371011202020001',
-                'name' => 'Aris Setiawan',
-                'institution_name' => 'VictoriaHotelSchool',
-                'biodata' => [
-                    'full_name' => 'Aris Setiawan',
-                    'gender' => 'Laki-laki',
-                    'city' => 'Kota Magelang',
-                    'province' => 'Jawa Tengah',
-                    'expertise' => 'Commercial Cookery & Hot Kitchen',
-                    'target_country' => 'Australia',
-                    'education' => ['school_origin' => 'VictoriaHotelSchool', 'major' => 'Culinary Arts & Cookery'],
-                ],
-                'placement_readiness' => ['status' => 'JOB_READY', 'is_agreement_verified' => true, 'selection_results' => ['agreed_terms' => true]],
-                'classes_history' => [[
-                    'batch_id' => 'batch-vhs-cul-02',
-                    'class_code' => 'VHS-CUL-2026',
-                    'batch_name' => 'Culinary & Commercial Cookery Standard Global - Batch II',
-                    'sector_name' => 'Kuliner & Tata Boga',
-                    'program_name' => 'Commercial Cookery Specialist',
-                    'period' => ['start_date' => '2026-01-20', 'end_date' => '2026-07-20'],
-                    'target_jp' => 450,
-                    'achieved_jp' => 360,
-                    'completion_percentage' => 80,
-                    'status' => 'IN_PROGRESS',
-                    'verified_reports_count' => 16,
-                ]],
-            ],
-            [
-                'id' => 'GDT-VHS-002',
-                'nik' => '3371015605010002',
-                'name' => 'Novi Indriani',
-                'institution_name' => 'VictoriaHotelSchool',
-                'biodata' => [
-                    'full_name' => 'Novi Indriani',
-                    'gender' => 'Perempuan',
-                    'city' => 'Kota Magelang',
-                    'province' => 'Jawa Tengah',
-                    'expertise' => 'Pastry & Bakery Specialist',
-                    'target_country' => 'Jepang',
-                    'education' => ['school_origin' => 'VictoriaHotelSchool', 'major' => 'Culinary Arts & Cookery'],
-                ],
-                'placement_readiness' => ['status' => 'JOB_READY', 'is_agreement_verified' => true, 'selection_results' => ['agreed_terms' => true]],
-                'classes_history' => [[
-                    'batch_id' => 'batch-vhs-cul-02',
-                    'class_code' => 'VHS-CUL-2026',
-                    'batch_name' => 'Culinary & Commercial Cookery Standard Global - Batch II',
-                    'sector_name' => 'Kuliner & Tata Boga',
-                    'program_name' => 'Commercial Cookery Specialist',
-                    'period' => ['start_date' => '2026-01-20', 'end_date' => '2026-07-20'],
-                    'target_jp' => 450,
-                    'achieved_jp' => 360,
-                    'completion_percentage' => 80,
-                    'status' => 'IN_PROGRESS',
-                    'verified_reports_count' => 16,
-                ]],
-            ],
-            [
-                'id' => 'GDT-VHS-003',
-                'nik' => '3371010308020003',
-                'name' => 'Dimas Pratama',
-                'institution_name' => 'VictoriaHotelSchool',
-                'biodata' => [
-                    'full_name' => 'Dimas Pratama',
-                    'gender' => 'Laki-laki',
-                    'city' => 'Kota Magelang',
-                    'province' => 'Jawa Tengah',
-                    'expertise' => 'Culinary Arts & Food Production',
-                    'target_country' => 'Australia',
-                    'education' => ['school_origin' => 'VictoriaHotelSchool', 'major' => 'Culinary Arts & Cookery'],
-                ],
-                'placement_readiness' => ['status' => 'TRAINING_READY', 'is_agreement_verified' => true, 'selection_results' => ['agreed_terms' => true]],
-                'classes_history' => [[
-                    'batch_id' => 'batch-vhs-cul-02',
-                    'class_code' => 'VHS-CUL-2026',
-                    'batch_name' => 'Culinary & Commercial Cookery Standard Global - Batch II',
-                    'sector_name' => 'Kuliner & Tata Boga',
-                    'program_name' => 'Commercial Cookery Specialist',
-                    'period' => ['start_date' => '2026-01-20', 'end_date' => '2026-07-20'],
-                    'target_jp' => 450,
-                    'achieved_jp' => 360,
-                    'completion_percentage' => 80,
-                    'status' => 'IN_PROGRESS',
-                    'verified_reports_count' => 16,
-                ]],
-            ],
-            [
-                'id' => 'GDT-VHS-004',
-                'nik' => '3371016410010004',
-                'name' => 'Siti Nurhaliza',
-                'institution_name' => 'VictoriaHotelSchool',
-                'biodata' => [
-                    'full_name' => 'Siti Nurhaliza',
-                    'gender' => 'Perempuan',
-                    'city' => 'Kota Magelang',
-                    'province' => 'Jawa Tengah',
-                    'expertise' => 'Commercial Cookery & Western Cuisine',
-                    'target_country' => 'Jepang',
-                    'education' => ['school_origin' => 'VictoriaHotelSchool', 'major' => 'Culinary Arts & Cookery'],
-                ],
-                'placement_readiness' => ['status' => 'JOB_READY', 'is_agreement_verified' => true, 'selection_results' => ['agreed_terms' => true]],
-                'classes_history' => [[
-                    'batch_id' => 'batch-vhs-cul-02',
-                    'class_code' => 'VHS-CUL-2026',
-                    'batch_name' => 'Culinary & Commercial Cookery Standard Global - Batch II',
-                    'sector_name' => 'Kuliner & Tata Boga',
-                    'program_name' => 'Commercial Cookery Specialist',
-                    'period' => ['start_date' => '2026-01-20', 'end_date' => '2026-07-20'],
-                    'target_jp' => 450,
-                    'achieved_jp' => 360,
-                    'completion_percentage' => 80,
-                    'status' => 'IN_PROGRESS',
-                    'verified_reports_count' => 16,
-                ]],
-            ],
-
-            // DutaInternationalCourse (3 candidates, 1 batch)
-            [
-                'id' => 'GDT-DIC-001',
-                'nik' => '3372011003020001',
-                'name' => 'Hendra Kusuma',
-                'institution_name' => 'DutaInternationalCourse',
-                'biodata' => [
-                    'full_name' => 'Hendra Kusuma',
-                    'gender' => 'Laki-laki',
-                    'city' => 'Kota Surakarta',
-                    'province' => 'Jawa Tengah',
-                    'expertise' => 'Hospitality & Bahasa Jepang (N4/N3)',
-                    'target_country' => 'Jepang',
-                    'education' => ['school_origin' => 'DutaInternationalCourse', 'major' => 'Hospitality & Bahasa Jepang'],
-                ],
-                'placement_readiness' => ['status' => 'JOB_READY', 'is_agreement_verified' => true, 'selection_results' => ['agreed_terms' => true]],
-                'classes_history' => [[
-                    'batch_id' => 'batch-dic-jpn-01',
-                    'class_code' => 'DIC-JPN-2026',
-                    'batch_name' => 'Bahasa & Budaya Kerja Industri Perhotelan Jepang Batch 2026',
-                    'sector_name' => 'Hospitality & Bahasa Jepang',
-                    'program_name' => 'Japanese Hospitality & Service',
-                    'period' => ['start_date' => '2026-02-01', 'end_date' => '2026-06-30'],
-                    'target_jp' => 360,
-                    'achieved_jp' => 290,
-                    'completion_percentage' => 80.5,
-                    'status' => 'IN_PROGRESS',
-                    'verified_reports_count' => 14,
-                ]],
-            ],
-            [
-                'id' => 'GDT-DIC-002',
-                'nik' => '3372015506010002',
-                'name' => 'Maya Safitri',
-                'institution_name' => 'DutaInternationalCourse',
-                'biodata' => [
-                    'full_name' => 'Maya Safitri',
-                    'gender' => 'Perempuan',
-                    'city' => 'Kota Surakarta',
-                    'province' => 'Jawa Tengah',
-                    'expertise' => 'Hospitality & Bahasa Jepang',
-                    'target_country' => 'Jepang',
-                    'education' => ['school_origin' => 'DutaInternationalCourse', 'major' => 'Hospitality & Bahasa Jepang'],
-                ],
-                'placement_readiness' => ['status' => 'JOB_READY', 'is_agreement_verified' => true, 'selection_results' => ['agreed_terms' => true]],
-                'classes_history' => [[
-                    'batch_id' => 'batch-dic-jpn-01',
-                    'class_code' => 'DIC-JPN-2026',
-                    'batch_name' => 'Bahasa & Budaya Kerja Industri Perhotelan Jepang Batch 2026',
-                    'sector_name' => 'Hospitality & Bahasa Jepang',
-                    'program_name' => 'Japanese Hospitality & Service',
-                    'period' => ['start_date' => '2026-02-01', 'end_date' => '2026-06-30'],
-                    'target_jp' => 360,
-                    'achieved_jp' => 290,
-                    'completion_percentage' => 80.5,
-                    'status' => 'IN_PROGRESS',
-                    'verified_reports_count' => 14,
-                ]],
-            ],
-            [
-                'id' => 'GDT-DIC-003',
-                'nik' => '3372012509020003',
-                'name' => 'Rizky Ramadhan',
-                'institution_name' => 'DutaInternationalCourse',
-                'biodata' => [
-                    'full_name' => 'Rizky Ramadhan',
-                    'gender' => 'Laki-laki',
-                    'city' => 'Kota Surakarta',
-                    'province' => 'Jawa Tengah',
-                    'expertise' => 'Bahasa Jepang Terapan & Front Desk',
-                    'target_country' => 'Jepang',
-                    'education' => ['school_origin' => 'DutaInternationalCourse', 'major' => 'Hospitality & Bahasa Jepang'],
-                ],
-                'placement_readiness' => ['status' => 'TRAINING_READY', 'is_agreement_verified' => true, 'selection_results' => ['agreed_terms' => true]],
-                'classes_history' => [[
-                    'batch_id' => 'batch-dic-jpn-01',
-                    'class_code' => 'DIC-JPN-2026',
-                    'batch_name' => 'Bahasa & Budaya Kerja Industri Perhotelan Jepang Batch 2026',
-                    'sector_name' => 'Hospitality & Bahasa Jepang',
-                    'program_name' => 'Japanese Hospitality & Service',
-                    'period' => ['start_date' => '2026-02-01', 'end_date' => '2026-06-30'],
-                    'target_jp' => 360,
-                    'achieved_jp' => 290,
-                    'completion_percentage' => 80.5,
-                    'status' => 'IN_PROGRESS',
-                    'verified_reports_count' => 14,
-                ]],
-            ],
-        ];
-
-        foreach ($samples as $sample) {
-            $this->persistCandidate($sample, self::SOURCE, true);
-        }
-
-        DB::table('integration_sync_logs')->updateOrInsert(
-            ['source' => 'gardata', 'entity' => 'candidates_and_training_records'],
-            [
-                'status' => 'success',
-                'records_fetched' => count($samples),
-                'records_inserted' => count($samples),
-                'records_updated' => 0,
-                'records_skipped' => 0,
-                'started_at' => now()->subMinutes(15),
-                'finished_at' => now(),
-                'updated_at' => now(),
-                'created_at' => now(),
-            ]
-        );
     }
 }

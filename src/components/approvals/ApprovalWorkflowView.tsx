@@ -16,6 +16,8 @@ import {
   ShieldCheck,
   Search,
   Filter,
+  ChevronLeft,
+  ChevronRight,
   Eye,
   Check,
   X
@@ -24,14 +26,36 @@ import { DataApprovalRequest, ApprovalEntityType } from '../../types';
 
 interface ApprovalWorkflowViewProps {
   approvalRequests: DataApprovalRequest[];
+  pagination: {
+    currentPage: number;
+    lastPage: number;
+    perPage: number;
+    total: number;
+  };
+  counts: Record<string, number>;
+  filters: {
+    status: string;
+    type: string;
+    search: string;
+    page: number;
+    perPage: number;
+  };
   canReview: boolean;
 }
 
-export const ApprovalWorkflowView: React.FC<ApprovalWorkflowViewProps> = ({ approvalRequests, canReview }) => {
+export const ApprovalWorkflowView: React.FC<ApprovalWorkflowViewProps> = ({
+  approvalRequests,
+  pagination,
+  counts,
+  filters,
+  canReview,
+}) => {
 
-  const [filterStatus, setFilterStatus] = useState<string>('ALL');
-  const [filterType, setFilterType] = useState<string>('ALL');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [filterStatus, setFilterStatus] = useState(filters.status);
+  const [filterType, setFilterType] = useState(filters.type);
+  const [searchQuery, setSearchQuery] = useState(filters.search);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [confirmBulkApproval, setConfirmBulkApproval] = useState(false);
 
   // Modal State for Action Notes
   const [activeModal, setActiveModal] = useState<{
@@ -42,23 +66,67 @@ export const ApprovalWorkflowView: React.FC<ApprovalWorkflowViewProps> = ({ appr
   const [actionError, setActionError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  const filteredRequests = approvalRequests.filter((req) => {
-    if (filterStatus !== 'ALL' && req.approvalStatus !== filterStatus) return false;
-    if (filterType !== 'ALL' && req.entityType !== filterType) return false;
-    if (searchQuery.trim() !== '') {
-      const q = searchQuery.toLowerCase();
-      const matchTitle = req.title.toLowerCase().includes(q);
-      const matchBy = req.submittedBy.toLowerCase().includes(q);
-      const matchScope = req.scopeLabel.toLowerCase().includes(q);
-      if (!matchTitle && !matchBy && !matchScope) return false;
-    }
-    return true;
-  });
+  const filteredRequests = approvalRequests;
+  const countPending = counts.PENDING ?? 0;
+  const countApproved = counts.APPROVED ?? 0;
+  const countRevision = counts.REVISION_REQUESTED ?? 0;
+  const countRejected = counts.REJECTED ?? 0;
 
-  const countPending = approvalRequests.filter((r) => r.approvalStatus === 'PENDING').length;
-  const countApproved = approvalRequests.filter((r) => r.approvalStatus === 'APPROVED').length;
-  const countRevision = approvalRequests.filter((r) => r.approvalStatus === 'REVISION_REQUESTED').length;
-  const countRejected = approvalRequests.filter((r) => r.approvalStatus === 'REJECTED').length;
+  React.useEffect(() => {
+    setFilterStatus(filters.status);
+    setFilterType(filters.type);
+    setSearchQuery(filters.search);
+    setSelectedIds([]);
+  }, [filters.status, filters.type, filters.search, pagination.currentPage, pagination.perPage]);
+
+  const updateFilters = (updates: Partial<typeof filters>) => {
+    const next = { ...filters, ...updates };
+    const params: Record<string, string | number> = {};
+    if (next.status !== 'ALL') params.approvalStatus = next.status;
+    if (next.type !== 'ALL') params.approvalType = next.type;
+    if (next.search.trim()) params.approvalSearch = next.search.trim();
+    params.approvalPage = next.page;
+    params.approvalPerPage = next.perPage;
+    router.get('/app/approvals', params, {
+      only: ['businessData'],
+      preserveState: true,
+      preserveScroll: true,
+      replace: true,
+    });
+  };
+
+  React.useEffect(() => {
+    if (searchQuery === filters.search) return;
+    const timeout = window.setTimeout(() => updateFilters({ search: searchQuery, page: 1 }), 350);
+    return () => window.clearTimeout(timeout);
+  }, [searchQuery, filters.search]);
+
+  const pendingOnPage = approvalRequests.filter((request) => request.approvalStatus === 'PENDING');
+  const allPendingSelected = pendingOnPage.length > 0
+    && pendingOnPage.every((request) => selectedIds.includes(request.id));
+
+  const togglePendingPage = () => {
+    setSelectedIds((current) => allPendingSelected
+      ? current.filter((id) => !pendingOnPage.some((request) => request.id === id))
+      : Array.from(new Set([...current, ...pendingOnPage.map((request) => request.id)])));
+  };
+
+  const handleBulkApprove = () => {
+    setSubmitting(true);
+    router.post('/approvals/bulk', { ids: selectedIds }, {
+      preserveScroll: true,
+      onSuccess: () => {
+        toast.success(`${selectedIds.length} usulan berhasil disetujui.`);
+        setSelectedIds([]);
+        setConfirmBulkApproval(false);
+      },
+      onError: (errors) => {
+        const message = Object.values(errors).find(Boolean);
+        toast.error(message ?? 'Persetujuan massal gagal. Periksa status usulan dan hak akses.');
+      },
+      onFinish: () => setSubmitting(false),
+    });
+  };
 
   const handleConfirmAction = () => {
     if (!activeModal) return;
@@ -191,15 +259,20 @@ export const ApprovalWorkflowView: React.FC<ApprovalWorkflowViewProps> = ({ appr
               placeholder="Cari berdasarkan usulan, nama pengusul, atau wilayah..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              className="w-full pl-9 pr-3 py-2 text-sm border border-slate-300 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              aria-label="Cari usulan persetujuan"
             />
           </div>
 
           <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
             <select
               value={filterType}
-              onChange={(e) => setFilterType(e.target.value)}
-              className="text-xs border border-slate-300 rounded-xl px-3 py-2 bg-slate-50 font-bold text-slate-700 focus:outline-none"
+              onChange={(e) => {
+                setFilterType(e.target.value);
+                updateFilters({ type: e.target.value, page: 1 });
+              }}
+              className="text-sm border border-slate-300 rounded-xl px-3 py-2 bg-slate-50 font-bold text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              aria-label="Filter jenis usulan"
             >
               <option value="ALL">Semua Jenis Entitas</option>
               <option value="calon_peserta">Calon Peserta</option>
@@ -213,17 +286,23 @@ export const ApprovalWorkflowView: React.FC<ApprovalWorkflowViewProps> = ({ appr
         {/* Status Filter Pills */}
         <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pt-2 border-t border-slate-100 text-xs">
           <button
-            onClick={() => setFilterStatus('ALL')}
+            onClick={() => {
+              setFilterStatus('ALL');
+              updateFilters({ status: 'ALL', page: 1 });
+            }}
             className={`px-3 py-1.5 rounded-xl font-bold transition whitespace-nowrap ${
               filterStatus === 'ALL'
                 ? 'bg-slate-900 text-white'
                 : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
             }`}
           >
-            Semua ({approvalRequests.length})
+            Semua ({counts.ALL ?? 0})
           </button>
           <button
-            onClick={() => setFilterStatus('PENDING')}
+            onClick={() => {
+              setFilterStatus('PENDING');
+              updateFilters({ status: 'PENDING', page: 1 });
+            }}
             className={`px-3 py-1.5 rounded-xl font-bold transition whitespace-nowrap flex items-center gap-1.5 ${
               filterStatus === 'PENDING'
                 ? 'bg-amber-600 text-white shadow-xs'
@@ -234,7 +313,10 @@ export const ApprovalWorkflowView: React.FC<ApprovalWorkflowViewProps> = ({ appr
             <span>Menunggu Verifikasi ({countPending})</span>
           </button>
           <button
-            onClick={() => setFilterStatus('APPROVED')}
+            onClick={() => {
+              setFilterStatus('APPROVED');
+              updateFilters({ status: 'APPROVED', page: 1 });
+            }}
             className={`px-3 py-1.5 rounded-xl font-bold transition whitespace-nowrap flex items-center gap-1.5 ${
               filterStatus === 'APPROVED'
                 ? 'bg-emerald-600 text-white shadow-xs'
@@ -245,7 +327,10 @@ export const ApprovalWorkflowView: React.FC<ApprovalWorkflowViewProps> = ({ appr
             <span>Disetujui ({countApproved})</span>
           </button>
           <button
-            onClick={() => setFilterStatus('REVISION_REQUESTED')}
+            onClick={() => {
+              setFilterStatus('REVISION_REQUESTED');
+              updateFilters({ status: 'REVISION_REQUESTED', page: 1 });
+            }}
             className={`px-3 py-1.5 rounded-xl font-bold transition whitespace-nowrap flex items-center gap-1.5 ${
               filterStatus === 'REVISION_REQUESTED'
                 ? 'bg-purple-600 text-white shadow-xs'
@@ -256,7 +341,10 @@ export const ApprovalWorkflowView: React.FC<ApprovalWorkflowViewProps> = ({ appr
             <span>Perlu Revisi ({countRevision})</span>
           </button>
           <button
-            onClick={() => setFilterStatus('REJECTED')}
+            onClick={() => {
+              setFilterStatus('REJECTED');
+              updateFilters({ status: 'REJECTED', page: 1 });
+            }}
             className={`px-3 py-1.5 rounded-xl font-bold transition whitespace-nowrap flex items-center gap-1.5 ${
               filterStatus === 'REJECTED'
                 ? 'bg-rose-600 text-white shadow-xs'
@@ -270,6 +358,32 @@ export const ApprovalWorkflowView: React.FC<ApprovalWorkflowViewProps> = ({ appr
       </div>
 
       {/* 3. Requests Feed List */}
+      {canReview && filterStatus !== 'APPROVED' && filterStatus !== 'REJECTED' && filterStatus !== 'REVISION_REQUESTED' && pendingOnPage.length > 0 && (
+        <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-3 sm:flex-row sm:items-center sm:justify-between">
+          <label className="flex items-center gap-2 text-sm font-medium text-foreground">
+            <input
+              type="checkbox"
+              checked={allPendingSelected}
+              onChange={togglePendingPage}
+              aria-label="Pilih semua usulan menunggu pada halaman ini"
+              className="h-4 w-4 rounded border-border text-primary focus-visible:ring-2 focus-visible:ring-ring"
+            />
+            Pilih semua usulan menunggu di halaman ini
+          </label>
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-muted-foreground">{selectedIds.length} dipilih</span>
+            <button
+              type="button"
+              onClick={() => setConfirmBulkApproval(true)}
+              disabled={selectedIds.length === 0 || submitting}
+              className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              Setujui Terpilih
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="space-y-4">
         {filteredRequests.length === 0 ? (
           <div className="bg-white rounded-2xl p-12 text-center border border-slate-200 text-slate-500">
@@ -294,6 +408,20 @@ export const ApprovalWorkflowView: React.FC<ApprovalWorkflowViewProps> = ({ appr
               <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
                 {/* Left: Info & Details */}
                 <div className="space-y-2.5 flex-1">
+                  {canReview && req.approvalStatus === 'PENDING' && (
+                    <label className="inline-flex items-center gap-2 text-sm text-muted-foreground">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.includes(req.id)}
+                        onChange={() => setSelectedIds((current) => current.includes(req.id)
+                          ? current.filter((id) => id !== req.id)
+                          : [...current, req.id])}
+                        aria-label={`Pilih usulan ${req.title}`}
+                        className="h-4 w-4 rounded border-border text-primary focus-visible:ring-2 focus-visible:ring-ring"
+                      />
+                      Pilih untuk persetujuan massal
+                    </label>
+                  )}
                   <div className="flex items-center gap-2 flex-wrap text-xs">
                     <span className="px-2 py-0.5 rounded-md font-extrabold bg-slate-100 text-slate-700 flex items-center gap-1">
                       {getEntityIcon(req.entityType)}
@@ -458,6 +586,80 @@ export const ApprovalWorkflowView: React.FC<ApprovalWorkflowViewProps> = ({ appr
           ))
         )}
       </div>
+
+      <div className="flex flex-col gap-3 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-sm text-muted-foreground">
+          Menampilkan {pagination.total === 0 ? 0 : (pagination.currentPage - 1) * pagination.perPage + 1}
+          {'–'}{Math.min(pagination.currentPage * pagination.perPage, pagination.total)} dari {pagination.total} usulan
+        </p>
+        <div className="flex flex-wrap items-center gap-2">
+          <label htmlFor="approval-page-size" className="text-sm text-muted-foreground">Baris per halaman</label>
+          <select
+            id="approval-page-size"
+            value={pagination.perPage}
+            onChange={(event) => updateFilters({ perPage: Number(event.target.value), page: 1 })}
+            className="rounded-md border border-border bg-background px-2 py-1.5 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            {[10, 25, 50, 100].map((size) => <option key={size} value={size}>{size}</option>)}
+          </select>
+          <button
+            type="button"
+            onClick={() => updateFilters({ page: pagination.currentPage - 1 })}
+            disabled={pagination.currentPage <= 1}
+            aria-label="Halaman sebelumnya"
+            className="rounded-md border border-border p-2 text-foreground hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+          <span className="min-w-24 text-center text-sm tabular-nums text-foreground">
+            Halaman {pagination.currentPage} dari {pagination.lastPage}
+          </span>
+          <button
+            type="button"
+            onClick={() => updateFilters({ page: pagination.currentPage + 1 })}
+            disabled={pagination.currentPage >= pagination.lastPage}
+            aria-label="Halaman berikutnya"
+            className="rounded-md border border-border p-2 text-foreground hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+
+      {confirmBulkApproval && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/50 p-4" role="presentation">
+          <div
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="bulk-approval-title"
+            className="w-full max-w-md space-y-4 rounded-xl border border-border bg-background p-6 shadow-lg"
+          >
+            <h3 id="bulk-approval-title" className="text-lg font-semibold text-foreground">Setujui usulan terpilih?</h3>
+            <p className="text-sm text-muted-foreground">
+              {selectedIds.length} usulan menunggu akan disetujui. Semua perubahan dicatat pada riwayat dan audit.
+              Jika salah satu usulan tidak lagi menunggu atau di luar kewenangan, seluruh proses dibatalkan.
+            </p>
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setConfirmBulkApproval(false)}
+                disabled={submitting}
+                className="rounded-md border border-border px-4 py-2 text-sm text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleBulkApprove}
+                disabled={submitting || selectedIds.length === 0}
+                className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                {submitting ? 'Menyimpan…' : 'Ya, Setujui'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Action Notes Modal */}
       {activeModal && (

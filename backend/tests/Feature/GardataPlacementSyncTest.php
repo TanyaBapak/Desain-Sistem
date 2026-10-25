@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Jobs\SyncGardataPlacementData;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\BusinessDataPresenter;
 use App\Services\GardataPlacementSyncService;
 use Database\Seeders\ReferenceDataSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -33,9 +34,11 @@ class GardataPlacementSyncTest extends TestCase
 
     public function test_sync_imports_consented_candidates_and_training_history_idempotently(): void
     {
-        Http::fake([
-            'gardata.test/api/v1/placement/candidates*' => Http::response($this->candidatePage(), 200),
-        ]);
+        $this->fakeCandidateEndpoints($this->candidatePage());
+
+        $presenter = app(BusinessDataPresenter::class);
+        $administrator = $this->userWithRole('super_admin');
+        $this->assertSame(0, $presenter->make($administrator)['reportSummary']['candidateCount']);
 
         $service = app(GardataPlacementSyncService::class);
         $firstResult = $service->syncCandidates();
@@ -80,15 +83,73 @@ class GardataPlacementSyncTest extends TestCase
             ->where('status', 'PENDING')
             ->count());
         $this->assertSame(1, DB::table('approval_histories')->where('action', 'SUBMIT')->count());
+        $this->assertSame(1, $presenter->make($administrator)['reportSummary']['candidateCount']);
+    }
+
+    public function test_sync_imports_every_page_from_each_subdomain(): void
+    {
+        Http::fake(function (HttpRequest $request) {
+            $host = parse_url($request->url(), PHP_URL_HOST);
+            if ($host === 'gardata.test') {
+                return Http::response($this->candidatePage(), 200);
+            }
+
+            $page = $this->requestPage($request);
+            $payload = $this->candidatePage();
+            $payload['meta']['current_page'] = $page;
+            $payload['meta']['total_pages'] = 2;
+            $payload['data'][0]['id'] = "tenant-{$host}-{$page}";
+            $tenantIndex = array_search($host, array_column(GardataPlacementSyncService::KNOWN_SUBDOMAINS, 'subdomain'), true) + 1;
+            $payload['data'][0]['nik'] = sprintf('3273%04d%04d%04d', $tenantIndex, $page, 1);
+
+            return Http::response($payload, 200);
+        });
+
+        $result = app(GardataPlacementSyncService::class)->syncCandidates();
+
+        $this->assertSame('success', $result['status']);
+        $this->assertSame(7, $result['recordsFetched']);
+        $this->assertSame(7, $result['recordsInserted']);
+        $this->assertSame(7, DB::table('job_seekers')->count());
+        foreach (GardataPlacementSyncService::KNOWN_SUBDOMAINS as $tenant) {
+            Http::assertSent(fn (HttpRequest $request): bool => parse_url($request->url(), PHP_URL_HOST) === $tenant['subdomain']
+                && $this->requestPage($request) === 2);
+        }
+    }
+
+    public function test_failed_subdomain_is_reported_as_a_partial_sync(): void
+    {
+        $failedSubdomain = GardataPlacementSyncService::KNOWN_SUBDOMAINS[0]['subdomain'];
+        Http::fake(function (HttpRequest $request) use ($failedSubdomain) {
+            $host = parse_url($request->url(), PHP_URL_HOST);
+            if ($host === $failedSubdomain) {
+                return Http::response(['status' => 'error'], 503);
+            }
+
+            return Http::response([
+                'status' => 'success',
+                'meta' => [
+                    'current_page' => $this->requestPage($request),
+                    'total_pages' => 1,
+                ],
+                'data' => [],
+            ], 200);
+        });
+
+        $result = app(GardataPlacementSyncService::class)->syncCandidates();
+
+        $this->assertSame('partial', $result['status']);
+        $this->assertDatabaseHas('integration_sync_logs', [
+            'source' => 'gardata',
+            'status' => 'partial',
+        ]);
     }
 
     public function test_sync_skips_candidates_without_verified_consent(): void
     {
         $payload = $this->candidatePage();
         $payload['data'][0]['placement_readiness']['is_agreement_verified'] = false;
-        Http::fake([
-            'gardata.test/api/v1/placement/candidates*' => Http::response($payload, 200),
-        ]);
+        $this->fakeCandidateEndpoints($payload);
 
         $result = app(GardataPlacementSyncService::class)->syncCandidates();
 
@@ -109,9 +170,7 @@ class GardataPlacementSyncTest extends TestCase
         $payload['data'][0]['biodata']['city'] = 'Kota Cimahi';
         $payload['data'][0]['biodata']['gender'] = 'Pria';
 
-        Http::fake([
-            'gardata.test/api/v1/placement/candidates*' => Http::response($payload, 200),
-        ]);
+        $this->fakeCandidateEndpoints($payload);
 
         $result = app(GardataPlacementSyncService::class)->syncCandidates();
 
@@ -279,6 +338,31 @@ class GardataPlacementSyncTest extends TestCase
                 ]],
             ]],
         ];
+    }
+
+    private function fakeCandidateEndpoints(array $centerPayload): void
+    {
+        Http::fake(function (HttpRequest $request) use ($centerPayload) {
+            if (parse_url($request->url(), PHP_URL_HOST) === 'gardata.test') {
+                return Http::response($centerPayload, 200);
+            }
+
+            return Http::response([
+                'status' => 'success',
+                'meta' => [
+                    'current_page' => $this->requestPage($request),
+                    'total_pages' => 1,
+                ],
+                'data' => [],
+            ], 200);
+        });
+    }
+
+    private function requestPage(HttpRequest $request): int
+    {
+        parse_str((string) parse_url($request->url(), PHP_URL_QUERY), $query);
+
+        return (int) ($query['page'] ?? 1);
     }
 
     private function userWithRole(string $roleName): User

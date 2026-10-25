@@ -8,6 +8,7 @@ export interface ReportSummary {
   readyCandidateCount: number;
   programCount: number;
   institutionCount: number;
+  nationalLpkCount: number;
   demandCount: number;
   updatedAt: string | null;
   gardata: {
@@ -35,6 +36,7 @@ export function ReportsView({ summary, isAuditor, title = 'Laporan' }: ReportsVi
     { label: 'Siap penempatan', value: summary.readyCandidateCount, icon: BarChart3 },
     { label: 'Program pelatihan aktif', value: summary.programCount, icon: GraduationCap },
     { label: 'Lembaga vokasi aktif', value: summary.institutionCount, icon: Building2 },
+    { label: 'LPK terdaftar nasional', value: summary.nationalLpkCount, icon: Building2 },
     { label: 'Permintaan tervalidasi', value: summary.demandCount, icon: BriefcaseBusiness },
   ];
 

@@ -108,11 +108,13 @@ interface AppProps {
     demands: GlobalDemand[];
     candidateMatches: PersistedCandidateMatch[];
     allocations: ProgramAllocationDecision[];
+    nationalLpkCount: number;
     reportSummary: {
       candidateCount: number;
       readyCandidateCount: number;
       programCount: number;
       institutionCount: number;
+      nationalLpkCount: number;
       demandCount: number;
       updatedAt: string | null;
       dashboard?: ExecutiveDashboardBreakdownsData;
@@ -128,6 +130,20 @@ interface AppProps {
       };
     };
     approvalRequests: DataApprovalRequest[];
+    approvalPagination: {
+      currentPage: number;
+      lastPage: number;
+      perPage: number;
+      total: number;
+    };
+    approvalCounts: Record<string, number>;
+    approvalFilters: {
+      status: string;
+      type: string;
+      search: string;
+      page: number;
+      perPage: number;
+    };
     monitoring: MonitoringData;
     options: {
       provinces: { id: string; name: string }[];
@@ -318,6 +334,7 @@ export function App({
               readyCandidateCount: 0,
               programCount: 0,
               institutionCount: 0,
+              nationalLpkCount: 0,
               demandCount: 0,
               updatedAt: null,
               gardata: {
@@ -337,11 +354,21 @@ export function App({
         );
         break;
       }
-      page = <DashboardPage currentTab="dashboard" setCurrentTab={setCurrentTab} />;
+      page = (
+        <DashboardPage
+          currentTab="dashboard"
+          setCurrentTab={setCurrentTab}
+          nationalLpkCount={businessData?.nationalLpkCount ?? 0}
+        />
+      );
       break;
     case "overview":
       page = (
-        <DashboardPage currentTab={activeTab} setCurrentTab={setCurrentTab} />
+        <DashboardPage
+          currentTab={activeTab}
+          setCurrentTab={setCurrentTab}
+          nationalLpkCount={businessData?.nationalLpkCount ?? 0}
+        />
       );
       break;
     case "modul-a":
@@ -364,6 +391,9 @@ export function App({
       page = (
         <ApprovalWorkflowView
           approvalRequests={businessData?.approvalRequests ?? []}
+          pagination={businessData?.approvalPagination ?? { currentPage: 1, lastPage: 1, perPage: 25, total: 0 }}
+          counts={businessData?.approvalCounts ?? {}}
+          filters={businessData?.approvalFilters ?? { status: "ALL", type: "ALL", search: "", page: 1, perPage: 25 }}
           canReview={["task_force", "verifier"].includes(authenticatedUser.roleName)}
         />
       );
@@ -379,6 +409,7 @@ export function App({
             readyCandidateCount: 0,
             programCount: 0,
             institutionCount: 0,
+            nationalLpkCount: 0,
             demandCount: 0,
             updatedAt: null,
             gardata: {
@@ -418,13 +449,32 @@ export function App({
         classes: [],
         gardataBatches: [],
         candidates: [],
+        candidatePagination: {
+          currentPage: 1,
+          lastPage: 1,
+          perPage: 25,
+          total: 0,
+        },
+        candidateSource: 'all',
+        classPagination: {
+          currentPage: 1,
+          lastPage: 1,
+          perPage: 25,
+          total: 0,
+        },
         placements: [],
         placementCandidates: [],
         lastSync: null,
       }} />;
       break;
     default:
-      page = <DashboardPage currentTab="overview" setCurrentTab={setCurrentTab} />;
+      page = (
+        <DashboardPage
+          currentTab="overview"
+          setCurrentTab={setCurrentTab}
+          nationalLpkCount={businessData?.nationalLpkCount ?? 0}
+        />
+      );
   }
 
   return (

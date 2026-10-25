@@ -3,19 +3,23 @@
 namespace App\Services;
 
 use App\Models\User;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class BusinessDataPresenter
 {
     public function __construct(private readonly Bp3miScope $bp3miScope = new Bp3miScope) {}
 
-    public function make(User $user): array
+    public function make(User $user, array $filters = []): array
     {
         $role = $user->roles()->value('name');
-        $cacheKey = $this->cacheKey($user, $role);
+        $cacheKey = $this->cacheKey($user, $role, $filters);
 
-        return Cache::remember($cacheKey, 30, function () use ($role, $user): array {
+        return Cache::remember($cacheKey, 30, function () use ($role, $user, $filters): array {
+            $nationalLpkCount = $this->nationalLpkCount();
+
             return [
                 'candidates' => $this->candidates($role, $user),
                 'programs' => $this->programs($role, $user),
@@ -23,9 +27,13 @@ class BusinessDataPresenter
                 'demands' => $this->demands($role, $user),
                 'candidateMatches' => $this->candidateMatches($role, $user),
                 'allocations' => $this->allocations($role, $user),
-                'reportSummary' => $this->reportSummary($role, $user),
-                'approvalRequests' => $this->approvalRequests($role, $user),
-                'monitoring' => $this->monitoring($role, $user),
+                'nationalLpkCount' => $nationalLpkCount,
+                'reportSummary' => $this->reportSummary($role, $user, $nationalLpkCount),
+                'approvalRequests' => $this->approvalRequests($role, $user, $filters),
+                'approvalPagination' => $this->approvalPagination($role, $user, $filters),
+                'approvalCounts' => $this->approvalCounts($role, $user, $filters),
+                'approvalFilters' => $this->approvalFilters($filters),
+                'monitoring' => $this->monitoring($role, $user, $filters),
                 'options' => [
                     'provinces' => DB::table('provinces')->orderBy('name')->get(['id', 'name']),
                     'districts' => DB::table('districts')->orderBy('name')->get(['id', 'province_id', 'name']),
@@ -46,14 +54,20 @@ class BusinessDataPresenter
 
     public function forget(User $user): void
     {
-        Cache::forget($this->cacheKey($user, $user->roles()->value('name')));
+        Cache::forever('business_data:user_version:'.$user->id, (string) Str::uuid());
     }
 
-    private function cacheKey(User $user, ?string $role): string
+    public function forgetAll(): void
+    {
+        Cache::forever('business_data:version', (string) Str::uuid());
+    }
+
+    private function cacheKey(User $user, ?string $role, array $filters): string
     {
         $bp3miCodes = implode(',', $this->bp3miScope->codesForUser($user));
+        $filterKey = hash('sha256', json_encode($filters, JSON_THROW_ON_ERROR));
 
-        return 'business_data:'.$user->id.':'.($role ?? 'none').':'.($user->province_id ?? 'na').':'.($user->district_id ?? 'na').':'.($user->institution_id ?? 'na').':'.($user->employer_id ?? 'na').':'.$bp3miCodes;
+        return 'business_data:'.Cache::get('business_data:version', '1').':'.Cache::get('business_data:user_version:'.$user->id, '1').':'.$user->id.':'.($role ?? 'none').':'.($user->province_id ?? 'na').':'.($user->district_id ?? 'na').':'.($user->institution_id ?? 'na').':'.($user->employer_id ?? 'na').':'.$bp3miCodes.':'.$filterKey;
     }
 
     private function candidateMatches(?string $role, User $user): array
@@ -505,7 +519,7 @@ class BusinessDataPresenter
             ->all();
     }
 
-    private function reportSummary(?string $role, User $user): array
+    private function reportSummary(?string $role, User $user, int $nationalLpkCount): array
     {
         if (! in_array($role, ['super_admin', 'leadership', 'task_force', 'directorate_admin', 'auditor'], true)) {
             return [];
@@ -563,6 +577,7 @@ class BusinessDataPresenter
                 ->count(),
             'programCount' => (clone $programs)->count('training_programs.id'),
             'institutionCount' => (clone $institutions)->count('institutions.id'),
+            'nationalLpkCount' => $nationalLpkCount,
             'demandCount' => (clone $demands)->count('job_demands.id'),
             'dashboard' => [
                 'candidateLifecycle' => (clone $candidates)
@@ -655,50 +670,18 @@ class BusinessDataPresenter
         ];
     }
 
-    private function approvalRequests(?string $role, User $user): array
+    private function approvalRequests(?string $role, User $user, array $filters): array
     {
-        if (! in_array($role, ['super_admin', 'task_force', 'verifier'], true)) {
-            return [];
-        }
-
-        $registrationDocumentQuery = DB::table('institution_registration_documents');
-        $requests = DB::table('approval_requests');
-        if ($role === 'task_force') {
-            $provinceNames = $this->bp3miScope->provinceNamesForUser($user);
-            $candidateIds = DB::table('job_seekers')
-                ->join('provinces', 'provinces.id', '=', 'job_seekers.province_id')
-                ->whereNull('job_seekers.deleted_at')
-                ->whereIn('provinces.name', $provinceNames)
-                ->select('job_seekers.id');
-            $institutionIds = DB::table('institutions')
-                ->join('provinces', 'provinces.id', '=', 'institutions.province_id')
-                ->whereIn('provinces.name', $provinceNames)
-                ->select('institutions.id');
-            $programIds = DB::table('training_programs')
-                ->join('institutions', 'institutions.id', '=', 'training_programs.institution_id')
-                ->join('provinces', 'provinces.id', '=', 'institutions.province_id')
-                ->whereIn('provinces.name', $provinceNames)
-                ->select('training_programs.id');
-            $demandIds = DB::table('job_demands');
-            $this->bp3miScope->applyToJobDemands($demandIds, $user);
-
-            $requests->where(function ($query) use ($candidateIds, $institutionIds, $programIds, $demandIds): void {
-                $query->where(fn ($item) => $item->where('entity_type', 'calon_peserta')->whereIn('entity_id', $candidateIds))
-                    ->orWhere(fn ($item) => $item->where('entity_type', 'lembaga_vokasi')->whereIn('entity_id', $institutionIds))
-                    ->orWhere(fn ($item) => $item->where('entity_type', 'program_pelatihan')->whereIn('entity_id', $programIds))
-                    ->orWhere(fn ($item) => $item->where('entity_type', 'demand_luar_negeri')->whereIn('entity_id', $demandIds->select('job_demands.id')));
-            });
-            $registrationDocumentQuery->whereIn('institution_id', $institutionIds);
-        }
-
-        $registrationDocuments = $registrationDocumentQuery
-            ->orderBy('document_type')
-            ->get(['id', 'institution_id', 'document_type', 'original_name'])
-            ->groupBy('institution_id');
-
-        return $requests
+        $normalized = $this->approvalFilters($filters);
+        $query = $this->filteredApprovalQuery($role, $user, $normalized);
+        $total = (clone $query)->count();
+        $lastPage = max((int) ceil($total / $normalized['perPage']), 1);
+        $page = min($normalized['page'], $lastPage);
+        $rows = $query
             ->orderByRaw("CASE WHEN status = 'PENDING' THEN 0 ELSE 1 END")
             ->orderByDesc('submitted_at')
+            ->offset(($page - 1) * $normalized['perPage'])
+            ->limit($normalized['perPage'])
             ->get([
                 'id',
                 'entity_type',
@@ -714,49 +697,166 @@ class BusinessDataPresenter
                 'reviewed_at',
                 'rejection_reason',
                 'revision_notes',
-            ])
-            ->map(function (object $row) use ($registrationDocuments): array {
-                $docs = $row->entity_type === 'lembaga_vokasi'
-                    ? ($registrationDocuments->get($row->entity_id, collect()))
-                        ->map(fn (object $document): array => [
-                            'id' => (int) $document->id,
-                            'type' => $document->document_type,
-                            'name' => $document->original_name,
-                            'downloadUrl' => route('approvals.documents.download', [
-                                'id' => $row->id,
-                                'documentId' => $document->id,
-                            ]),
-                        ])->all()
-                    : [];
+            ]);
+        $institutionIds = $rows
+            ->where('entity_type', 'lembaga_vokasi')
+            ->pluck('entity_id')
+            ->all();
+        $registrationDocuments = DB::table('institution_registration_documents')
+            ->whereIn('institution_id', $institutionIds)
+            ->orderBy('document_type')
+            ->get(['id', 'institution_id', 'document_type', 'original_name'])
+            ->groupBy('institution_id');
 
-                return [
-                    'id' => $row->id,
-                    'entityType' => $row->entity_type,
-                    'entityId' => $row->entity_id,
-                    'entityTitle' => null,
-                    'details' => $this->approvalDetails($row->entity_type, $row->entity_id),
-                    'documents' => $docs,
-                    'title' => $row->title,
-                    'submittedBy' => $row->submitted_by,
-                    'submittedRole' => $row->submitted_role,
-                    'scopeLabel' => $row->scope_label,
-                    'submittedAt' => $row->submitted_at,
-                    'validationStatus' => $row->validation_status,
-                    'approvalStatus' => $row->status,
-                    'reviewedBy' => $row->reviewed_by,
-                    'reviewedAt' => $row->reviewed_at,
-                    'rejectionReason' => $row->rejection_reason,
-                    'revisionNotes' => $row->revision_notes,
-                    'dataSnapshot' => [],
-                    'validationChecks' => [[
-                        'ruleName' => 'Validasi data wajib',
-                        'passed' => $row->validation_status === 'PASSED',
-                        'message' => $row->validation_status === 'PASSED'
-                            ? 'Data wajib telah lolos validasi server.'
-                            : 'Perlu pemeriksaan manual sebelum keputusan.',
-                    ]],
-                ];
-            })->all();
+        return $rows->map(function (object $row) use ($registrationDocuments): array {
+            $docs = $row->entity_type === 'lembaga_vokasi'
+                ? ($registrationDocuments->get($row->entity_id, collect()))
+                    ->map(fn (object $document): array => [
+                        'id' => (int) $document->id,
+                        'type' => $document->document_type,
+                        'name' => $document->original_name,
+                        'downloadUrl' => route('approvals.documents.download', [
+                            'id' => $row->id,
+                            'documentId' => $document->id,
+                        ]),
+                    ])->all()
+                : [];
+
+            return [
+                'id' => $row->id,
+                'entityType' => $row->entity_type,
+                'entityId' => $row->entity_id,
+                'entityTitle' => null,
+                'details' => $this->approvalDetails($row->entity_type, $row->entity_id),
+                'documents' => $docs,
+                'title' => $row->title,
+                'submittedBy' => $row->submitted_by,
+                'submittedRole' => $row->submitted_role,
+                'scopeLabel' => $row->scope_label,
+                'submittedAt' => $row->submitted_at,
+                'validationStatus' => $row->validation_status,
+                'approvalStatus' => $row->status,
+                'reviewedBy' => $row->reviewed_by,
+                'reviewedAt' => $row->reviewed_at,
+                'rejectionReason' => $row->rejection_reason,
+                'revisionNotes' => $row->revision_notes,
+                'dataSnapshot' => [],
+                'validationChecks' => [[
+                    'ruleName' => 'Validasi data wajib',
+                    'passed' => $row->validation_status === 'PASSED',
+                    'message' => $row->validation_status === 'PASSED'
+                        ? 'Data wajib telah lolos validasi server.'
+                        : 'Perlu pemeriksaan manual sebelum keputusan.',
+                ]],
+            ];
+        })->all();
+    }
+
+    private function approvalPagination(?string $role, User $user, array $filters): array
+    {
+        $normalized = $this->approvalFilters($filters);
+        $total = $this->filteredApprovalQuery($role, $user, $normalized)->count();
+        $lastPage = max((int) ceil($total / $normalized['perPage']), 1);
+
+        return [
+            'currentPage' => min($normalized['page'], $lastPage),
+            'lastPage' => $lastPage,
+            'perPage' => $normalized['perPage'],
+            'total' => $total,
+        ];
+    }
+
+    private function approvalCounts(?string $role, User $user, array $filters): array
+    {
+        $normalized = $this->approvalFilters($filters);
+        $normalized['status'] = 'ALL';
+
+        $counts = $this->filteredApprovalQuery($role, $user, $normalized)
+            ->select('status')
+            ->selectRaw('COUNT(*) as count')
+            ->groupBy('status')
+            ->pluck('count', 'status');
+
+        return [
+            'ALL' => (int) $counts->sum(),
+            'PENDING' => (int) ($counts['PENDING'] ?? 0),
+            'APPROVED' => (int) ($counts['APPROVED'] ?? 0),
+            'REVISION_REQUESTED' => (int) ($counts['REVISION_REQUESTED'] ?? 0),
+            'REJECTED' => (int) ($counts['REJECTED'] ?? 0),
+        ];
+    }
+
+    private function approvalFilters(array $filters): array
+    {
+        $status = $filters['approvalStatus'] ?? 'ALL';
+        $type = $filters['approvalType'] ?? 'ALL';
+        $perPage = filter_var($filters['approvalPerPage'] ?? 25, FILTER_VALIDATE_INT);
+        $page = filter_var($filters['approvalPage'] ?? 1, FILTER_VALIDATE_INT);
+
+        return [
+            'status' => in_array($status, ['ALL', 'PENDING', 'APPROVED', 'REVISION_REQUESTED', 'REJECTED'], true) ? $status : 'ALL',
+            'type' => in_array($type, ['ALL', 'calon_peserta', 'lembaga_vokasi', 'demand_luar_negeri', 'program_pelatihan'], true) ? $type : 'ALL',
+            'search' => mb_substr(trim((string) ($filters['approvalSearch'] ?? '')), 0, 100),
+            'perPage' => in_array($perPage, [10, 25, 50, 100], true) ? $perPage : 25,
+            'page' => is_int($page) && $page > 0 ? $page : 1,
+        ];
+    }
+
+    private function filteredApprovalQuery(?string $role, User $user, array $filters): Builder
+    {
+        $requests = $this->approvalBaseQuery($role, $user);
+        if ($filters['status'] !== 'ALL') {
+            $requests->where('approval_requests.status', $filters['status']);
+        }
+        if ($filters['type'] !== 'ALL') {
+            $requests->where('approval_requests.entity_type', $filters['type']);
+        }
+        if ($filters['search'] !== '') {
+            $search = addcslashes($filters['search'], '\\%_');
+            $requests->where(function ($query) use ($search): void {
+                $query->where('approval_requests.title', 'LIKE', "%{$search}%")
+                    ->orWhere('approval_requests.submitted_by', 'LIKE', "%{$search}%")
+                    ->orWhere('approval_requests.scope_label', 'LIKE', "%{$search}%");
+            });
+        }
+
+        return $requests;
+    }
+
+    private function approvalBaseQuery(?string $role, User $user): Builder
+    {
+        $requests = DB::table('approval_requests');
+        if (! in_array($role, ['super_admin', 'task_force', 'verifier'], true)) {
+            return $requests->whereRaw('1 = 0');
+        }
+        if ($role !== 'task_force') {
+            return $requests;
+        }
+
+        $provinceNames = $this->bp3miScope->provinceNamesForUser($user);
+        $candidateIds = DB::table('job_seekers')
+            ->join('provinces', 'provinces.id', '=', 'job_seekers.province_id')
+            ->whereNull('job_seekers.deleted_at')
+            ->whereIn('provinces.name', $provinceNames)
+            ->select('job_seekers.id');
+        $institutionIds = DB::table('institutions')
+            ->join('provinces', 'provinces.id', '=', 'institutions.province_id')
+            ->whereIn('provinces.name', $provinceNames)
+            ->select('institutions.id');
+        $programIds = DB::table('training_programs')
+            ->join('institutions', 'institutions.id', '=', 'training_programs.institution_id')
+            ->join('provinces', 'provinces.id', '=', 'institutions.province_id')
+            ->whereIn('provinces.name', $provinceNames)
+            ->select('training_programs.id');
+        $demandIds = DB::table('job_demands');
+        $this->bp3miScope->applyToJobDemands($demandIds, $user);
+
+        return $requests->where(function ($query) use ($candidateIds, $institutionIds, $programIds, $demandIds): void {
+            $query->where(fn ($item) => $item->where('entity_type', 'calon_peserta')->whereIn('entity_id', $candidateIds))
+                ->orWhere(fn ($item) => $item->where('entity_type', 'lembaga_vokasi')->whereIn('entity_id', $institutionIds))
+                ->orWhere(fn ($item) => $item->where('entity_type', 'program_pelatihan')->whereIn('entity_id', $programIds))
+                ->orWhere(fn ($item) => $item->where('entity_type', 'demand_luar_negeri')->whereIn('entity_id', $demandIds->select('job_demands.id')));
+        });
     }
 
     private function approvalDetails(string $entityType, string $entityId): array
@@ -871,40 +971,50 @@ class BusinessDataPresenter
         };
     }
 
-    private function monitoring(?string $role, User $user): array
+    private function nationalLpkCount(): int
+    {
+        return (int) DB::table('institutions')
+            ->where('institution_type', 'LPK')
+            ->where(function ($query): void {
+                $query->whereNull('external_id')
+                    ->orWhereNotIn('external_id', array_column(GardataPlacementSyncService::KNOWN_SUBDOMAINS, 'subdomain'));
+            })
+            ->count();
+    }
+
+    private function monitoring(?string $role, User $user, array $filters): array
     {
         if (! in_array($role, ['super_admin', 'task_force', 'directorate_admin', 'institution_admin', 'training_operator', 'bp3mi_admin', 'placement_officer'], true)) {
             return [];
         }
 
-        try {
-            app(GardataPlacementSyncService::class)->ensureSubdomainTenantsRegistered(true);
-        } catch (\Throwable) {
-            // Keep presenter resilient against db lock or temporary issues
-        }
-
         $canViewGardata = in_array($role, ['super_admin', 'task_force', 'directorate_admin', 'bp3mi_admin', 'placement_officer', 'institution_admin', 'training_operator'], true);
         $externalClasses = DB::table('external_training_records')
+            ->leftJoin('job_seekers', 'job_seekers.id', '=', 'external_training_records.job_seeker_id')
             ->whereIn('external_training_records.external_source', ['gardata', 'sippmi'])
             ->when(! $canViewGardata, fn ($query) => $query->whereRaw('1 = 0'));
         if ($role === 'task_force') {
             $externalClasses
-                ->join('job_seekers', 'job_seekers.id', '=', 'external_training_records.job_seeker_id')
                 ->leftJoin('provinces', 'provinces.id', '=', 'job_seekers.province_id')
                 ->whereNull('job_seekers.deleted_at');
             $this->bp3miScope->applyToJobSeekers($externalClasses, $user);
         }
 
         $externalClasses = $externalClasses
-            ->select('external_training_records.*')
+            ->select('external_training_records.*', 'job_seekers.institution_name')
             ->orderByDesc('external_training_records.updated_at')
             ->get()
-            ->groupBy(fn (object $record): string => $record->external_source.'|'.$record->external_batch_id)
+            ->groupBy(fn (object $record): string => $record->external_source.'|'.$record->external_batch_id.'|'.$record->institution_name)
             ->map(fn ($records): array => [
-                'id' => 'gardata-'.$records->first()->external_source.'-'.$records->first()->external_batch_id,
+                'id' => 'external-'.$records->first()->external_source.'-'.$records->first()->external_batch_id.'-'.substr(hash('sha256', (string) $records->first()->institution_name), 0, 8),
                 'externalSource' => $records->first()->external_source,
                 'externalBatchId' => $records->first()->external_batch_id,
-                'source' => 'Gardata / SIPPMI',
+                'source' => $records->first()->external_source === 'sippmi'
+                    ? 'SIPPMI · '.GardataPlacementSyncService::SIPPMI_INSTITUTION_NAME
+                    : 'Gardata · '.($records->first()->institution_name ?: 'Multitenant'),
+                'institutionName' => $records->first()->external_source === 'sippmi'
+                    ? GardataPlacementSyncService::SIPPMI_INSTITUTION_NAME
+                    : $records->first()->institution_name,
                 'classCode' => $records->first()->class_code ?? $records->first()->external_batch_id,
                 'name' => $records->first()->batch_name,
                 'sector' => $records->first()->sector_name ?? $records->first()->program_name ?? 'Belum dipetakan',
@@ -991,37 +1101,80 @@ class BusinessDataPresenter
                 'status' => $row->status,
             ]);
 
+        $allClasses = $localClasses->concat($externalClasses)->values();
+        $classPage = $this->pageWindow($filters, 'class', 25);
+        $classTotal = $allClasses->count();
+        $classLastPage = max((int) ceil($classTotal / $classPage['perPage']), 1);
+        $classPage['page'] = min($classPage['page'], $classLastPage);
+        $classes = $allClasses
+            ->slice(($classPage['page'] - 1) * $classPage['perPage'], $classPage['perPage'])
+            ->values()
+            ->all();
+
+        $candidateSource = (string) ($filters['candidateSource'] ?? 'all');
+        $knownCandidateSources = array_merge(
+            array_column(GardataPlacementSyncService::KNOWN_SUBDOMAINS, 'subdomain'),
+            ['sippmi.com'],
+        );
+        if (! in_array($candidateSource, $knownCandidateSources, true)) {
+            $candidateSource = 'all';
+        }
+        $candidateSourceFilter = function ($query) use ($candidateSource): void {
+            $query->where(function ($sourceQuery): void {
+                $sourceQuery->whereIn('job_seekers.external_source', ['gardata', 'sippmi'])
+                    ->orWhere(function ($legacy): void {
+                        $legacy->whereNull('job_seekers.external_source')
+                            ->where(function ($names): void {
+                                foreach (GardataPlacementSyncService::KNOWN_SUBDOMAINS as $tenant) {
+                                    $needle = match ($tenant['subdomain']) {
+                                        'omegahotelacademy.sippmi.com' => 'Omega',
+                                        'victoriahotelschool.sippmi.com' => 'Victoria',
+                                        'dutainternationalcourse.sippmi.com' => 'Duta',
+                                        default => $tenant['name'],
+                                    };
+                                    $names->orWhere('job_seekers.institution_name', 'LIKE', '%'.$needle.'%');
+                                }
+                            });
+                    });
+            });
+            if ($candidateSource === 'sippmi.com') {
+                $query->where('job_seekers.external_source', 'sippmi');
+            } elseif ($candidateSource !== 'all') {
+                $tenant = collect(GardataPlacementSyncService::KNOWN_SUBDOMAINS)
+                    ->firstWhere('subdomain', $candidateSource);
+                $needle = match ($candidateSource) {
+                    'omegahotelacademy.sippmi.com' => 'Omega',
+                    'victoriahotelschool.sippmi.com' => 'Victoria',
+                    'dutainternationalcourse.sippmi.com' => 'Duta',
+                    default => $tenant['name'] ?? '',
+                };
+                $query->where('job_seekers.institution_name', 'LIKE', '%'.$needle.'%');
+            }
+        };
+        $candidateCountQuery = DB::table('job_seekers')
+            ->whereNull('job_seekers.deleted_at')
+            ->where($candidateSourceFilter);
         $gardataCandidatesQuery = DB::table('job_seekers')
             ->leftJoin('provinces', 'provinces.id', '=', 'job_seekers.province_id')
             ->leftJoin('districts', 'districts.id', '=', 'job_seekers.district_id')
             ->whereNull('job_seekers.deleted_at')
-            ->where(function ($q) {
-                $q->whereIn('job_seekers.external_source', ['gardata', 'sippmi'])
-                    ->orWhereNotNull('job_seekers.external_id')
-                    ->orWhere('job_seekers.institution_name', 'LIKE', '%Omega%')
-                    ->orWhere('job_seekers.institution_name', 'LIKE', '%Victoria%')
-                    ->orWhere('job_seekers.institution_name', 'LIKE', '%Duta%');
-            })
-            ->orderByDesc('job_seekers.updated_at')
-            ->limit(100);
-        $gardataCandidateCountQuery = DB::table('job_seekers')
-            ->whereNull('job_seekers.deleted_at')
-            ->where(function ($q) {
-                $q->whereIn('job_seekers.external_source', ['gardata', 'sippmi'])
-                    ->orWhereNotNull('job_seekers.external_id')
-                    ->orWhere('job_seekers.institution_name', 'LIKE', '%Omega%')
-                    ->orWhere('job_seekers.institution_name', 'LIKE', '%Victoria%')
-                    ->orWhere('job_seekers.institution_name', 'LIKE', '%Duta%');
-            });
+            ->where($candidateSourceFilter);
+        $candidatePage = $this->pageWindow($filters, 'candidate', 25);
         if ($role === 'task_force') {
             $this->bp3miScope->applyToJobSeekers($gardataCandidatesQuery, $user);
-            $gardataCandidateCountQuery
-                ->join('provinces', 'provinces.id', '=', 'job_seekers.province_id');
-            $this->bp3miScope->applyToJobSeekers($gardataCandidateCountQuery, $user);
+            $candidateCountQuery->join('provinces', 'provinces.id', '=', 'job_seekers.province_id');
+            $this->bp3miScope->applyToJobSeekers($candidateCountQuery, $user);
         }
-        $gardataCandidates = ($canViewGardata ? $gardataCandidatesQuery : $gardataCandidatesQuery->whereRaw('1 = 0'))
+        $candidateTotal = $canViewGardata ? (clone $candidateCountQuery)->count('job_seekers.id') : 0;
+        $candidatePageCount = max((int) ceil($candidateTotal / $candidatePage['perPage']), 1);
+        $candidatePage['page'] = min($candidatePage['page'], $candidatePageCount);
+        $candidateRows = ($canViewGardata ? $gardataCandidatesQuery : $gardataCandidatesQuery->whereRaw('1 = 0'))
+            ->orderByDesc('job_seekers.updated_at')
+            ->offset(($candidatePage['page'] - 1) * $candidatePage['perPage'])
+            ->limit($candidatePage['perPage'])
             ->get([
                 'job_seekers.id',
+                'job_seekers.external_source',
                 'job_seekers.nik',
                 'job_seekers.full_name',
                 'job_seekers.institution_name',
@@ -1031,176 +1184,27 @@ class BusinessDataPresenter
                 'job_seekers.preferred_countries',
                 'provinces.name as province_name',
                 'districts.name as district_name',
-            ])
-            ->map(fn (object $row): array => [
-                'id' => $row->id,
-                'fullName' => $row->full_name,
-                'institutionName' => $row->institution_name,
-                'subdomain' => match (true) {
-                    stripos((string) $row->institution_name, 'Omega') !== false => 'omegahotelacademy.sippmi.com',
-                    stripos((string) $row->institution_name, 'Victoria') !== false => 'victoriahotelschool.sippmi.com',
-                    stripos((string) $row->institution_name, 'Duta') !== false => 'dutainternationalcourse.sippmi.com',
-                    default => 'gardata.sippmi.com',
-                },
-                'nik' => strlen($row->nik) === 16 ? substr($row->nik, 0, 4).'••••••••'.substr($row->nik, -4) : '••••',
-                'region' => trim(($row->district_name ?? 'Belum diketahui').', '.($row->province_name ?? 'Belum diketahui')),
-                'expertise' => $row->major,
-                'targetCountry' => $this->decodeArray($row->preferred_countries)[0] ?? 'Belum ditentukan',
-                'status' => $row->verification_status,
-                'readinessStatus' => $row->readiness_status,
-            ])->all();
-
-        if (empty($gardataCandidates)) {
-            $gardataCandidates = [
-                // Omega Cilacap (5 candidates)
-                [
-                    'id' => 'GDT-OMG-001',
-                    'fullName' => 'Bagus Prasetyo',
-                    'institutionName' => 'Omega Cilacap',
-                    'subdomain' => 'omegahotelacademy.sippmi.com',
-                    'nik' => '3301••••••••0001',
-                    'region' => 'Kabupaten Cilacap, Jawa Tengah',
-                    'expertise' => 'Perhotelan & Tata Graha (Housekeeping)',
-                    'targetCountry' => 'Jepang',
-                    'status' => 'Verified',
-                    'readinessStatus' => 'JOB_READY',
-                ],
-                [
-                    'id' => 'GDT-OMG-002',
-                    'fullName' => 'Dewi Anggraini',
-                    'institutionName' => 'Omega Cilacap',
-                    'subdomain' => 'omegahotelacademy.sippmi.com',
-                    'nik' => '3301••••••••0002',
-                    'region' => 'Kabupaten Cilacap, Jawa Tengah',
-                    'expertise' => 'Food & Beverage Service Specialist',
-                    'targetCountry' => 'Jerman',
-                    'status' => 'Verified',
-                    'readinessStatus' => 'JOB_READY',
-                ],
-                [
-                    'id' => 'GDT-OMG-003',
-                    'fullName' => 'Rizky Ramadhan',
-                    'institutionName' => 'Omega Cilacap',
-                    'subdomain' => 'omegahotelacademy.sippmi.com',
-                    'nik' => '3301••••••••0003',
-                    'region' => 'Kabupaten Cilacap, Jawa Tengah',
-                    'expertise' => 'Housekeeping & Laundry Specialist',
-                    'targetCountry' => 'Jepang',
-                    'status' => 'Verified',
-                    'readinessStatus' => 'TRAINING_READY',
-                ],
-                [
-                    'id' => 'GDT-OMG-004',
-                    'fullName' => 'Siti Nurhaliza',
-                    'institutionName' => 'Omega Cilacap',
-                    'subdomain' => 'omegahotelacademy.sippmi.com',
-                    'nik' => '3301••••••••0004',
-                    'region' => 'Kabupaten Cilacap, Jawa Tengah',
-                    'expertise' => 'F&B Service & Barista',
-                    'targetCountry' => 'Uni Emirat Arab',
-                    'status' => 'Verified',
-                    'readinessStatus' => 'JOB_READY',
-                ],
-                [
-                    'id' => 'GDT-OMG-005',
-                    'fullName' => 'Fajar Pratama',
-                    'institutionName' => 'Omega Cilacap',
-                    'subdomain' => 'omegahotelacademy.sippmi.com',
-                    'nik' => '3301••••••••0005',
-                    'region' => 'Kabupaten Cilacap, Jawa Tengah',
-                    'expertise' => 'Front Office Specialist',
-                    'targetCountry' => 'Jerman',
-                    'status' => 'Verified',
-                    'readinessStatus' => 'TRAINING_READY',
-                ],
-                // VictoriaHotelSchool (4 candidates)
-                [
-                    'id' => 'GDT-VHS-001',
-                    'fullName' => 'Aris Setiawan',
-                    'institutionName' => 'VictoriaHotelSchool',
-                    'subdomain' => 'victoriahotelschool.sippmi.com',
-                    'nik' => '3371••••••••0001',
-                    'region' => 'Kota Magelang, Jawa Tengah',
-                    'expertise' => 'Commercial Cookery & Hot Kitchen',
-                    'targetCountry' => 'Australia',
-                    'status' => 'Verified',
-                    'readinessStatus' => 'JOB_READY',
-                ],
-                [
-                    'id' => 'GDT-VHS-002',
-                    'fullName' => 'Novi Indriani',
-                    'institutionName' => 'VictoriaHotelSchool',
-                    'subdomain' => 'victoriahotelschool.sippmi.com',
-                    'nik' => '3371••••••••0002',
-                    'region' => 'Kota Magelang, Jawa Tengah',
-                    'expertise' => 'Pastry & Bakery Specialist',
-                    'targetCountry' => 'Jepang',
-                    'status' => 'Verified',
-                    'readinessStatus' => 'JOB_READY',
-                ],
-                [
-                    'id' => 'GDT-VHS-003',
-                    'fullName' => 'Dimas Pratama',
-                    'institutionName' => 'VictoriaHotelSchool',
-                    'subdomain' => 'victoriahotelschool.sippmi.com',
-                    'nik' => '3371••••••••0003',
-                    'region' => 'Kota Magelang, Jawa Tengah',
-                    'expertise' => 'Asian & Western Cuisine Specialist',
-                    'targetCountry' => 'Australia',
-                    'status' => 'Verified',
-                    'readinessStatus' => 'JOB_READY',
-                ],
-                [
-                    'id' => 'GDT-VHS-004',
-                    'fullName' => 'Ratna Sari',
-                    'institutionName' => 'VictoriaHotelSchool',
-                    'subdomain' => 'victoriahotelschool.sippmi.com',
-                    'nik' => '3371••••••••0004',
-                    'region' => 'Kota Magelang, Jawa Tengah',
-                    'expertise' => 'Cold Kitchen & Garde Manger',
-                    'targetCountry' => 'Selandia Baru',
-                    'status' => 'Verified',
-                    'readinessStatus' => 'TRAINING_READY',
-                ],
-                // DutaInternationalCourse (3 candidates)
-                [
-                    'id' => 'GDT-DIC-001',
-                    'fullName' => 'Hendra Kusuma',
-                    'institutionName' => 'DutaInternationalCourse',
-                    'subdomain' => 'dutainternationalcourse.sippmi.com',
-                    'nik' => '3372••••••••0001',
-                    'region' => 'Kota Surakarta, Jawa Tengah',
-                    'expertise' => 'Hospitality & Bahasa Jepang (N4/N3)',
-                    'targetCountry' => 'Jepang',
-                    'status' => 'Verified',
-                    'readinessStatus' => 'JOB_READY',
-                ],
-                [
-                    'id' => 'GDT-DIC-002',
-                    'fullName' => 'Maya Safitri',
-                    'institutionName' => 'DutaInternationalCourse',
-                    'subdomain' => 'dutainternationalcourse.sippmi.com',
-                    'nik' => '3372••••••••0002',
-                    'region' => 'Kota Surakarta, Jawa Tengah',
-                    'expertise' => 'Hospitality & Bahasa Jepang',
-                    'targetCountry' => 'Jepang',
-                    'status' => 'Verified',
-                    'readinessStatus' => 'JOB_READY',
-                ],
-                [
-                    'id' => 'GDT-DIC-003',
-                    'fullName' => 'Aditya Wardana',
-                    'institutionName' => 'DutaInternationalCourse',
-                    'subdomain' => 'dutainternationalcourse.sippmi.com',
-                    'nik' => '3372••••••••0003',
-                    'region' => 'Kota Surakarta, Jawa Tengah',
-                    'expertise' => 'Bahasa Jepang Terapan & Front Desk',
-                    'targetCountry' => 'Jepang',
-                    'status' => 'Verified',
-                    'readinessStatus' => 'TRAINING_READY',
-                ],
-            ];
-        }
+            ]);
+        $gardataCandidates = $candidateRows->map(fn (object $row): array => [
+            'id' => $row->id,
+            'fullName' => $row->full_name,
+            'institutionName' => $row->external_source === 'sippmi'
+                ? 'Politeknik Indonusa Surakarta'
+                : $row->institution_name,
+            'subdomain' => match (true) {
+                $row->external_source === 'sippmi' => 'sippmi.com',
+                stripos((string) $row->institution_name, 'Omega') !== false => 'omegahotelacademy.sippmi.com',
+                stripos((string) $row->institution_name, 'Victoria') !== false => 'victoriahotelschool.sippmi.com',
+                stripos((string) $row->institution_name, 'Duta') !== false => 'dutainternationalcourse.sippmi.com',
+                default => 'gardata.sippmi.com',
+            },
+            'nik' => strlen($row->nik) === 16 ? substr($row->nik, 0, 4).'••••••••'.substr($row->nik, -4) : '••••',
+            'region' => trim(($row->district_name ?? 'Belum diketahui').', '.($row->province_name ?? 'Belum diketahui')),
+            'expertise' => $row->major,
+            'targetCountry' => $this->decodeArray($row->preferred_countries)[0] ?? 'Belum ditentukan',
+            'status' => $row->verification_status,
+            'readinessStatus' => $row->readiness_status,
+        ])->all();
 
         $lastSync = $canViewGardata ? DB::table('integration_sync_logs')
             ->whereIn('source', ['gardata', 'sippmi'])
@@ -1295,12 +1299,6 @@ class BusinessDataPresenter
 
         $tenants = collect(GardataPlacementSyncService::KNOWN_SUBDOMAINS)->map(function (array $t): array {
             $inst = DB::table('institutions')->where('external_id', $t['subdomain'])->first();
-            $prefix = match ($t['subdomain']) {
-                'omegahotelacademy.sippmi.com' => 'OMEGA',
-                'victoriahotelschool.sippmi.com' => 'VHS',
-                'dutainternationalcourse.sippmi.com' => 'DIC',
-                default => strtoupper(substr($t['name'], 0, 3)),
-            };
             $searchKey = match ($t['subdomain']) {
                 'omegahotelacademy.sippmi.com' => 'Omega',
                 'victoriahotelschool.sippmi.com' => 'Victoria',
@@ -1310,21 +1308,23 @@ class BusinessDataPresenter
 
             $candCount = DB::table('job_seekers')
                 ->whereNull('deleted_at')
-                ->where(function ($q) use ($t, $searchKey, $prefix) {
-                    $q->where('institution_name', 'LIKE', '%'.$searchKey.'%')
-                        ->orWhere('external_id', 'LIKE', '%'.$t['subdomain'].'%')
-                        ->orWhere('external_id', 'LIKE', '%'.$prefix.'%');
+                ->where(function ($query) use ($searchKey): void {
+                    $query->where('external_source', 'gardata')
+                        ->where('institution_name', 'LIKE', '%'.$searchKey.'%');
+                })
+                ->orWhere(function ($query) use ($searchKey): void {
+                    $query->whereNull('external_source')
+                        ->whereNull('deleted_at')
+                        ->where('institution_name', 'LIKE', '%'.$searchKey.'%');
                 })
                 ->count();
 
             $classCount = DB::table('external_training_records')
-                ->where(function ($q) use ($prefix, $searchKey) {
-                    $q->where('class_code', 'LIKE', $prefix.'%')
-                        ->orWhere('batch_name', 'LIKE', '%'.$searchKey.'%')
-                        ->orWhere('program_name', 'LIKE', '%'.$searchKey.'%')
-                        ->orWhereIn('job_seeker_id', function ($sub) use ($searchKey) {
-                            $sub->select('id')->from('job_seekers')->where('institution_name', 'LIKE', '%'.$searchKey.'%');
-                        });
+                ->where('external_source', 'gardata')
+                ->whereIn('job_seeker_id', function ($sub) use ($searchKey): void {
+                    $sub->select('id')
+                        ->from('job_seekers')
+                        ->where('institution_name', 'LIKE', '%'.$searchKey.'%');
                 })
                 ->distinct('external_batch_id')
                 ->count('external_batch_id');
@@ -1339,9 +1339,24 @@ class BusinessDataPresenter
                 'district' => $t['district'],
                 'candidateCount' => $candCount,
                 'classCount' => $classCount,
-                'lastSyncAt' => now()->toIso8601String(),
             ];
-        })->all();
+        })->push([
+            'id' => 'sippmi-politeknik-indonusa',
+            'name' => GardataPlacementSyncService::SIPPMI_INSTITUTION_NAME,
+            'subdomain' => 'sippmi.com',
+            'url' => 'https://sippmi.com',
+            'status' => 'Aktif',
+            'province' => 'Jawa Tengah',
+            'district' => 'Surakarta',
+            'candidateCount' => DB::table('job_seekers')
+                ->whereNull('deleted_at')
+                ->where('external_source', 'sippmi')
+                ->count(),
+            'classCount' => DB::table('external_training_records')
+                ->where('external_source', 'sippmi')
+                ->distinct('external_batch_id')
+                ->count('external_batch_id'),
+        ])->all();
 
         $activeClassesCount = $localClasses->whereIn('status', ['Sedang Berjalan', 'berjalan', 'aktif', 'Aktif'])->count() + $activeExternalCount;
 
@@ -1349,9 +1364,7 @@ class BusinessDataPresenter
             'summary' => [
                 'totalClasses' => $localClasses->count() + $externalClasses->count(),
                 'activeClasses' => $activeClassesCount,
-                'gardataCandidates' => $canViewGardata
-                    ? $gardataCandidateCountQuery->count('job_seekers.id')
-                    : 0,
+                'gardataCandidates' => $candidateTotal,
                 'verifiedReports' => $canViewGardata
                     ? (int) $externalClasses->sum('verifiedReportsCount')
                     : 0,
@@ -1360,9 +1373,22 @@ class BusinessDataPresenter
                 'gardataTargetJp' => (int) $externalClasses->sum('targetJp'),
                 'gardataAchievedJp' => (int) $externalClasses->sum('achievedJp'),
             ],
-            'classes' => $localClasses->concat($externalClasses)->values()->all(),
+            'classes' => $classes,
+            'classPagination' => [
+                'currentPage' => $classPage['page'],
+                'lastPage' => $classLastPage,
+                'perPage' => $classPage['perPage'],
+                'total' => $classTotal,
+            ],
             'gardataBatches' => $gardataBatches,
             'candidates' => $gardataCandidates,
+            'candidatePagination' => [
+                'currentPage' => $candidatePage['page'],
+                'lastPage' => $candidatePageCount,
+                'perPage' => $candidatePage['perPage'],
+                'total' => $candidateTotal,
+            ],
+            'candidateSource' => $candidateSource,
             'tenants' => $tenants,
             'placements' => $placements,
             'placementCandidates' => $placementCandidates,
@@ -1375,6 +1401,17 @@ class BusinessDataPresenter
                 'recordsUpdated' => $role === 'task_force' ? null : (int) $lastSync->records_updated,
                 'recordsSkipped' => $role === 'task_force' ? null : (int) $lastSync->records_skipped,
             ] : null,
+        ];
+    }
+
+    private function pageWindow(array $filters, string $prefix, int $defaultPerPage): array
+    {
+        $perPage = filter_var($filters[$prefix.'PerPage'] ?? $defaultPerPage, FILTER_VALIDATE_INT);
+        $page = filter_var($filters[$prefix.'Page'] ?? 1, FILTER_VALIDATE_INT);
+
+        return [
+            'page' => is_int($page) && $page > 0 ? $page : 1,
+            'perPage' => in_array($perPage, [10, 25, 50, 100], true) ? $perPage : $defaultPerPage,
         ];
     }
 

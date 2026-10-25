@@ -23,11 +23,13 @@ import { STAKEHOLDER_ROLES } from "@/lib/stakeholder-roles";
 interface DashboardPageProps {
   currentTab: string;
   setCurrentTab: (tab: string) => void;
+  nationalLpkCount: number;
 }
 
 export const DashboardPage: React.FC<DashboardPageProps> = ({
   currentTab,
   setCurrentTab,
+  nationalLpkCount,
 }) => {
   const { candidates, programs, providers, demands, allocations, currentUser, currentRole, currentScope } =
     useAppStore();
@@ -99,7 +101,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         </div>
       </div>
       {/* KPI Row */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6 gap-4">
         <StatCard
           label="Calon Peserta"
           value={candidates.length}
@@ -117,6 +119,12 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           value={providers.length}
           icon={Building2}
           desc="Mitra penyelenggara"
+        />
+        <StatCard
+          label="LPK Terdaftar Nasional"
+          value={nationalLpkCount}
+          icon={Building2}
+          desc="Seluruh Indonesia"
         />
         <StatCard
           label="Demand Luar Negeri"

@@ -9,7 +9,6 @@ import {
   CloudDownload,
   ExternalLink,
   Globe,
-  HardDrive,
   RefreshCw,
   Users,
 } from "lucide-react";
@@ -33,8 +32,6 @@ import {
 import { useAppStore } from "@/store/useAppStore";
 import {
   MonitoringData,
-  MonitoringTenantLpk,
-  MonitoringClassData,
   MonitoringCandidateData,
 } from "@/types";
 
@@ -42,265 +39,10 @@ interface SippmiMonitoringPageProps {
   monitoring: MonitoringData;
 }
 
-const DEFAULT_TENANTS: MonitoringTenantLpk[] = [
-  {
-    id: "omega-cilacap",
-    name: "Omega Cilacap",
-    subdomain: "omegahotelacademy.sippmi.com",
-    url: "https://omegahotelacademy.sippmi.com",
-    status: "Aktif",
-    province: "Jawa Tengah",
-    district: "Kabupaten Cilacap",
-    candidateCount: 5,
-    classCount: 2,
-    lastSyncAt: null,
-  },
-  {
-    id: "victoria-hotel-school",
-    name: "VictoriaHotelSchool",
-    subdomain: "victoriahotelschool.sippmi.com",
-    url: "https://victoriahotelschool.sippmi.com",
-    status: "Aktif",
-    province: "Jawa Tengah",
-    district: "Kota Magelang",
-    candidateCount: 4,
-    classCount: 1,
-    lastSyncAt: null,
-  },
-  {
-    id: "duta-international-course",
-    name: "DutaInternationalCourse",
-    subdomain: "dutainternationalcourse.sippmi.com",
-    url: "https://dutainternationalcourse.sippmi.com",
-    status: "Aktif",
-    province: "Jawa Tengah",
-    district: "Kota Surakarta",
-    candidateCount: 3,
-    classCount: 1,
-    lastSyncAt: null,
-  },
-];
-
-const FALLBACK_CLASSES: MonitoringClassData[] = [
-  {
-    id: "gardata-batch-omega-hk-01",
-    source: "Gardata / SIPPMI",
-    classCode: "OMEGA-HK-2026",
-    name: "Pelatihan Perhotelan & Kapal Pesiar International - Batch I/2026",
-    sector: "Perhotelan & Kapal Pesiar",
-    startDate: "2026-01-15",
-    endDate: "2026-06-15",
-    targetJp: 400,
-    achievedJp: 320,
-    participantCount: 3,
-    verifiedReportsCount: 18,
-    averageAttendance: 95.5,
-    averageAssessmentScore: 88.0,
-    status: "IN_PROGRESS",
-  },
-  {
-    id: "gardata-batch-omega-fbs-02",
-    source: "Gardata / SIPPMI",
-    classCode: "OMEGA-FBS-2025",
-    name: "Food & Beverage Service Specialist - Batch II",
-    sector: "Perhotelan & Kapal Pesiar",
-    startDate: "2025-10-01",
-    endDate: "2026-02-28",
-    targetJp: 360,
-    achievedJp: 360,
-    participantCount: 2,
-    verifiedReportsCount: 20,
-    averageAttendance: 98.0,
-    averageAssessmentScore: 91.5,
-    status: "GRADUATED",
-  },
-  {
-    id: "gardata-batch-vhs-cul-02",
-    source: "Gardata / SIPPMI",
-    classCode: "VHS-CUL-2026",
-    name: "Culinary & Commercial Cookery Standard Global - Batch II",
-    sector: "Kuliner & Tata Boga",
-    startDate: "2026-01-20",
-    endDate: "2026-07-20",
-    targetJp: 450,
-    achievedJp: 360,
-    participantCount: 4,
-    verifiedReportsCount: 16,
-    averageAttendance: 94.0,
-    averageAssessmentScore: 87.5,
-    status: "IN_PROGRESS",
-  },
-  {
-    id: "gardata-batch-dic-jpn-01",
-    source: "Gardata / SIPPMI",
-    classCode: "DIC-JPN-2026",
-    name: "Bahasa & Budaya Kerja Industri Perhotelan Jepang Batch 2026",
-    sector: "Hospitality & Bahasa Jepang",
-    startDate: "2026-02-01",
-    endDate: "2026-06-30",
-    targetJp: 360,
-    achievedJp: 290,
-    participantCount: 3,
-    verifiedReportsCount: 14,
-    averageAttendance: 96.0,
-    averageAssessmentScore: 89.0,
-    status: "IN_PROGRESS",
-  },
-];
-
-const FALLBACK_CANDIDATES: MonitoringCandidateData[] = [
-  // Omega Cilacap (5 candidates)
-  {
-    id: "GDT-OMG-001",
-    fullName: "Bagus Prasetyo",
-    institutionName: "Omega Cilacap",
-    subdomain: "omegahotelacademy.sippmi.com",
-    nik: "3301••••••••0001",
-    region: "Kabupaten Cilacap, Jawa Tengah",
-    expertise: "Perhotelan & Tata Graha (Housekeeping)",
-    targetCountry: "Jepang",
-    status: "Verified",
-    readinessStatus: "JOB_READY",
-  },
-  {
-    id: "GDT-OMG-002",
-    fullName: "Dewi Anggraini",
-    institutionName: "Omega Cilacap",
-    subdomain: "omegahotelacademy.sippmi.com",
-    nik: "3301••••••••0002",
-    region: "Kabupaten Cilacap, Jawa Tengah",
-    expertise: "Food & Beverage Service Specialist",
-    targetCountry: "Jerman",
-    status: "Verified",
-    readinessStatus: "JOB_READY",
-  },
-  {
-    id: "GDT-OMG-003",
-    fullName: "Rizky Ramadhan",
-    institutionName: "Omega Cilacap",
-    subdomain: "omegahotelacademy.sippmi.com",
-    nik: "3301••••••••0003",
-    region: "Kabupaten Cilacap, Jawa Tengah",
-    expertise: "Housekeeping & Laundry Specialist",
-    targetCountry: "Jepang",
-    status: "Verified",
-    readinessStatus: "TRAINING_READY",
-  },
-  {
-    id: "GDT-OMG-004",
-    fullName: "Siti Nurhaliza",
-    institutionName: "Omega Cilacap",
-    subdomain: "omegahotelacademy.sippmi.com",
-    nik: "3301••••••••0004",
-    region: "Kabupaten Cilacap, Jawa Tengah",
-    expertise: "F&B Service & Barista",
-    targetCountry: "Uni Emirat Arab",
-    status: "Verified",
-    readinessStatus: "JOB_READY",
-  },
-  {
-    id: "GDT-OMG-005",
-    fullName: "Fajar Pratama",
-    institutionName: "Omega Cilacap",
-    subdomain: "omegahotelacademy.sippmi.com",
-    nik: "3301••••••••0005",
-    region: "Kabupaten Cilacap, Jawa Tengah",
-    expertise: "Front Office Specialist",
-    targetCountry: "Jerman",
-    status: "Verified",
-    readinessStatus: "TRAINING_READY",
-  },
-  // VictoriaHotelSchool (4 candidates)
-  {
-    id: "GDT-VHS-001",
-    fullName: "Aris Setiawan",
-    institutionName: "VictoriaHotelSchool",
-    subdomain: "victoriahotelschool.sippmi.com",
-    nik: "3371••••••••0001",
-    region: "Kota Magelang, Jawa Tengah",
-    expertise: "Commercial Cookery & Hot Kitchen",
-    targetCountry: "Australia",
-    status: "Verified",
-    readinessStatus: "JOB_READY",
-  },
-  {
-    id: "GDT-VHS-002",
-    fullName: "Novi Indriani",
-    institutionName: "VictoriaHotelSchool",
-    subdomain: "victoriahotelschool.sippmi.com",
-    nik: "3371••••••••0002",
-    region: "Kota Magelang, Jawa Tengah",
-    expertise: "Pastry & Bakery Specialist",
-    targetCountry: "Jepang",
-    status: "Verified",
-    readinessStatus: "JOB_READY",
-  },
-  {
-    id: "GDT-VHS-003",
-    fullName: "Dimas Pratama",
-    institutionName: "VictoriaHotelSchool",
-    subdomain: "victoriahotelschool.sippmi.com",
-    nik: "3371••••••••0003",
-    region: "Kota Magelang, Jawa Tengah",
-    expertise: "Asian & Western Cuisine Specialist",
-    targetCountry: "Australia",
-    status: "Verified",
-    readinessStatus: "JOB_READY",
-  },
-  {
-    id: "GDT-VHS-004",
-    fullName: "Ratna Sari",
-    institutionName: "VictoriaHotelSchool",
-    subdomain: "victoriahotelschool.sippmi.com",
-    nik: "3371••••••••0004",
-    region: "Kota Magelang, Jawa Tengah",
-    expertise: "Cold Kitchen & Garde Manger",
-    targetCountry: "Selandia Baru",
-    status: "Verified",
-    readinessStatus: "TRAINING_READY",
-  },
-  // DutaInternationalCourse (3 candidates)
-  {
-    id: "GDT-DIC-001",
-    fullName: "Hendra Kusuma",
-    institutionName: "DutaInternationalCourse",
-    subdomain: "dutainternationalcourse.sippmi.com",
-    nik: "3372••••••••0001",
-    region: "Kota Surakarta, Jawa Tengah",
-    expertise: "Hospitality & Bahasa Jepang (N4/N3)",
-    targetCountry: "Jepang",
-    status: "Verified",
-    readinessStatus: "JOB_READY",
-  },
-  {
-    id: "GDT-DIC-002",
-    fullName: "Maya Safitri",
-    institutionName: "DutaInternationalCourse",
-    subdomain: "dutainternationalcourse.sippmi.com",
-    nik: "3372••••••••0002",
-    region: "Kota Surakarta, Jawa Tengah",
-    expertise: "Hospitality & Bahasa Jepang",
-    targetCountry: "Jepang",
-    status: "Verified",
-    readinessStatus: "JOB_READY",
-  },
-  {
-    id: "GDT-DIC-003",
-    fullName: "Aditya Wardana",
-    institutionName: "DutaInternationalCourse",
-    subdomain: "dutainternationalcourse.sippmi.com",
-    nik: "3372••••••••0003",
-    region: "Kota Surakarta, Jawa Tengah",
-    expertise: "Bahasa Jepang Terapan & Front Desk",
-    targetCountry: "Jepang",
-    status: "Verified",
-    readinessStatus: "TRAINING_READY",
-  },
-];
-
 export function getCandidateSubdomain(candidate: MonitoringCandidateData): string {
   if (candidate.subdomain) return candidate.subdomain;
   const inst = (candidate.institutionName || "").toLowerCase();
+  if (inst.includes("indonusa")) return "sippmi.com";
   if (inst.includes("omega")) return "omegahotelacademy.sippmi.com";
   if (inst.includes("victoria")) return "victoriahotelschool.sippmi.com";
   if (inst.includes("duta")) return "dutainternationalcourse.sippmi.com";
@@ -311,93 +53,94 @@ export function SippmiMonitoringPage({ monitoring }: SippmiMonitoringPageProps) 
   const { currentScope } = useAppStore();
   const [refreshing, setRefreshing] = React.useState(false);
   const [syncing, setSyncing] = React.useState(false);
-  const [selectedSubdomain, setSelectedSubdomain] = React.useState<string>("all");
+  const [syncQueued, setSyncQueued] = React.useState(false);
+  const [syncStartedAt, setSyncStartedAt] = React.useState<string | null>(null);
+  const [selectedSubdomain, setSelectedSubdomain] = React.useState<string>(monitoring.candidateSource || "all");
   const { summary, classes = [], candidates = [], lastSync, tenants = [] } = monitoring;
 
-  const displayClasses = classes && classes.length > 0 ? classes : FALLBACK_CLASSES;
-  const displayCandidates = candidates && candidates.length > 0 ? candidates : FALLBACK_CANDIDATES;
+  React.useEffect(() => setSelectedSubdomain(monitoring.candidateSource || "all"), [monitoring.candidateSource]);
 
-  const filteredCandidates = React.useMemo(() => {
-    if (selectedSubdomain === "all") return displayCandidates;
-    return displayCandidates.filter((c) => getCandidateSubdomain(c) === selectedSubdomain);
-  }, [displayCandidates, selectedSubdomain]);
+  const filteredCandidates = candidates;
 
-  const fallbackCandidateMap: Record<string, number> = {
-    "omegahotelacademy.sippmi.com": 5,
-    "victoriahotelschool.sippmi.com": 4,
-    "dutainternationalcourse.sippmi.com": 3,
+  const updateCandidatePage = (page: number, perPage = monitoring.candidatePagination.perPage) => {
+    router.get("/app/sippmi-monitoring", {
+      candidateSource: selectedSubdomain,
+      candidatePage: page,
+      candidatePerPage: perPage,
+      classPage: monitoring.classPagination.currentPage,
+      classPerPage: monitoring.classPagination.perPage,
+    }, {
+      only: ["businessData"],
+      preserveState: true,
+      preserveScroll: true,
+      replace: true,
+    });
   };
-  const fallbackClassMap: Record<string, number> = {
-    "omegahotelacademy.sippmi.com": 2,
-    "victoriahotelschool.sippmi.com": 1,
-    "dutainternationalcourse.sippmi.com": 1,
+
+  const updateCandidateSource = (source: string) => {
+    setSelectedSubdomain(source);
+    router.get("/app/sippmi-monitoring", {
+      candidateSource: source,
+      candidatePage: 1,
+      candidatePerPage: monitoring.candidatePagination.perPage,
+      classPage: monitoring.classPagination.currentPage,
+      classPerPage: monitoring.classPagination.perPage,
+    }, {
+      only: ["businessData"],
+      preserveState: true,
+      preserveScroll: true,
+      replace: true,
+    });
   };
 
-  const displayTenants = (tenants && tenants.length > 0 ? tenants : DEFAULT_TENANTS).map((t) => {
-    const matchedCount = displayCandidates.filter(
-      (c) =>
-        (c.institutionName && c.institutionName.toLowerCase().includes(t.name.toLowerCase())) ||
-        (t.district &&
-          c.region &&
-          c.region
-            .toLowerCase()
-            .includes(
-              t.district
-                .toLowerCase()
-                .replace("kabupaten ", "")
-                .replace("kota ", "")
-            ))
-    ).length;
+  const updateClassPage = (page: number, perPage = monitoring.classPagination.perPage) => {
+    router.get("/app/sippmi-monitoring", {
+      candidateSource: selectedSubdomain,
+      candidatePage: monitoring.candidatePagination.currentPage,
+      candidatePerPage: monitoring.candidatePagination.perPage,
+      classPage: page,
+      classPerPage: perPage,
+    }, {
+      only: ["businessData"],
+      preserveState: true,
+      preserveScroll: true,
+      replace: true,
+    });
+  };
 
-    const matchedClassesCount = displayClasses.filter(
-      (cls) =>
-        (cls.name && cls.name.toLowerCase().includes(t.name.toLowerCase())) ||
-        (cls.classCode && cls.classCode.toLowerCase().includes(t.name.substring(0, 4).toLowerCase())) ||
-        (cls.sector && cls.sector.toLowerCase().includes(t.name.toLowerCase()))
-    ).length;
+  React.useEffect(() => {
+    if (!syncQueued) return;
 
-    const defaultCand =
-      fallbackCandidateMap[t.subdomain] ??
-      (t.name.toLowerCase().includes("omega")
-        ? 5
-        : t.name.toLowerCase().includes("victoria")
-        ? 4
-        : t.name.toLowerCase().includes("duta")
-        ? 3
-        : 0);
-    const defaultCls =
-      fallbackClassMap[t.subdomain] ??
-      (t.name.toLowerCase().includes("omega") ? 2 : 1);
+    const syncCompleted = Boolean(
+      lastSync?.startedAt
+      && lastSync.startedAt !== syncStartedAt
+      && lastSync.status !== "running"
+    );
+    if (syncCompleted) {
+      setSyncQueued(false);
+      if (lastSync?.status === "failed") {
+        toast.error("Sinkronisasi gagal. Periksa status integrasi dan konfigurasi API.");
+      } else if (lastSync?.status === "partial") {
+        toast.warning("Sinkronisasi selesai sebagian. Periksa rekaman yang dilewati.");
+      } else {
+        toast.success("Sinkronisasi selesai. Data monitoring sudah diperbarui.");
+      }
+      return;
+    }
 
-    return {
-      ...t,
-      candidateCount:
-        t.candidateCount > 0 ? t.candidateCount : matchedCount > 0 ? matchedCount : defaultCand,
-      classCount:
-        t.classCount > 0
-          ? t.classCount
-          : matchedClassesCount > 0
-          ? matchedClassesCount
-          : defaultCls,
+    const interval = window.setInterval(() => {
+      router.reload({ only: ["businessData"] });
+    }, 3000);
+    const timeout = window.setTimeout(() => {
+      setSyncQueued(false);
+      toast.warning("Sinkronisasi masih mengantre atau belum terkonfirmasi. Segarkan halaman beberapa saat lagi.");
+    }, 120000);
+
+    return () => {
+      window.clearInterval(interval);
+      window.clearTimeout(timeout);
     };
-  });
-
-  const totalClassesCount =
-    (summary?.totalClasses ?? 0) > 0 ? summary.totalClasses : displayClasses.length;
-  const activeClassesCount =
-    (summary?.activeClasses ?? 0) > 0
-      ? summary.activeClasses
-      : displayClasses.filter((c) =>
-          ["IN_PROGRESS", "BERJALAN", "SEDANG BERJALAN", "AKTIF", "RUNNING"].includes(
-            c.status?.toUpperCase() || ""
-          )
-        ).length;
-  const gardataCandidatesCount =
-    (summary?.gardataCandidates ?? 0) > 0 ? summary.gardataCandidates : displayCandidates.length;
-  const verifiedReportsCount =
-    (summary?.verifiedReports ?? 0) > 0
-      ? summary.verifiedReports
-      : displayClasses.reduce((acc, c) => acc + (c.verifiedReportsCount || 0), 0) || 68;
+  }, [lastSync?.startedAt, lastSync?.status, syncQueued, syncStartedAt]);
 
   const refresh = () => {
     setRefreshing(true);
@@ -408,6 +151,7 @@ export function SippmiMonitoringPage({ monitoring }: SippmiMonitoringPageProps) 
   };
 
   const handleSyncGardata = () => {
+    setSyncStartedAt(lastSync?.startedAt ?? null);
     setSyncing(true);
     router.post(
       "/integrations/gardata/sync",
@@ -415,8 +159,8 @@ export function SippmiMonitoringPage({ monitoring }: SippmiMonitoringPageProps) 
       {
         preserveScroll: true,
         onSuccess: () => {
-          toast.success("Sinkronisasi data Gardata berhasil dijadwalkan / dijalankan.");
-          refresh();
+          setSyncQueued(true);
+          toast.info("Sinkronisasi dijadwalkan. Status akan diperbarui setelah proses selesai.");
         },
         onError: () => {
           toast.error("Sinkronisasi Gardata gagal. Periksa konfigurasi API.");
@@ -426,7 +170,7 @@ export function SippmiMonitoringPage({ monitoring }: SippmiMonitoringPageProps) 
     );
   };
 
-  const syncFailed = lastSync?.status === "failed";
+  const syncFailed = lastSync?.status === "failed" || lastSync?.status === "partial";
 
   return (
     <section className="space-y-6" aria-labelledby="monitoring-title">
@@ -444,12 +188,12 @@ export function SippmiMonitoringPage({ monitoring }: SippmiMonitoringPageProps) 
             onClick={handleSyncGardata}
             variant="default"
             size="sm"
-            disabled={syncing || refreshing}
+            disabled={syncing || syncQueued || refreshing}
           >
-            <CloudDownload className={`mr-2 h-4 w-4 ${syncing ? "animate-spin" : ""}`} />
-            {syncing ? "Menyinkronkan…" : "Tarik Data Gardata"}
+            <CloudDownload className={`mr-2 h-4 w-4 ${syncing || syncQueued ? "animate-spin" : ""}`} />
+            {syncing ? "Memulai sinkronisasi…" : syncQueued ? "Menunggu hasil sinkronisasi…" : "Tarik Data Gardata"}
           </Button>
-          <Button onClick={refresh} variant="outline" size="sm" disabled={refreshing || syncing}>
+          <Button onClick={refresh} variant="outline" size="sm" disabled={refreshing || syncing || syncQueued}>
             <RefreshCw className={`mr-2 h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
             {refreshing ? "Memuat ulang…" : "Segarkan"}
           </Button>
@@ -461,9 +205,9 @@ export function SippmiMonitoringPage({ monitoring }: SippmiMonitoringPageProps) 
           <CardHeader className="flex flex-row items-start gap-3 p-4">
             <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-500" aria-hidden="true" />
             <div>
-              <CardTitle className="text-sm text-foreground">Sinkronisasi Otomatis Gardata Pusat Tertunda</CardTitle>
+              <CardTitle className="text-sm text-foreground">Sinkronisasi terakhir perlu diperiksa</CardTitle>
               <CardDescription>
-                Sistem saat ini menyajikan data tersimpan dari subdomain operasional LPK multitenant (Omega, Victoria, Duta). Untuk sinkronisasi live feeder pusat, periksa API Key pada konfigurasi integrasi.
+                Status terakhir: {lastSync?.status}. Periksa log integrasi, koneksi subdomain, dan konfigurasi API; data monitoring menunjukkan rekaman yang sudah tersimpan.
               </CardDescription>
             </div>
           </CardHeader>
@@ -472,10 +216,10 @@ export function SippmiMonitoringPage({ monitoring }: SippmiMonitoringPageProps) 
 
       {/* METRIK SUMMARY NASIONAL */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <SummaryCard label="Total kelas" value={totalClassesCount} icon={Building2} />
-        <SummaryCard label="Kelas berjalan" value={activeClassesCount} icon={CheckCircle2} />
-        <SummaryCard label="Peserta Gardata" value={gardataCandidatesCount} icon={Users} />
-        <SummaryCard label="Laporan terverifikasi" value={verifiedReportsCount} icon={Clock} />
+        <SummaryCard label="Total kelas" value={summary.totalClasses} icon={Building2} />
+        <SummaryCard label="Kelas berjalan" value={summary.activeClasses} icon={CheckCircle2} />
+        <SummaryCard label="Peserta Gardata / SIPPMI" value={summary.gardataCandidates} icon={Users} />
+        <SummaryCard label="Laporan terverifikasi" value={summary.verifiedReports} icon={Clock} />
       </div>
 
       {/* KONSOL SISTEM MULTITENANT SUBDOMAIN LPK */}
@@ -485,45 +229,21 @@ export function SippmiMonitoringPage({ monitoring }: SippmiMonitoringPageProps) 
             <div className="flex items-center gap-2">
               <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-primary text-primary-foreground">
                 <Globe className="h-3 w-3" />
-                DOMAIN PUSAT · TERPISAH DARI OPERASIONAL LPK
+                SUMBER LPK YANG DIKONFIGURASI
               </span>
               <span className="font-mono text-xs text-muted-foreground">gardata.sippmi.com</span>
             </div>
             <h2 className="text-xl font-bold tracking-tight text-foreground mt-1">
-              Ringkasan Sistem Multitenant LPK
+              LPK Gardata Multitenant dan Politeknik Indonusa Surakarta
             </h2>
             <p className="text-xs text-muted-foreground">
-              Terhubung langsung dengan database tenant operasional LPK pada subdomain masing-masing.
+              Data peserta dan kelas berasal dari hasil sinkronisasi Gardata dan SIPPMI yang tersimpan di aplikasi.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <div className="flex items-center gap-1.5 rounded-lg border bg-background/80 px-3 py-1.5 shadow-sm text-xs font-medium">
-              <span className="text-muted-foreground">TOTAL LPK:</span>
-              <span className="font-bold tabular-nums text-foreground">{summary?.totalLpk ?? 8}</span>
-            </div>
-            <div className="flex items-center gap-1.5 rounded-lg border bg-emerald-500/10 border-emerald-500/30 px-3 py-1.5 shadow-sm text-xs font-medium text-emerald-700 dark:text-emerald-400">
-              <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span>AKTIF:</span>
-              <span className="font-bold tabular-nums">
-                {summary?.activeLpk ?? displayTenants.filter((t) => t.status === "Aktif").length}
-              </span>
-            </div>
-            <div className="flex items-center gap-1.5 rounded-lg border bg-background/80 px-3 py-1.5 shadow-sm text-xs font-medium">
-              <span className="text-muted-foreground">NONAKTIF:</span>
-              <span className="font-bold tabular-nums text-foreground">
-                {Math.max(
-                  0,
-                  (summary?.totalLpk ?? 8) -
-                    (summary?.activeLpk ?? displayTenants.filter((t) => t.status === "Aktif").length)
-                )}
-              </span>
-            </div>
-            <div className="flex items-center gap-1.5 rounded-lg border bg-background/80 px-3 py-1.5 shadow-sm text-xs font-medium">
-              <HardDrive className="h-3.5 w-3.5 text-muted-foreground" />
-              <span className="text-muted-foreground">ESTIMASI DB:</span>
-              <span className="font-bold text-foreground font-mono">
-                {summary?.tenantDbSizeEstimate ?? "6.7 MB"}
-              </span>
+              <span className="text-muted-foreground">TENANT DIKONFIGURASI:</span>
+              <span className="font-bold tabular-nums text-foreground">{tenants.length.toLocaleString("id-ID")}</span>
             </div>
           </div>
         </div>
@@ -532,17 +252,23 @@ export function SippmiMonitoringPage({ monitoring }: SippmiMonitoringPageProps) 
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[280px]">LPK Terdaftar</TableHead>
+                  <TableHead className="w-[280px]">LPK / sumber</TableHead>
                   <TableHead>Subdomain Operasional</TableHead>
                   <TableHead>Wilayah / Basis</TableHead>
                   <TableHead className="text-center">Peserta Terpantau</TableHead>
                   <TableHead className="text-center">Kelas</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead>Sumber</TableHead>
                   <TableHead className="text-right">Aksi</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {displayTenants.map((tenant) => (
+                {tenants.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="h-24 text-center text-sm text-muted-foreground">
+                      Belum ada tenant yang dikonfigurasi untuk sinkronisasi.
+                    </TableCell>
+                  </TableRow>
+                ) : tenants.map((tenant) => (
                   <TableRow
                     key={tenant.id || tenant.subdomain}
                     className="hover:bg-muted/50 transition-colors"
@@ -554,9 +280,7 @@ export function SippmiMonitoringPage({ monitoring }: SippmiMonitoringPageProps) 
                         </div>
                         <div>
                           <div>{tenant.name}</div>
-                          <div className="text-xs text-muted-foreground font-normal">
-                            Tenant Vokasi Terverifikasi
-                          </div>
+                          <div className="text-xs text-muted-foreground font-normal">Sumber integrasi</div>
                         </div>
                       </div>
                     </TableCell>
@@ -583,9 +307,8 @@ export function SippmiMonitoringPage({ monitoring }: SippmiMonitoringPageProps) 
                       {tenant.classCount.toLocaleString("id-ID")}
                     </TableCell>
                     <TableCell>
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                        {tenant.status}
+                      <span className="inline-flex items-center rounded-full border border-border bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
+                        {tenant.subdomain === "sippmi.com" ? "SIPPMI" : "Gardata multitenant"}
                       </span>
                     </TableCell>
                     <TableCell className="text-right">
@@ -635,7 +358,7 @@ export function SippmiMonitoringPage({ monitoring }: SippmiMonitoringPageProps) 
             <CardTitle className="text-base">Kelas dan batch pelatihan</CardTitle>
             <CardDescription>Gabungan kelas lokal dan riwayat pelatihan Gardata yang tersimpan.</CardDescription>
           </div>
-          <Badge variant="outline">{displayClasses.length} kelas</Badge>
+          <Badge variant="outline">{monitoring.classPagination.total.toLocaleString("id-ID")} kelas</Badge>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
@@ -652,14 +375,14 @@ export function SippmiMonitoringPage({ monitoring }: SippmiMonitoringPageProps) 
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {displayClasses.length === 0 ? (
+                {classes.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={7} className="h-24 text-center text-sm text-muted-foreground">
                       Belum ada data kelas. Data Gardata akan tampil setelah sinkronisasi berhasil.
                     </TableCell>
                   </TableRow>
                 ) : (
-                  displayClasses.map((trainingClass) => (
+                  classes.map((trainingClass) => (
                     <TableRow key={trainingClass.id}>
                       <TableCell className="font-mono text-sm">{trainingClass.classCode}</TableCell>
                       <TableCell>{trainingClass.sector || trainingClass.name}</TableCell>
@@ -681,13 +404,52 @@ export function SippmiMonitoringPage({ monitoring }: SippmiMonitoringPageProps) 
             </Table>
           </div>
         </CardContent>
+        <div className="flex flex-col gap-3 border-t border-border p-4 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm text-muted-foreground">
+            Menampilkan {monitoring.classPagination.total === 0 ? 0 : (monitoring.classPagination.currentPage - 1) * monitoring.classPagination.perPage + 1}
+            –{Math.min(monitoring.classPagination.currentPage * monitoring.classPagination.perPage, monitoring.classPagination.total)}
+            {' dari '}{monitoring.classPagination.total.toLocaleString("id-ID")} kelas
+          </p>
+          <div className="flex flex-wrap items-center gap-2">
+            <label htmlFor="monitoring-class-page-size" className="text-sm text-muted-foreground">Baris per halaman</label>
+            <select
+              id="monitoring-class-page-size"
+              value={monitoring.classPagination.perPage}
+              onChange={(event) => updateClassPage(1, Number(event.target.value))}
+              className="rounded-md border border-border bg-background px-2 py-1.5 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              {[10, 25, 50, 100].map((size) => <option key={size} value={size}>{size}</option>)}
+            </select>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => updateClassPage(monitoring.classPagination.currentPage - 1)}
+              disabled={monitoring.classPagination.currentPage <= 1}
+              aria-label="Halaman kelas sebelumnya"
+            >
+              Sebelumnya
+            </Button>
+            <span className="text-sm tabular-nums text-foreground">
+              Halaman {monitoring.classPagination.currentPage} dari {monitoring.classPagination.lastPage}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => updateClassPage(monitoring.classPagination.currentPage + 1)}
+              disabled={monitoring.classPagination.currentPage >= monitoring.classPagination.lastPage}
+              aria-label="Halaman kelas berikutnya"
+            >
+              Berikutnya
+            </Button>
+          </div>
+        </div>
       </Card>
 
       <Card id="tabel-peserta-subdomain" className="scroll-mt-6">
         <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <CardTitle className="text-base">Peserta dari Gardata / Subdomain</CardTitle>
+              <CardTitle className="text-base">Peserta LPK Gardata dan Politeknik Indonusa Surakarta</CardTitle>
               {selectedSubdomain !== "all" && (
                 <Badge variant="secondary" className="text-xs font-normal border">
                   Filter: {selectedSubdomain}
@@ -695,17 +457,19 @@ export function SippmiMonitoringPage({ monitoring }: SippmiMonitoringPageProps) 
               )}
             </div>
             <CardDescription className="mt-1">
-              Data peserta siap latih / siap kerja yang tersinkronisasi dari Gardata Pusat maupun subdomain LPK operasional.
+              Daftar berisi data peserta yang tersimpan dari Gardata / SIPPMI. Status verifikasi yang ditampilkan adalah status internal aplikasi.
             </CardDescription>
           </div>
           <div className="flex items-center gap-2">
-            <Badge variant="outline">{filteredCandidates.length} dari {displayCandidates.length} peserta</Badge>
+            <Badge variant="outline">
+              {filteredCandidates.length} ditampilkan dari {monitoring.candidatePagination.total.toLocaleString("id-ID")} peserta
+            </Badge>
             {selectedSubdomain !== "all" && (
               <Button
                 variant="ghost"
                 size="sm"
                 className="h-7 text-xs text-muted-foreground hover:text-foreground"
-                onClick={() => setSelectedSubdomain("all")}
+                onClick={() => updateCandidateSource("all")}
               >
                 Reset Filter
               </Button>
@@ -713,12 +477,16 @@ export function SippmiMonitoringPage({ monitoring }: SippmiMonitoringPageProps) 
           </div>
         </CardHeader>
 
+        <p className="border-b border-border px-6 py-3 text-xs text-muted-foreground">
+        Persetujuan di Gardata / SIPPMI tidak otomatis mengubah status verifikasi internal. Pemetaan status eksternal memerlukan kontrak field API resmi.
+        </p>
+
         {/* Filter Bar per Subdomain */}
         <div className="px-6 pb-3 pt-1 border-b flex flex-wrap items-center gap-2 bg-muted/20">
           <span className="text-xs font-medium text-muted-foreground mr-1">Filter Subdomain:</span>
           <button
             type="button"
-            onClick={() => setSelectedSubdomain("all")}
+            onClick={() => updateCandidateSource("all")}
             className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-colors ${
               selectedSubdomain === "all"
                 ? "bg-primary text-primary-foreground shadow-sm"
@@ -727,17 +495,16 @@ export function SippmiMonitoringPage({ monitoring }: SippmiMonitoringPageProps) 
           >
             Semua Subdomain
             <span className="rounded-full bg-background/20 px-1.5 py-0.2 text-[10px] font-bold">
-              {displayCandidates.length}
+              {monitoring.candidatePagination.total.toLocaleString("id-ID")}
             </span>
           </button>
-          {displayTenants.map((t) => {
-            const count = displayCandidates.filter((c) => getCandidateSubdomain(c) === t.subdomain).length;
+          {tenants.map((t) => {
             const isSelected = selectedSubdomain === t.subdomain;
             return (
               <button
                 key={t.subdomain}
                 type="button"
-                onClick={() => setSelectedSubdomain(isSelected ? "all" : t.subdomain)}
+                onClick={() => updateCandidateSource(isSelected ? "all" : t.subdomain)}
                 className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-colors ${
                   isSelected
                     ? "bg-primary text-primary-foreground shadow-sm"
@@ -747,7 +514,7 @@ export function SippmiMonitoringPage({ monitoring }: SippmiMonitoringPageProps) 
                 <Building2 className="h-3 w-3" />
                 {t.name}
                 <span className="rounded-full bg-background/20 px-1.5 py-0.2 text-[10px] font-bold">
-                  {count > 0 ? count : t.candidateCount}
+                  {t.candidateCount.toLocaleString("id-ID")}
                 </span>
               </button>
             );
@@ -767,7 +534,7 @@ export function SippmiMonitoringPage({ monitoring }: SippmiMonitoringPageProps) 
                   <TableHead>Keahlian</TableHead>
                   <TableHead>Negara Tujuan</TableHead>
                   <TableHead>Kesiapan</TableHead>
-                  <TableHead>Verifikasi</TableHead>
+                  <TableHead>Verifikasi internal</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -824,6 +591,45 @@ export function SippmiMonitoringPage({ monitoring }: SippmiMonitoringPageProps) 
             </Table>
           </div>
         </CardContent>
+        <div className="flex flex-col gap-3 border-t border-border p-4 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm text-muted-foreground">
+            Menampilkan {monitoring.candidatePagination.total === 0 ? 0 : (monitoring.candidatePagination.currentPage - 1) * monitoring.candidatePagination.perPage + 1}
+            –{Math.min(monitoring.candidatePagination.currentPage * monitoring.candidatePagination.perPage, monitoring.candidatePagination.total)}
+            {' dari '}{monitoring.candidatePagination.total.toLocaleString("id-ID")} peserta
+          </p>
+          <div className="flex flex-wrap items-center gap-2">
+            <label htmlFor="monitoring-page-size" className="text-sm text-muted-foreground">Baris per halaman</label>
+            <select
+              id="monitoring-page-size"
+              value={monitoring.candidatePagination.perPage}
+              onChange={(event) => updateCandidatePage(1, Number(event.target.value))}
+              className="rounded-md border border-border bg-background px-2 py-1.5 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              {[10, 25, 50, 100].map((size) => <option key={size} value={size}>{size}</option>)}
+            </select>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => updateCandidatePage(monitoring.candidatePagination.currentPage - 1)}
+              disabled={monitoring.candidatePagination.currentPage <= 1}
+              aria-label="Halaman peserta sebelumnya"
+            >
+              Sebelumnya
+            </Button>
+            <span className="text-sm tabular-nums text-foreground">
+              Halaman {monitoring.candidatePagination.currentPage} dari {monitoring.candidatePagination.lastPage}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => updateCandidatePage(monitoring.candidatePagination.currentPage + 1)}
+              disabled={monitoring.candidatePagination.currentPage >= monitoring.candidatePagination.lastPage}
+              aria-label="Halaman peserta berikutnya"
+            >
+              Berikutnya
+            </Button>
+          </div>
+        </div>
       </Card>
 
       <Card>

@@ -49,7 +49,21 @@ class AppController extends Controller
             'currentTab' => $tab,
             'isRoot' => false,
             'showLogin' => false,
-            'businessData' => $businessDataPresenter->make($request->user()),
+            'businessData' => $businessDataPresenter->make(
+                $request->user(),
+                $request->only([
+                    'candidatePage',
+                    'candidatePerPage',
+                    'candidateSource',
+                    'classPage',
+                    'classPerPage',
+                    'approvalPage',
+                    'approvalPerPage',
+                    'approvalStatus',
+                    'approvalType',
+                    'approvalSearch',
+                ]),
+            ),
         ];
 
         if ($tab === 'rbac' && $request->user()->roles()->where('name', 'super_admin')->exists()) {

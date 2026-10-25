@@ -464,7 +464,6 @@ export interface MonitoringTenantLpk {
   district?: string;
   candidateCount: number;
   classCount: number;
-  lastSyncAt: string | null;
 }
 
 export interface MonitoringData {
@@ -477,9 +476,6 @@ export interface MonitoringData {
     averageAssessmentScore: number | null;
     gardataTargetJp: number;
     gardataAchievedJp: number;
-    totalLpk?: number;
-    activeLpk?: number;
-    tenantDbSizeEstimate?: string;
   };
   classes: MonitoringClassData[];
   gardataBatches: {
@@ -489,6 +485,19 @@ export interface MonitoringData {
     status: string;
   }[];
   candidates: MonitoringCandidateData[];
+  candidatePagination: {
+    currentPage: number;
+    lastPage: number;
+    perPage: number;
+    total: number;
+  };
+  classPagination: {
+    currentPage: number;
+    lastPage: number;
+    perPage: number;
+    total: number;
+  };
+  candidateSource: string;
   tenants?: MonitoringTenantLpk[];
   placements: {
     id: string;

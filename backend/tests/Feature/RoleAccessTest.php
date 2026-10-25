@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Role;
 use App\Models\User;
+use App\Services\BusinessDataPresenter;
 use Database\Seeders\DemoDataSeeder;
 use Database\Seeders\ReferenceDataSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -76,6 +77,35 @@ class RoleAccessTest extends TestCase
                 ->where('businessData.reportSummary.dashboard.demandByCountry.0.quota', 2)
                 ->where('businessData.reportSummary.dashboard.demandByCountry.0.filledQuota', 1)
                 ->missing('businessData.reportSummary.dashboard.candidateLifecycle.0.nik'));
+    }
+
+    public function test_leadership_report_includes_national_lpk_count_without_counting_other_institutions(): void
+    {
+        $this->withoutVite();
+        $this->seed(ReferenceDataSeeder::class);
+        $this->createInstitution('VOC-LPK-01', 'LPK Contoh');
+        DB::table('institutions')->where('id', 'VOC-LPK-01')->update([
+            'institution_type' => 'LPK',
+            'status' => 'Nonaktif',
+        ]);
+        $this->createInstitution('VOC-SMK-01', 'SMK Contoh');
+        $this->createInstitution('VOC-TENANT-01', 'Tenant Konfigurasi');
+        DB::table('institutions')->where('id', 'VOC-TENANT-01')->update([
+            'institution_type' => 'LPK',
+            'external_id' => 'omegahotelacademy.sippmi.com',
+            'external_source' => 'gardata',
+        ]);
+
+        $this->actingAs($this->userWithRole('leadership'))
+            ->get('/app/reports')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('businessData.reportSummary.nationalLpkCount', 1));
+
+        $this->assertSame(
+            1,
+            app(BusinessDataPresenter::class)->make($this->userWithRole('institution_admin'))['nationalLpkCount'],
+        );
     }
 
     public function test_institution_admin_candidate_data_is_bound_to_its_institution(): void
