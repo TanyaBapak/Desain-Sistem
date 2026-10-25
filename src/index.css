@@ -4,6 +4,7 @@
 
 @layer base {
   :root {
+    color-scheme: light;
     --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
     --card: 0 0% 100%;
@@ -27,25 +28,26 @@
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 217.2 91.2% 59.8%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 224.3 76.3% 48%;
+    color-scheme: dark;
+    --background: 225 18% 14%;
+    --foreground: 210 18% 92%;
+    --card: 225 18% 17%;
+    --card-foreground: 210 18% 92%;
+    --popover: 225 18% 17%;
+    --popover-foreground: 210 18% 92%;
+    --primary: 217 72% 68%;
+    --primary-foreground: 225 18% 14%;
+    --secondary: 221 14% 24%;
+    --secondary-foreground: 210 18% 92%;
+    --muted: 221 14% 24%;
+    --muted-foreground: 215 14% 72%;
+    --accent: 221 14% 24%;
+    --accent-foreground: 210 18% 92%;
+    --destructive: 0 58% 48%;
+    --destructive-foreground: 210 18% 96%;
+    --border: 220 16% 26%;
+    --input: 220 16% 26%;
+    --ring: 217 72% 68%;
   }
 }
 
@@ -75,29 +77,27 @@
   }
 }
 
-/* Custom modern scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f5f9;
+  background: hsl(var(--background));
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: hsl(var(--border));
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: hsl(var(--muted-foreground));
 }
 
-/* Glassmorphism utility */
 .glass-panel {
-  background: rgba(255, 255, 255, 0.85);
+  background: hsl(var(--card) / 0.85);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(226, 232, 240, 0.8);
+  border: 1px solid hsl(var(--border) / 0.8);
 }

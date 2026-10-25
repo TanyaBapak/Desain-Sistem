@@ -16,10 +16,12 @@ use App\Http\Controllers\ProgramAllocationController;
 use App\Http\Controllers\UserManagementController;
 use App\Http\Middleware\EnsureUserIsActive;
 use App\Models\User;
+use App\Services\BusinessDataPresenter;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
-Route::get('/', function () {
+Route::get('/', function (Request $request, BusinessDataPresenter $businessDataPresenter) {
     if (auth()->check()) {
         $user = auth()->user();
         $role = $user->roles()->first();
@@ -31,10 +33,17 @@ Route::get('/', function () {
         return redirect()->route('app.show', $tab);
     }
 
+    $filters = $request->validate([
+        'projectionYear' => ['nullable', 'integer', 'min:2000', 'max:2200'],
+    ]);
+    $projectionYear = (int) ($filters['projectionYear'] ?? now()->year);
+
     return Inertia::render('App', [
         'currentTab' => 'overview',
         'isRoot' => true,
         'showLogin' => false,
+        'landingKpiSummary' => $businessDataPresenter->publicLandingKpiSummary(),
+        'landingProjection' => $businessDataPresenter->publicLandingProjection($projectionYear),
     ]);
 })->name('home');
 

@@ -1,5 +1,3 @@
-import type { DashboardTargets } from "@/types/dashboard-targets";
-
 export interface ManagedUser {
   id: string;
   name: string;
@@ -26,5 +24,15 @@ export interface UserManagementData {
   districts: { id: string; province_id: string; name: string }[];
   institutions: { id: string; name: string }[];
   employers: { id: string; name: string }[];
-  dashboardTargets: DashboardTargets;
+  landingKpiTargets: {
+    year: number;
+    targets: {
+      registeredJobSeekers: number | null;
+      readyForPlacement: number | null;
+      activeTrainingPrograms: number | null;
+      activeVocationalInstitutions: number | null;
+      nationalLpkCount: number | null;
+      validatedDemandCount: number | null;
+    };
+  }[];
 }

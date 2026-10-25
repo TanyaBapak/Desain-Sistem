@@ -452,6 +452,26 @@ export const ApprovalWorkflowView: React.FC<ApprovalWorkflowViewProps> = ({
                       ))}
                     </dl>
                   )}
+                  {req.externalLinks && req.externalLinks.length > 0 && (
+                    <div className="space-y-2 rounded-xl border border-border bg-card p-3">
+                      <h4 className="text-sm font-semibold text-foreground">Tautan pemantauan lembaga</h4>
+                      <ul className="space-y-1">
+                        {req.externalLinks.map((link) => (
+                          <li key={link.label}>
+                            <a
+                              href={link.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 text-sm font-medium text-primary underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                            >
+                              {link.label}
+                              <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+                            </a>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                   {req.documents && req.documents.length > 0 && (
                     <div className="space-y-2 rounded-xl border border-border bg-card p-3">
                       <h4 className="text-sm font-semibold text-foreground">Dokumen pendaftaran</h4>

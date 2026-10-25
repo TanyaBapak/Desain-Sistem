@@ -5,8 +5,10 @@ namespace Tests\Feature;
 use App\Models\Role;
 use App\Models\User;
 use Database\Seeders\AccessControlSeeder;
+use Database\Seeders\DemoDataSeeder;
 use Database\Seeders\ReferenceDataSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
@@ -20,86 +22,139 @@ class DashboardTargetTest extends TestCase
         $this->seed([
             ReferenceDataSeeder::class,
             AccessControlSeeder::class,
+            DemoDataSeeder::class,
         ]);
     }
 
-    public function test_super_admin_can_update_national_dashboard_targets_and_leadership_can_view_them(): void
+    public function test_super_admin_can_set_manual_landing_target_and_public_landing_uses_it_with_processed_demand(): void
     {
+        $this->withoutVite();
         $admin = $this->userWithRole('super_admin');
-        $targets = [
-            'registeredJobSeekers' => 10000,
-            'readyForPlacement' => 2500,
-            'activeTrainingPrograms' => 300,
-            'activeVocationalInstitutions' => 500,
-            'nationalRegisteredLpk' => 3000,
-            'validatedDemands' => 1200,
-        ];
+        DB::table('job_demands')->where('id', 'DEM-DEMO-001')->update([
+            'verification_status' => 'Approved',
+            'headcount' => 12,
+            'filled_quota' => 5,
+        ]);
 
         $this->actingAs($admin)
             ->get('/app/rbac')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->where('adminUsers.dashboardTargets.registeredJobSeekers', null)
-                ->where('adminUsers.dashboardTargets.validatedDemands', null));
+                ->where('adminUsers.landingKpiTargets', []));
 
-        $this->patch('/admin/dashboard-targets', ['targets' => $targets])
+        $this->patch('/admin/dashboard-targets', $this->targetPayload())
             ->assertRedirect()
             ->assertSessionHasNoErrors();
 
-        foreach ($targets as $key => $value) {
-            $this->assertDatabaseHas('dashboard_targets', [
-                'metric_key' => $key,
-                'target_value' => $value,
-                'updated_by' => $admin->id,
-            ]);
-        }
+        $this->assertDatabaseHas('dashboard_targets', [
+            'metric_key' => 'validatedDemandCount_'.now()->year,
+            'target_value' => 200,
+            'updated_by' => $admin->id,
+        ]);
+        $this->assertDatabaseCount('dashboard_targets', 6);
         $this->assertDatabaseHas('audit_logs', [
             'user_id' => $admin->id,
-            'action_type' => 'UPDATE_DATA',
             'entity' => 'dashboard_targets',
-            'entity_id' => 'nasional',
+            'entity_id' => (string) now()->year,
         ]);
+        $this->actingAs($admin)
+            ->get('/app/rbac')
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('adminUsers.landingKpiTargets.0.year', now()->year)
+                ->where('adminUsers.landingKpiTargets.0.targets.registeredJobSeekers', 10000)
+                ->where('adminUsers.landingKpiTargets.0.targets.validatedDemandCount', 200));
 
-        $this->actingAs($this->userWithRole('leadership'))
-            ->get('/app/dashboard')
+        auth()->logout();
+        $this->get('/')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->where('businessData.reportSummary.dashboardTargets.registeredJobSeekers', 10000)
-                ->where('businessData.reportSummary.dashboardTargets.readyForPlacement', 2500)
-                ->where('businessData.reportSummary.dashboardTargets.validatedDemands', 1200));
-
-        $this->actingAs($this->userWithRole('auditor'))
-            ->get('/app/reports')
-            ->assertOk()
-            ->assertInertia(fn (Assert $page) => $page
-                ->where('businessData.reportSummary.dashboardTargets.registeredJobSeekers', 10000)
-                ->where('businessData.reportSummary.dashboardTargets.nationalRegisteredLpk', 3000));
+                ->has('landingKpiSummary.metrics', 6)
+                ->where('landingKpiSummary.year', now()->year)
+                ->where('landingKpiSummary.metrics.5.value', 1)
+                ->where('landingKpiSummary.metrics.5.target', 200));
     }
 
-    public function test_only_super_admin_can_update_targets_and_all_targets_must_be_positive_integers(): void
+    public function test_only_super_admin_can_change_manual_landing_target(): void
     {
-        $leadership = $this->userWithRole('leadership');
-        $targets = array_fill_keys([
-            'registeredJobSeekers',
-            'readyForPlacement',
-            'activeTrainingPrograms',
-            'activeVocationalInstitutions',
-            'nationalRegisteredLpk',
-            'validatedDemands',
-        ], 1);
-
-        $this->actingAs($leadership)
-            ->patch('/admin/dashboard-targets', ['targets' => $targets])
+        $this->actingAs($this->userWithRole('leadership'))
+            ->patch('/admin/dashboard-targets', $this->targetPayload())
             ->assertForbidden();
 
-        $targets['registeredJobSeekers'] = 0;
-        $this->actingAs($this->userWithRole('super_admin'))
-            ->from('/app/rbac')
-            ->patch('/admin/dashboard-targets', ['targets' => $targets])
-            ->assertRedirect('/app/rbac')
-            ->assertSessionHasErrors('targets.registeredJobSeekers');
-
         $this->assertDatabaseCount('dashboard_targets', 0);
+    }
+
+    public function test_target_and_processed_quota_are_scoped_to_the_selected_year(): void
+    {
+        $this->withoutVite();
+        $year = (int) now()->year;
+        $previousYear = $year - 1;
+        $demand = (array) DB::table('job_demands')->where('id', 'DEM-DEMO-001')->first();
+        DB::table('job_demands')->insert(array_merge($demand, [
+            'id' => 'DEM-DEMO-PREVIOUS-YEAR',
+            'verification_status' => 'Approved',
+            'headcount' => 100,
+            'filled_quota' => 50,
+            'created_at' => now()->setYear($previousYear),
+            'updated_at' => now()->setYear($previousYear),
+        ]));
+        DB::table('dashboard_targets')->insert([
+            'metric_key' => "validatedDemandCount_{$year}",
+            'target_value' => 25,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->get('/')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('landingKpiSummary.year', $year)
+                ->where('landingKpiSummary.metrics.5.value', 0)
+                ->where('landingKpiSummary.metrics.5.target', 25));
+    }
+
+    public function test_public_landing_projection_filters_demand_and_programs_by_selected_year(): void
+    {
+        $this->withoutVite();
+        $year = (int) now()->year - 1;
+        DB::table('job_demands')->where('id', 'DEM-DEMO-001')->update([
+            'verification_status' => 'Approved',
+            'headcount' => 20,
+            'filled_quota' => 8,
+            'created_at' => now()->setYear($year),
+        ]);
+        DB::table('training_programs')->where('id', 'PROG-DEMO-001')->update([
+            'program_type' => 'Pelatihan Bahasa',
+            'quota' => 15,
+            'enrolled_count' => 6,
+            'created_at' => now()->setYear($year),
+        ]);
+
+        $this->get('/?projectionYear='.$year)
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('landingProjection.year', $year)
+                ->where('landingProjection.countries.0.target', 20)
+                ->where('landingProjection.countries.0.achieved', 8)
+                ->where('landingProjection.countries.0.projected', 12)
+                ->where('landingProjection.trainingTypes.0.name', 'Pelatihan Bahasa')
+                ->where('landingProjection.trainingTypes.0.target', 15)
+                ->where('landingProjection.trainingTypes.0.achieved', 6)
+                ->where('landingProjection.trainingTypes.0.projected', 9));
+    }
+
+    private function targetPayload(): array
+    {
+        return [
+            'year' => now()->year,
+            'targets' => [
+                'registeredJobSeekers' => 10000,
+                'readyForPlacement' => 170,
+                'activeTrainingPrograms' => 200,
+                'activeVocationalInstitutions' => 200,
+                'nationalLpkCount' => 200,
+                'validatedDemandCount' => 200,
+            ],
+        ];
     }
 
     private function userWithRole(string $roleName): User

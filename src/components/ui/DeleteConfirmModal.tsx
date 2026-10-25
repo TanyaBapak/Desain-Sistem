@@ -42,45 +42,45 @@ export const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
       maxWidth="md"
     >
       <div className="space-y-4">
-        <div className="flex items-start gap-3 p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-rose-800">
-          <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+        <div className="flex items-start gap-3 rounded-xl border border-destructive/30 bg-destructive/10 p-3.5 text-foreground">
+          <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
           <div className="text-xs">
-            <span className="font-bold block text-sm mb-0.5">Peringatan Tindakan Kritis</span>
+            <span className="mb-0.5 block text-sm font-semibold">Peringatan tindakan kritis</span>
             <p className="leading-relaxed">{description}</p>
           </div>
         </div>
 
-        <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs">
-          <div className="text-slate-500 font-semibold mb-1">Objek yang akan dihapus:</div>
-          <div className="font-bold text-slate-900 text-sm">{entityName}</div>
-          <div className="font-mono text-slate-500 text-[11px] mt-0.5">ID: {entityId}</div>
+        <div className="rounded-xl border border-border bg-muted/40 p-3 text-sm">
+          <div className="mb-1 font-medium text-muted-foreground">Objek yang akan dihapus:</div>
+          <div className="font-semibold text-foreground">{entityName}</div>
+          <div className="mt-0.5 font-mono text-xs text-muted-foreground">ID: {entityId}</div>
         </div>
 
         <div>
-          <label className="block text-xs font-bold text-slate-700 mb-1.5">
-            Alasan Justifikasi Penghapusan <span className="text-slate-400 font-normal">(Wajib untuk Audit Log)</span>:
+          <label className="mb-1.5 block text-sm font-medium text-foreground">
+            Alasan Justifikasi Penghapusan <span className="font-normal text-muted-foreground">(Wajib untuk Audit Log)</span>:
           </label>
           <textarea
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             placeholder="Contoh: Pembatalan kuota pemberi kerja / pengalihan data ganda / calon peserta mengundurkan diri..."
-            className="w-full text-xs p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-500 bg-white"
+            className="w-full rounded-xl border border-input bg-background p-2.5 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             rows={3}
           />
         </div>
 
-        <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+        <div className="flex items-center justify-end gap-2 border-t border-border pt-3">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition"
+            className="rounded-xl px-4 py-2 text-sm font-medium text-muted-foreground transition hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             Batal
           </button>
           <button
             type="button"
             onClick={handleConfirm}
-            className="px-4 py-2 text-xs font-bold bg-rose-600 text-white hover:bg-rose-700 rounded-xl transition flex items-center gap-1.5 shadow-xs"
+            className="flex items-center gap-1.5 rounded-xl bg-destructive px-4 py-2 text-sm font-semibold text-destructive-foreground shadow-sm transition hover:bg-destructive/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <Trash2 className="w-3.5 h-3.5" />
             <span>{confirmText}</span>

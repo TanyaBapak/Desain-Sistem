@@ -419,6 +419,7 @@ export interface DataApprovalRequest {
   dataSnapshot: Record<string, any>;
   details?: { label: string; value: string | number | null }[];
   documents?: { id: number; type: string; name: string; downloadUrl: string }[];
+  externalLinks?: { label: string; url: string }[];
 }
 
 export interface MonitoringClassData {

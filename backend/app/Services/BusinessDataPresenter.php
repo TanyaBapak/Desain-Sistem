@@ -15,6 +15,90 @@ class BusinessDataPresenter
         private readonly DashboardTargetService $dashboardTargetService = new DashboardTargetService,
     ) {}
 
+    /**
+     * @return array{year: int, metrics: array<int, array{key: string, value: int, target: int|null}>}
+     */
+    public function publicLandingKpiSummary(): array
+    {
+        $year = (int) now()->year;
+        $demandCount = DB::table('job_demands')
+            ->where('verification_status', 'Approved')
+            ->whereYear('created_at', $year)
+            ->count();
+        $values = [
+            'registeredJobSeekers' => (int) DB::table('job_seekers')->whereNull('deleted_at')->count(),
+            'readyForPlacement' => (int) DB::table('job_seekers')
+                ->whereNull('deleted_at')
+                ->where('readiness_status', 'Ready for Placement')
+                ->count(),
+            'activeTrainingPrograms' => (int) DB::table('training_programs')->where('status', 'Aktif')->count(),
+            'activeVocationalInstitutions' => (int) DB::table('institutions')->where('status', 'Aktif')->count(),
+            'nationalLpkCount' => $this->nationalLpkCount(),
+            'validatedDemandCount' => $demandCount,
+        ];
+        $targets = $this->dashboardTargetService->landingKpiTargets($year);
+
+        return [
+            'year' => $year,
+            'metrics' => collect($values)->map(fn (int $value, string $key): array => [
+                'key' => $key,
+                'value' => $value,
+                'target' => $targets[$key] ?? null,
+            ])->values()->all(),
+        ];
+    }
+
+    /**
+     * @return array{
+     *     year: int,
+     *     countries: array<int, array{name: string, target: int, achieved: int, projected: int}>,
+     *     trainingTypes: array<int, array{name: string, target: int, achieved: int, projected: int}>
+     * }
+     */
+    public function publicLandingProjection(int $year): array
+    {
+        $countries = DB::table('job_demands')
+            ->join('countries', 'countries.id', '=', 'job_demands.country_id')
+            ->where('job_demands.verification_status', 'Approved')
+            ->whereYear('job_demands.created_at', $year)
+            ->select('countries.name')
+            ->selectRaw('SUM(job_demands.headcount) as target')
+            ->selectRaw('SUM(job_demands.filled_quota) as achieved')
+            ->groupBy('countries.id', 'countries.name')
+            ->orderByDesc('target')
+            ->limit(8)
+            ->get()
+            ->map(fn (object $row): array => [
+                'name' => $row->name,
+                'target' => (int) $row->target,
+                'achieved' => (int) $row->achieved,
+                'projected' => max(0, (int) $row->target - (int) $row->achieved),
+            ])
+            ->all();
+
+        $trainingTypes = DB::table('training_programs')
+            ->whereYear('training_programs.created_at', $year)
+            ->select('training_programs.program_type as name')
+            ->selectRaw('SUM(training_programs.quota) as target')
+            ->selectRaw('SUM(training_programs.enrolled_count) as achieved')
+            ->groupBy('training_programs.program_type')
+            ->orderByDesc('target')
+            ->get()
+            ->map(fn (object $row): array => [
+                'name' => $row->name,
+                'target' => (int) $row->target,
+                'achieved' => (int) $row->achieved,
+                'projected' => max(0, (int) $row->target - (int) $row->achieved),
+            ])
+            ->all();
+
+        return [
+            'year' => $year,
+            'countries' => $countries,
+            'trainingTypes' => $trainingTypes,
+        ];
+    }
+
     public function make(User $user, array $filters = []): array
     {
         $role = $user->roles()->value('name');
@@ -35,9 +119,6 @@ class BusinessDataPresenter
                     $role,
                     $user,
                     $nationalLpkCount,
-                    in_array($role, ['super_admin', 'leadership', 'task_force', 'directorate_admin', 'auditor'], true)
-                        ? $this->dashboardTargetService->currentTargets()
-                        : null,
                 ),
                 'approvalRequests' => $this->approvalRequests($role, $user, $filters),
                 'approvalPagination' => $this->approvalPagination($role, $user, $filters),
@@ -533,7 +614,6 @@ class BusinessDataPresenter
         ?string $role,
         User $user,
         int $nationalLpkCount,
-        ?array $dashboardTargets,
     ): array {
         if (! in_array($role, ['super_admin', 'leadership', 'task_force', 'directorate_admin', 'auditor'], true)) {
             return [];
@@ -593,7 +673,6 @@ class BusinessDataPresenter
             'institutionCount' => (clone $institutions)->count('institutions.id'),
             'nationalLpkCount' => $nationalLpkCount,
             'demandCount' => (clone $demands)->count('job_demands.id'),
-            'dashboardTargets' => $dashboardTargets,
             'dashboard' => [
                 'candidateLifecycle' => (clone $candidates)
                     ->select('job_seekers.lifecycle_status')
@@ -722,8 +801,12 @@ class BusinessDataPresenter
             ->orderBy('document_type')
             ->get(['id', 'institution_id', 'document_type', 'original_name'])
             ->groupBy('institution_id');
+        $institutionLinks = DB::table('institutions')
+            ->whereIn('id', $institutionIds)
+            ->get(['id', 'procurement_catalog_url', 'mou_drive_url'])
+            ->keyBy('id');
 
-        return $rows->map(function (object $row) use ($registrationDocuments): array {
+        return $rows->map(function (object $row) use ($registrationDocuments, $institutionLinks): array {
             $docs = $row->entity_type === 'lembaga_vokasi'
                 ? ($registrationDocuments->get($row->entity_id, collect()))
                     ->map(fn (object $document): array => [
@@ -736,6 +819,17 @@ class BusinessDataPresenter
                         ]),
                     ])->all()
                 : [];
+            $institutionLink = $row->entity_type === 'lembaga_vokasi'
+                ? $institutionLinks->get($row->entity_id)
+                : null;
+            $externalLinks = array_values(array_filter([
+                $institutionLink?->procurement_catalog_url
+                    ? ['label' => 'Katalog INAPROC', 'url' => $institutionLink->procurement_catalog_url]
+                    : null,
+                $institutionLink?->mou_drive_url
+                    ? ['label' => 'Dokumen MoU di Google Drive', 'url' => $institutionLink->mou_drive_url]
+                    : null,
+            ]));
 
             return [
                 'id' => $row->id,
@@ -744,6 +838,7 @@ class BusinessDataPresenter
                 'entityTitle' => null,
                 'details' => $this->approvalDetails($row->entity_type, $row->entity_id),
                 'documents' => $docs,
+                'externalLinks' => $externalLinks,
                 'title' => $row->title,
                 'submittedBy' => $row->submitted_by,
                 'submittedRole' => $row->submitted_role,

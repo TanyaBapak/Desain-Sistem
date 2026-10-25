@@ -6,15 +6,7 @@ import { DemandFormModal } from './DemandFormModal';
 import { DeleteConfirmModal } from '../ui/DeleteConfirmModal';
 import { GlobalDemand } from '../../types';
 import { archiveBusinessData, saveBusinessData } from '../../lib/business-data';
-import {
-  Search,
-  Globe2,
-  Users,
-  Briefcase,
-  Calendar,
-  DollarSign,
-  Plus
-} from 'lucide-react';
+import { Search, Plus } from 'lucide-react';
 
 export const GlobalDemandsView: React.FC = () => {
   const {
@@ -36,6 +28,9 @@ export const GlobalDemandsView: React.FC = () => {
   // Compute summary metrics
   const totalSlotsRequired = demands.reduce((acc, d) => acc + d.requiredQuota, 0);
   const totalSlotsFilled = demands.reduce((acc, d) => acc + d.filledQuota, 0);
+  const achievementRate = totalSlotsRequired > 0
+    ? Math.round((totalSlotsFilled / totalSlotsRequired) * 100)
+    : 0;
 
   const countryOptions = useMemo(() => {
     return Array.from(new Set(demands.map((d) => d.country)));
@@ -68,54 +63,54 @@ export const GlobalDemandsView: React.FC = () => {
     <div className="space-y-6">
       {/* 4 Executive Metric Cards for Demand */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
-          <span className="text-xs text-slate-500 font-semibold block">Total Kebutuhan Kuota Global</span>
+        <div className="rounded-xl border border-border bg-card p-4 text-card-foreground shadow-sm">
+          <span className="block text-xs font-semibold text-muted-foreground">Total target kuota</span>
           <div className="flex items-baseline gap-2 mt-1">
-            <span className="text-2xl font-extrabold text-slate-900">{totalSlotsRequired}</span>
-            <span className="text-xs text-blue-600 font-bold">Slot PMI</span>
+            <span className="text-2xl font-extrabold tabular-nums text-foreground">{totalSlotsRequired.toLocaleString('id-ID')}</span>
+            <span className="text-xs font-bold text-primary">orang</span>
           </div>
-          <span className="text-[11px] text-slate-400 mt-1 block">
-            {totalSlotsFilled} Terisi ({totalSlotsRequired - totalSlotsFilled} Tersedia)
+          <span className="mt-1 block text-xs text-muted-foreground">
+            {totalSlotsFilled.toLocaleString('id-ID')} terpenuhi · {Math.max(totalSlotsRequired - totalSlotsFilled, 0).toLocaleString('id-ID')} tersisa
           </span>
         </div>
 
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
-          <span className="text-xs text-slate-500 font-semibold block">Negara Tujuan Prioritas</span>
+        <div className="rounded-xl border border-border bg-card p-4 text-card-foreground shadow-sm">
+          <span className="block text-xs font-semibold text-muted-foreground">Negara tujuan</span>
           <div className="flex items-baseline gap-2 mt-1">
-            <span className="text-xl font-extrabold text-blue-700">Jepang & Korea</span>
+            <span className="text-2xl font-extrabold tabular-nums text-foreground">{countryOptions.length.toLocaleString('id-ID')}</span>
           </div>
-          <span className="text-[11px] text-slate-400 mt-1 block">Skema SSW Tokutei Ginou & E-7</span>
+          <span className="mt-1 block text-xs text-muted-foreground">Negara dengan demand tercatat</span>
         </div>
 
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
-          <span className="text-xs text-slate-500 font-semibold block">Sektor Permintaan Tertinggi</span>
+        <div className="rounded-xl border border-border bg-card p-4 text-card-foreground shadow-sm">
+          <span className="block text-xs font-semibold text-muted-foreground">Sektor permintaan</span>
           <div className="flex items-baseline gap-2 mt-1">
-            <span className="text-lg font-extrabold text-emerald-700">Kesehatan & Manufaktur</span>
+            <span className="text-2xl font-extrabold tabular-nums text-foreground">{sectorOptions.length.toLocaleString('id-ID')}</span>
           </div>
-          <span className="text-[11px] text-slate-400 mt-1 block">Caregiver & Welder Galangan</span>
+          <span className="mt-1 block text-xs text-muted-foreground">Sektor dengan demand tercatat</span>
         </div>
 
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
-          <span className="text-xs text-slate-500 font-semibold block">Deadline Rekrutmen Terdekat</span>
+        <div className="rounded-xl border border-border bg-card p-4 text-card-foreground shadow-sm">
+          <span className="block text-xs font-semibold text-muted-foreground">Capaian kuota demand</span>
           <div className="flex items-baseline gap-2 mt-1">
-            <span className="text-xl font-extrabold text-red-600">30 Nov 2026</span>
+            <span className="text-2xl font-extrabold tabular-nums text-foreground">{achievementRate}%</span>
           </div>
-          <span className="text-[11px] text-slate-400 mt-1 block">Mitsubishi Heavy Industries</span>
+          <span className="mt-1 block text-xs text-muted-foreground">Terpenuhi dibanding target kuota</span>
         </div>
       </div>
 
       {/* Control & Filter Bar */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-4">
+      <div className="space-y-4 rounded-2xl border border-border bg-card p-4 text-card-foreground shadow-sm">
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
           {/* Search Box */}
           <div className="relative flex-1">
-            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+            <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <input
               type="text"
               value={searchDemand}
               onChange={(e) => setSearchDemand(e.target.value)}
               placeholder="Cari posisi pekerjaan (Caregiver, Welder, SMT), perusahaan, bahasa, atau skill..."
-              className="w-full pl-10 pr-4 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition"
+              className="w-full rounded-xl border border-input bg-background py-2 pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             />
           </div>
 
@@ -124,7 +119,7 @@ export const GlobalDemandsView: React.FC = () => {
             <select
               value={filterDemandCountry}
               onChange={(e) => setFilterDemandCountry(e.target.value)}
-              className="text-xs py-2 px-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+              className="rounded-lg border border-input bg-background px-3 py-2 text-sm font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <option value="ALL">Semua Negara</option>
               {countryOptions.map((c) => (
@@ -135,7 +130,7 @@ export const GlobalDemandsView: React.FC = () => {
             <select
               value={filterDemandSector}
               onChange={(e) => setFilterDemandSector(e.target.value)}
-              className="text-xs py-2 px-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+              className="rounded-lg border border-input bg-background px-3 py-2 text-sm font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <option value="ALL">Semua Sektor</option>
               {sectorOptions.map((s) => (
@@ -149,7 +144,7 @@ export const GlobalDemandsView: React.FC = () => {
                 setFormMode('create');
                 setIsFormOpen(true);
               }}
-              className="px-3.5 py-2 rounded-lg text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white transition flex items-center gap-1.5 shadow-sm shrink-0"
+              className="flex shrink-0 items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <Plus className="w-4 h-4" />
               <span>+ Input Lowongan Demand</span>
@@ -158,22 +153,29 @@ export const GlobalDemandsView: React.FC = () => {
         </div>
       </div>
 
-      {/* Grid Demand Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredDemands.map((demand) => (
-          <DemandCard
-            key={demand.id}
-            demand={demand}
-            onViewDetail={setActiveModalDemand}
-            onEditDemand={(d) => {
-              setDemandToEdit(d);
-              setFormMode('edit');
-              setIsFormOpen(true);
-            }}
-            onDeleteDemand={(d) => setDeletingDemand(d)}
-          />
-        ))}
-      </div>
+      {filteredDemands.length > 0 ? (
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {filteredDemands.map((demand) => (
+            <DemandCard
+              key={demand.id}
+              demand={demand}
+              onViewDetail={setActiveModalDemand}
+              onEditDemand={(d) => {
+                setDemandToEdit(d);
+                setFormMode('edit');
+                setIsFormOpen(true);
+              }}
+              onDeleteDemand={(d) => setDeletingDemand(d)}
+            />
+          ))}
+        </div>
+      ) : (
+        <p className="rounded-xl border border-dashed border-border bg-card p-6 text-center text-sm text-muted-foreground">
+          {demands.length === 0
+            ? 'Belum ada data demand. Tambahkan permintaan untuk mulai memantau target.'
+            : 'Tidak ada demand yang sesuai dengan pencarian atau filter.'}
+        </p>
+      )}
 
       {/* Demand Detail Modal */}
       <DemandDetailModal

@@ -28,6 +28,8 @@ export function InstitutionRegistrationPage({ provinces, districts }: Institutio
     contactEmail: "",
     contactPhone: "",
     accreditation: "",
+    procurementCatalogUrl: "",
+    mouDriveUrl: "",
     instructorCount: "0",
     classCount: "0",
     readyParticipantCount: "0",
@@ -133,6 +135,24 @@ export function InstitutionRegistrationPage({ provinces, districts }: Institutio
               </Field>
               <Field label="Akreditasi (jika ada)" error={errors.accreditation}>
                 <Input value={data.accreditation} onChange={(event) => setData("accreditation", event.target.value)} placeholder="Contoh: A, B, Unggul" />
+              </Field>
+              <Field label="Tautan katalog INAPROC" error={errors.procurementCatalogUrl}>
+                <Input
+                  type="url"
+                  inputMode="url"
+                  placeholder="https://katalog.inaproc.id/..."
+                  value={data.procurementCatalogUrl}
+                  onChange={(event) => setData("procurementCatalogUrl", event.target.value)}
+                />
+              </Field>
+              <Field label="Tautan Google Drive MoU" error={errors.mouDriveUrl}>
+                <Input
+                  type="url"
+                  inputMode="url"
+                  placeholder="https://drive.google.com/..."
+                  value={data.mouDriveUrl}
+                  onChange={(event) => setData("mouDriveUrl", event.target.value)}
+                />
               </Field>
               <Field label="Skema penyelenggaraan" error={errors.procurementMethod}>
                 <select

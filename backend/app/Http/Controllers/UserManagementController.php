@@ -53,7 +53,7 @@ class UserManagementController extends Controller
             'districts' => DB::table('districts')->orderBy('name')->get(['id', 'province_id', 'name']),
             'institutions' => DB::table('institutions')->where('status', 'Aktif')->orderBy('name')->get(['id', 'name']),
             'employers' => DB::table('employers')->orderBy('name')->get(['id', 'name']),
-            'dashboardTargets' => $dashboardTargets->currentTargets(),
+            'landingKpiTargets' => $dashboardTargets->allLandingKpiTargets(),
         ];
     }
 

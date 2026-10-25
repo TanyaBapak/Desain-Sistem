@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { GlobalDemand } from '../../types';
 import { useAppStore } from '../../store/useAppStore';
-import { X, Briefcase, Save, Sparkles, Globe2, DollarSign } from 'lucide-react';
+import { X, Briefcase, Save, Sparkles } from 'lucide-react';
 
 interface DemandFormModalProps {
   isOpen: boolean;
@@ -98,31 +98,32 @@ export const DemandFormModal: React.FC<DemandFormModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-fade-in overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-foreground/30 p-4 backdrop-blur-sm animate-fade-in">
       <div
-        className="w-full max-w-3xl bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden transform transition-all my-8"
+        className="my-8 w-full max-w-3xl transform overflow-hidden rounded-2xl border border-border bg-card text-card-foreground shadow-2xl transition-all"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-start justify-between px-6 py-4 border-b border-slate-100 bg-gradient-to-r from-slate-900 to-blue-950 text-white">
+        <div className="flex items-start justify-between border-b border-border bg-muted/50 px-6 py-4">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-blue-800/80 border border-blue-700 flex items-center justify-center text-blue-200 shrink-0">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary">
               <Briefcase className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-base font-extrabold text-white">
+              <h3 className="text-base font-semibold text-foreground">
                 {mode === 'create'
                   ? 'Input Lowongan Kerja / Demand Luar Negeri'
                   : 'Perbarui Data Lowongan Demand Luar Negeri'}
               </h3>
-              <p className="text-xs text-blue-200 mt-0.5">
+              <p className="mt-0.5 text-xs text-muted-foreground">
                 Modul D • Job Order Terverifikasi BP3MI & Standar Ketenagakerjaan Global
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-blue-200 hover:text-white hover:bg-blue-800 transition"
+            aria-label="Tutup formulir"
+            className="rounded-lg p-1.5 text-muted-foreground transition hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <X className="w-5 h-5" />
           </button>
@@ -133,8 +134,8 @@ export const DemandFormModal: React.FC<DemandFormModalProps> = ({
           {/* Posisi & Perusahaan */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">
-                Posisi Pekerjaan / Job Title <span className="text-rose-500">*</span>
+              <label className="mb-1 block text-sm font-medium text-foreground">
+                Posisi Pekerjaan / Job Title <span className="text-destructive">*</span>
               </label>
               <input
                 type="text"
@@ -143,7 +144,7 @@ export const DemandFormModal: React.FC<DemandFormModalProps> = ({
                 value={jobTitle}
                 onChange={(e) => setJobTitle(e.target.value)}
                 placeholder="Pilih jabatan dari data referensi"
-                className="w-full text-xs p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-slate-50 focus:bg-white transition"
+                className="w-full rounded-xl border border-input bg-background p-2.5 text-sm text-foreground placeholder:text-muted-foreground transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               />
               <datalist id="demand-occupations">
                 {availableOccupations.map((occupation) => (
@@ -153,8 +154,8 @@ export const DemandFormModal: React.FC<DemandFormModalProps> = ({
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">
-                Nama Perusahaan Pemberi Kerja (Employer) <span className="text-rose-500">*</span>
+              <label className="mb-1 block text-sm font-medium text-foreground">
+                Nama Perusahaan Pemberi Kerja (Employer) <span className="text-destructive">*</span>
               </label>
               <input
                 type="text"
@@ -162,7 +163,7 @@ export const DemandFormModal: React.FC<DemandFormModalProps> = ({
                 value={employerName}
                 onChange={(e) => setEmployerName(e.target.value)}
                 placeholder="Contoh: Mitsubishi Heavy Industries / Asahi Glass"
-                className="w-full text-xs p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-slate-50 focus:bg-white transition"
+                className="w-full rounded-xl border border-input bg-background p-2.5 text-sm text-foreground placeholder:text-muted-foreground transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               />
             </div>
           </div>
@@ -170,13 +171,13 @@ export const DemandFormModal: React.FC<DemandFormModalProps> = ({
           {/* Negara, Sektor & Pendidikan Minimal */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">
-                Negara Penempatan <span className="text-rose-500">*</span>
+              <label className="mb-1 block text-sm font-medium text-foreground">
+                Negara Penempatan <span className="text-destructive">*</span>
               </label>
               <select
                 value={country}
                 onChange={(e) => setCountry(e.target.value)}
-                className="w-full text-xs p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-slate-50"
+                className="w-full rounded-xl border border-input bg-background p-2.5 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 {businessOptions.countries.map((item) => (
                   <option key={item.id} value={item.name}>{item.name}</option>
@@ -185,8 +186,8 @@ export const DemandFormModal: React.FC<DemandFormModalProps> = ({
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">
-                Sektor Industri <span className="text-rose-500">*</span>
+              <label className="mb-1 block text-sm font-medium text-foreground">
+                Sektor Industri <span className="text-destructive">*</span>
               </label>
               <select
                 required
@@ -198,7 +199,7 @@ export const DemandFormModal: React.FC<DemandFormModalProps> = ({
                   );
                   setJobTitle(firstOccupation?.title ?? '');
                 }}
-                className="w-full text-xs p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-slate-50"
+                className="w-full rounded-xl border border-input bg-background p-2.5 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 {businessOptions.sectors.map((item) => (
                   <option key={item.id} value={item.name}>{item.name}</option>
@@ -207,13 +208,13 @@ export const DemandFormModal: React.FC<DemandFormModalProps> = ({
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">
-                Pendidikan Minimal <span className="text-rose-500">*</span>
+              <label className="mb-1 block text-sm font-medium text-foreground">
+                Pendidikan Minimal <span className="text-destructive">*</span>
               </label>
               <select
                 value={minEducation}
                 onChange={(e) => setMinEducation(e.target.value)}
-                className="w-full text-xs p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-slate-50"
+                className="w-full rounded-xl border border-input bg-background p-2.5 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <option value="SMK">SMK / Sederajat</option>
                 <option value="D3">D3 Vokasi</option>
@@ -226,8 +227,8 @@ export const DemandFormModal: React.FC<DemandFormModalProps> = ({
           {/* Kuota Kebutuhan, Estimasi Gaji & Standar Bahasa */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">
-                Kebutuhan Kuota (Orang) <span className="text-rose-500">*</span>
+              <label className="mb-1 block text-sm font-medium text-foreground">
+                Kebutuhan Kuota (Orang) <span className="text-destructive">*</span>
               </label>
               <input
                 type="number"
@@ -236,13 +237,13 @@ export const DemandFormModal: React.FC<DemandFormModalProps> = ({
                 required
                 value={requiredQuota}
                 onChange={(e) => setRequiredQuota(Number(e.target.value))}
-                className="w-full text-xs p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-slate-50"
+                className="w-full rounded-xl border border-input bg-background p-2.5 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">
-                Estimasi Gaji Pokok <span className="text-rose-500">*</span>
+              <label className="mb-1 block text-sm font-medium text-foreground">
+                Estimasi Gaji Pokok <span className="text-destructive">*</span>
               </label>
               <input
                 type="text"
@@ -250,13 +251,13 @@ export const DemandFormModal: React.FC<DemandFormModalProps> = ({
                 value={salaryRangeString}
                 onChange={(e) => setSalaryRangeString(e.target.value)}
                 placeholder="Contoh: ¥ 210.000 - 240.000 (~Rp 22-26 Jt)"
-                className="w-full text-xs p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-slate-50"
+                className="w-full rounded-xl border border-input bg-background p-2.5 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">
-                Standar Bahasa Asing <span className="text-rose-500">*</span>
+              <label className="mb-1 block text-sm font-medium text-foreground">
+                Standar Bahasa Asing <span className="text-destructive">*</span>
               </label>
               <input
                 type="text"
@@ -264,7 +265,7 @@ export const DemandFormModal: React.FC<DemandFormModalProps> = ({
                 value={requiredLanguageLevel}
                 onChange={(e) => setRequiredLanguageLevel(e.target.value)}
                 placeholder="Contoh: JLPT N4 / JFT-Basic A2 / Goethe B1"
-                className="w-full text-xs p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-slate-50"
+                className="w-full rounded-xl border border-input bg-background p-2.5 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               />
             </div>
           </div>
@@ -272,8 +273,8 @@ export const DemandFormModal: React.FC<DemandFormModalProps> = ({
           {/* Masa Kontrak & Tenggat Waktu */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">
-                Masa Kontrak Kerja (Bulan) <span className="text-rose-500">*</span>
+              <label className="mb-1 block text-sm font-medium text-foreground">
+                Masa Kontrak Kerja (Bulan) <span className="text-destructive">*</span>
               </label>
               <input
                 type="number"
@@ -282,13 +283,13 @@ export const DemandFormModal: React.FC<DemandFormModalProps> = ({
                 required
                 value={workTermMonths}
                 onChange={(e) => setWorkTermMonths(Number(e.target.value))}
-                className="w-full text-xs p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-slate-50"
+                className="w-full rounded-xl border border-input bg-background p-2.5 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">
-                Batas Waktu Rekrutmen (Deadline) <span className="text-rose-500">*</span>
+              <label className="mb-1 block text-sm font-medium text-foreground">
+                Batas Waktu Rekrutmen (Deadline) <span className="text-destructive">*</span>
               </label>
               <input
                 type="text"
@@ -296,45 +297,45 @@ export const DemandFormModal: React.FC<DemandFormModalProps> = ({
                 value={deadlineDate}
                 onChange={(e) => setDeadlineDate(e.target.value)}
                 placeholder="Contoh: 30 Nov 2026 atau 2026-11-30"
-                className="w-full text-xs p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-slate-50"
+                className="w-full rounded-xl border border-input bg-background p-2.5 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               />
             </div>
           </div>
 
           {/* Persyaratan Keterampilan (Skills) */}
           <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center justify-between">
+            <label className="mb-1 flex items-center justify-between text-sm font-medium text-foreground">
               <span>Keterampilan Teknis yang Dibutuhkan (Pisahkan dengan koma)</span>
-              <span className="text-slate-400 font-normal">Kunci pencocokan algoritma Tahap 3</span>
+              <span className="font-normal text-muted-foreground">Kunci pencocokan algoritma Tahap 3</span>
             </label>
             <input
               type="text"
               value={skillsInput}
               onChange={(e) => setSkillsInput(e.target.value)}
               placeholder="Arc Welding 3G, Blue Print Reading, Pemotongan Plasma"
-              className="w-full text-xs p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-slate-50"
+              className="w-full rounded-xl border border-input bg-background p-2.5 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             />
           </div>
 
           {/* Sertifikasi Wajib */}
           <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center justify-between">
+            <label className="mb-1 flex items-center justify-between text-sm font-medium text-foreground">
               <span>Sertifikasi Kerja Wajib (Pisahkan dengan koma)</span>
-              <span className="text-slate-400 font-normal">Contoh: BNSP, SSW Tokutei Ginou</span>
+              <span className="font-normal text-muted-foreground">Contoh: BNSP, SSW Tokutei Ginou</span>
             </label>
             <input
               type="text"
               value={certsInput}
               onChange={(e) => setCertsInput(e.target.value)}
               placeholder="Sertifikat Uji Kompetensi Pengelasan BNSP, SSW Tokutei Ginou"
-              className="w-full text-xs p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-slate-50"
+              className="w-full rounded-xl border border-input bg-background p-2.5 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             />
           </div>
 
           {/* Footer Form Buttons */}
-          <div className="flex items-center justify-between pt-4 border-t border-slate-100">
-            <span className="text-[11px] text-slate-400 flex items-center gap-1">
-              <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+          <div className="flex items-center justify-between border-t border-border pt-4">
+            <span className="flex items-center gap-1 text-xs text-muted-foreground">
+              <Sparkles className="h-3.5 w-3.5 text-primary" />
               Lowongan terhubung langsung dengan AI Matching Engine Tahap 3
             </span>
 
@@ -342,13 +343,13 @@ export const DemandFormModal: React.FC<DemandFormModalProps> = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition"
+                className="rounded-xl px-4 py-2 text-sm font-medium text-muted-foreground transition hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 Batal
               </button>
               <button
                 type="submit"
-                className="px-5 py-2 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition flex items-center gap-1.5 shadow-sm"
+                className="flex items-center gap-1.5 rounded-xl bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <Save className="w-4 h-4" />
                 <span>{mode === 'create' ? 'Terbitkan Lowongan' : 'Perbarui Lowongan'}</span>

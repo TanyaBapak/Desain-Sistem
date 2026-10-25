@@ -3,7 +3,6 @@ import { BarChart3, Building2, GraduationCap, Users, BriefcaseBusiness, Database
 import { ExecutiveDashboardBreakdowns, ExecutiveDashboardBreakdownsData } from '@/components/reports/ExecutiveDashboardBreakdowns';
 import { InstitutionDirectory } from '@/components/dashboard/InstitutionDirectory';
 import { parseServerDate } from '@/lib/utils';
-import type { DashboardTargetKey, DashboardTargets } from '@/types/dashboard-targets';
 
 export interface ReportSummary {
   candidateCount: number;
@@ -12,7 +11,6 @@ export interface ReportSummary {
   institutionCount: number;
   nationalLpkCount: number;
   demandCount: number;
-  dashboardTargets: DashboardTargets | null;
   updatedAt: string | null;
   gardata: {
     candidateCount: number;
@@ -34,13 +32,13 @@ interface ReportsViewProps {
 }
 
 export function ReportsView({ summary, isAuditor, title = 'Laporan' }: ReportsViewProps) {
-  const metrics: { label: string; value: number; targetKey: DashboardTargetKey; icon: React.ElementType }[] = [
-    { label: 'Pencari kerja terdaftar', value: summary.candidateCount, targetKey: 'registeredJobSeekers', icon: Users },
-    { label: 'Siap penempatan', value: summary.readyCandidateCount, targetKey: 'readyForPlacement', icon: BarChart3 },
-    { label: 'Program pelatihan aktif', value: summary.programCount, targetKey: 'activeTrainingPrograms', icon: GraduationCap },
-    { label: 'Lembaga vokasi aktif', value: summary.institutionCount, targetKey: 'activeVocationalInstitutions', icon: Building2 },
-    { label: 'LPK terdaftar nasional', value: summary.nationalLpkCount, targetKey: 'nationalRegisteredLpk', icon: Building2 },
-    { label: 'Permintaan tervalidasi', value: summary.demandCount, targetKey: 'validatedDemands', icon: BriefcaseBusiness },
+  const metrics: { label: string; value: number; icon: React.ElementType }[] = [
+    { label: 'Pencari kerja terdaftar', value: summary.candidateCount, icon: Users },
+    { label: 'Siap penempatan', value: summary.readyCandidateCount, icon: BarChart3 },
+    { label: 'Program pelatihan aktif', value: summary.programCount, icon: GraduationCap },
+    { label: 'Lembaga vokasi aktif', value: summary.institutionCount, icon: Building2 },
+    { label: 'LPK terdaftar nasional', value: summary.nationalLpkCount, icon: Building2 },
+    { label: 'Permintaan tervalidasi', value: summary.demandCount, icon: BriefcaseBusiness },
   ];
 
   return (
@@ -73,7 +71,7 @@ WIB
       )}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        {metrics.map(({ label, value, targetKey, icon: Icon }) => (
+        {metrics.map(({ label, value, icon: Icon }) => (
           <article key={label} className="rounded-xl border border-border bg-card p-5 shadow-sm">
             <div className="flex items-center gap-3">
               <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
@@ -82,9 +80,8 @@ WIB
               <div>
                 <h2 className="text-sm font-medium text-muted-foreground">{label}</h2>
                 <p className="text-2xl font-bold tabular-nums text-foreground">
-                  {value.toLocaleString('id-ID')} / {formatTarget(summary.dashboardTargets, targetKey)}
+                  {value.toLocaleString('id-ID')}
                 </p>
-                <TargetProgress value={value} target={summary.dashboardTargets?.[targetKey] ?? null} />
               </div>
             </div>
           </article>
@@ -152,37 +149,6 @@ WIB
         )}
       </article>
     </section>
-  );
-}
-
-function formatTarget(targets: DashboardTargets | null, key: DashboardTargetKey): string {
-  const target = targets?.[key];
-
-  return target === null || target === undefined ? '—' : target.toLocaleString('id-ID');
-}
-
-function TargetProgress({ value, target }: { value: number; target: number | null }) {
-  if (target === null) {
-    return <p className="mt-1 text-xs text-muted-foreground">Target belum ditetapkan</p>;
-  }
-
-  const percentage = Math.round((value / target) * 100);
-  const progressWidth = Math.min(percentage, 100);
-
-  return (
-    <div className="mt-2 space-y-1">
-      <p className="text-xs text-muted-foreground">Tercapai {percentage.toLocaleString('id-ID')}% dari target</p>
-      <div
-        role="progressbar"
-        aria-label={`Capaian ${percentage}% dari target`}
-        aria-valuemin={0}
-        aria-valuemax={100}
-        aria-valuenow={progressWidth}
-        className="h-2 overflow-hidden rounded-full bg-muted"
-      >
-        <div className="h-full rounded-full bg-primary transition-[width] motion-reduce:transition-none" style={{ width: `${progressWidth}%` }} />
-      </div>
-    </div>
   );
 }
 

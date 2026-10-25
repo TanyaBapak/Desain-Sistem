@@ -127,7 +127,9 @@ export function ExecutiveDashboardBreakdowns({ data }: ExecutiveDashboardBreakdo
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Demand tervalidasi per negara</CardTitle>
-            <p className="text-sm text-muted-foreground">Kuota kebutuhan dan jumlah yang sudah terpenuhi</p>
+            <p className="text-sm text-muted-foreground">
+              Target berasal dari total kuota Modul D yang disetujui; capaian berasal dari kuota terisi.
+            </p>
           </CardHeader>
           <CardContent>
             {(data?.demandByCountry.length ?? 0) > 0 ? (
@@ -137,8 +139,9 @@ export function ExecutiveDashboardBreakdowns({ data }: ExecutiveDashboardBreakdo
                     <tr>
                       <th scope="col" className="pb-2 pr-3 font-medium">Negara tujuan</th>
                       <th scope="col" className="pb-2 px-3 text-right font-medium">Permintaan</th>
-                      <th scope="col" className="pb-2 px-3 text-right font-medium">Kuota</th>
-                      <th scope="col" className="pb-2 pl-3 text-right font-medium">Terpenuhi</th>
+                      <th scope="col" className="pb-2 px-3 text-right font-medium">Target</th>
+                      <th scope="col" className="pb-2 px-3 text-right font-medium">Terpenuhi</th>
+                      <th scope="col" className="pb-2 pl-3 text-right font-medium">Capaian</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y">
@@ -148,6 +151,9 @@ export function ExecutiveDashboardBreakdowns({ data }: ExecutiveDashboardBreakdo
                         <td className="py-3 px-3 text-right tabular-nums">{item.demandCount.toLocaleString("id-ID")}</td>
                         <td className="py-3 px-3 text-right tabular-nums">{item.quota.toLocaleString("id-ID")}</td>
                         <td className="py-3 pl-3 text-right tabular-nums">{item.filledQuota.toLocaleString("id-ID")}</td>
+                        <td className="py-3 pl-3 text-right">
+                          <CountryDemandProgress target={item.quota} achieved={item.filledQuota} />
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -160,6 +166,34 @@ export function ExecutiveDashboardBreakdowns({ data }: ExecutiveDashboardBreakdo
         </Card>
       </div>
     </section>
+  );
+}
+
+function CountryDemandProgress({ target, achieved }: { target: number; achieved: number }) {
+  if (target <= 0) {
+    return <span className="text-muted-foreground">—</span>;
+  }
+
+  const percentage = Math.round((achieved / target) * 100);
+  const progressWidth = Math.min(Math.max(percentage, 0), 100);
+
+  return (
+    <div className="flex min-w-24 items-center justify-end gap-2">
+      <div
+        className="h-2 w-12 overflow-hidden rounded-full bg-muted"
+        role="progressbar"
+        aria-label={`Capaian target ${percentage}%`}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={progressWidth}
+      >
+        <div
+          className="h-full rounded-full bg-primary transition-[width] motion-reduce:transition-none"
+          style={{ width: `${progressWidth}%` }}
+        />
+      </div>
+      <span className="w-10 text-right tabular-nums">{percentage}%</span>
+    </div>
   );
 }
 

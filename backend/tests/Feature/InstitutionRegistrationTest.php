@@ -36,6 +36,8 @@ class InstitutionRegistrationTest extends TestCase
         $this->assertNotNull($institution);
         $this->assertSame('Pending Verification', $institution->verification_status);
         $this->assertSame('Swakelola Tipe 2', $institution->procurement_method);
+        $this->assertSame('https://katalog.inaproc.id/katalog/test', $institution->procurement_catalog_url);
+        $this->assertSame('https://drive.google.com/file/d/test/view', $institution->mou_drive_url);
         $this->assertSame(3, $institution->class_count);
         $this->assertSame(24, $institution->ready_participant_count);
         $this->assertNull($institution->workshop_capacity);
@@ -89,6 +91,13 @@ class InstitutionRegistrationTest extends TestCase
 
         $verifier = $this->userWithRole('task_force');
         $this->actingAs($verifier)
+            ->get('/app/approvals')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('businessData.approvalRequests.0.externalLinks.0.label', 'Katalog INAPROC')
+                ->where('businessData.approvalRequests.0.externalLinks.0.url', 'https://katalog.inaproc.id/katalog/test')
+                ->where('businessData.approvalRequests.0.externalLinks.1.label', 'Dokumen MoU di Google Drive'));
+        $this->actingAs($verifier)
             ->get(route('approvals.documents.download', [$approval->id, $documentId]))
             ->assertOk();
         $this->actingAs($verifier)
@@ -140,6 +149,19 @@ class InstitutionRegistrationTest extends TestCase
         $this->assertDatabaseCount('institutions', 0);
     }
 
+    public function test_registration_rejects_links_outside_the_approved_domains(): void
+    {
+        $this->seed([ReferenceDataSeeder::class, AccessControlSeeder::class]);
+        $payload = $this->registrationPayload();
+        $payload['procurementCatalogUrl'] = 'https://example.test/catalog';
+        $payload['mouDriveUrl'] = 'https://example.test/mou';
+
+        $this->from('/lembaga/daftar')->post('/lembaga/daftar', $payload)
+            ->assertRedirect('/lembaga/daftar')
+            ->assertSessionHasErrors(['procurementCatalogUrl', 'mouDriveUrl']);
+        $this->assertDatabaseCount('institutions', 0);
+    }
+
     private function registrationPayload(): array
     {
         return [
@@ -154,6 +176,8 @@ class InstitutionRegistrationTest extends TestCase
             'contactEmail' => 'lembaga@example.test',
             'contactPhone' => '080000000000',
             'accreditation' => 'B',
+            'procurementCatalogUrl' => 'https://katalog.inaproc.id/katalog/test',
+            'mouDriveUrl' => 'https://drive.google.com/file/d/test/view',
             'instructorCount' => '8',
             'classCount' => '3',
             'readyParticipantCount' => '24',

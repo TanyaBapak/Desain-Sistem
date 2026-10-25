@@ -14,13 +14,17 @@ import {
   UserScope,
   VocationalProvider,
 } from "@/types";
-import type { DashboardTargets } from "@/types/dashboard-targets";
 
 const KemendagriLandingPage = lazy(() =>
   import("@/components/landing/KemendagriLandingPage").then((module) => ({
     default: module.KemendagriLandingPage,
   })),
 );
+interface LandingProjectionData {
+  year: number;
+  countries: { name: string; target: number; achieved: number; projected: number }[];
+  trainingTypes: { name: string; target: number; achieved: number; projected: number }[];
+}
 const UnifiedLoginPage = lazy(() =>
   import("@/components/auth/UnifiedLoginPage").then((module) => ({
     default: module.UnifiedLoginPage,
@@ -102,6 +106,15 @@ interface AppProps {
     provinces: { id: string; name: string }[];
     districts: { id: string; province_id: string; name: string }[];
   };
+  landingKpiSummary: {
+    year: number;
+    metrics: {
+      key: string;
+      value: number;
+      target: number | null;
+    }[];
+  };
+  landingProjection: LandingProjectionData;
   businessData?: {
     candidates: CandidateParticipant[];
     programs: TrainingProgram[];
@@ -117,7 +130,6 @@ interface AppProps {
       institutionCount: number;
       nationalLpkCount: number;
       demandCount: number;
-      dashboardTargets: DashboardTargets | null;
       updatedAt: string | null;
       dashboard?: ExecutiveDashboardBreakdownsData;
       gardata: {
@@ -200,7 +212,17 @@ interface AppProps {
     districts: { id: string; province_id: string; name: string }[];
     institutions: { id: string; name: string }[];
     employers: { id: string; name: string }[];
-    dashboardTargets: DashboardTargets;
+    landingKpiTargets: {
+      year: number;
+      targets: {
+        registeredJobSeekers: number | null;
+        readyForPlacement: number | null;
+        activeTrainingPrograms: number | null;
+        activeVocationalInstitutions: number | null;
+        nationalLpkCount: number | null;
+        validatedDemandCount: number | null;
+      };
+    }[];
   };
 }
 
@@ -211,6 +233,8 @@ export function App({
   showInstitutionRegistration,
   registrationStatus,
   registrationOptions,
+  landingKpiSummary,
+  landingProjection,
   auth,
   businessData,
   adminUsers,
@@ -318,7 +342,7 @@ export function App({
   if (!authenticatedUser) {
     return (
       <Suspense fallback={loading}>
-        <KemendagriLandingPage />
+        <KemendagriLandingPage kpiSummary={landingKpiSummary} projection={landingProjection} />
       </Suspense>
     );
   }
@@ -340,7 +364,6 @@ export function App({
               institutionCount: 0,
               nationalLpkCount: 0,
               demandCount: 0,
-              dashboardTargets: null,
               updatedAt: null,
               gardata: {
                 candidateCount: 0,
@@ -416,7 +439,6 @@ export function App({
             institutionCount: 0,
             nationalLpkCount: 0,
             demandCount: 0,
-            dashboardTargets: null,
             updatedAt: null,
             gardata: {
               candidateCount: 0,

@@ -3,7 +3,7 @@
 import * as React from "react";
 import { router } from "@inertiajs/react";
 import { useAppStore } from "@/store/useAppStore";
-import { Bell, Shield, User, ChevronDown, Menu, LogOut, MapPin } from "lucide-react";
+import { Bell, Shield, User, ChevronDown, Menu, LogOut, MapPin, Moon, Sun } from "lucide-react";
 import { NAV_ITEMS } from "@/lib/sidebar-items";
 import {
   DropdownMenu,
@@ -22,10 +22,20 @@ interface TopNavProps {
 
 export const TopNav: React.FC<TopNavProps> = ({ currentTab, onOpenSidebar }) => {
   const { currentUser, currentRole, currentScope, logout } = useAppStore();
+  const [isDarkTheme, setIsDarkTheme] = React.useState(
+    () => document.documentElement.classList.contains("dark"),
+  );
   const activeRoleObj = getRoleInfo(currentRole);
   const currentPage = NAV_ITEMS.find((item) => item.id === currentTab);
   const isNationalAreaFilter = currentUser?.roleName !== "task_force" && currentUser?.scope.level === "national";
   const canSelectBp3miArea = currentUser?.roleName === "task_force" || isNationalAreaFilter;
+
+  const toggleTheme = () => {
+    const nextIsDark = !isDarkTheme;
+    document.documentElement.classList.toggle("dark", nextIsDark);
+    window.localStorage.setItem("p2mi-theme", nextIsDark ? "dark" : "light");
+    setIsDarkTheme(nextIsDark);
+  };
 
   return (
     <header className="fixed inset-x-0 top-0 z-50 flex h-16 items-center border-b border-border bg-background px-4 shadow-sm sm:px-6">
@@ -49,6 +59,16 @@ export const TopNav: React.FC<TopNavProps> = ({ currentTab, onOpenSidebar }) => 
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
+          <button
+            type="button"
+            onClick={toggleTheme}
+            aria-label={isDarkTheme ? "Aktifkan mode terang" : "Aktifkan mode gelap"}
+            aria-pressed={isDarkTheme}
+            title={isDarkTheme ? "Aktifkan mode terang" : "Aktifkan mode gelap"}
+            className="rounded-md p-2 text-muted-foreground transition hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            {isDarkTheme ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+          </button>
           {canSelectBp3miArea && currentUser?.bp3miAssignments?.length ? (
             <label className="flex items-center gap-2">
               <span className="sr-only">Filter area wilayah</span>
@@ -104,11 +124,11 @@ export const TopNav: React.FC<TopNavProps> = ({ currentTab, onOpenSidebar }) => 
                 <User className="h-4 w-4 shrink-0 text-muted-foreground" />
                 {currentUser?.name}
               </DropdownMenuItem>
-              <DropdownMenuItem className="flex items-center gap-2 text-sm text-slate-500">
+              <DropdownMenuItem className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Shield className="h-4 w-4 shrink-0 text-muted-foreground" />
                 {currentUser?.roleTitle ?? activeRoleObj.title}
               </DropdownMenuItem>
-              <DropdownMenuItem className="flex items-center gap-2 text-sm text-slate-500">
+              <DropdownMenuItem className="flex items-center gap-2 text-sm text-muted-foreground">
                 <MapPin className="h-4 w-4 shrink-0 text-muted-foreground" />
                 {currentScope.name}
               </DropdownMenuItem>

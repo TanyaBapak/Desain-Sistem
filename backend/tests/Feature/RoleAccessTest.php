@@ -40,6 +40,35 @@ class RoleAccessTest extends TestCase
         $this->actingAs($auditor)->get('/app/audit')->assertForbidden();
     }
 
+    public function test_public_landing_combines_manual_target_with_approved_processed_quota(): void
+    {
+        $this->withoutVite();
+        $this->seed([
+            ReferenceDataSeeder::class,
+            DemoDataSeeder::class,
+        ]);
+        DB::table('job_demands')->where('id', 'DEM-DEMO-001')->update([
+            'verification_status' => 'Approved',
+            'headcount' => 12,
+            'filled_quota' => 5,
+        ]);
+        DB::table('dashboard_targets')->insert([
+            'metric_key' => 'validatedDemandCount_'.now()->year,
+            'target_value' => 20,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->get('/')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('App')
+                ->has('landingKpiSummary.metrics', 6)
+                ->where('landingKpiSummary.metrics.5.value', 1)
+                ->where('landingKpiSummary.metrics.5.target', 20)
+                ->missing('landingKpiSummary.demandDetails'));
+    }
+
     public function test_super_admin_is_limited_to_access_management_and_audit_modules(): void
     {
         $superAdmin = $this->userWithRole('super_admin');
@@ -60,6 +89,13 @@ class RoleAccessTest extends TestCase
             'verification_status' => 'Approved',
             'filled_quota' => 1,
         ]);
+        $approvedDemand = (array) DB::table('job_demands')->where('id', 'DEM-DEMO-001')->first();
+        DB::table('job_demands')->insert(array_merge($approvedDemand, [
+            'id' => 'DEM-DEMO-PENDING',
+            'verification_status' => 'Pending',
+            'headcount' => 100,
+            'filled_quota' => 50,
+        ]));
 
         $this->actingAs($this->userWithRole('leadership'))
             ->get('/app/dashboard')
@@ -76,6 +112,7 @@ class RoleAccessTest extends TestCase
                 ->where('businessData.reportSummary.dashboard.demandByCountry.0.country', 'Jepang')
                 ->where('businessData.reportSummary.dashboard.demandByCountry.0.quota', 2)
                 ->where('businessData.reportSummary.dashboard.demandByCountry.0.filledQuota', 1)
+                ->missing('businessData.reportSummary.dashboardTargets')
                 ->missing('businessData.reportSummary.dashboard.candidateLifecycle.0.nik'));
     }
 
