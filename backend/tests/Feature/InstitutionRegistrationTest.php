@@ -25,7 +25,9 @@ class InstitutionRegistrationTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->component('App')
                 ->where('showInstitutionRegistration', true)
-                ->has('registrationOptions.provinces'));
+                ->has('registrationOptions.provinces')
+                ->has('registrationOptions.sectors')
+                ->has('registrationOptions.countries'));
 
         $this->post('/lembaga/daftar', $this->registrationPayload())
             ->assertRedirect('/login');
@@ -36,6 +38,12 @@ class InstitutionRegistrationTest extends TestCase
         $this->assertNotNull($institution);
         $this->assertSame('Pending Verification', $institution->verification_status);
         $this->assertSame('Swakelola Tipe 2', $institution->procurement_method);
+        $this->assertSame(
+            ['Kesehatan / Caregiver', 'Manufaktur / Pengelasan'],
+            json_decode($institution->supported_sectors, true, flags: JSON_THROW_ON_ERROR),
+        );
+        $metadata = json_decode($institution->external_metadata, true, flags: JSON_THROW_ON_ERROR);
+        $this->assertSame(['JP'], $metadata['supportedCountries']);
         $this->assertSame('https://e-vokasi.kemnaker.go.id/lembaga/test', $institution->evokasi_url);
         $this->assertSame('https://katalog.inaproc.id/katalog/test', $institution->procurement_catalog_url);
         $this->assertSame('https://drive.google.com/file/d/test/view', $institution->mou_drive_url);
@@ -185,7 +193,8 @@ class InstitutionRegistrationTest extends TestCase
             'instructorCount' => '8',
             'classCount' => '3',
             'readyParticipantCount' => '24',
-            'supportedSectors' => 'Kesehatan, Manufaktur',
+            'supportedSectors' => ['Kesehatan / Caregiver', 'Manufaktur / Pengelasan'],
+            'supportedCountries' => ['JP'],
             'procurementMethod' => 'Swakelola Tipe 2',
             'password' => 'Pendaftaran-Aman-123',
             'password_confirmation' => 'Pendaftaran-Aman-123',

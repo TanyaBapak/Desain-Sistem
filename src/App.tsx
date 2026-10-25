@@ -119,6 +119,8 @@ interface AppProps {
   registrationOptions?: {
     provinces: { id: string; name: string }[];
     districts: { id: string; province_id: string; name: string }[];
+    sectors: { id: string; name: string }[];
+    countries: { id: string; name: string }[];
   };
   landingKpiSummary: {
     year: number;
@@ -339,6 +341,8 @@ export function App({
         <InstitutionRegistrationPage
           provinces={registrationOptions.provinces}
           districts={registrationOptions.districts}
+          sectors={registrationOptions.sectors}
+          countries={registrationOptions.countries}
         />
       </Suspense>
     );

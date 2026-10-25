@@ -15,6 +15,7 @@ export interface ProgramPlacementTarget {
 interface ProgramPlacementTargetEditorProps {
   sectors: string[];
   occupations: { sectorName: string; occupationName: string }[];
+  countries: { id: string; name: string }[];
   targets: ProgramPlacementTarget[];
   errors: Record<string, string>;
   onAdd: (target: Omit<ProgramPlacementTarget, "key">) => void;
@@ -24,6 +25,7 @@ interface ProgramPlacementTargetEditorProps {
 export function ProgramPlacementTargetEditor({
   sectors,
   occupations,
+  countries,
   targets,
   errors,
   onAdd,
@@ -63,8 +65,8 @@ export function ProgramPlacementTargetEditor({
       <CardHeader className="px-0">
         <CardTitle className="text-base">Proyeksi program penempatan</CardTitle>
         <CardDescription>
-          Pilih sektor dan jabatan yang tersedia pada data lembaga vokasi. Isi negara atau wilayah
-          penempatan secara manual, lalu tentukan target tahunan.
+          Pilih sektor dan jabatan yang tersedia pada data lembaga vokasi, lalu tentukan negara
+          tujuan dan target tahunan.
         </CardDescription>
         {errors["targets.placementTargets"] && (
           <p role="alert" className="text-xs text-destructive">
@@ -73,13 +75,13 @@ export function ProgramPlacementTargetEditor({
         )}
       </CardHeader>
       <CardContent className="space-y-5 px-0">
-        {sectors.length === 0 || occupations.length === 0 ? (
+        {sectors.length === 0 || occupations.length === 0 || countries.length === 0 ? (
           <p className="rounded-md border border-dashed border-border p-4 text-sm text-muted-foreground">
-            Data sektor dan jabatan lembaga belum tersedia. Impor data lembaga vokasi terlebih dahulu.
+            Data sektor, jabatan, atau negara belum tersedia. Periksa data lembaga vokasi dan master negara terlebih dahulu.
           </p>
         ) : (
           <>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
               <label className="space-y-1.5 text-sm font-medium">
                 <span>Sektor</span>
                 <select
@@ -103,13 +105,19 @@ export function ProgramPlacementTargetEditor({
                 </select>
               </label>
               <label className="space-y-1.5 text-sm font-medium">
-                <span>Proyeksi penempatan</span>
-                <Input
+                <span>Negara tujuan</span>
+                <select
+                  className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   value={projectionPlacement}
-                  maxLength={255}
                   onChange={(event) => setProjectionPlacement(event.target.value)}
-                  placeholder="Contoh: Jepang (SSW), Taiwan"
-                />
+                >
+                  <option value="">Pilih negara</option>
+                  {countries.map((country) => (
+                    <option key={country.id} value={country.name}>
+                      {country.name}
+                    </option>
+                  ))}
+                </select>
               </label>
               <label className="space-y-1.5 text-sm font-medium">
                 <span>Target</span>
@@ -129,7 +137,13 @@ export function ProgramPlacementTargetEditor({
               <Button
                 type="button"
                 variant="outline"
-                disabled={!selectedSector || !selectedOccupation || !projectionPlacement.trim() || target === ""}
+                disabled={
+                  !selectedSector ||
+                  !selectedOccupation ||
+                  !projectionPlacement ||
+                  target === "" ||
+                  countries.length === 0
+                }
                 onClick={addTarget}
               >
                 Tambah proyeksi

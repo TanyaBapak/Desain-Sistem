@@ -29,8 +29,15 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
   const [readyParticipantCount, setReadyParticipantCount] = useState(0);
   const [certifiedInstructorsCount, setCertifiedInstructorsCount] = useState(0);
   const [operationalReadinessScore, setOperationalReadinessScore] = useState(0);
-  const [supportedSectorsInput, setSupportedSectorsInput] = useState('');
+  const [supportedSectors, setSupportedSectors] = useState<string[]>([]);
+  const [supportedCountries, setSupportedCountries] = useState<string[]>([]);
   const [facilitiesInput, setFacilitiesInput] = useState('');
+  const sectorOptions = Array.from(
+    new Set([
+      ...businessOptions.sectors.map((sector) => sector.name),
+      ...(initialData?.supportedSectors ?? []),
+    ]),
+  ).sort((left, right) => left.localeCompare(right, 'id'));
   const availableDistricts = businessOptions.districts.filter(
     (district) => businessOptions.provinces.find((province) => province.name === provinsi)?.id === district.province_id,
   );
@@ -60,7 +67,8 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
       setReadyParticipantCount(initialData.readyParticipantCount ?? 0);
       setCertifiedInstructorsCount(initialData.certifiedInstructorsCount ?? 0);
       setOperationalReadinessScore(initialData.operationalReadinessScore ?? 0);
-      setSupportedSectorsInput(initialData.supportedSectors.join(', '));
+      setSupportedSectors(initialData.supportedSectors);
+      setSupportedCountries(initialData.supportedCountries ?? []);
       setFacilitiesInput(initialData.facilities.join(', '));
     } else {
       setName('');
@@ -73,7 +81,8 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
       setReadyParticipantCount(0);
       setCertifiedInstructorsCount(0);
       setOperationalReadinessScore(0);
-      setSupportedSectorsInput('');
+      setSupportedSectors([]);
+      setSupportedCountries([]);
       setFacilitiesInput('');
     }
   }, [initialData, mode, isOpen, businessOptions]);
@@ -83,11 +92,6 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
-
-    const sectorsArray = supportedSectorsInput
-      .split(',')
-      .map((s) => s.trim())
-      .filter((s) => s.length > 0);
 
     const facilitiesArray = facilitiesInput
       .split(',')
@@ -106,7 +110,8 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
       readyParticipantCount: Number(readyParticipantCount),
       certifiedInstructorsCount: Number(certifiedInstructorsCount),
       operationalReadinessScore: Number(operationalReadinessScore),
-      supportedSectors: sectorsArray,
+      supportedSectors,
+      supportedCountries,
       facilities: facilitiesArray,
     });
   };
@@ -332,19 +337,51 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
             </div>
           </div>
 
-          {/* Sektor Unggulan */}
-          <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center justify-between">
-              <span>Sektor Vokasi Unggulan (Pisahkan dengan koma)</span>
-              <span className="text-slate-400 font-normal">Contoh: Manufaktur, Pengelasan, Otomotif</span>
-            </label>
-            <input
-              type="text"
-              value={supportedSectorsInput}
-              onChange={(e) => setSupportedSectorsInput(e.target.value)}
-              placeholder="Manufaktur & Mesin, Otomotif, Teknik Pengelasan"
-              className="w-full text-xs p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-slate-50"
-            />
+          <div className="grid gap-4 md:grid-cols-2">
+            <fieldset className="space-y-2">
+              <legend className="block text-xs font-bold text-slate-700">
+                Sektor vokasi yang didukung
+              </legend>
+              <div className="max-h-40 space-y-2 overflow-y-auto rounded-xl border border-border bg-background p-3">
+                {sectorOptions.map((sector) => (
+                  <label key={sector} className="flex items-center gap-2 text-sm text-foreground">
+                    <input
+                      type="checkbox"
+                      checked={supportedSectors.includes(sector)}
+                      onChange={(event) =>
+                        setSupportedSectors((current) =>
+                          toggleSelection(current, sector, event.target.checked),
+                        )
+                      }
+                      className="h-4 w-4 rounded border-input accent-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    />
+                    {sector}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+            <fieldset className="space-y-2">
+              <legend className="block text-xs font-bold text-slate-700">
+                Negara tujuan penempatan
+              </legend>
+              <div className="max-h-40 space-y-2 overflow-y-auto rounded-xl border border-border bg-background p-3">
+                {businessOptions.countries.map((country) => (
+                  <label key={country.id} className="flex items-center gap-2 text-sm text-foreground">
+                    <input
+                      type="checkbox"
+                      checked={supportedCountries.includes(country.id)}
+                      onChange={(event) =>
+                        setSupportedCountries((current) =>
+                          toggleSelection(current, country.id, event.target.checked),
+                        )
+                      }
+                      className="h-4 w-4 rounded border-input accent-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    />
+                    {country.name}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
           </div>
 
           {/* Fasilitas Bengkel & Lab */}
@@ -391,3 +428,7 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
     </div>
   );
 };
+
+function toggleSelection(values: string[], value: string, checked: boolean): string[] {
+  return checked ? [...new Set([...values, value])] : values.filter((item) => item !== value);
+}

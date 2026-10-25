@@ -23,6 +23,7 @@ export function TargetManagementPage({ adminTargets }: TargetManagementPageProps
         </p>
       </header>
       <DashboardTargetSettings
+        countries={adminTargets.landingCountries}
         targets={adminTargets.landingKpiTargets}
         placementOptions={adminTargets.landingPlacementOptions}
         placementTargets={adminTargets.landingPlacementTargets}

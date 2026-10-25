@@ -30,6 +30,8 @@ class InstitutionRegistrationController extends Controller
             'registrationOptions' => [
                 'provinces' => DB::table('provinces')->orderBy('name')->get(['id', 'name']),
                 'districts' => DB::table('districts')->orderBy('name')->get(['id', 'province_id', 'name']),
+                'sectors' => DB::table('sectors')->orderBy('name')->get(['id', 'name']),
+                'countries' => DB::table('countries')->orderBy('name')->get(['id', 'name']),
             ],
         ]);
     }
@@ -55,7 +57,10 @@ class InstitutionRegistrationController extends Controller
             'instructorCount' => ['required', 'integer', 'min:0', 'max:100000'],
             'classCount' => ['required', 'integer', 'min:0', 'max:100000'],
             'readyParticipantCount' => ['required', 'integer', 'min:0', 'max:100000'],
-            'supportedSectors' => ['required', 'string', 'max:1000'],
+            'supportedSectors' => ['required', 'array', 'min:1'],
+            'supportedSectors.*' => ['required', 'string', 'exists:sectors,name'],
+            'supportedCountries' => ['sometimes', 'array'],
+            'supportedCountries.*' => ['required', 'string', 'exists:countries,id'],
             'password' => ['required', 'string', 'min:10', 'max:255', 'confirmed'],
             'consent' => ['accepted'],
         ], [
@@ -71,12 +76,10 @@ class InstitutionRegistrationController extends Controller
             $now = now();
             $provinceName = (string) DB::table('provinces')->where('id', $data['provinceId'])->value('name');
             $district = DB::table('districts')->where('id', $data['districtId'])->first();
-            $sectors = collect(explode(',', $data['supportedSectors']))
-                ->map(fn (string $sector): string => trim($sector))
-                ->filter()
-                ->unique()
-                ->values()
-                ->all();
+            $sectors = array_values(array_unique($data['supportedSectors']));
+            $metadata = [
+                'supportedCountries' => array_values(array_unique($data['supportedCountries'] ?? [])),
+            ];
 
             DB::table('institutions')->insert([
                 'id' => $institutionId,
@@ -102,6 +105,7 @@ class InstitutionRegistrationController extends Controller
                 'verification_status' => 'Pending Verification',
                 'status' => 'Aktif',
                 'supported_sectors' => json_encode($sectors, JSON_THROW_ON_ERROR),
+                'external_metadata' => json_encode($metadata, JSON_THROW_ON_ERROR),
                 'registration_consented_at' => $now,
                 'registration_consent_version' => '2026-10-v1',
                 'created_at' => $now,

@@ -8,9 +8,16 @@ import { Label } from "@/components/ui/label";
 interface InstitutionRegistrationPageProps {
   provinces: { id: string; name: string }[];
   districts: { id: string; province_id: string; name: string }[];
+  sectors: { id: string; name: string }[];
+  countries: { id: string; name: string }[];
 }
 
-export function InstitutionRegistrationPage({ provinces, districts }: InstitutionRegistrationPageProps) {
+export function InstitutionRegistrationPage({
+  provinces,
+  districts,
+  sectors,
+  countries,
+}: InstitutionRegistrationPageProps) {
   const [provinceId, setProvinceId] = useState(provinces[0]?.id ?? "");
   const availableDistricts = useMemo(
     () => districts.filter((district) => district.province_id === provinceId),
@@ -34,7 +41,8 @@ export function InstitutionRegistrationPage({ provinces, districts }: Institutio
     instructorCount: "0",
     classCount: "0",
     readyParticipantCount: "0",
-    supportedSectors: "",
+    supportedSectors: [] as string[],
+    supportedCountries: [] as string[],
     procurementMethod: "",
     password: "",
     password_confirmation: "",
@@ -186,9 +194,60 @@ export function InstitutionRegistrationPage({ provinces, districts }: Institutio
               <Field label="Jumlah peserta yang siap mengikuti pelatihan" error={errors.readyParticipantCount}>
                 <Input required type="number" min="0" value={data.readyParticipantCount} onChange={(event) => setData("readyParticipantCount", event.target.value)} />
               </Field>
-              <Field label="Sektor pelatihan yang didukung" error={errors.supportedSectors} className="sm:col-span-2">
-                <Input required value={data.supportedSectors} onChange={(event) => setData("supportedSectors", event.target.value)} placeholder="Pisahkan dengan koma, misalnya Kesehatan, Manufaktur" />
-              </Field>
+            </div>
+            <div className="grid gap-5 sm:grid-cols-2">
+              <fieldset className="space-y-2">
+                <legend className="text-sm font-medium">
+                  Sektor pelatihan yang didukung <span className="text-destructive">*</span>
+                </legend>
+                <p className="text-xs text-muted-foreground">Pilih satu atau lebih sektor.</p>
+                <div className="max-h-56 space-y-2 overflow-y-auto rounded-md border border-input p-3">
+                  {sectors.map((sector) => (
+                    <label key={sector.id} className="flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={data.supportedSectors.includes(sector.name)}
+                        onChange={(event) =>
+                          setData(
+                            "supportedSectors",
+                            toggleSelection(data.supportedSectors, sector.name, event.target.checked),
+                          )
+                        }
+                        className="h-4 w-4 rounded border-input accent-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      />
+                      {sector.name}
+                    </label>
+                  ))}
+                </div>
+                {errors.supportedSectors && (
+                  <p role="alert" className="text-sm text-destructive">{errors.supportedSectors}</p>
+                )}
+              </fieldset>
+              <fieldset className="space-y-2">
+                <legend className="text-sm font-medium">Negara tujuan penempatan</legend>
+                <p className="text-xs text-muted-foreground">Pilih negara yang menjadi tujuan program lembaga.</p>
+                <div className="max-h-56 space-y-2 overflow-y-auto rounded-md border border-input p-3">
+                  {countries.map((country) => (
+                    <label key={country.id} className="flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={data.supportedCountries.includes(country.id)}
+                        onChange={(event) =>
+                          setData(
+                            "supportedCountries",
+                            toggleSelection(data.supportedCountries, country.id, event.target.checked),
+                          )
+                        }
+                        className="h-4 w-4 rounded border-input accent-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      />
+                      {country.name}
+                    </label>
+                  ))}
+                </div>
+                {errors.supportedCountries && (
+                  <p role="alert" className="text-sm text-destructive">{errors.supportedCountries}</p>
+                )}
+              </fieldset>
             </div>
           </section>
 
@@ -231,6 +290,10 @@ export function InstitutionRegistrationPage({ provinces, districts }: Institutio
       </div>
     </main>
   );
+}
+
+function toggleSelection(values: string[], value: string, checked: boolean): string[] {
+  return checked ? [...new Set([...values, value])] : values.filter((item) => item !== value);
 }
 
 function Field({

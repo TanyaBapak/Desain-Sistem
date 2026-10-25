@@ -114,6 +114,7 @@ class BusinessDataPersistenceTest extends TestCase
             'operationalReadinessScore' => 70,
             'facilities' => ['Ruang Praktik Contoh'],
             'supportedSectors' => ['Manufaktur / Pengelasan'],
+            'supportedCountries' => ['JP'],
             'institutionStatus' => 'Negeri',
         ])->assertSessionHasNoErrors();
         $this->assertDatabaseHas('institutions', [
@@ -124,6 +125,12 @@ class BusinessDataPersistenceTest extends TestCase
             'workshop_capacity' => null,
         ]);
         $this->assertDatabaseHas('institution_facilities', ['facility_name' => 'Ruang Praktik Contoh']);
+        $providerMetadata = json_decode(
+            DB::table('institutions')->where('name', 'Lembaga Contoh Baru')->value('external_metadata'),
+            true,
+            flags: JSON_THROW_ON_ERROR,
+        );
+        $this->assertSame(['JP'], $providerMetadata['supportedCountries']);
 
         $this->post('/business-data/demands', [
             'jobTitle' => 'Welder SMAW / GMAW',
@@ -314,6 +321,7 @@ class BusinessDataPersistenceTest extends TestCase
             'operationalReadinessScore' => 60,
             'facilities' => ['Ruang Kelas'],
             'supportedSectors' => ['Kesehatan / Caregiver'],
+            'supportedCountries' => ['DE'],
             'institutionStatus' => 'Swasta',
         ])->assertRedirect()->assertSessionHasNoErrors();
 
@@ -321,6 +329,12 @@ class BusinessDataPersistenceTest extends TestCase
             'id' => $providerId,
             'name' => 'Lembaga Daerah Baru Diperbarui',
         ]);
+        $updatedProviderMetadata = json_decode(
+            DB::table('institutions')->where('id', $providerId)->value('external_metadata'),
+            true,
+            flags: JSON_THROW_ON_ERROR,
+        );
+        $this->assertSame(['DE'], $updatedProviderMetadata['supportedCountries']);
     }
 
     private function userWithRole(string $roleName, array $attributes = []): User

@@ -121,6 +121,7 @@ export interface VocationalProvider {
   certifiedInstructorsCount: number | null;
   facilities: string[]; // e.g. ["Bengkel Las Standard ISO", "Lab Bahasa Komputer"]
   supportedSectors: string[];
+  supportedCountries?: string[];
   operationalReadinessScore: number | null; // 0 - 100
   // Official KP2MI Portal vokasi.kp2mi.go.id fields
   slug?: string;

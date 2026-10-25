@@ -245,6 +245,9 @@ class BusinessDataController extends Controller
                 'certifiedInstructorsCount' => $row->instructor_count === null ? null : (int) $row->instructor_count,
                 'facilities' => $facilitiesByInst->get($row->id, []),
                 'supportedSectors' => $supported,
+                'supportedCountries' => is_array($metadata['supportedCountries'] ?? null)
+                    ? $metadata['supportedCountries']
+                    : [],
                 'operationalReadinessScore' => $row->readiness_score === null ? null : (int) $row->readiness_score,
                 'address' => $row->address,
                 'email' => $row->email,
@@ -469,6 +472,8 @@ class BusinessDataController extends Controller
                 'facilities.*' => ['string', 'max:150'],
                 'supportedSectors' => ['array'],
                 'supportedSectors.*' => ['string', 'max:150'],
+                'supportedCountries' => ['sometimes', 'array'],
+                'supportedCountries.*' => ['required', 'string', 'exists:countries,id'],
                 'address' => ['nullable', 'string', 'max:2000'],
                 'email' => ['nullable', 'email', 'max:100'],
                 'phone' => ['nullable', 'string', 'max:50'],
@@ -708,6 +713,9 @@ class BusinessDataController extends Controller
         }
         if (! empty($data['kabupatenKota'])) {
             $metadata['districtName'] = $data['kabupatenKota'];
+        }
+        if (array_key_exists('supportedCountries', $data)) {
+            $metadata['supportedCountries'] = array_values(array_unique($data['supportedCountries']));
         }
 
         $institutionType = match ($data['providerType']) {

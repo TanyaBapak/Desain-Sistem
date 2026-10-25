@@ -26,6 +26,7 @@ type TargetForm = {
 };
 
 export interface DashboardTargetSettingsProps {
+  countries: { id: string; name: string }[];
   targets: {
     year: number;
     targets: Record<KpiTargetKey, number | null>;
@@ -38,6 +39,7 @@ export interface DashboardTargetSettingsProps {
 }
 
 export function DashboardTargetSettings({
+  countries,
   targets,
   placementOptions,
   placementTargets,
@@ -156,6 +158,7 @@ export function DashboardTargetSettings({
           <ProgramPlacementTargetEditor
             sectors={placementOptions.sectors}
             occupations={placementOptions.occupations}
+            countries={countries}
             targets={form.data.targets.placementTargets}
             errors={form.errors}
             onAdd={addPlacementTarget}
