@@ -425,6 +425,9 @@ export interface MonitoringClassData {
   id: string;
   source: string;
   classCode: string;
+  externalSource?: string;
+  externalBatchId?: string;
+  gardataBatchId?: string | null;
   name: string;
   sector: string;
   startDate: string | null;
@@ -478,10 +481,17 @@ export interface MonitoringData {
     tenantDbSizeEstimate?: string;
   };
   classes: MonitoringClassData[];
+  gardataBatches: {
+    externalBatchId: string;
+    name: string;
+    participantCount: number;
+    status: string;
+  }[];
   candidates: MonitoringCandidateData[];
   tenants?: MonitoringTenantLpk[];
   placements: {
     id: string;
+    candidateMatchId: number;
     candidateName: string;
     occupation: string;
     country: string;
@@ -489,6 +499,13 @@ export interface MonitoringData {
     status: string;
     flightDate: string | null;
     siskop2miId: string | null;
+  }[];
+  placementCandidates: {
+    candidateMatchId: number;
+    candidateName: string;
+    occupation: string;
+    country: string;
+    employer: string;
   }[];
   lastSync: {
     status: string;

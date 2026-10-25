@@ -8,9 +8,7 @@ use Illuminate\Support\Facades\DB;
 
 class BusinessDataPresenter
 {
-    public function __construct(private readonly Bp3miScope $bp3miScope = new Bp3miScope())
-    {
-    }
+    public function __construct(private readonly Bp3miScope $bp3miScope = new Bp3miScope) {}
 
     public function make(User $user): array
     {
@@ -67,13 +65,17 @@ class BusinessDataPresenter
         $query = DB::table('candidate_matches')
             ->join('job_seekers', 'job_seekers.id', '=', 'candidate_matches.job_seeker_id')
             ->join('job_demands', 'job_demands.id', '=', 'candidate_matches.job_demand_id')
+            ->join('matching_runs', 'matching_runs.id', '=', 'candidate_matches.matching_run_id')
             ->leftJoin('provinces', 'provinces.id', '=', 'job_seekers.province_id')
             ->leftJoin('training_classes', 'training_classes.id', '=', 'candidate_matches.training_class_id')
             ->leftJoin('training_programs', 'training_programs.id', '=', 'training_classes.training_program_id')
             ->whereNull('job_seekers.deleted_at')
             ->where('job_seekers.verification_status', 'Verified')
             ->where('job_demands.verification_status', 'Approved')
-            ->where('candidate_matches.match_status', 'Rekomendasi');
+            ->where('candidate_matches.match_status', 'Rekomendasi')
+            ->whereRaw(
+                'matching_runs.id = (SELECT latest_run.id FROM matching_runs AS latest_run WHERE latest_run.job_demand_id = candidate_matches.job_demand_id ORDER BY latest_run.created_at DESC, latest_run.run_date DESC, latest_run.id DESC LIMIT 1)',
+            );
 
         if ($role === 'task_force') {
             $this->bp3miScope->applyToJobSeekers($query, $user);
@@ -734,27 +736,27 @@ class BusinessDataPresenter
                     'entityTitle' => null,
                     'details' => $this->approvalDetails($row->entity_type, $row->entity_id),
                     'documents' => $docs,
-                'title' => $row->title,
-                'submittedBy' => $row->submitted_by,
-                'submittedRole' => $row->submitted_role,
-                'scopeLabel' => $row->scope_label,
-                'submittedAt' => $row->submitted_at,
-                'validationStatus' => $row->validation_status,
-                'approvalStatus' => $row->status,
-                'reviewedBy' => $row->reviewed_by,
-                'reviewedAt' => $row->reviewed_at,
-                'rejectionReason' => $row->rejection_reason,
-                'revisionNotes' => $row->revision_notes,
-                'dataSnapshot' => [],
-                'validationChecks' => [[
-                    'ruleName' => 'Validasi data wajib',
-                    'passed' => $row->validation_status === 'PASSED',
-                    'message' => $row->validation_status === 'PASSED'
-                        ? 'Data wajib telah lolos validasi server.'
-                        : 'Perlu pemeriksaan manual sebelum keputusan.',
-                ]],
-            ];
-        })->all();
+                    'title' => $row->title,
+                    'submittedBy' => $row->submitted_by,
+                    'submittedRole' => $row->submitted_role,
+                    'scopeLabel' => $row->scope_label,
+                    'submittedAt' => $row->submitted_at,
+                    'validationStatus' => $row->validation_status,
+                    'approvalStatus' => $row->status,
+                    'reviewedBy' => $row->reviewed_by,
+                    'reviewedAt' => $row->reviewed_at,
+                    'rejectionReason' => $row->rejection_reason,
+                    'revisionNotes' => $row->revision_notes,
+                    'dataSnapshot' => [],
+                    'validationChecks' => [[
+                        'ruleName' => 'Validasi data wajib',
+                        'passed' => $row->validation_status === 'PASSED',
+                        'message' => $row->validation_status === 'PASSED'
+                            ? 'Data wajib telah lolos validasi server.'
+                            : 'Perlu pemeriksaan manual sebelum keputusan.',
+                    ]],
+                ];
+            })->all();
     }
 
     private function approvalDetails(string $entityType, string $entityId): array
@@ -897,9 +899,11 @@ class BusinessDataPresenter
             ->select('external_training_records.*')
             ->orderByDesc('external_training_records.updated_at')
             ->get()
-            ->groupBy('external_batch_id')
+            ->groupBy(fn (object $record): string => $record->external_source.'|'.$record->external_batch_id)
             ->map(fn ($records): array => [
-                'id' => 'gardata-'.$records->first()->external_batch_id,
+                'id' => 'gardata-'.$records->first()->external_source.'-'.$records->first()->external_batch_id,
+                'externalSource' => $records->first()->external_source,
+                'externalBatchId' => $records->first()->external_batch_id,
                 'source' => 'Gardata / SIPPMI',
                 'classCode' => $records->first()->class_code ?? $records->first()->external_batch_id,
                 'name' => $records->first()->batch_name,
@@ -912,81 +916,24 @@ class BusinessDataPresenter
                 'verifiedReportsCount' => (int) $records->sum('verified_reports_count'),
                 'averageAttendance' => null,
                 'averageAssessmentScore' => null,
+                'status' => $records->pluck('status')->unique()->implode(', '),
             ])->values();
-
-        if ($externalClasses->isEmpty()) {
-            $externalClasses = collect([
-                [
-                    'id' => 'gardata-batch-omega-hk-01',
-                    'source' => 'Gardata / SIPPMI',
-                    'classCode' => 'OMEGA-HK-2026',
-                    'name' => 'Pelatihan Perhotelan & Kapal Pesiar International - Batch I/2026',
-                    'sector' => 'Perhotelan & Kapal Pesiar',
-                    'startDate' => '2026-01-15',
-                    'endDate' => '2026-06-15',
-                    'targetJp' => 400,
-                    'achievedJp' => 320,
-                    'participantCount' => 30,
-                    'verifiedReportsCount' => 18,
-                    'averageAttendance' => 95.5,
-                    'averageAssessmentScore' => 88.0,
-                    'status' => 'IN_PROGRESS',
-                ],
-                [
-                    'id' => 'gardata-batch-omega-fbs-02',
-                    'source' => 'Gardata / SIPPMI',
-                    'classCode' => 'OMEGA-FBS-2025',
-                    'name' => 'Food & Beverage Service Specialist - Batch II',
-                    'sector' => 'Perhotelan & Kapal Pesiar',
-                    'startDate' => '2025-10-01',
-                    'endDate' => '2026-02-28',
-                    'targetJp' => 360,
-                    'achievedJp' => 360,
-                    'participantCount' => 20,
-                    'verifiedReportsCount' => 20,
-                    'averageAttendance' => 98.0,
-                    'averageAssessmentScore' => 91.5,
-                    'status' => 'GRADUATED',
-                ],
-                [
-                    'id' => 'gardata-batch-vhs-cul-02',
-                    'source' => 'Gardata / SIPPMI',
-                    'classCode' => 'VHS-CUL-2026',
-                    'name' => 'Culinary & Commercial Cookery Standard Global - Batch II',
-                    'sector' => 'Kuliner & Tata Boga',
-                    'startDate' => '2026-01-20',
-                    'endDate' => '2026-07-20',
-                    'targetJp' => 450,
-                    'achievedJp' => 360,
-                    'participantCount' => 49,
-                    'verifiedReportsCount' => 16,
-                    'averageAttendance' => 94.0,
-                    'averageAssessmentScore' => 87.5,
-                    'status' => 'IN_PROGRESS',
-                ],
-                [
-                    'id' => 'gardata-batch-dic-jpn-01',
-                    'source' => 'Gardata / SIPPMI',
-                    'classCode' => 'DIC-JPN-2026',
-                    'name' => 'Bahasa & Budaya Kerja Industri Perhotelan Jepang Batch 2026',
-                    'sector' => 'Hospitality & Bahasa Jepang',
-                    'startDate' => '2026-02-01',
-                    'endDate' => '2026-06-30',
-                    'targetJp' => 360,
-                    'achievedJp' => 290,
-                    'participantCount' => 40,
-                    'verifiedReportsCount' => 14,
-                    'averageAttendance' => 96.0,
-                    'averageAssessmentScore' => 89.0,
-                    'status' => 'IN_PROGRESS',
-                ],
-            ]);
-        }
+        $gardataBatches = $externalClasses
+            ->where('externalSource', 'gardata')
+            ->map(fn (array $trainingClass): array => [
+                'externalBatchId' => $trainingClass['externalBatchId'],
+                'name' => $trainingClass['name'],
+                'participantCount' => $trainingClass['participantCount'],
+                'status' => $trainingClass['status'],
+            ])
+            ->values()
+            ->all();
 
         $localClasses = DB::table('training_classes')
             ->join('training_programs', 'training_programs.id', '=', 'training_classes.training_program_id')
             ->leftJoin('institutions', 'institutions.id', '=', 'training_classes.institution_id')
             ->leftJoin('provinces', 'provinces.id', '=', 'institutions.province_id')
+            ->leftJoin('training_class_gardata_mappings', 'training_class_gardata_mappings.training_class_id', '=', 'training_classes.id')
             ->leftJoin('training_enrollments', 'training_enrollments.training_class_id', '=', 'training_classes.id')
             ->when(
                 in_array($role, ['institution_admin', 'training_operator'], true),
@@ -1010,10 +957,9 @@ class BusinessDataPresenter
                 'training_programs.name as program_name',
                 'training_programs.total_jp',
                 'institutions.name as institution_name',
+                'training_class_gardata_mappings.external_batch_id as gardata_batch_id',
             ])
             ->selectRaw('COUNT(training_enrollments.id) as participant_count')
-            ->selectRaw('AVG(training_enrollments.attendance_percent) as average_attendance')
-            ->selectRaw('AVG(training_enrollments.assessment_score) as average_assessment_score')
             ->groupBy(
                 'training_classes.id',
                 'training_classes.class_name',
@@ -1023,6 +969,7 @@ class BusinessDataPresenter
                 'training_programs.name',
                 'training_programs.total_jp',
                 'institutions.name',
+                'training_class_gardata_mappings.external_batch_id',
             )
             ->orderByDesc('training_classes.start_date')
             ->get()
@@ -1030,6 +977,7 @@ class BusinessDataPresenter
                 'id' => 'internal-'.$row->id,
                 'source' => 'SMK Go Global',
                 'classCode' => $row->id,
+                'gardataBatchId' => $row->gardata_batch_id,
                 'name' => $row->class_name,
                 'sector' => $row->program_name,
                 'startDate' => $row->start_date,
@@ -1038,8 +986,8 @@ class BusinessDataPresenter
                 'achievedJp' => null,
                 'participantCount' => (int) $row->participant_count,
                 'verifiedReportsCount' => 0,
-                'averageAttendance' => $row->average_attendance === null ? null : (float) $row->average_attendance,
-                'averageAssessmentScore' => $row->average_assessment_score === null ? null : (float) $row->average_assessment_score,
+                'averageAttendance' => null,
+                'averageAssessmentScore' => null,
                 'status' => $row->status,
             ]);
 
@@ -1262,6 +1210,7 @@ class BusinessDataPresenter
                 ->orderByDesc('placement_cases.started_at')
                 ->get([
                     'placement_cases.id',
+                    'candidate_matches.id as candidate_match_id',
                     'job_seekers.full_name as candidate_name',
                     'occupations.title as occupation',
                     'countries.name as country',
@@ -1272,6 +1221,7 @@ class BusinessDataPresenter
                 ])
                 ->map(fn (object $row): array => [
                     'id' => $row->id,
+                    'candidateMatchId' => (int) $row->candidate_match_id,
                     'candidateName' => $row->candidate_name,
                     'occupation' => $row->occupation ?? 'Belum dipetakan',
                     'country' => $row->country ?? 'Belum ditentukan',
@@ -1279,6 +1229,43 @@ class BusinessDataPresenter
                     'status' => $row->status,
                     'flightDate' => $row->flight_date,
                     'siskop2miId' => $row->siskop2mi_id,
+                ])->all()
+            : [];
+        $placementCandidates = in_array($role, ['super_admin', 'task_force', 'directorate_admin'], true)
+            ? DB::table('candidate_matches')
+                ->join('job_seekers', 'job_seekers.id', '=', 'candidate_matches.job_seeker_id')
+                ->join('training_class_gardata_mappings', 'training_class_gardata_mappings.training_class_id', '=', 'candidate_matches.training_class_id')
+                ->join('external_training_records', function ($join) {
+                    $join->on('external_training_records.external_source', '=', 'training_class_gardata_mappings.external_source')
+                        ->on('external_training_records.external_batch_id', '=', 'training_class_gardata_mappings.external_batch_id')
+                        ->on('external_training_records.job_seeker_id', '=', 'candidate_matches.job_seeker_id');
+                })
+                ->join('job_demands', 'job_demands.id', '=', 'candidate_matches.job_demand_id')
+                ->join('employers', 'employers.id', '=', 'job_demands.employer_id')
+                ->leftJoin('countries', 'countries.id', '=', 'job_demands.country_id')
+                ->leftJoin('occupations', 'occupations.id', '=', 'job_demands.occupation_id')
+                ->leftJoin('provinces', 'provinces.id', '=', 'job_seekers.province_id')
+                ->where('candidate_matches.match_status', 'Dialokasikan')
+                ->whereRaw('UPPER(external_training_records.status) = ?', ['GRADUATED'])
+                ->whereNull('job_seekers.deleted_at')
+                ->whereNotExists(fn ($query) => $query->selectRaw('1')
+                    ->from('placement_cases')
+                    ->whereColumn('placement_cases.candidate_match_id', 'candidate_matches.id'))
+                ->when($role === 'task_force', fn ($query) => $this->bp3miScope->applyToJobSeekers($query, $user))
+                ->orderBy('job_seekers.full_name')
+                ->get([
+                    'candidate_matches.id as candidate_match_id',
+                    'job_seekers.full_name as candidate_name',
+                    'occupations.title as occupation',
+                    'countries.name as country',
+                    'employers.name as employer',
+                ])
+                ->map(fn (object $row): array => [
+                    'candidateMatchId' => (int) $row->candidate_match_id,
+                    'candidateName' => $row->candidate_name,
+                    'occupation' => $row->occupation ?? 'Belum dipetakan',
+                    'country' => $row->country ?? 'Belum ditentukan',
+                    'employer' => $row->employer,
                 ])->all()
             : [];
 
@@ -1313,7 +1300,7 @@ class BusinessDataPresenter
                 ->count();
 
             $classCount = DB::table('external_training_records')
-                ->where(function ($q) use ($t, $prefix, $searchKey) {
+                ->where(function ($q) use ($prefix, $searchKey) {
                     $q->where('class_code', 'LIKE', $prefix.'%')
                         ->orWhere('batch_name', 'LIKE', '%'.$searchKey.'%')
                         ->orWhere('program_name', 'LIKE', '%'.$searchKey.'%')
@@ -1324,18 +1311,6 @@ class BusinessDataPresenter
                 ->distinct('external_batch_id')
                 ->count('external_batch_id');
 
-            // Default fallback if database has not yet synced
-            $fallbackCand = match ($t['subdomain']) {
-                'omegahotelacademy.sippmi.com' => 5,
-                'victoriahotelschool.sippmi.com' => 4,
-                'dutainternationalcourse.sippmi.com' => 3,
-                default => 0,
-            };
-            $fallbackCls = match ($t['subdomain']) {
-                'omegahotelacademy.sippmi.com' => 2,
-                default => 1,
-            };
-
             return [
                 'id' => $inst?->id ?? 'tenant-'.$t['subdomain'],
                 'name' => $t['name'],
@@ -1344,41 +1319,35 @@ class BusinessDataPresenter
                 'status' => $t['status'],
                 'province' => $t['province'],
                 'district' => $t['district'],
-                'candidateCount' => $candCount > 0 ? $candCount : $fallbackCand,
-                'classCount' => $classCount > 0 ? $classCount : $fallbackCls,
+                'candidateCount' => $candCount,
+                'classCount' => $classCount,
                 'lastSyncAt' => now()->toIso8601String(),
             ];
         })->all();
 
-        $dbClassesCount = $localClasses->count() + $externalClasses->count();
-        $totalClassesCount = $dbClassesCount > 0 ? $dbClassesCount : 4;
         $activeClassesCount = $localClasses->whereIn('status', ['Sedang Berjalan', 'berjalan', 'aktif', 'Aktif'])->count() + $activeExternalCount;
-        if ($activeClassesCount === 0 && $totalClassesCount > 0) {
-            $activeClassesCount = min($totalClassesCount, 3);
-        }
-        $dbCandidatesCount = $canViewGardata ? $gardataCandidateCountQuery->count('job_seekers.id') : 0;
-        $totalCandidatesCount = $dbCandidatesCount > 0 ? $dbCandidatesCount : count($gardataCandidates);
-        $dbVerifiedReports = $canViewGardata ? (int) $externalClasses->sum('verifiedReportsCount') : 0;
-        $verifiedReportsCount = $dbVerifiedReports > 0 ? $dbVerifiedReports : 68;
 
         return [
             'summary' => [
-                'totalClasses' => $totalClassesCount,
+                'totalClasses' => $localClasses->count() + $externalClasses->count(),
                 'activeClasses' => $activeClassesCount,
-                'gardataCandidates' => $totalCandidatesCount,
-                'verifiedReports' => $verifiedReportsCount,
-                'averageAttendance' => $localClasses->whereNotNull('averageAttendance')->avg('averageAttendance'),
-                'averageAssessmentScore' => $localClasses->whereNotNull('averageAssessmentScore')->avg('averageAssessmentScore'),
+                'gardataCandidates' => $canViewGardata
+                    ? $gardataCandidateCountQuery->count('job_seekers.id')
+                    : 0,
+                'verifiedReports' => $canViewGardata
+                    ? (int) $externalClasses->sum('verifiedReportsCount')
+                    : 0,
+                'averageAttendance' => null,
+                'averageAssessmentScore' => null,
                 'gardataTargetJp' => (int) $externalClasses->sum('targetJp'),
                 'gardataAchievedJp' => (int) $externalClasses->sum('achievedJp'),
-                'totalLpk' => 8,
-                'activeLpk' => count(array_filter($tenants, fn ($t) => ($t['status'] ?? '') === 'Aktif')),
-                'tenantDbSizeEstimate' => '6.7 MB',
             ],
             'classes' => $localClasses->concat($externalClasses)->values()->all(),
+            'gardataBatches' => $gardataBatches,
             'candidates' => $gardataCandidates,
             'tenants' => $tenants,
             'placements' => $placements,
+            'placementCandidates' => $placementCandidates,
             'lastSync' => $lastSync ? [
                 'status' => $lastSync->status,
                 'startedAt' => $lastSync->started_at,

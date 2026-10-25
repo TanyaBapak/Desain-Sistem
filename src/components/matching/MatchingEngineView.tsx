@@ -3,6 +3,8 @@ import { router } from '@inertiajs/react';
 import { toast } from 'sonner';
 import { useAppStore } from '../../store/useAppStore';
 import { MatchingGapCard } from './MatchingGapCard';
+import { PlacementWorkflowPanel } from './PlacementWorkflowPanel';
+import { GardataClassMappingControl } from './GardataClassMappingControl';
 import {
   Cpu,
   Layers,
@@ -19,6 +21,7 @@ import {
   ExternalLink
 } from 'lucide-react';
 import { Badge } from '../ui/Badge';
+import { Button } from '../ui/button';
 import { SystemStageStepper } from '../layout/SystemStageStepper';
 import { DeleteConfirmModal } from '../ui/DeleteConfirmModal';
 import { MonitoringData, PersistedCandidateMatch } from '../../types';
@@ -45,8 +48,10 @@ const EMPTY_MONITORING: MonitoringData = {
     gardataAchievedJp: 0,
   },
   classes: [],
+  gardataBatches: [],
   candidates: [],
   placements: [],
+  placementCandidates: [],
   lastSync: null,
 };
 
@@ -57,6 +62,7 @@ export const MatchingEngineView: React.FC<MatchingEngineViewProps> = ({ candidat
     providers,
     demands,
     allocations,
+    currentUser,
     activeStage,
     setActiveStage,
     selectedDemandId,
@@ -70,6 +76,7 @@ export const MatchingEngineView: React.FC<MatchingEngineViewProps> = ({ candidat
     setSelectedProviderId,
   } = useAppStore();
   const monitoringData = monitoring && !Array.isArray(monitoring) ? monitoring : EMPTY_MONITORING;
+  const canRunMatching = currentUser?.roleName === 'task_force';
 
   // State for Tahap 4 batch dates
   const [startDate, setStartDate] = useState(() => inputDate(new Date()));
@@ -82,6 +89,8 @@ export const MatchingEngineView: React.FC<MatchingEngineViewProps> = ({ candidat
   const [allocationError, setAllocationError] = useState<string | null>(null);
   const [savingAllocation, setSavingAllocation] = useState(false);
   const [pendingArchiveId, setPendingArchiveId] = useState<string | null>(null);
+  const [runningMatching, setRunningMatching] = useState(false);
+  const [matchingError, setMatchingError] = useState<string | null>(null);
 
   // Selected entities
   const allocationDemands = demands.filter((d) => d.verificationStatus === 'Approved');
@@ -114,6 +123,24 @@ export const MatchingEngineView: React.FC<MatchingEngineViewProps> = ({ candidat
   const estimatedBudget =
     (activeProgram?.estimatedCostPerParticipant || 0) * selectedCandidateIds.length;
 
+  const runMatching = () => {
+    if (!activeDemand) return;
+
+    setRunningMatching(true);
+    setMatchingError(null);
+    selectAllCandidates([]);
+    router.post('/matching/runs', { demandId: activeDemand.id }, {
+      preserveScroll: true,
+      onSuccess: () => toast.success('Hasil matching terbaru berhasil disimpan.'),
+      onError: (errors) => {
+        const message = Object.values(errors).find(Boolean) ?? 'Matching belum dapat dijalankan. Periksa demand dan data kandidat.';
+        setMatchingError(message);
+        toast.error(message);
+      },
+      onFinish: () => setRunningMatching(false),
+    });
+  };
+
   // Handle allocation submission in Tahap 4
   const handleFinalizeAllocation = (e: React.FormEvent) => {
     e.preventDefault();
@@ -125,7 +152,9 @@ export const MatchingEngineView: React.FC<MatchingEngineViewProps> = ({ candidat
     }
 
     if (selectedCandidateIds.length === 0) {
-      alert('Pilih minimal 1 calon peserta untuk penetapan batch!');
+      const message = 'Pilih minimal 1 calon peserta untuk penetapan batch.';
+      setAllocationError(message);
+      toast.error(message);
       return;
     }
 
@@ -141,6 +170,7 @@ export const MatchingEngineView: React.FC<MatchingEngineViewProps> = ({ candidat
     }, {
       preserveScroll: true,
       onSuccess: () => {
+        selectAllCandidates([]);
         setAllocationSuccessNotice(
           `Keputusan alokasi berhasil disimpan ke database. Total anggaran: ${formatIDR(estimatedBudget)} untuk ${selectedCandidateIds.length} peserta.`
         );
@@ -419,7 +449,10 @@ export const MatchingEngineView: React.FC<MatchingEngineViewProps> = ({ candidat
               <div className="w-full sm:w-80">
                 <select
                   value={activeDemand?.id}
-                  onChange={(e) => setSelectedDemandId(e.target.value)}
+                  onChange={(e) => {
+                    setSelectedDemandId(e.target.value);
+                    selectAllCandidates([]);
+                  }}
                   disabled={allocationDemands.length === 0}
                   className="w-full py-2 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
@@ -450,6 +483,20 @@ export const MatchingEngineView: React.FC<MatchingEngineViewProps> = ({ candidat
                 </div>
 
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full md:w-auto">
+                  {canRunMatching ? (
+                    <Button
+                      type="button"
+                      onClick={runMatching}
+                      disabled={!activeDemand || runningMatching}
+                      className="whitespace-nowrap"
+                    >
+                      {runningMatching ? 'Menghitung...' : 'Jalankan Matching'}
+                    </Button>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">
+                      Matching hanya dapat dijalankan oleh Task Force.
+                    </span>
+                  )}
                   <button
                     onClick={() => {
                       // Select top 3 candidates by match score
@@ -480,6 +527,12 @@ export const MatchingEngineView: React.FC<MatchingEngineViewProps> = ({ candidat
               </span>
             </div>
           </div>
+
+          {matchingError && (
+            <div role="alert" className="rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
+              {matchingError}
+            </div>
+          )}
 
           {/* Scored Candidate Cards Grid */}
           <div className="space-y-4">
@@ -563,7 +616,10 @@ export const MatchingEngineView: React.FC<MatchingEngineViewProps> = ({ candidat
                     <label className="text-xs text-slate-500 font-semibold block mb-1">Target Demand (Modul D):</label>
                     <select
                       value={activeDemand.id}
-                      onChange={(e) => setSelectedDemandId(e.target.value)}
+                      onChange={(e) => {
+                        setSelectedDemandId(e.target.value);
+                        selectAllCandidates([]);
+                      }}
                       className="w-full text-xs py-2 px-3 bg-white border border-slate-200 rounded-lg font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
                       {allocationDemands.map((d) => (
@@ -832,7 +888,7 @@ export const MatchingEngineView: React.FC<MatchingEngineViewProps> = ({ candidat
                   Tahap 5: Pelaksanaan Pelatihan & Monitoring Capaian JP
                 </span>
                 <h3 className="text-lg font-black text-slate-900 mt-0.5">
-                  Pemantauan Kelas, Presensi & Asesmen Tercatat
+                  Kelas Alokasi dan Hasil Pelatihan Gardata
                 </h3>
               </div>
               <div className="flex items-center gap-2">
@@ -846,7 +902,7 @@ export const MatchingEngineView: React.FC<MatchingEngineViewProps> = ({ candidat
                   <ExternalLink className="w-3.5 h-3.5" />
                   <span>Feeder: gardata.sippmi.com</span>
                 </a>
-                <Badge variant="primary">Sumber: Database Aplikasi & Gardata</Badge>
+                <Badge variant="primary">Kelas lokal · hasil pelatihan Gardata</Badge>
               </div>
             </div>
 
@@ -872,6 +928,10 @@ export const MatchingEngineView: React.FC<MatchingEngineViewProps> = ({ candidat
               </a>
             </div>
 
+            <p className="rounded-lg border border-border bg-muted/30 p-3 text-sm text-muted-foreground">
+              Hubungkan batch Gardata tersinkron dengan kelas alokasi di bawah. Peserta baru dapat diproses pada Tahap 6 setelah Gardata mencatat status <strong className="font-semibold text-foreground">GRADUATED</strong>. Presensi dan nilai asesmen belum tersedia dari data sinkronisasi Gardata.
+            </p>
+
             {/* 3 Monitoring Progress Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
@@ -882,14 +942,18 @@ export const MatchingEngineView: React.FC<MatchingEngineViewProps> = ({ candidat
                       ? 'Belum tersedia'
                       : `${monitoringData.summary.averageAttendance.toLocaleString('id-ID', { maximumFractionDigits: 1 })}%`}
                   </span>
-                  <span className="text-xs text-slate-400">Data database lokal</span>
+                  <span className="text-xs text-slate-400">
+                    {monitoringData.summary.averageAttendance === null ? 'Belum tersedia dari Gardata' : 'Sumber: Gardata'}
+                  </span>
                 </div>
-                <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-emerald-500 rounded-full"
-                    style={{ width: `${Math.min(100, monitoringData.summary.averageAttendance ?? 0)}%` }}
-                  />
-                </div>
+                {monitoringData.summary.averageAttendance !== null && (
+                  <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-emerald-500 rounded-full"
+                      style={{ width: `${Math.min(100, monitoringData.summary.averageAttendance)}%` }}
+                    />
+                  </div>
+                )}
               </div>
 
               <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
@@ -898,7 +962,7 @@ export const MatchingEngineView: React.FC<MatchingEngineViewProps> = ({ candidat
                   <span className="text-2xl font-black text-blue-600">
                     {monitoringData.summary.gardataAchievedJp.toLocaleString('id-ID')} / {monitoringData.summary.gardataTargetJp.toLocaleString('id-ID')}
                   </span>
-                  <span className="text-xs text-slate-400">JP Gardata</span>
+                  <span className="text-xs text-slate-400">Data Gardata tersinkron</span>
                 </div>
                 <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
                   <div
@@ -920,21 +984,25 @@ export const MatchingEngineView: React.FC<MatchingEngineViewProps> = ({ candidat
                       ? 'Belum tersedia'
                       : `${monitoringData.summary.averageAssessmentScore.toLocaleString('id-ID', { maximumFractionDigits: 1 })}%`}
                   </span>
-                  <span className="text-xs text-slate-400">Data database lokal</span>
+                  <span className="text-xs text-slate-400">
+                    {monitoringData.summary.averageAssessmentScore === null ? 'Belum tersedia dari Gardata' : 'Sumber: Gardata'}
+                  </span>
                 </div>
-                <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-indigo-600 rounded-full"
-                    style={{ width: `${Math.min(100, monitoringData.summary.averageAssessmentScore ?? 0)}%` }}
-                  />
-                </div>
+                {monitoringData.summary.averageAssessmentScore !== null && (
+                  <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-indigo-600 rounded-full"
+                      style={{ width: `${Math.min(100, monitoringData.summary.averageAssessmentScore)}%` }}
+                    />
+                  </div>
+                )}
               </div>
             </div>
 
             {/* Persisted batches and Gardata training records */}
             <div className="rounded-xl border border-slate-200 overflow-hidden">
               <div className="p-3 bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-700">
-                Kelas dari database lokal dan catatan pelatihan Gardata:
+                Kelas alokasi lokal dan catatan pelatihan Gardata tersinkron:
               </div>
               <div className="divide-y divide-slate-100 text-xs">
                 {monitoringData.classes.length === 0 ? (
@@ -952,6 +1020,16 @@ export const MatchingEngineView: React.FC<MatchingEngineViewProps> = ({ candidat
                           ? ''
                           : ` · Presensi ${trainingClass.averageAttendance.toLocaleString('id-ID', { maximumFractionDigits: 1 })}%`}
                       </span>
+                      {trainingClass.source === 'SMK Go Global' && (
+                        <div className="mt-3">
+                          <GardataClassMappingControl
+                            classId={trainingClass.classCode}
+                            mappedBatchId={trainingClass.gardataBatchId ?? null}
+                            batches={monitoringData.gardataBatches}
+                            canEdit={canRunMatching}
+                          />
+                        </div>
+                      )}
                     </div>
                     <span className="text-xs font-semibold text-slate-700">{trainingClass.status}</span>
                   </div>
@@ -982,83 +1060,10 @@ export const MatchingEngineView: React.FC<MatchingEngineViewProps> = ({ candidat
       {/* STAGE 6: JOB MATCHING & PENEMPATAN RESMI (SISKOP2MI)    */}
       {/* ======================================================== */}
       {activeStage === 6 && (
-        <div className="space-y-6 animate-fade-in">
-          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div>
-                <span className="text-xs font-bold text-emerald-600 uppercase tracking-wider block">
-                  Tahap 6: Job Matching, Seleksi User & Penempatan
-                </span>
-                <h3 className="text-lg font-black text-slate-900 mt-0.5">
-                  Rekapitulasi proses penempatan yang tercatat
-                </h3>
-              </div>
-              <Badge variant="primary">Data database lokal</Badge>
-            </div>
-
-            <div className="p-4 bg-blue-50/70 border border-blue-200 rounded-xl flex items-start gap-3 text-xs">
-              <ShieldCheck className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
-              <div>
-                <p className="text-blue-800 leading-relaxed mt-0.5">
-                  Daftar di bawah berasal dari catatan penempatan lokal. Integrasi pengambilan atau sinkronisasi SISKOP2MI belum dikonfigurasi di alur ini; ID eksternal hanya ditampilkan jika tersimpan.
-                </p>
-              </div>
-            </div>
-
-            <div className="rounded-xl border border-slate-200 overflow-hidden">
-              <div className="p-3 bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-700 flex items-center justify-between">
-                <span>Catatan penempatan:</span>
-                <span className="text-blue-600 font-bold">{monitoringData.placements.length} data</span>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-50/60 border-b border-slate-200 font-bold text-slate-600">
-                    <tr>
-                      <th className="py-2.5 px-3">Nama Kandidat</th>
-                      <th className="py-2.5 px-3">Jabatan & Negara</th>
-                      <th className="py-2.5 px-3">Pemberi Kerja</th>
-                      <th className="py-2.5 px-3">Status Penempatan</th>
-                      <th className="py-2.5 px-3 text-right">Tanggal Berangkat</th>
-                      <th className="py-2.5 px-3 text-right">ID SISKOP2MI</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 text-slate-700">
-                    {monitoringData.placements.length === 0 ? (
-                      <tr>
-                        <td colSpan={6} className="py-8 text-center text-slate-500">
-                          Belum ada catatan penempatan pada database untuk akun dan cakupan ini.
-                        </td>
-                      </tr>
-                    ) : monitoringData.placements.map((placement) => (
-                      <tr key={placement.id} className="hover:bg-slate-50">
-                        <td className="py-2.5 px-3 font-bold text-slate-900">{placement.candidateName}</td>
-                        <td className="py-2.5 px-3 text-slate-500">{placement.occupation} · {placement.country}</td>
-                        <td className="py-2.5 px-3 text-slate-600">{placement.employer}</td>
-                        <td className="py-2.5 px-3">{placement.status}</td>
-                        <td className="py-2.5 px-3 text-right">{placement.flightDate ?? 'Belum dijadwalkan'}</td>
-                        <td className="py-2.5 px-3 text-right font-mono font-bold text-blue-600">
-                          {placement.siskop2miId ?? 'Belum terhubung'}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:items-center sm:justify-between">
-              <button
-                onClick={() => setActiveStage(5)}
-                className="w-full rounded-xl bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-200 sm:w-auto"
-              >
-                Kembali ke Tahap 5
-              </button>
-              <span className="text-xs text-slate-500">
-                Sinkronisasi otomatis belum tersedia pada modul ini.
-              </span>
-            </div>
-          </div>
-        </div>
+        <PlacementWorkflowPanel
+          monitoring={monitoringData}
+          onPreviousStage={() => setActiveStage(5)}
+        />
       )}
 
       <DeleteConfirmModal

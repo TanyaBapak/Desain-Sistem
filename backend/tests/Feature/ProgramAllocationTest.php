@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Role;
 use App\Models\User;
+use App\Services\BusinessDataPresenter;
 use App\Services\ProgramSyncFromProviders;
 use Database\Seeders\ReferenceDataSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -229,23 +230,9 @@ class ProgramAllocationTest extends TestCase
         DB::table('job_seekers')->where('id', 'CAND-ALLOC-001')->update([
             'verification_status' => 'Verified',
         ]);
-        DB::table('matching_runs')->insert([
-            'id' => 'MATCH-RUN-ALLOC-001',
-            'job_demand_id' => 'DEM-ALLOC-001',
-            'run_date' => now(),
-            'total_candidates_analyzed' => 1,
-            'matches_found' => 1,
-            'algorithm_version' => 'test',
-        ]);
-        DB::table('candidate_matches')->insert([
-            'matching_run_id' => 'MATCH-RUN-ALLOC-001',
-            'job_demand_id' => 'DEM-ALLOC-001',
-            'job_seeker_id' => 'CAND-ALLOC-001',
+        DB::table('candidate_matches')->where('job_seeker_id', 'CAND-ALLOC-001')->update([
             'match_score' => 76.5,
-            'match_status' => 'Rekomendasi',
             'match_explanation' => 'Hasil matching tersimpan untuk pengujian.',
-            'created_at' => now(),
-            'updated_at' => now(),
         ]);
 
         $this->actingAs($user)
@@ -258,11 +245,206 @@ class ProgramAllocationTest extends TestCase
                 ->where('businessData.demands.0.verificationStatus', 'Approved'));
 
         DB::table('job_demands')->where('id', 'DEM-ALLOC-001')->update(['verification_status' => 'Pending']);
-        app(\App\Services\BusinessDataPresenter::class)->forget($user);
+        app(BusinessDataPresenter::class)->forget($user);
 
         $this->get('/app/matching')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page->has('businessData.candidateMatches', 0));
+    }
+
+    public function test_matching_run_scores_verified_candidates_and_allocation_links_latest_results(): void
+    {
+        $user = $this->userWithRole('task_force');
+        $this->createAllocationRecords();
+        $country = DB::table('countries')->where('id', 'JP')->value('name');
+        $occupation = DB::table('occupations')->where('id', 'OCC-WL-01')->value('title');
+        $sector = DB::table('sectors')->where('id', 'SECT-WELD')->value('name');
+        DB::table('job_seekers')->update([
+            'preferred_countries' => json_encode([$country], JSON_THROW_ON_ERROR),
+            'preferred_job_roles' => json_encode([$occupation], JSON_THROW_ON_ERROR),
+            'preferred_sectors' => json_encode([$sector], JSON_THROW_ON_ERROR),
+        ]);
+
+        $this->actingAs($user)
+            ->post('/matching/runs', ['demandId' => 'DEM-ALLOC-001'])
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+
+        $latestRun = DB::table('matching_runs')->orderByDesc('created_at')->orderByDesc('run_date')->orderByDesc('id')->first();
+        $this->assertSame(2, $latestRun->total_candidates_analyzed);
+        $this->assertSame(2, $latestRun->matches_found);
+        $this->assertDatabaseHas('candidate_matches', [
+            'matching_run_id' => $latestRun->id,
+            'job_seeker_id' => 'CAND-ALLOC-001',
+            'match_status' => 'Rekomendasi',
+        ]);
+
+        $this->post('/allocations', $this->allocationData())
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+        $allocation = DB::table('program_allocations')->first();
+        $this->assertDatabaseHas('candidate_matches', [
+            'matching_run_id' => $latestRun->id,
+            'job_seeker_id' => 'CAND-ALLOC-001',
+            'training_class_id' => $allocation->training_class_id,
+            'match_status' => 'Dialokasikan',
+        ]);
+
+        $this->post('/matching/runs', ['demandId' => 'DEM-ALLOC-001'])
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+        $latestRun = DB::table('matching_runs')->orderByDesc('created_at')->orderByDesc('run_date')->orderByDesc('id')->first();
+        $this->assertSame(0, $latestRun->matches_found);
+        $this->assertSame(0, DB::table('candidate_matches')->where('matching_run_id', $latestRun->id)->count());
+        $this->get('/app/matching')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->has('businessData.candidateMatches', 0));
+    }
+
+    public function test_allocation_rejects_candidates_not_recommended_by_the_latest_run(): void
+    {
+        $user = $this->userWithRole('task_force');
+        $this->createAllocationRecords();
+        DB::table('candidate_matches')->update(['match_status' => 'Dialokasikan']);
+
+        $this->actingAs($user)
+            ->from('/app/matching')
+            ->post('/allocations', $this->allocationData())
+            ->assertRedirect('/app/matching')
+            ->assertSessionHasErrors('candidateIds');
+
+        $this->assertDatabaseCount('program_allocations', 0);
+    }
+
+    public function test_matching_run_analyzes_candidates_only_in_the_active_bp3mi_area(): void
+    {
+        $user = $this->userWithRole('task_force', ['bp3mi_code' => 'BP3MI-JABAR']);
+        $this->createAllocationRecords();
+        DB::table('job_seekers')->where('id', 'CAND-ALLOC-002')->update([
+            'province_id' => '31',
+            'district_id' => '3171',
+        ]);
+        $country = DB::table('countries')->where('id', 'JP')->value('name');
+        $occupation = DB::table('occupations')->where('id', 'OCC-WL-01')->value('title');
+        $sector = DB::table('sectors')->where('id', 'SECT-WELD')->value('name');
+        DB::table('job_seekers')->update([
+            'preferred_countries' => json_encode([$country], JSON_THROW_ON_ERROR),
+            'preferred_job_roles' => json_encode([$occupation], JSON_THROW_ON_ERROR),
+            'preferred_sectors' => json_encode([$sector], JSON_THROW_ON_ERROR),
+        ]);
+
+        $this->actingAs($user)
+            ->post('/matching/runs', ['demandId' => 'DEM-ALLOC-001'])
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+
+        $run = DB::table('matching_runs')->orderByDesc('created_at')->orderByDesc('run_date')->orderByDesc('id')->first();
+        $this->assertSame(1, $run->total_candidates_analyzed);
+        $this->assertSame(1, $run->matches_found);
+    }
+
+    public function test_placement_workflow_requires_graduation_and_advances_in_order(): void
+    {
+        $user = $this->userWithRole('task_force');
+        $this->createAllocationRecords();
+        $this->actingAs($user)->post('/allocations', $this->allocationData())->assertSessionHasNoErrors();
+        $classId = DB::table('program_allocations')->value('training_class_id');
+        $matchId = DB::table('candidate_matches')
+            ->where('job_seeker_id', 'CAND-ALLOC-001')
+            ->value('id');
+        $this->createGardataTrainingRecord('CAND-ALLOC-001', 'GD-BATCH-ALLOC-001', 'IN_PROGRESS');
+        $this->put("/training-classes/{$classId}/gardata-mapping", [
+            'externalBatchId' => 'GD-BATCH-ALLOC-001',
+        ])->assertRedirect()->assertSessionHasNoErrors();
+        app(BusinessDataPresenter::class)->forget($user);
+        $this->get('/app/matching')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('businessData.monitoring.gardataBatches.0.externalBatchId', 'GD-BATCH-ALLOC-001')
+                ->has('businessData.monitoring.placementCandidates', 0));
+
+        $this->from('/app/matching')
+            ->post('/placements', ['candidateMatchId' => $matchId])
+            ->assertRedirect('/app/matching')
+            ->assertSessionHasErrors('candidateMatchId');
+        $this->assertDatabaseCount('placement_cases', 0);
+
+        DB::table('external_training_records')
+            ->where('external_batch_id', 'GD-BATCH-ALLOC-001')
+            ->where('job_seeker_id', 'CAND-ALLOC-001')
+            ->update(['status' => 'GRADUATED', 'updated_at' => now()]);
+        app(BusinessDataPresenter::class)->forget($user);
+        $this->get('/app/matching')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('businessData.monitoring.placementCandidates.0.candidateName', 'Peserta Contoh 1'));
+
+        $this->post('/placements', ['candidateMatchId' => $matchId])
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+        $caseId = DB::table('placement_cases')->value('id');
+        $this->from('/app/matching')
+            ->post('/placements', ['candidateMatchId' => $matchId])
+            ->assertRedirect('/app/matching')
+            ->assertSessionHasErrors('candidateMatchId');
+        app(BusinessDataPresenter::class)->forget($user);
+        $this->get('/app/matching')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->has('businessData.monitoring.placementCandidates', 0));
+
+        $this->from('/app/matching')
+            ->patch("/placements/{$caseId}", ['status' => 'Penerbitan Visa'])
+            ->assertRedirect('/app/matching')
+            ->assertSessionHasErrors('visaNumber');
+        $this->patch("/placements/{$caseId}", [
+            'status' => 'Penerbitan Visa',
+            'visaNumber' => 'VISA-CONTOH-001',
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $this->from('/app/matching')
+            ->patch("/placements/{$caseId}", [
+                'status' => 'Siap Berangkat',
+                'flightDate' => '2027-01-15',
+            ])
+            ->assertRedirect('/app/matching')
+            ->assertSessionHasErrors('status');
+        $this->patch("/placements/{$caseId}", ['status' => 'Medical Checkup 2'])
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+        $this->patch("/placements/{$caseId}", [
+            'status' => 'Siap Berangkat',
+            'flightDate' => '2027-01-15',
+        ])->assertRedirect()->assertSessionHasNoErrors();
+        $this->patch("/placements/{$caseId}", ['status' => 'Sudah di Negara Tujuan'])
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('placement_cases', [
+            'id' => $caseId,
+            'status' => 'Sudah di Negara Tujuan',
+            'visa_number' => 'VISA-CONTOH-001',
+            'flight_date' => '2027-01-15',
+        ]);
+        $this->assertNotNull(DB::table('placement_cases')->where('id', $caseId)->value('completed_at'));
+    }
+
+    public function test_task_force_cannot_create_placement_outside_active_bp3mi_area(): void
+    {
+        $user = $this->userWithRole('task_force');
+        $this->createAllocationRecords();
+        $this->actingAs($user)->post('/allocations', $this->allocationData())->assertSessionHasNoErrors();
+        $classId = DB::table('program_allocations')->value('training_class_id');
+        $this->createGardataTrainingRecord('CAND-ALLOC-001', 'GD-BATCH-SCOPE-001', 'GRADUATED');
+        $this->put("/training-classes/{$classId}/gardata-mapping", [
+            'externalBatchId' => 'GD-BATCH-SCOPE-001',
+        ])->assertRedirect()->assertSessionHasNoErrors();
+        $matchId = DB::table('candidate_matches')
+            ->where('job_seeker_id', 'CAND-ALLOC-001')
+            ->value('id');
+
+        $this->get('/app/dashboard?bp3mi_area=BP3MI-JKT')->assertOk();
+        $this->postJson('/placements', ['candidateMatchId' => $matchId])->assertForbidden();
+        $this->assertDatabaseCount('placement_cases', 0);
     }
 
     public function test_training_and_placement_stages_present_database_records(): void
@@ -308,8 +490,8 @@ class ProgramAllocationTest extends TestCase
             ->get('/app/matching')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->where('businessData.monitoring.classes.0.averageAttendance', 84)
-                ->where('businessData.monitoring.classes.0.averageAssessmentScore', 91)
+                ->where('businessData.monitoring.classes.0.averageAttendance', null)
+                ->where('businessData.monitoring.classes.0.averageAssessmentScore', null)
                 ->where('businessData.monitoring.placements.0.id', 'PLACEMENT-ALLOC-001')
                 ->where('businessData.monitoring.placements.0.siskop2miId', 'SISKOP-CONTOH-001'));
 
@@ -317,7 +499,7 @@ class ProgramAllocationTest extends TestCase
             'province_id' => '31',
             'district_id' => '3171',
         ]);
-        app(\App\Services\BusinessDataPresenter::class)->forget($user);
+        app(BusinessDataPresenter::class)->forget($user);
 
         $this->get('/app/matching')
             ->assertOk()
@@ -445,6 +627,26 @@ class ProgramAllocationTest extends TestCase
                 'updated_at' => now(),
             ]);
         }
+        DB::table('matching_runs')->insert([
+            'id' => 'MATCH-RUN-ALLOC-001',
+            'job_demand_id' => 'DEM-ALLOC-001',
+            'run_date' => now(),
+            'total_candidates_analyzed' => 2,
+            'matches_found' => 2,
+            'algorithm_version' => 'test',
+        ]);
+        foreach (['CAND-ALLOC-001', 'CAND-ALLOC-002'] as $index => $candidateId) {
+            DB::table('candidate_matches')->insert([
+                'matching_run_id' => 'MATCH-RUN-ALLOC-001',
+                'job_demand_id' => 'DEM-ALLOC-001',
+                'job_seeker_id' => $candidateId,
+                'match_score' => 80 - ($index * 10),
+                'match_status' => 'Rekomendasi',
+                'match_explanation' => 'Hasil matching fixture.',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
     }
 
     private function allocationData(): array
@@ -457,6 +659,28 @@ class ProgramAllocationTest extends TestCase
             'startDate' => '2026-12-01',
             'endDate' => '2027-03-31',
         ];
+    }
+
+    private function createGardataTrainingRecord(string $jobSeekerId, string $batchId, string $status): void
+    {
+        DB::table('external_training_records')->insert([
+            'external_source' => 'gardata',
+            'external_batch_id' => $batchId,
+            'job_seeker_id' => $jobSeekerId,
+            'class_code' => $batchId,
+            'batch_name' => 'Batch Gardata Contoh',
+            'sector_name' => 'Manufaktur',
+            'program_name' => 'Program Welder Contoh',
+            'start_date' => '2026-01-01',
+            'end_date' => '2026-03-01',
+            'target_jp' => 120,
+            'achieved_jp' => $status === 'GRADUATED' ? 120 : 60,
+            'completion_percentage' => $status === 'GRADUATED' ? 100 : 50,
+            'status' => $status,
+            'verified_reports_count' => 1,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
     }
 
     private function userWithRole(string $roleName, array $attributes = []): User

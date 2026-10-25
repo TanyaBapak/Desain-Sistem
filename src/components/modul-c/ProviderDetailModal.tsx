@@ -18,6 +18,7 @@ import {
   Globe
 } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
+import { visitAllocationStage } from '../../lib/navigation';
 
 interface ProviderDetailModalProps {
   provider: VocationalProvider | null;
@@ -30,7 +31,7 @@ export const ProviderDetailModal: React.FC<ProviderDetailModalProps> = ({
   isOpen,
   onClose,
 }) => {
-  const { updateProviderEvokasi, setSelectedProviderId, setActiveStage } = useAppStore();
+  const { selectedProgramId, setSelectedProviderId, setActiveStage } = useAppStore();
 
   if (!provider) return null;
 
@@ -38,6 +39,10 @@ export const ProviderDetailModal: React.FC<ProviderDetailModalProps> = ({
     setSelectedProviderId(provider.id);
     setActiveStage(4);
     onClose();
+    visitAllocationStage({
+      programId: selectedProgramId ?? undefined,
+      providerId: provider.id,
+    });
   };
 
   const officialKp2miUrl = 'https://vokasi.kp2mi.go.id/cari-lembaga';
@@ -284,25 +289,9 @@ export const ProviderDetailModal: React.FC<ProviderDetailModalProps> = ({
 
         {/* Quick Action Verifikasi e-Vokasi & Allocation */}
         <div className="flex flex-wrap items-center justify-between pt-4 border-t border-slate-200 gap-3">
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-slate-500">Simulasi e-Vokasi:</span>
-            {provider.evokasiVerificationStatus !== 'Terverifikasi e-Vokasi' ? (
-              <button
-                onClick={() => updateProviderEvokasi(provider.id, 'Terverifikasi e-Vokasi')}
-                className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 text-white hover:bg-emerald-700 transition flex items-center gap-1"
-              >
-                <ShieldCheck className="w-3.5 h-3.5" />
-                <span>Verifikasi e-Vokasi</span>
-              </button>
-            ) : (
-              <button
-                onClick={() => updateProviderEvokasi(provider.id, 'Proses Verifikasi')}
-                className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-200 text-slate-700 hover:bg-slate-300 transition"
-              >
-                Ubah ke Proses
-              </button>
-            )}
-          </div>
+          <p className="text-xs text-muted-foreground">
+            Status e-Vokasi ditampilkan dari data tersimpan/sinkronisasi; verifikasi eksternal tidak dapat disimulasikan dari sini.
+          </p>
 
           <div className="flex items-center gap-2">
             <a

@@ -21,10 +21,6 @@ import {
   AuthUser,
 } from '../types';
 import {
-  mockSupply,
-  mockPrograms,
-  mockProviders,
-  mockDemand,
   mockStageDetails,
   mockAggregateMatching,
   mockRoles,
@@ -194,7 +190,6 @@ export interface AppState {
   // Validation Simulation (Tahap 2)
   updateCandidateVerification: (id: string, status: VerificationStatus) => void;
   batchVerifyCandidates: (ids: string[]) => void;
-  updateProviderEvokasi: (id: string, status: 'Terverifikasi e-Vokasi' | 'Proses Verifikasi' | 'Belum Terverifikasi') => void;
 
   // CRUD Actions - Modul A: Calon Peserta
   createCandidate: (candidate: Omit<CandidateParticipant, 'id'>) => CandidateParticipant;
@@ -242,7 +237,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     sektor: 'Kesehatan / Caregiver',
   },
 
-  candidates: mockSupply,
+  candidates: [],
   programs: [],
   providers: [],
   demands: [],
@@ -250,13 +245,13 @@ export const useAppStore = create<AppState>((set, get) => ({
   businessOptions: { provinces: [], districts: [], sectors: [], occupations: [], countries: [], institutions: [] },
   setBusinessData: (data) => set((state) => {
     const incomingCandidates = Array.isArray(data.candidates) ? data.candidates : [];
-    const candidates = incomingCandidates.length > 0 ? incomingCandidates : mockSupply;
+    const candidates = incomingCandidates;
     const incomingPrograms = Array.isArray(data.programs) ? data.programs : [];
-    const programs = incomingPrograms.length > 0 ? incomingPrograms : mockPrograms;
+    const programs = incomingPrograms;
     const incomingProviders = Array.isArray(data.providers) ? data.providers : [];
-    const providers = incomingProviders.length > 0 ? incomingProviders : mockProviders;
+    const providers = incomingProviders;
     const incomingDemands = Array.isArray(data.demands) ? data.demands : [];
-    const demands = incomingDemands.length > 0 ? incomingDemands : mockDemand;
+    const demands = incomingDemands;
     return {
       candidates,
       programs,
@@ -562,14 +557,6 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({
       candidates: get().candidates.map((c) =>
         ids.includes(c.id) ? { ...c, verificationStatus: 'Verified' } : c
-      ),
-    });
-  },
-
-  updateProviderEvokasi: (id, status) => {
-    set({
-      providers: get().providers.map((p) =>
-        p.id === id ? { ...p, evokasiVerificationStatus: status } : p
       ),
     });
   },

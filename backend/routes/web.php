@@ -5,9 +5,12 @@ use App\Http\Controllers\ApprovalWorkflowController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\BusinessDataController;
 use App\Http\Controllers\GardataSyncController;
+use App\Http\Controllers\GardataTrainingMappingController;
 use App\Http\Controllers\GardataWebhookController;
 use App\Http\Controllers\InstitutionRegistrationController;
 use App\Http\Controllers\Kp2miVokasiSyncController;
+use App\Http\Controllers\MatchingRunController;
+use App\Http\Controllers\PlacementWorkflowController;
 use App\Http\Controllers\ProgramAllocationController;
 use App\Http\Controllers\UserManagementController;
 use App\Http\Middleware\EnsureUserIsActive;
@@ -60,6 +63,9 @@ Route::middleware(['auth', EnsureUserIsActive::class])->group(function () {
         ->whereNumber('user')
         ->name('admin.users.impersonate');
     Route::post('/integrations/gardata/sync', GardataSyncController::class)->name('integrations.gardata.sync');
+    Route::put('/training-classes/{classId}/gardata-mapping', [GardataTrainingMappingController::class, 'update'])
+        ->where('classId', '[A-Za-z0-9-]+')
+        ->name('training-classes.gardata-mapping.update');
     Route::post('/integrations/kp2mi/sync', Kp2miVokasiSyncController::class)->name('integrations.kp2mi.sync');
     Route::post('/approvals/{id}', [ApprovalWorkflowController::class, 'update'])
         ->where('id', '[A-Za-z0-9-]+')
@@ -68,6 +74,11 @@ Route::middleware(['auth', EnsureUserIsActive::class])->group(function () {
         ->where(['id' => '[A-Za-z0-9-]+', 'documentId' => '[0-9]+'])
         ->name('approvals.documents.download');
     Route::post('/allocations', [ProgramAllocationController::class, 'store'])->name('allocations.store');
+    Route::post('/matching/runs', [MatchingRunController::class, 'store'])->name('matching.runs.store');
+    Route::post('/placements', [PlacementWorkflowController::class, 'store'])->name('placements.store');
+    Route::patch('/placements/{id}', [PlacementWorkflowController::class, 'update'])
+        ->where('id', '[A-Za-z0-9-]+')
+        ->name('placements.update');
     Route::patch('/allocations/{id}', [ProgramAllocationController::class, 'updateStatus'])
         ->where('id', '[A-Za-z0-9-]+')
         ->name('allocations.update-status');

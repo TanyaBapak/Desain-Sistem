@@ -71,6 +71,26 @@ class ProgramAllocationController extends Controller
                 $candidates->every(fn (object $candidate): bool => $scope->allowsProvinceId($request->user(), $candidate->province_id)),
                 403,
             );
+            $latestRunId = DB::table('matching_runs')
+                ->where('job_demand_id', $demand->id)
+                ->orderByDesc('created_at')
+                ->orderByDesc('run_date')
+                ->orderByDesc('id')
+                ->value('id');
+            $recommendedCandidateCount = $latestRunId
+                ? DB::table('candidate_matches')
+                    ->where('matching_run_id', $latestRunId)
+                    ->where('job_demand_id', $demand->id)
+                    ->whereIn('job_seeker_id', $data['candidateIds'])
+                    ->where('match_status', 'Rekomendasi')
+                    ->distinct()
+                    ->count('job_seeker_id')
+                : 0;
+            if ($recommendedCandidateCount !== count($data['candidateIds'])) {
+                throw ValidationException::withMessages([
+                    'candidateIds' => 'Pilih hanya peserta yang direkomendasikan pada hasil matching terbaru untuk demand ini.',
+                ]);
+            }
 
             $remainingDemand = max(0, (int) $demand->headcount - (int) $demand->filled_quota);
             $remainingProgramQuota = max(0, (int) $program->quota - (int) $program->enrolled_count);
@@ -126,6 +146,16 @@ class ProgramAllocationController extends Controller
                     'attendance_percent' => 0,
                 ]);
             }
+            DB::table('candidate_matches')
+                ->where('matching_run_id', $latestRunId)
+                ->where('job_demand_id', $demand->id)
+                ->whereIn('job_seeker_id', $data['candidateIds'])
+                ->where('match_status', 'Rekomendasi')
+                ->update([
+                    'training_class_id' => $classId,
+                    'match_status' => 'Dialokasikan',
+                    'updated_at' => $now,
+                ]);
 
             DB::table('training_programs')->where('id', $program->id)->increment('enrolled_count', count($data['candidateIds']));
             DB::table('job_demands')->where('id', $demand->id)->increment('filled_quota', count($data['candidateIds']));

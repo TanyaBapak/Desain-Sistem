@@ -245,10 +245,13 @@ export function App({
     );
   }, [authenticatedUser, setAuthenticatedUser]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (activeTab !== "matching" && activeTab !== "modul-e") return;
     const params = new URLSearchParams(window.location.search);
-    if (params.get("stage") === "4") setActiveStage(4);
+    const requestedStage = Number(params.get("stage"));
+    if (Number.isInteger(requestedStage) && requestedStage >= 1 && requestedStage <= 6) {
+      setActiveStage(requestedStage);
+    }
 
     const programId = params.get("programId");
     if (programId && businessData?.programs.some((program) => program.id === programId)) {
@@ -413,8 +416,10 @@ export function App({
           gardataAchievedJp: 0,
         },
         classes: [],
+        gardataBatches: [],
         candidates: [],
         placements: [],
+        placementCandidates: [],
         lastSync: null,
       }} />;
       break;
