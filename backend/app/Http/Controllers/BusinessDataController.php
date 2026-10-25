@@ -336,9 +336,24 @@ class BusinessDataController extends Controller
         $role = $user->roles()->value('name');
         $provinceId = $this->referenceId('provinces', 'name', $data['provinsi'], 'provinsi');
         $district = DB::table('districts')
-            ->where('name', $data['kabupatenKota'])
             ->where('province_id', $provinceId)
+            ->where(function ($query) use ($data) {
+                $query->where('name', $data['kabupatenKota'])
+                    ->orWhereRaw('LOWER(name) = ?', [mb_strtolower($data['kabupatenKota'])]);
+            })
             ->first();
+
+        if (! $district) {
+            $baseName = trim(preg_replace('/^(kabupaten|kab\.?|kota(?:\s+adm\.?|\s+administrasi)?)\s+/ui', '', $data['kabupatenKota']));
+            if ($baseName !== '') {
+                $district = DB::table('districts')
+                    ->where('province_id', $provinceId)
+                    ->where(function ($query) use ($baseName) {
+                        $query->whereRaw('LOWER(name) LIKE ?', ['%' . mb_strtolower($baseName) . '%']);
+                    })
+                    ->first();
+            }
+        }
         if (! $district) {
             abort(422, 'Kabupaten/kota tidak sesuai dengan provinsi yang dipilih.');
         }
@@ -466,13 +481,51 @@ class BusinessDataController extends Controller
 
     private function saveProvider(Request $request, array $data, string $id, bool $creating): void
     {
-        $provinceId = $this->referenceId('provinces', 'name', $data['provinsi'], 'provinsi');
-        $district = DB::table('districts')
-            ->where('name', $data['kabupatenKota'])
-            ->where('province_id', $provinceId)
-            ->first();
-        if (! $district) {
-            abort(422, 'Kabupaten/kota tidak sesuai dengan provinsi yang dipilih.');
+        $provinceId = null;
+        if (! in_array($data['provinsi'] ?? '', ['Belum diketahui', '', null], true)) {
+            $provinceId = DB::table('provinces')->where('name', $data['provinsi'])->value('id');
+            if (! $provinceId) {
+                $provinceId = DB::table('provinces')->whereRaw('LOWER(name) = ?', [mb_strtolower($data['provinsi'])])->value('id');
+            }
+            if (! $provinceId) {
+                $provinceId = match (mb_strtolower($data['provinsi'])) {
+                    'daerah khusus ibukota jakarta', 'dki jakarta' => DB::table('provinces')->whereIn(DB::raw('LOWER(name)'), ['dki jakarta', 'daerah khusus ibukota jakarta'])->value('id'),
+                    'daerah istimewa yogyakarta', 'di yogyakarta' => DB::table('provinces')->whereIn(DB::raw('LOWER(name)'), ['di yogyakarta', 'daerah istimewa yogyakarta'])->value('id'),
+                    default => null,
+                };
+            }
+        }
+
+        $district = null;
+        if ($provinceId && ! in_array($data['kabupatenKota'] ?? '', ['Belum diketahui', '', null], true)) {
+            $district = DB::table('districts')
+                ->where('province_id', $provinceId)
+                ->where(function ($query) use ($data) {
+                    $query->where('name', $data['kabupatenKota'])
+                        ->orWhereRaw('LOWER(name) = ?', [mb_strtolower($data['kabupatenKota'])]);
+                })
+                ->first();
+
+            if (! $district) {
+                $baseName = trim(preg_replace('/^(kabupaten|kab\.?|kota(?:\s+adm\.?|\s+administrasi)?)\s+/ui', '', $data['kabupatenKota']));
+                if ($baseName !== '') {
+                    $district = DB::table('districts')
+                        ->where('province_id', $provinceId)
+                        ->where(function ($query) use ($baseName) {
+                            $query->whereRaw('LOWER(name) LIKE ?', ['%' . mb_strtolower($baseName) . '%']);
+                        })
+                        ->first();
+                }
+            }
+        }
+
+        $existing = DB::table('institutions')->where('id', $id)->first();
+        $metadata = $existing ? $this->decodeArray($existing->external_metadata) : [];
+        if (! empty($data['provinsi'])) {
+            $metadata['provinceName'] = $data['provinsi'];
+        }
+        if (! empty($data['kabupatenKota'])) {
+            $metadata['districtName'] = $data['kabupatenKota'];
         }
 
         $institutionType = match ($data['providerType']) {
@@ -483,12 +536,15 @@ class BusinessDataController extends Controller
             default => 'SMK',
         };
 
+        $finalProvinceId = $provinceId ?: $existing?->province_id;
+        $finalDistrictId = $district?->id ?: ($finalProvinceId === $existing?->province_id ? $existing?->district_id : null);
+
         $attributes = [
             'name' => $data['name'],
             'institution_type' => $institutionType,
             'ownership_type' => $data['institutionStatus'] ?? 'Negeri',
-            'province_id' => $provinceId,
-            'district_id' => $district->id,
+            'province_id' => $finalProvinceId,
+            'district_id' => $finalDistrictId,
             'address' => $data['address'] ?? null,
             'head_name' => $data['leaderName'] ?? null,
             'phone' => $data['phone'] ?? null,
@@ -500,6 +556,7 @@ class BusinessDataController extends Controller
             'ready_participant_count' => $data['readyParticipantCount'],
             'readiness_score' => $data['operationalReadinessScore'] ?? 0,
             'supported_sectors' => json_encode($data['supportedSectors'] ?? []),
+            'external_metadata' => json_encode($metadata, JSON_THROW_ON_ERROR),
             'verification_status' => $creating ? 'Pending Verification' : (
                 $data['evokasiVerificationStatus'] === 'Terverifikasi e-Vokasi' ? 'Verified' : 'Pending Verification'
             ),
@@ -774,5 +831,16 @@ class BusinessDataController extends Controller
             'ip_address' => $request->ip() ?? '127.0.0.1',
             'created_at' => now(),
         ]);
+    }
+
+    private function decodeArray(?string $payload): array
+    {
+        if (! $payload) {
+            return [];
+        }
+
+        $decoded = json_decode($payload, true);
+
+        return is_array($decoded) ? $decoded : [];
     }
 }

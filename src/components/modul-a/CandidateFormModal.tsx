@@ -253,6 +253,9 @@ export const CandidateFormModal: React.FC<CandidateFormModalProps> = ({
                 }}
                 className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
+                {!businessOptions.provinces.some((p) => p.name === provinsi) && provinsi && (
+                  <option value={provinsi}>{provinsi}</option>
+                )}
                 {businessOptions.provinces.map((province) => (
                   <option key={province.id} value={province.name}>{province.name}</option>
                 ))}
@@ -268,6 +271,9 @@ export const CandidateFormModal: React.FC<CandidateFormModalProps> = ({
                 onChange={(e) => setKabupatenKota(e.target.value)}
                 className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
+                {!availableDistricts.some((d) => d.name === kabupatenKota) && kabupatenKota && (
+                  <option value={kabupatenKota}>{kabupatenKota}</option>
+                )}
                 {availableDistricts.map((district) => (
                   <option key={district.id} value={district.name}>{district.name}</option>
                 ))}

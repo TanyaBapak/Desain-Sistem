@@ -279,6 +279,50 @@ class BusinessDataPersistenceTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_provider_can_be_saved_with_custom_or_unmapped_district(): void
+    {
+        $this->seed(ReferenceDataSeeder::class);
+        $admin = $this->userWithRole('task_force');
+        $this->actingAs($admin);
+
+        $providerId = 'VOC-CUSTOM-001';
+        DB::table('institutions')->insert([
+            'id' => $providerId,
+            'name' => 'Lembaga Daerah Baru',
+            'institution_type' => 'LPK',
+            'ownership_type' => 'Swasta',
+            'province_id' => '32',
+            'district_id' => null,
+            'accreditation' => 'B',
+            'evokasi_status' => 'Belum Terverifikasi',
+            'verification_status' => 'Pending Verification',
+            'status' => 'Aktif',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->put("/business-data/providers/{$providerId}", [
+            'name' => 'Lembaga Daerah Baru Diperbarui',
+            'providerType' => 'LPK',
+            'provinsi' => 'Jawa Barat',
+            'kabupatenKota' => 'Belum diketahui',
+            'evokasiVerificationStatus' => 'Proses Verifikasi',
+            'accreditation' => 'B',
+            'classCount' => 2,
+            'readyParticipantCount' => 10,
+            'certifiedInstructorsCount' => 2,
+            'operationalReadinessScore' => 60,
+            'facilities' => ['Ruang Kelas'],
+            'supportedSectors' => ['Kesehatan / Caregiver'],
+            'institutionStatus' => 'Swasta',
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('institutions', [
+            'id' => $providerId,
+            'name' => 'Lembaga Daerah Baru Diperbarui',
+        ]);
+    }
+
     private function userWithRole(string $roleName, array $attributes = []): User
     {
         $user = User::factory()->create($attributes);

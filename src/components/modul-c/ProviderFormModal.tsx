@@ -39,8 +39,21 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
     if (initialData && mode === 'edit') {
       setName(initialData.name);
       setProviderType(initialData.providerType as ProviderType);
-      setProvinsi(initialData.provinsi);
-      setKabupatenKota(initialData.kabupatenKota);
+
+      const prov = initialData.provinsi || 'Jawa Barat';
+      setProvinsi(prov);
+
+      const targetProvinceId = businessOptions.provinces.find((p) => p.name === prov)?.id;
+      const validDistricts = businessOptions.districts.filter((d) => d.province_id === targetProvinceId);
+
+      if (initialData.kabupatenKota && initialData.kabupatenKota !== 'Belum diketahui') {
+        setKabupatenKota(initialData.kabupatenKota);
+      } else if (validDistricts.length > 0) {
+        setKabupatenKota(validDistricts[0].name);
+      } else {
+        setKabupatenKota(initialData.kabupatenKota || '');
+      }
+
       setAccreditation(initialData.accreditation);
       setEvokasiStatus(initialData.evokasiVerificationStatus);
       setClassCount(initialData.classCount ?? 0);
@@ -63,7 +76,7 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
       setSupportedSectorsInput('');
       setFacilitiesInput('');
     }
-  }, [initialData, mode, isOpen]);
+  }, [initialData, mode, isOpen, businessOptions]);
 
   if (!isOpen) return null;
 
@@ -174,13 +187,17 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
                 required
                 value={provinsi}
                 onChange={(e) => {
-                  setProvinsi(e.target.value);
-                  const provinceId = businessOptions.provinces.find((province) => province.name === e.target.value)?.id;
-                  const firstDistrict = businessOptions.districts.find((district) => district.province_id === provinceId);
+                  const newProv = e.target.value;
+                  setProvinsi(newProv);
+                  const provinceId = businessOptions.provinces.find((p) => p.name === newProv)?.id;
+                  const firstDistrict = businessOptions.districts.find((d) => d.province_id === provinceId);
                   setKabupatenKota(firstDistrict?.name ?? '');
                 }}
                 className="w-full text-xs p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-slate-50"
               >
+                {!businessOptions.provinces.some((p) => p.name === provinsi) && provinsi && (
+                  <option value={provinsi}>{provinsi}</option>
+                )}
                 {businessOptions.provinces.map((province) => (
                   <option key={province.id} value={province.name}>{province.name}</option>
                 ))}
@@ -191,16 +208,30 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
               <label className="block text-xs font-bold text-slate-700 mb-1">
                 Kabupaten / Kota <span className="text-rose-500">*</span>
               </label>
-              <select
-                required
-                value={kabupatenKota}
-                onChange={(e) => setKabupatenKota(e.target.value)}
-                className="w-full text-xs p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-slate-50"
-              >
-                {availableDistricts.map((district) => (
-                  <option key={district.id} value={district.name}>{district.name}</option>
-                ))}
-              </select>
+              {availableDistricts.length === 0 ? (
+                <input
+                  type="text"
+                  required
+                  value={kabupatenKota}
+                  onChange={(e) => setKabupatenKota(e.target.value)}
+                  placeholder="Contoh: Kabupaten Bogor"
+                  className="w-full text-xs p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-slate-50 focus:bg-white transition"
+                />
+              ) : (
+                <select
+                  required
+                  value={kabupatenKota}
+                  onChange={(e) => setKabupatenKota(e.target.value)}
+                  className="w-full text-xs p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-slate-50"
+                >
+                  {!availableDistricts.some((d) => d.name === kabupatenKota) && kabupatenKota && (
+                    <option value={kabupatenKota}>{kabupatenKota}</option>
+                  )}
+                  {availableDistricts.map((district) => (
+                    <option key={district.id} value={district.name}>{district.name}</option>
+                  ))}
+                </select>
+              )}
             </div>
           </div>
 
