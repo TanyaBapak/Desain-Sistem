@@ -162,6 +162,7 @@ export function DashboardTargetSettings({
             />
           </div>
           <CountrySectorTargetEditor
+            year={form.data.year}
             countries={countries}
             sectors={sectors}
             targets={form.data.targets.countrySectors}

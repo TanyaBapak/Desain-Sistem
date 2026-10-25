@@ -59,7 +59,7 @@ class DashboardTargetTest extends TestCase
             'target_value' => 200,
             'updated_by' => $admin->id,
         ]);
-        $this->assertDatabaseCount('dashboard_targets', 32);
+        $this->assertDatabaseCount('dashboard_targets', 33);
         $this->assertDatabaseHas('dashboard_targets', [
             'metric_key' => 'countryTarget_JP_'.now()->year,
             'target_value' => 30,
@@ -73,6 +73,11 @@ class DashboardTargetTest extends TestCase
         $this->assertDatabaseHas('dashboard_targets', [
             'metric_key' => 'cst_'.substr(hash('sha256', "JP\0SECT-WELD"), 0, 40).'_'.now()->year,
             'target_value' => 24,
+            'updated_by' => $admin->id,
+        ]);
+        $this->assertDatabaseHas('dashboard_targets', [
+            'metric_key' => 'cst_'.substr(hash('sha256', "DE\0SECT-CARE"), 0, 40).'_'.now()->year,
+            'target_value' => 12,
             'updated_by' => $admin->id,
         ]);
         $this->assertDatabaseHas('audit_logs', [
@@ -344,6 +349,7 @@ class DashboardTargetTest extends TestCase
                 'validatedDemandCount' => 200,
                 'countrySectors' => [
                     'JP' => ['SECT-WELD' => 24],
+                    'DE' => ['SECT-CARE' => 12],
                 ],
                 'countries' => [
                     'JP' => 30,
