@@ -148,7 +148,31 @@ class DashboardTargetTest extends TestCase
                 ->has('landingKpiSummary.metrics', 6)
                 ->where('landingKpiSummary.year', now()->year)
                 ->where('landingKpiSummary.metrics.5.value', 1)
-                ->where('landingKpiSummary.metrics.5.target', 200));
+                ->where('landingKpiSummary.metrics.5.target', 200)
+                ->where('landingProjection.year', null)
+                ->where('landingProjection.placementTargets', fn ($rows): bool => collect($rows)->contains(
+                    fn (array $row): bool => $row['year'] === 2027
+                        && $row['sectorName'] === 'Kesehatan'
+                        && $row['occupationName'] === 'Caregiver (lvl pelaksana)',
+                ))
+                ->where('landingProjection.countries', function ($rows): bool {
+                    $countries = collect($rows);
+
+                    return $countries->contains(
+                        fn (array $row): bool => $row['name'] === '2027 · Jepang'
+                            && $row['target'] > 0
+                            && $row['achieved'] === 0,
+                    )
+                        && $countries->contains(
+                            fn (array $row): bool => $row['name'] === '2027 · Malaysia' && $row['target'] > 0,
+                        )
+                        && $countries->contains(
+                            fn (array $row): bool => $row['name'] === '2027 · Singapura' && $row['target'] > 0,
+                        )
+                        && $countries->contains(
+                            fn (array $row): bool => $row['name'] === '2027 · Kuwait' && $row['target'] > 0,
+                        );
+                }));
     }
 
     public function test_only_super_admin_can_change_manual_landing_target(): void
@@ -451,6 +475,27 @@ class DashboardTargetTest extends TestCase
                         && $row['sectorName'] === 'Kesehatan'
                         && $row['target'] === 540,
                 )));
+
+        $this->get('/?projectionYear=2027')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('landingProjection.year', 2027)
+                ->has('landingProjection.placementTargets', 40)
+                ->where('landingProjection.placementTargets', fn ($rows): bool => collect($rows)
+                    ->pluck('sectorName')
+                    ->unique()
+                    ->sort()
+                    ->values()
+                    ->all() === [
+                        'Agriculture',
+                        'Bahasa',
+                        'Hospitality',
+                        'Kesehatan',
+                        'Manufaktur',
+                        'Pelatihan dan Sertifikasi Teknis',
+                        'Sertifikasi Teknis',
+                        'Transportasi',
+                    ]));
     }
 
     private function targetPayload(): array

@@ -87,15 +87,15 @@ export function LandingProjectionDashboard({ projection }: LandingProjectionDash
         <div className="grid gap-5 lg:grid-cols-2">
           <ProjectionCard
             title="Daftar negara tujuan"
-            description="Target dan realisasi demand yang disetujui per negara."
+            description="Target proyeksi penempatan dan realisasi demand yang disetujui per negara."
             series={projection.countries}
             emptyMessage="Daftar negara tujuan belum tersedia pada master data."
           />
-          <PlacementProjectionCard
-            year={projection.year}
-            items={projection.placementTargets}
-          />
         </div>
+        <PlacementProjectionCard
+          year={projection.year}
+          items={projection.placementTargets}
+        />
         <p className="text-xs text-muted-foreground">
           Proyeksi menunjukkan sisa target dari kuota yang tercatat, bukan perkiraan otomatis
           keberangkatan. Capaian memakai demand berstatus disetujui berdasarkan tahun pembuatan
@@ -113,37 +113,56 @@ function PlacementProjectionCard({
   year: number | null;
   items: LandingProjectionData["placementTargets"];
 }) {
+  const targetsBySector = items.reduce((groups, item) => {
+    const sectorTargets = groups.get(item.sectorName) ?? [];
+    sectorTargets.push(item);
+    groups.set(item.sectorName, sectorTargets);
+    return groups;
+  }, new Map<string, LandingProjectionData["placementTargets"]>());
+
   return (
     <Card className="shadow-sm">
       <CardHeader className="space-y-1.5 p-5">
         <CardTitle className="text-lg">Proyeksi program penempatan</CardTitle>
         <CardDescription>
-          Target manual per sektor dan jabatan beserta negara atau wilayah tujuan.
+          Seluruh target manual dikelompokkan berdasarkan sektor, termasuk jabatan dan negara atau
+          wilayah tujuan.
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-3 p-5 pt-0">
+      <CardContent className="space-y-5 p-5 pt-0">
         {items.length === 0 ? (
           <p className="rounded-lg border border-dashed border-border p-5 text-center text-sm text-muted-foreground">
             Belum ada proyeksi penempatan untuk periode ini.
           </p>
         ) : (
-          items.map((item, index) => (
-            <div
-              key={`${item.year}-${item.sectorName}-${item.occupationName}-${index}`}
-              className="space-y-1 rounded-md border border-border p-3"
-            >
-              <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-                <span className="text-sm font-semibold">
-                  {item.sectorName} · {item.occupationName}
-                </span>
-                <span className="text-xs tabular-nums text-muted-foreground">
-                  {numberFormat.format(item.target)} target
-                </span>
+          Array.from(targetsBySector, ([sectorName, sectorTargets]) => (
+            <section key={sectorName} aria-labelledby={`placement-sector-${sectorName}`}>
+              <h3
+                id={`placement-sector-${sectorName}`}
+                className="mb-3 border-b border-border pb-2 text-base font-semibold"
+              >
+                {sectorName}
+              </h3>
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                {sectorTargets.map((item) => (
+                  <article
+                    key={`${item.year}-${item.occupationName}-${item.projectionPlacement}`}
+                    className="space-y-1 rounded-md border border-border p-3"
+                  >
+                    <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+                      <span className="text-sm font-semibold">{item.occupationName}</span>
+                      <span className="text-xs tabular-nums text-muted-foreground">
+                        {numberFormat.format(item.target)} target
+                      </span>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      {year === null ? `${item.year} · ` : ""}
+                      {item.projectionPlacement}
+                    </p>
+                  </article>
+                ))}
               </div>
-              <p className="text-sm text-muted-foreground">
-                {year === null ? `${item.year} · ` : ""}{item.projectionPlacement}
-              </p>
-            </div>
+            </section>
           ))
         )}
       </CardContent>
