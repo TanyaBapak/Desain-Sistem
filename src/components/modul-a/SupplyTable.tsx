@@ -89,7 +89,7 @@ export const SupplyTable: React.FC = () => {
   const [filterLanguageLevel, setFilterLanguageLevel] = useState('ALL');
   const [currentPage, setCurrentPage] = useState(1);
   const [viewMode, setViewMode] = useState<'full' | 'compact'>('compact');
-  const pageSize = 15;
+  const [pageSize, setPageSize] = useState(100);
 
   // Dynamic filter options extracted from candidates
   const provinsiOptions = useMemo(() => {
@@ -1106,15 +1106,35 @@ export const SupplyTable: React.FC = () => {
             </tbody>
           </table>
         </div>
-        <nav aria-label="Halaman daftar calon PMI" className="flex items-center justify-between gap-3 border-t border-slate-200 px-4 py-3 text-sm">
-          <span className="text-slate-600">
-            Halaman {currentPage} dari {pageCount} · {filteredCandidates.length} hasil
-          </span>
+        <nav aria-label="Halaman daftar calon PMI" className="flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-slate-200 px-4 py-3 text-sm">
+          <div className="flex flex-wrap items-center gap-2 text-slate-600">
+            <span>
+              Halaman {currentPage} dari {pageCount} · {filteredCandidates.length} hasil
+            </span>
+            <span className="text-slate-300 hidden sm:inline">|</span>
+            <label className="flex items-center gap-1.5 text-xs text-slate-500">
+              <span>Tampilkan:</span>
+              <select
+                value={pageSize}
+                onChange={(e) => {
+                  setPageSize(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+                className="rounded-md border border-slate-300 bg-white px-2 py-1 text-xs font-semibold text-slate-700 shadow-xs focus:border-blue-500 focus:outline-none"
+              >
+                {[15, 25, 50, 100, 150].map((size) => (
+                  <option key={size} value={size}>
+                    {size} per halaman
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
           <div className="flex gap-2">
-            <button type="button" onClick={() => setCurrentPage((page) => Math.max(1, page - 1))} disabled={currentPage === 1} className="rounded-lg border border-slate-300 px-3 py-1.5 disabled:cursor-not-allowed disabled:opacity-50">
+            <button type="button" onClick={() => setCurrentPage((page) => Math.max(1, page - 1))} disabled={currentPage === 1} className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-xs hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50">
               Sebelumnya
             </button>
-            <button type="button" onClick={() => setCurrentPage((page) => Math.min(pageCount, page + 1))} disabled={currentPage === pageCount} className="rounded-lg border border-slate-300 px-3 py-1.5 disabled:cursor-not-allowed disabled:opacity-50">
+            <button type="button" onClick={() => setCurrentPage((page) => Math.min(pageCount, page + 1))} disabled={currentPage === pageCount} className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-xs hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50">
               Berikutnya
             </button>
           </div>

@@ -46,6 +46,18 @@ class GardataInspectAndForceImportCommand extends Command
             $this->info("   Data wilayah sudah lengkap ({$provincesCount} provinsi, {$districtsCount} kab/kota).");
         }
 
+        $vokasiCount = DB::table('institutions')->count();
+        $csvFile = storage_path('app/reference/data_vokasi.csv');
+        if (! is_file($csvFile)) {
+            $csvFile = storage_path('app/data_vokasi.csv');
+        }
+        if ($vokasiCount < 100 && is_file($csvFile)) {
+            $this->newLine();
+            $this->line("   Mengimpor data direktori LPK & lembaga vokasi nasional ({$csvFile})...");
+            Artisan::call('institutions:import-vokasi', ['file' => $csvFile]);
+            $this->info("   Direktori lembaga vokasi berhasil diimpor: " . DB::table('institutions')->count() . " lembaga.");
+        }
+
         $this->newLine();
         $this->line("3. Menghubungi API Gardata di {$baseUrl}/api/v1/placement/candidates ...");
         try {
