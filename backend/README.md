@@ -157,6 +157,78 @@ Jalankan perintah kedua hanya jika dry-run berhasil. File sementara unduhan
 berada pada direktori sementara server; file hasil yang akan dipakai importer
 berada di `backend/storage/app/reference/wilayah.json`.
 
+## Impor data lembaga vokasi
+
+File `data_vokasi.csv` berisi beberapa baris untuk satu lembaga, karena setiap
+baris dapat mewakili sektor dan jabatan yang ditawarkan. Setelah menjalankan
+migrasi, validasi file dari direktori `backend/`:
+
+```sh
+php artisan institutions:import-vokasi ../data_vokasi.csv --dry-run
+```
+
+Jika validasi berhasil, jalankan perintah tanpa `--dry-run` untuk mengimpor:
+
+```sh
+php artisan institutions:import-vokasi ../data_vokasi.csv
+```
+
+### Impor ke produksi
+
+Lakukan impor pada server produksi setelah merilis versi aplikasi yang memuat
+perintah ini. Sebelum mengubah database, buat dan verifikasi backup database
+melalui prosedur operasional server. Pastikan `backend/.env` menunjuk ke
+database produksi yang benar, lalu terapkan migration yang tertunda:
+
+```sh
+cd /path/aplikasi/backend
+php artisan migrate:status
+php artisan migrate --force
+```
+
+Unggah CSV ke server melalui jalur privat yang disetujui, bukan ke Git atau
+direktori publik. Simpan misalnya sebagai
+`backend/storage/app/import/data_vokasi.csv`, kemudian jalankan dry-run dan
+tinjau outputnya:
+
+```sh
+mkdir -p storage/app/import
+php artisan institutions:import-vokasi storage/app/import/data_vokasi.csv --dry-run
+```
+
+Jika file dan database yang dituju sudah dipastikan benar, jalankan impor:
+
+```sh
+php artisan institutions:import-vokasi storage/app/import/data_vokasi.csv
+```
+
+Perintah ini melakukan upsert untuk sumber `data_vokasi_csv`; ia tidak menghapus
+lembaga lain. Pengulangan impor memperbarui data lembaga dari CSV yang sama,
+termasuk status verifikasi serta metadata sektor/jabatan. Tinjau dampaknya
+terhadap perubahan manual pada lembaga sumber tersebut sebelum menjalankan.
+Satu nilai kapasitas yang melebihi rentang kolom akan dilaporkan dan disimpan
+sebagai tidak diketahui.
+
+Impor mengelompokkan baris berdasarkan `institutionId`; jika kolom itu kosong,
+perintah memakai `id_lembaga_vokasi` dengan awalan `legacy-`. Impor dapat
+dijalankan ulang: lembaga dari sumber `data_vokasi_csv` diperbarui berdasarkan
+identitas tersebut dan data lain tidak dihapus. Wilayah hanya dihubungkan ke
+master provinsi/kabupaten yang cocok; nama wilayah sumber tetap disimpan bila
+master wilayah nasional belum tersedia. Status verifikasi dimulai sebagai
+belum terverifikasi. Kapasitas di luar rentang kolom ditampilkan sebagai
+peringatan dan disimpan sebagai tidak diketahui, bukan dipotong atau ditebak.
+
+Sektor disimpan sebagai sektor yang didukung lembaga. Setiap pasangan unik
+sektor-jabatan disimpan sebagai metadata penawaran sumber; bila satu pasangan
+muncul beberapa kali dengan status validasi berbeda, seluruh variasi statusnya
+tetap disimpan pada penawaran yang sama. Data ini tidak
+membuat program pelatihan aktif karena CSV tidak menyediakan jadwal, durasi,
+kuota, atau target negara.
+
+Kolom `Jenis lembaga` dipetakan ke kategori internal yang tersedia: `BLKLN`
+menjadi `LPK`, `Balai` menjadi `BLK`, `SMA` menjadi `SMK`, dan `LSP` menjadi
+`LPK`. Jenis sumber asli tetap disimpan pada metadata lembaga.
+
 ## Autentikasi
 
 - Form login menerima username, email, atau NIP dan memvalidasi kredensial di

@@ -94,6 +94,14 @@ export interface SectoralPosition {
   position: string;
 }
 
+export interface VocationalOffering {
+  sector: string;
+  occupation: string;
+  legalityStatus?: string | null;
+  facilityStatus?: string | null;
+  programStatus?: string | null;
+}
+
 export interface ProviderProgram {
   name: string;
   capacity: number;
@@ -128,6 +136,7 @@ export interface VocationalProvider {
   institutionForm?: string;
   sectorals?: SectoralPosition[];
   programs?: ProviderProgram[];
+  offerings?: VocationalOffering[];
   source?: 'kp2mi-api' | 'vokasi.kp2mi.go.id' | 'local' | string;
   verificationStatus?: string;
   procurementMethod?: string | null;

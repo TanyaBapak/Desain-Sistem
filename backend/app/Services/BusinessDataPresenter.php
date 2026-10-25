@@ -230,6 +230,15 @@ class BusinessDataPresenter
             ])
             ->map(function (object $row): array {
                 $metadata = $this->decodeArray($row->external_metadata);
+                $offerings = is_array($metadata['programs'] ?? null)
+                    ? collect($metadata['programs'])
+                        ->filter(fn (mixed $offering): bool => is_array($offering)
+                            && is_string($offering['sector'] ?? null)
+                            && is_string($offering['occupation'] ?? null))
+                        ->unique(fn (array $offering): string => mb_strtolower(trim($offering['sector'])."\0".trim($offering['occupation'])))
+                        ->values()
+                        ->all()
+                    : [];
                 $facilities = DB::table('institution_facilities')
                     ->where('institution_id', $row->id)
                     ->orderBy('facility_name')
@@ -262,9 +271,10 @@ class BusinessDataPresenter
                     'logo' => $metadata['logo'] ?? null,
                     'website' => $metadata['website'] ?? null,
                     'leaderPosition' => $metadata['leaderPosition'] ?? null,
-                    'institutionForm' => $metadata['institutionForm'] ?? null,
+                    'institutionForm' => $metadata['institutionForm'] ?? $metadata['institutionCategory'] ?? null,
                     'sectorals' => is_array($metadata['sectorals'] ?? null) ? $metadata['sectorals'] : [],
                     'programs' => is_array($metadata['programs'] ?? null) ? $metadata['programs'] : [],
+                    'offerings' => $offerings,
                     'source' => $row->external_source === 'kp2mi' ? 'kp2mi-api' : 'local',
                 ];
             })->all();

@@ -84,8 +84,7 @@ export const ProvidersView: React.FC = () => {
     { id: 'BLKLN', label: 'BLKLN' },
   ];
 
-  const sectorOptions = [
-    'ALL',
+  const sectorOptions = useMemo(() => [
     'Teknologi Informasi',
     'Bisnis dan Manajemen',
     'Kesehatan',
@@ -95,7 +94,13 @@ export const ProvidersView: React.FC = () => {
     'Seni dan Ekonomi Kreatif',
     'Adminstrasi dan Keuangan',
     'Worker',
-  ];
+    ...providers.flatMap((provider) => [
+      ...provider.supportedSectors,
+      ...(provider.offerings ?? []).map((offering) => offering.sector),
+    ]),
+  ].filter((sector, index, sectors) =>
+    sectors.findIndex((candidate) => candidate.toLocaleLowerCase('id-ID') === sector.toLocaleLowerCase('id-ID')) === index
+  ).sort((left, right) => left.localeCompare(right, 'id-ID')), [providers]);
 
   const provinceOptions = [
     'ALL',
@@ -124,7 +129,11 @@ export const ProvidersView: React.FC = () => {
         (p.sectorals && p.sectorals.some((sec) => 
           sec.sectoral.toLowerCase().includes(searchProvider.toLowerCase()) || 
           sec.position.toLowerCase().includes(searchProvider.toLowerCase())
-        ));
+        )) ||
+        p.offerings?.some((offering) =>
+          offering.sector.toLowerCase().includes(searchProvider.toLowerCase()) ||
+          offering.occupation.toLowerCase().includes(searchProvider.toLowerCase())
+        );
 
       const matchType =
         filterProviderType === 'ALL' ||
@@ -138,7 +147,8 @@ export const ProvidersView: React.FC = () => {
       const matchSector =
         filterProviderSector === 'ALL' ||
         p.supportedSectors.some((s) => s.toLowerCase().includes(filterProviderSector.toLowerCase())) ||
-        (p.sectorals && p.sectorals.some((sec) => sec.sectoral.toLowerCase().includes(filterProviderSector.toLowerCase())));
+        (p.sectorals && p.sectorals.some((sec) => sec.sectoral.toLowerCase().includes(filterProviderSector.toLowerCase()))) ||
+        p.offerings?.some((offering) => offering.sector.toLowerCase().includes(filterProviderSector.toLowerCase()));
 
       const matchStatus =
         filterInstitutionStatus === 'ALL' ||
@@ -309,7 +319,7 @@ export const ProvidersView: React.FC = () => {
               className="w-full py-2 px-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-slate-700"
             >
               <option value="ALL">Semua Sektor Vokasi</option>
-              {sectorOptions.filter(x => x !== 'ALL').map((sec) => (
+              {sectorOptions.map((sec) => (
                 <option key={sec} value={sec}>{sec}</option>
               ))}
             </select>

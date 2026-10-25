@@ -15,8 +15,7 @@ import {
   ExternalLink,
   Phone,
   Mail,
-  Globe,
-  UserCheck
+  Globe
 } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
 
@@ -42,6 +41,17 @@ export const ProviderDetailModal: React.FC<ProviderDetailModalProps> = ({
   };
 
   const officialKp2miUrl = 'https://vokasi.kp2mi.go.id/cari-lembaga';
+  const sectorOfferings = [...new Set([
+    ...provider.supportedSectors,
+    ...(provider.offerings ?? []).map((offering) => offering.sector),
+  ])].map((sector) => ({
+    sector,
+    occupations: [...new Set(
+      (provider.offerings ?? [])
+        .filter((offering) => offering.sector === sector)
+        .map((offering) => offering.occupation),
+    )],
+  }));
 
   return (
     <Modal
@@ -126,49 +136,65 @@ export const ProviderDetailModal: React.FC<ProviderDetailModalProps> = ({
             </div>
           </div>
 
-          {/* Contact & Leader Info (if available from KP2MI) */}
-          {(provider.leaderName || provider.phone || provider.email || provider.website) && (
-            <div className="mt-4 pt-3 border-t border-slate-200/80 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-              {provider.leaderName && (
-                <div className="flex items-center gap-2 text-slate-700">
-                  <UserCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                  <span>
-                    <span className="text-slate-400">Pimpinan:</span> {provider.leaderName}{' '}
-                    {provider.leaderPosition && `(${provider.leaderPosition})`}
-                  </span>
-                </div>
-              )}
-              {provider.phone && (
-                <div className="flex items-center gap-2 text-slate-700">
-                  <Phone className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                  <span>
-                    <span className="text-slate-400">Telp:</span> {provider.phone}
-                  </span>
-                </div>
-              )}
-              {provider.email && (
-                <div className="flex items-center gap-2 text-slate-700">
-                  <Mail className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                  <span className="truncate">
-                    <span className="text-slate-400">Email:</span> {provider.email}
-                  </span>
-                </div>
-              )}
-              {provider.website && (
-                <div className="flex items-center gap-2 text-slate-700">
-                  <Globe className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
-                  <a
-                    href={provider.website}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-blue-600 hover:underline truncate"
-                  >
-                    {provider.website}
-                  </a>
-                </div>
-              )}
-            </div>
-          )}
+          <div className="mt-4 pt-3 border-t border-slate-200/80">
+            <h4 className="text-sm font-semibold text-slate-800 mb-3">Identitas Lembaga</h4>
+            <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
+              <div>
+                <dt className="text-xs text-slate-500">Pimpinan Lembaga</dt>
+                <dd className="font-medium text-slate-800">{provider.leaderName || 'Belum tersedia di data sumber'}</dd>
+              </div>
+              <div>
+                <dt className="text-xs text-slate-500">Jabatan Pimpinan</dt>
+                <dd className="font-medium text-slate-800">{provider.leaderPosition || 'Belum tersedia di data sumber'}</dd>
+              </div>
+              <div>
+                <dt className="text-xs text-slate-500">Status Lembaga Vokasi</dt>
+                <dd className="font-medium text-slate-800">{provider.institutionStatus || 'Belum tersedia di data sumber'}</dd>
+              </div>
+              <div>
+                <dt className="text-xs text-slate-500">Jenis Lembaga</dt>
+                <dd className="font-medium text-slate-800">{provider.providerType || 'Belum tersedia di data sumber'}</dd>
+              </div>
+              <div>
+                <dt className="text-xs text-slate-500">Bentuk Lembaga</dt>
+                <dd className="font-medium text-slate-800">{provider.institutionForm || 'Belum tersedia di data sumber'}</dd>
+              </div>
+            </dl>
+
+            {(provider.phone || provider.email || provider.website) && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs mt-3">
+                {provider.phone && (
+                  <div className="flex items-center gap-2 text-slate-700">
+                    <Phone className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                    <span>
+                      <span className="text-slate-400">Telp:</span> {provider.phone}
+                    </span>
+                  </div>
+                )}
+                {provider.email && (
+                  <div className="flex items-center gap-2 text-slate-700">
+                    <Mail className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                    <span className="truncate">
+                      <span className="text-slate-400">Email:</span> {provider.email}
+                    </span>
+                  </div>
+                )}
+                {provider.website && (
+                  <div className="flex items-center gap-2 text-slate-700">
+                    <Globe className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                    <a
+                      href={provider.website}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-blue-600 hover:underline truncate"
+                    >
+                      {provider.website}
+                    </a>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Institution readiness metrics */}
@@ -206,20 +232,35 @@ export const ProviderDetailModal: React.FC<ProviderDetailModalProps> = ({
           </div>
         </div>
 
-        {/* Sektor Spesialisasi */}
+        {/* Sector expertise and associated occupations */}
         <div>
           <span className="text-xs font-bold text-slate-700 uppercase tracking-wider block mb-2">
             Sektor & Bidang Spesialisasi:
           </span>
-          <div className="flex flex-wrap gap-2">
-            {provider.supportedSectors.map((sector, i) => (
-              <span
-                key={i}
-                className="px-3 py-1 rounded-lg text-xs font-semibold bg-blue-50 text-blue-800 border border-blue-200"
+          <div className="space-y-3">
+            {sectorOfferings.length > 0 ? sectorOfferings.map(({ sector, occupations }) => (
+              <div
+                key={sector}
+                className="rounded-lg border border-slate-200 bg-slate-50 p-3"
               >
-                {sector}
-              </span>
-            ))}
+                <span className="block text-xs text-slate-500">Sektor Keahlian</span>
+                <span className="font-semibold text-slate-800">{sector}</span>
+                <div className="mt-2 border-t border-slate-200 pt-2">
+                  <span className="block text-xs text-slate-500">Jabatan</span>
+                  {occupations.length > 0 ? (
+                    <ul className="mt-1 list-inside list-disc space-y-1 text-sm text-slate-700">
+                      {occupations.map((occupation) => (
+                        <li key={occupation}>{occupation}</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <span className="mt-1 block text-sm text-slate-500">Belum tersedia di data sumber</span>
+                  )}
+                </div>
+              </div>
+            )) : (
+              <p className="text-sm text-slate-500">Data sektor dan jabatan belum tersedia.</p>
+            )}
           </div>
         </div>
 
