@@ -67,6 +67,13 @@ class DashboardTargetTest extends TestCase
                 ->where('businessData.reportSummary.dashboardTargets.registeredJobSeekers', 10000)
                 ->where('businessData.reportSummary.dashboardTargets.readyForPlacement', 2500)
                 ->where('businessData.reportSummary.dashboardTargets.validatedDemands', 1200));
+
+        $this->actingAs($this->userWithRole('auditor'))
+            ->get('/app/reports')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('businessData.reportSummary.dashboardTargets.registeredJobSeekers', 10000)
+                ->where('businessData.reportSummary.dashboardTargets.nationalRegisteredLpk', 3000));
     }
 
     public function test_only_super_admin_can_update_targets_and_all_targets_must_be_positive_integers(): void

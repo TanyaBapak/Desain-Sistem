@@ -35,7 +35,9 @@ class BusinessDataPresenter
                     $role,
                     $user,
                     $nationalLpkCount,
-                    $role === 'leadership' ? $this->dashboardTargetService->currentTargets() : null,
+                    in_array($role, ['super_admin', 'leadership', 'task_force', 'directorate_admin', 'auditor'], true)
+                        ? $this->dashboardTargetService->currentTargets()
+                        : null,
                 ),
                 'approvalRequests' => $this->approvalRequests($role, $user, $filters),
                 'approvalPagination' => $this->approvalPagination($role, $user, $filters),
