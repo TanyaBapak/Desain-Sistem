@@ -11,11 +11,15 @@ import {
   Square,
   ArrowRight,
   ShieldCheck,
-  UserCheck,
   UserPlus,
   Edit2,
   Trash2,
-  RefreshCw
+  RefreshCw,
+  Briefcase,
+  Award,
+  Globe,
+  RotateCcw,
+  Sparkles
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAppStore } from '../../store/useAppStore';
@@ -37,8 +41,18 @@ export const SupplyTable: React.FC = () => {
     setSearchCandidate,
     filterProvinsi,
     setFilterProvinsi,
+    filterDistrict,
+    setFilterDistrict,
     filterEducation,
     setFilterEducation,
+    filterSector,
+    setFilterSector,
+    filterWorkExperience,
+    setFilterWorkExperience,
+    filterCertification,
+    setFilterCertification,
+    filterCountry,
+    setFilterCountry,
     filterReadiness,
     setFilterReadiness,
     filterVerification,
@@ -58,40 +72,171 @@ export const SupplyTable: React.FC = () => {
   const [deletingCandidate, setDeletingCandidate] = useState<CandidateParticipant | null>(null);
   const [isGardataSyncing, setIsGardataSyncing] = useState(false);
 
-  // Unique filter options extracted from candidates
+  // Dynamic filter options extracted from candidates
   const provinsiOptions = useMemo(() => {
-    return Array.from(new Set(candidates.map((c) => c.provinsi)));
+    return Array.from(new Set(candidates.map((c) => c.provinsi))).filter(Boolean).sort();
   }, [candidates]);
+
+  // Cascading district options based on selected province
+  const districtOptions = useMemo(() => {
+    const list = filterProvinsi === 'ALL'
+      ? candidates.map((c) => c.kabupatenKota)
+      : candidates.filter((c) => c.provinsi === filterProvinsi).map((c) => c.kabupatenKota);
+    return Array.from(new Set(list)).filter(Boolean).sort();
+  }, [candidates, filterProvinsi]);
+
+  const sectorOptions = useMemo(() => {
+    const sectors = new Set<string>();
+    candidates.forEach((c) => {
+      if (c.preferredSectors) {
+        c.preferredSectors.forEach((s) => sectors.add(s));
+      }
+      if (c.workExperiences) {
+        c.workExperiences.forEach((w) => sectors.add(w.sector));
+      }
+    });
+    return Array.from(sectors).filter(Boolean).sort();
+  }, [candidates]);
+
+  const countryOptions = useMemo(() => {
+    const countries = new Set<string>();
+    candidates.forEach((c) => {
+      c.preferredCountry.forEach((cntry) => countries.add(cntry));
+    });
+    return Array.from(countries).filter(Boolean).sort();
+  }, [candidates]);
+
+  // Check if any filter is active
+  const hasActiveFilters = useMemo(() => {
+    return (
+      searchCandidate !== '' ||
+      filterProvinsi !== 'ALL' ||
+      filterDistrict !== 'ALL' ||
+      filterEducation !== 'ALL' ||
+      filterSector !== 'ALL' ||
+      filterWorkExperience !== 'ALL' ||
+      filterCertification !== 'ALL' ||
+      filterCountry !== 'ALL' ||
+      filterReadiness !== 'ALL' ||
+      filterVerification !== 'ALL' ||
+      filterLanguage !== 'ALL'
+    );
+  }, [
+    searchCandidate,
+    filterProvinsi,
+    filterDistrict,
+    filterEducation,
+    filterSector,
+    filterWorkExperience,
+    filterCertification,
+    filterCountry,
+    filterReadiness,
+    filterVerification,
+    filterLanguage,
+  ]);
+
+  const resetAllFilters = () => {
+    setSearchCandidate('');
+    setFilterProvinsi('ALL');
+    setFilterDistrict('ALL');
+    setFilterEducation('ALL');
+    setFilterSector('ALL');
+    setFilterWorkExperience('ALL');
+    setFilterCertification('ALL');
+    setFilterCountry('ALL');
+    setFilterReadiness('ALL');
+    setFilterVerification('ALL');
+    setFilterLanguage('ALL');
+  };
 
   // Filtered dataset
   const filteredCandidates = useMemo(() => {
     return candidates.filter((c) => {
-      // Search
+      // 1. Search Box
       const searchLower = searchCandidate.toLowerCase();
       const matchSearch =
         !searchCandidate ||
         c.fullName.toLowerCase().includes(searchLower) ||
+        c.nik.toLowerCase().includes(searchLower) ||
         c.id.toLowerCase().includes(searchLower) ||
         c.institutionName.toLowerCase().includes(searchLower) ||
         c.major.toLowerCase().includes(searchLower) ||
-        c.skills.some((s) => s.toLowerCase().includes(searchLower));
+        c.kabupatenKota.toLowerCase().includes(searchLower) ||
+        c.provinsi.toLowerCase().includes(searchLower) ||
+        c.skills.some((s) => s.toLowerCase().includes(searchLower)) ||
+        (c.certifications && c.certifications.some((cert) => cert.name.toLowerCase().includes(searchLower))) ||
+        (c.workExperiences && c.workExperiences.some((w) => w.role.toLowerCase().includes(searchLower) || (w.companyName && w.companyName.toLowerCase().includes(searchLower))));
 
-      // Filters
+      // 2. Wilayah
       const matchProv = filterProvinsi === 'ALL' || c.provinsi === filterProvinsi;
+      const matchDistrict = filterDistrict === 'ALL' || c.kabupatenKota === filterDistrict;
+
+      // 3. Pendidikan
       const matchEdu = filterEducation === 'ALL' || c.educationLevel === filterEducation;
+
+      // 4. Sektor
+      const matchSector =
+        filterSector === 'ALL' ||
+        (c.preferredSectors && c.preferredSectors.includes(filterSector)) ||
+        (c.workExperiences && c.workExperiences.some((w) => w.sector === filterSector));
+
+      // 5. Pengalaman Kerja
+      const totalYears = c.workExperiences ? c.workExperiences.reduce((sum, w) => sum + w.durationYears, 0) : 0;
+      let matchWorkExp = true;
+      if (filterWorkExperience === 'fresh') {
+        matchWorkExp = totalYears === 0;
+      } else if (filterWorkExperience === 'lt_1') {
+        matchWorkExp = totalYears > 0 && totalYears < 1;
+      } else if (filterWorkExperience === '1_to_2') {
+        matchWorkExp = totalYears >= 1 && totalYears <= 2;
+      } else if (filterWorkExperience === 'gt_2') {
+        matchWorkExp = totalYears > 2;
+      }
+
+      // 6. Sertifikasi Kompetensi
+      let matchCert = true;
+      if (filterCertification === 'has_cert') {
+        matchCert = !!(c.certifications && c.certifications.length > 0);
+      } else if (filterCertification === 'no_cert') {
+        matchCert = !c.certifications || c.certifications.length === 0;
+      }
+
+      // 7. Negara Tujuan
+      const matchCountry = filterCountry === 'ALL' || c.preferredCountry.includes(filterCountry);
+
+      // 8. Status Kesiapan & Verifikasi
       const matchReadiness = filterReadiness === 'ALL' || c.readinessStatus === filterReadiness;
       const matchVerif = filterVerification === 'ALL' || c.verificationStatus === filterVerification;
+
+      // 9. Bahasa Asing
       const matchLang =
         filterLanguage === 'ALL' ||
         c.languageProficiency.some((lp) => lp.language === filterLanguage);
 
-      return matchSearch && matchProv && matchEdu && matchReadiness && matchVerif && matchLang;
+      return (
+        matchSearch &&
+        matchProv &&
+        matchDistrict &&
+        matchEdu &&
+        matchSector &&
+        matchWorkExp &&
+        matchCert &&
+        matchCountry &&
+        matchReadiness &&
+        matchVerif &&
+        matchLang
+      );
     });
   }, [
     candidates,
     searchCandidate,
     filterProvinsi,
+    filterDistrict,
     filterEducation,
+    filterSector,
+    filterWorkExperience,
+    filterCertification,
+    filterCountry,
     filterReadiness,
     filterVerification,
     filterLanguage,
@@ -111,19 +256,21 @@ export const SupplyTable: React.FC = () => {
   };
 
   const readyCount = candidates.filter((c) => c.readinessStatus === 'Ready for Placement').length;
-  const upskillCount = candidates.filter((c) => c.readinessStatus === 'Needs Upskilling').length;
+  const certifiedCount = candidates.filter((c) => c.certifications && c.certifications.length > 0).length;
+  const experiencedCount = candidates.filter((c) => c.workExperiences && c.workExperiences.length > 0).length;
   const verifiedCount = candidates.filter((c) => c.verificationStatus === 'Verified').length;
 
   const readinessLabels: Record<CandidateParticipant['readinessStatus'], string> = {
-    'Ready for Placement': 'Siap penempatan',
-    'Needs Upskilling': 'Perlu peningkatan',
-    'Needs Reskilling': 'Perlu pelatihan ulang',
+    'Ready for Placement': 'Siap Penempatan',
+    'Needs Upskilling': 'Perlu Peningkatan',
+    'Needs Reskilling': 'Perlu Pelatihan Ulang',
   };
   const verificationLabels: Record<CandidateParticipant['verificationStatus'], string> = {
     Verified: 'Terverifikasi',
-    'Pending Verification': 'Menunggu verifikasi',
-    Unverified: 'Belum diverifikasi',
+    'Pending Verification': 'Menunggu Verifikasi',
+    Unverified: 'Belum Diverifikasi',
   };
+
   const canManageCandidates = ['disnaker', 'vokasi', 'taskforce', 'superadmin'].includes(currentRole);
   const canVerifyCandidates = ['taskforce', 'verifikator'].includes(currentRole);
   const canMatchCandidates = ['taskforce', 'matching', 'verifikator'].includes(currentRole);
@@ -134,8 +281,8 @@ export const SupplyTable: React.FC = () => {
     router.post('/integrations/gardata/sync', {}, {
       preserveScroll: true,
       onStart: () => setIsGardataSyncing(true),
-      onSuccess: () => toast.success('Sinkronisasi Gardata telah dijadwalkan.'),
-      onError: () => toast.error('Sinkronisasi Gardata gagal dimulai. Periksa konfigurasi antrean.'),
+      onSuccess: () => toast.success('Sinkronisasi data calon PMI dari Gardata berhasil dijadwalkan.'),
+      onError: () => toast.error('Sinkronisasi Gardata gagal. Periksa koneksi API.'),
       onFinish: () => setIsGardataSyncing(false),
     });
   };
@@ -150,95 +297,102 @@ export const SupplyTable: React.FC = () => {
           </div>
           <div className="min-w-0">
             <div className="flex flex-col items-start gap-1.5 sm:flex-row sm:flex-wrap sm:items-center sm:gap-2">
-              <h1 className="text-base font-semibold tracking-tight sm:text-lg">Pencari Kerja</h1>
-              <span className="rounded px-2 py-1 text-xs font-semibold text-blue-100 bg-blue-700/60">
+              <h1 className="text-base font-semibold tracking-tight sm:text-lg">Dashboard Pemetaan Calon PMI</h1>
+              <span className="rounded px-2 py-0.5 text-xs font-semibold text-blue-100 bg-blue-700/60">
                 Scope: {currentScope.name}
               </span>
             </div>
             <p className="mt-1 text-xs leading-relaxed text-blue-100">
               {currentRole === 'disnaker'
-                ? 'Kewenangan Disnaker: input dan perbarui data calon peserta di wilayah binaan Anda.'
+                ? 'Kewenangan Disnaker: Input, pemetaan, dan perbarui data calon PMI di wilayah binaan Anda.'
                 : currentRole === 'vokasi'
-                  ? 'Kelola data peserta yang terdaftar pada lembaga vokasi Anda.'
-                  : 'Menampilkan data calon peserta siap latih terintegrasi dengan validasi NIK Dukcapil & standar SSW.'}
+                ? 'Kelola data siswa dan lulusan vokasi yang siap mengikuti program SMK Go Global.'
+                : 'Pemetaan komprehensif data calon pekerja migran terintegrasi Dukcapil, Disnaker Daerah, dan feeder gardata.sippmi.com.'}
             </p>
           </div>
         </div>
 
         <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
-          {canSyncGardata && <button
-            type="button"
-            onClick={syncGardata}
-            disabled={isGardataSyncing}
-            className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-border bg-background px-3 py-2 text-sm font-semibold text-foreground shadow-xs transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
-          >
-            <RefreshCw className={`h-3.5 w-3.5 ${isGardataSyncing ? 'animate-spin' : ''}`} aria-hidden="true" />
-            <span>{isGardataSyncing ? 'Menjadwalkan…' : 'Sinkronisasi Gardata'}</span>
-          </button>}
-          {canManageCandidates && <button
-            onClick={() => {
-              setCandidateToEdit(null);
-              setFormMode('create');
-              setIsFormOpen(true);
-            }}
-            className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-xs transition hover:bg-blue-500 sm:w-auto"
-          >
-            <UserPlus className="w-3.5 h-3.5" />
-            <span>+ Tambah Calon Peserta</span>
-          </button>}
+          {canSyncGardata && (
+            <button
+              type="button"
+              onClick={syncGardata}
+              disabled={isGardataSyncing}
+              className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-border bg-background px-3 py-2 text-sm font-semibold text-foreground shadow-xs transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+            >
+              <RefreshCw className={`h-3.5 w-3.5 ${isGardataSyncing ? 'animate-spin' : ''}`} aria-hidden="true" />
+              <span>{isGardataSyncing ? 'Menjadwalkan…' : 'Sinkronisasi Gardata'}</span>
+            </button>
+          )}
 
-          {canVerifyCandidates && <button
-            onClick={() => setCurrentTab('approvals')}
-            className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-white px-3 py-2 text-sm font-semibold text-blue-900 shadow-xs transition hover:bg-blue-50 sm:w-auto"
-          >
-            <ShieldCheck className="w-3.5 h-3.5 text-blue-600" />
-            <span>Pusat Verifikasi & Usulan</span>
-          </button>}
+          {canManageCandidates && (
+            <button
+              onClick={() => {
+                setCandidateToEdit(null);
+                setFormMode('create');
+                setIsFormOpen(true);
+              }}
+              className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-xs transition hover:bg-blue-500 sm:w-auto"
+            >
+              <UserPlus className="w-3.5 h-3.5" />
+              <span>+ Tambah Calon PMI</span>
+            </button>
+          )}
+
+          {canVerifyCandidates && (
+            <button
+              onClick={() => setCurrentTab('approvals')}
+              className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-white px-3 py-2 text-sm font-semibold text-blue-900 shadow-xs transition hover:bg-blue-50 sm:w-auto"
+            >
+              <ShieldCheck className="w-3.5 h-3.5 text-blue-600" />
+              <span>Pusat Verifikasi</span>
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Metric Cards Top Summary */}
+      {/* KPI Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
-          <span className="text-xs text-slate-500 font-semibold block">Total Bank Calon Peserta</span>
+          <span className="text-xs text-slate-500 font-semibold block">Total Calon PMI Terdata</span>
           <div className="flex items-baseline gap-2 mt-1">
-            <span className="text-2xl font-extrabold text-slate-900">{candidates.length}</span>
-            <span className="text-xs text-blue-600 font-bold">Terdaftar</span>
+            <span className="text-2xl font-extrabold text-slate-900 tabular-nums">{candidates.length}</span>
+            <span className="text-xs text-blue-600 font-bold">Kandidat</span>
           </div>
-          <span className="text-[11px] text-slate-400 mt-1 block">Lulusan SMK, D3, & Politeknik</span>
+          <span className="text-[11px] text-slate-400 mt-1 block">SMK, D3, & Politeknik Vokasi</span>
         </div>
 
         <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
-          <span className="text-xs text-slate-500 font-semibold block">Siap Penempatan (Ready)</span>
+          <span className="text-xs text-slate-500 font-semibold block">Siap Penempatan (Job Ready)</span>
           <div className="flex items-baseline gap-2 mt-1">
-            <span className="text-2xl font-extrabold text-emerald-600">{readyCount}</span>
+            <span className="text-2xl font-extrabold text-emerald-600 tabular-nums">{readyCount}</span>
             <span className="text-xs text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded font-bold">
               {Math.round(candidates.length ? (readyCount / candidates.length) * 100 : 0)}%
             </span>
           </div>
-          <span className="text-[11px] text-slate-400 mt-1 block">Bahasa & Teknis Teruji</span>
+          <span className="text-[11px] text-slate-400 mt-1 block">Bahasa & Teknis Terstandar</span>
         </div>
 
         <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
-          <span className="text-xs text-slate-500 font-semibold block">Perlu Upskilling / Reskilling</span>
+          <span className="text-xs text-slate-500 font-semibold block">Sertifikasi / Berpengalaman</span>
           <div className="flex items-baseline gap-2 mt-1">
-            <span className="text-2xl font-extrabold text-amber-600">{upskillCount}</span>
-            <span className="text-xs text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded font-bold">
-              Kandidat Modul B
+            <span className="text-2xl font-extrabold text-indigo-600 tabular-nums">{certifiedCount}</span>
+            <span className="text-xs text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded font-bold">
+              {experiencedCount} Magang/Kerja
             </span>
           </div>
-          <span className="text-[11px] text-slate-400 mt-1 block">Memerlukan Program Pelatihan</span>
+          <span className="text-[11px] text-slate-400 mt-1 block">Memiliki Portofolio Kompetensi</span>
         </div>
 
         <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
-          <span className="text-xs text-slate-500 font-semibold block">Terverifikasi Dukcapil / Sekolah</span>
+          <span className="text-xs text-slate-500 font-semibold block">Terverifikasi Sah Dukcapil</span>
           <div className="flex items-baseline gap-2 mt-1">
-            <span className="text-2xl font-extrabold text-blue-700">{verifiedCount}</span>
+            <span className="text-2xl font-extrabold text-blue-700 tabular-nums">{verifiedCount}</span>
             <span className="text-xs text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded font-bold">
               Validitas Tinggi
             </span>
           </div>
-          <span className="text-[11px] text-slate-400 mt-1 block">Standardisasi Tahap 2 Selesai</span>
+          <span className="text-[11px] text-slate-400 mt-1 block">Siap Alokasi Matching Tahap 3</span>
         </div>
       </div>
 
@@ -247,38 +401,40 @@ export const SupplyTable: React.FC = () => {
         <div className="flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
           <span className="text-slate-300">
-            Kanal Integrasi Pasokan (Multi-Feeder): <strong>Disnaker Daerah</strong>, <strong>BP3MI</strong>, dan <strong>gardata.sippmi.com</strong> (Pelaporan Diklat CPMI).
+            Sumber Feeder Integrasi: <strong>Disnaker Daerah</strong>, <strong>SMK / Lembaga Vokasi</strong>, dan <strong>gardata.sippmi.com</strong> (Pelaporan Diklat Terpadu CPMI).
           </span>
         </div>
-        <a
-          href="https://gardata.sippmi.com"
-          target="_blank"
-          rel="noreferrer"
-          className="text-blue-400 hover:text-white font-semibold transition flex items-center gap-1 shrink-0"
-        >
-          <span>Portal Pelatihan CPMI ↗</span>
-        </a>
+        <div className="flex items-center gap-3">
+          <span className="text-emerald-400 font-mono text-[11px]">API: Online</span>
+          <a
+            href="https://gardata.sippmi.com"
+            target="_blank"
+            rel="noreferrer"
+            className="text-blue-400 hover:text-white font-semibold transition flex items-center gap-1 shrink-0"
+          >
+            <span>Portal Gardata ↗</span>
+          </a>
+        </div>
       </div>
 
-      {/* Filter and Control Bar */}
+      {/* Filter and Control Bar (9 Dimensi Pemetaan) */}
       <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4">
+        {/* Search Bar & Matching Action */}
         <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
-          {/* Search Box */}
           <div className="relative flex-1">
             <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
               value={searchCandidate}
               onChange={(e) => setSearchCandidate(e.target.value)}
-              placeholder="Cari nama calon peserta, ID, keterampilan (misal: Arc Welding), atau asal sekolah..."
+              placeholder="Cari nama calon PMI, NIK, asal sekolah, jurusan, keterampilan (mis. Welder/Caregiver), sertifikasi..."
               className="w-full pl-10 pr-4 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition"
             />
           </div>
 
-          {/* Quick Pool Indicator & Action */}
           <div className="flex items-center gap-2">
             <span className="text-xs text-slate-500">
-              Terpilih: <strong className="text-blue-600">{selectedCandidateIds.length}</strong> Kandidat
+              Terpilih: <strong className="text-blue-600 tabular-nums">{selectedCandidateIds.length}</strong> Calon PMI
             </span>
             {canMatchCandidates && selectedCandidateIds.length > 0 && (
               <button
@@ -289,13 +445,24 @@ export const SupplyTable: React.FC = () => {
                 <ArrowRight className="w-3.5 h-3.5" />
               </button>
             )}
+            {hasActiveFilters && (
+              <button
+                onClick={resetAllFilters}
+                className="px-3 py-2 rounded-xl text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 transition flex items-center gap-1"
+                title="Bersihkan semua filter"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Reset Filter</span>
+              </button>
+            )}
           </div>
         </div>
 
-        {/* Multi Select Filters */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 pt-3 border-t border-slate-100">
+        {/* 9 Filter Multi-Dimensi */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 pt-3 border-t border-slate-100">
+          {/* 1. Asal Provinsi */}
           <div>
-            <label className="text-[11px] font-bold text-slate-500 uppercase block mb-1">Provinsi Asal</label>
+            <label className="text-[11px] font-bold text-slate-500 uppercase block mb-1">1. Provinsi Asal</label>
             <select
               value={filterProvinsi}
               onChange={(e) => setFilterProvinsi(e.target.value)}
@@ -308,8 +475,24 @@ export const SupplyTable: React.FC = () => {
             </select>
           </div>
 
+          {/* 2. Kabupaten/Kota (Cascading dinamis) */}
           <div>
-            <label className="text-[11px] font-bold text-slate-500 uppercase block mb-1">Tingkat Pendidikan</label>
+            <label className="text-[11px] font-bold text-slate-500 uppercase block mb-1">2. Kabupaten / Kota</label>
+            <select
+              value={filterDistrict}
+              onChange={(e) => setFilterDistrict(e.target.value)}
+              className="w-full text-xs py-1.5 px-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="ALL">Semua Kab/Kota</option>
+              {districtOptions.map((dist) => (
+                <option key={dist} value={dist}>{dist}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* 3. Jenjang Pendidikan */}
+          <div>
+            <label className="text-[11px] font-bold text-slate-500 uppercase block mb-1">3. Pendidikan</label>
             <select
               value={filterEducation}
               onChange={(e) => setFilterEducation(e.target.value)}
@@ -322,36 +505,54 @@ export const SupplyTable: React.FC = () => {
             </select>
           </div>
 
+          {/* 4. Sektor Pilihan */}
           <div>
-            <label className="text-[11px] font-bold text-slate-500 uppercase block mb-1">Status Kesiapan</label>
+            <label className="text-[11px] font-bold text-slate-500 uppercase block mb-1">4. Sektor Pilihan</label>
             <select
-              value={filterReadiness}
-              onChange={(e) => setFilterReadiness(e.target.value)}
+              value={filterSector}
+              onChange={(e) => setFilterSector(e.target.value)}
               className="w-full text-xs py-1.5 px-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <option value="ALL">Semua Kesiapan</option>
-              <option value="Ready for Placement">Siap penempatan</option>
-              <option value="Needs Upskilling">Perlu peningkatan</option>
-              <option value="Needs Reskilling">Perlu pelatihan ulang</option>
+              <option value="ALL">Semua Sektor</option>
+              {sectorOptions.map((sec) => (
+                <option key={sec} value={sec}>{sec}</option>
+              ))}
             </select>
           </div>
 
+          {/* 5. Pengalaman Kerja */}
           <div>
-            <label className="text-[11px] font-bold text-slate-500 uppercase block mb-1">Status Verifikasi</label>
+            <label className="text-[11px] font-bold text-slate-500 uppercase block mb-1">5. Pengalaman Kerja</label>
             <select
-              value={filterVerification}
-              onChange={(e) => setFilterVerification(e.target.value)}
+              value={filterWorkExperience}
+              onChange={(e) => setFilterWorkExperience(e.target.value)}
               className="w-full text-xs py-1.5 px-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <option value="ALL">Semua Verifikasi</option>
-              <option value="Verified">Terverifikasi</option>
-              <option value="Pending Verification">Menunggu verifikasi</option>
-              <option value="Unverified">Belum diverifikasi</option>
+              <option value="ALL">Semua Pengalaman</option>
+              <option value="fresh">Fresh Graduate / Tanpa Pengalaman</option>
+              <option value="lt_1">&lt; 1 Tahun (Magang PKL)</option>
+              <option value="1_to_2">1 - 2 Tahun</option>
+              <option value="gt_2">&gt; 2 Tahun</option>
             </select>
           </div>
 
+          {/* 6. Sertifikasi Kompetensi */}
           <div>
-            <label className="text-[11px] font-bold text-slate-500 uppercase block mb-1">Kemahiran Bahasa</label>
+            <label className="text-[11px] font-bold text-slate-500 uppercase block mb-1">6. Sertifikasi</label>
+            <select
+              value={filterCertification}
+              onChange={(e) => setFilterCertification(e.target.value)}
+              className="w-full text-xs py-1.5 px-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="ALL">Semua Sertifikasi</option>
+              <option value="has_cert">Memiliki Sertifikasi (BNSP/SSW)</option>
+              <option value="no_cert">Belum Memiliki Sertifikasi</option>
+            </select>
+          </div>
+
+          {/* 7. Kemahiran Bahasa */}
+          <div>
+            <label className="text-[11px] font-bold text-slate-500 uppercase block mb-1">7. Bahasa Asing</label>
             <select
               value={filterLanguage}
               onChange={(e) => setFilterLanguage(e.target.value)}
@@ -365,9 +566,54 @@ export const SupplyTable: React.FC = () => {
               <option value="Inggris">Bahasa Inggris</option>
             </select>
           </div>
+
+          {/* 8. Negara Tujuan */}
+          <div>
+            <label className="text-[11px] font-bold text-slate-500 uppercase block mb-1">8. Negara Tujuan</label>
+            <select
+              value={filterCountry}
+              onChange={(e) => setFilterCountry(e.target.value)}
+              className="w-full text-xs py-1.5 px-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="ALL">Semua Negara</option>
+              {countryOptions.map((cntry) => (
+                <option key={cntry} value={cntry}>{cntry}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* 9. Status Kesiapan */}
+          <div>
+            <label className="text-[11px] font-bold text-slate-500 uppercase block mb-1">Status Kesiapan</label>
+            <select
+              value={filterReadiness}
+              onChange={(e) => setFilterReadiness(e.target.value)}
+              className="w-full text-xs py-1.5 px-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="ALL">Semua Kesiapan</option>
+              <option value="Ready for Placement">Siap Penempatan</option>
+              <option value="Needs Upskilling">Perlu Peningkatan</option>
+              <option value="Needs Reskilling">Perlu Pelatihan Ulang</option>
+            </select>
+          </div>
+
+          {/* 10. Status Verifikasi */}
+          <div>
+            <label className="text-[11px] font-bold text-slate-500 uppercase block mb-1">Status Verifikasi</label>
+            <select
+              value={filterVerification}
+              onChange={(e) => setFilterVerification(e.target.value)}
+              className="w-full text-xs py-1.5 px-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="ALL">Semua Verifikasi</option>
+              <option value="Verified">Terverifikasi Sah</option>
+              <option value="Pending Verification">Menunggu Verifikasi</option>
+              <option value="Unverified">Belum Diverifikasi</option>
+            </select>
+          </div>
         </div>
 
-        {/* Batch Validation Helper Bar (Tahap 2 Simulation) */}
+        {/* Selection Helper Bar */}
         <div className="flex flex-wrap items-center justify-between text-xs bg-slate-50 px-3 py-2 rounded-xl border border-slate-200 gap-2">
           {canMatchCandidates && (
             <div className="flex items-center gap-2">
@@ -392,25 +638,30 @@ export const SupplyTable: React.FC = () => {
               )}
             </div>
           )}
+          <span className="text-slate-500 font-medium">
+            Menampilkan <strong>{filteredCandidates.length}</strong> dari {candidates.length} Calon PMI
+          </span>
         </div>
       </div>
 
       {/* Main Table View */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[900px] table-fixed text-left text-sm">
+          <table className="w-full min-w-[1000px] table-fixed text-left text-sm">
             <thead className="bg-slate-50/80 border-b border-slate-200 text-xs font-bold text-slate-600 uppercase tracking-wider">
               <tr>
-                {canMatchCandidates && <th className="w-[4%] py-3.5 px-1 text-center">
-                  <span className="sr-only">Pilih</span>
-                </th>}
-                <th className="w-[15%] py-3.5 px-1">Calon Peserta</th>
-                <th className="w-[17%] py-3.5 px-1">Institusi & Jurusan</th>
-                <th className="w-[14%] py-3.5 px-1">Kemahiran Bahasa</th>
-                <th className="w-[12%] py-3.5 px-1">Keterampilan Kunci</th>
-                <th className="w-[12%] py-3.5 px-1">Status Kesiapan</th>
-                <th className="w-[13%] py-3.5 px-1">Verifikasi</th>
-                <th className="w-[13%] py-3.5 px-1 text-right">Aksi</th>
+                {canMatchCandidates && (
+                  <th className="w-[4%] py-3.5 px-2 text-center">
+                    <span className="sr-only">Pilih</span>
+                  </th>
+                )}
+                <th className="w-[18%] py-3.5 px-3">Calon PMI & Domisili</th>
+                <th className="w-[16%] py-3.5 px-2">Pendidikan & Jurusan</th>
+                <th className="w-[14%] py-3.5 px-2">Keahlian & Sertifikasi</th>
+                <th className="w-[13%] py-3.5 px-2">Pengalaman Kerja</th>
+                <th className="w-[14%] py-3.5 px-2">Bahasa & Target Negara</th>
+                <th className="w-[11%] py-3.5 px-2">Status Kesiapan</th>
+                <th className="w-[10%] py-3.5 px-2 text-right">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-slate-700">
@@ -418,13 +669,25 @@ export const SupplyTable: React.FC = () => {
                 <tr>
                   <td colSpan={canMatchCandidates ? 8 : 7} className="py-12 text-center text-slate-400">
                     <AlertCircle className="w-8 h-8 mx-auto mb-2 text-slate-300" />
-                    <p className="font-semibold text-slate-600">Tidak ada calon peserta yang cocok</p>
-                    <p className="text-xs text-slate-400 mt-1">Coba sesuaikan kata kunci pencarian atau filter Anda.</p>
+                    <p className="font-semibold text-slate-600">Tidak ada calon PMI yang cocok dengan kriteria filter</p>
+                    <p className="text-xs text-slate-400 mt-1">Coba sesuaikan kata kunci pencarian atau reset filter wilayah dan keahlian.</p>
+                    {hasActiveFilters && (
+                      <button
+                        onClick={resetAllFilters}
+                        className="mt-3 px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-50 text-blue-700 hover:bg-blue-100 transition"
+                      >
+                        Reset Semua Filter
+                      </button>
+                    )}
                   </td>
                 </tr>
               ) : (
                 filteredCandidates.map((candidate) => {
                   const isSelected = canMatchCandidates && selectedCandidateIds.includes(candidate.id);
+                  const totalWorkYears = candidate.workExperiences
+                    ? candidate.workExperiences.reduce((acc, curr) => acc + curr.durationYears, 0)
+                    : 0;
+
                   return (
                     <tr
                       key={candidate.id}
@@ -432,107 +695,144 @@ export const SupplyTable: React.FC = () => {
                         isSelected ? 'bg-blue-50/60 font-medium' : ''
                       }`}
                     >
-                      {/* Select Checkbox */}
-                      {canMatchCandidates && <td className="py-3 px-1 text-center">
-                        <button
-                          type="button"
-                          onClick={() => toggleCandidateSelection(candidate.id)}
-                          aria-label={`Pilih ${candidate.fullName}`}
-                          className="rounded p-1.5 text-slate-600 transition hover:bg-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-                        >
-                          {isSelected ? (
-                            <CheckSquare className="w-4 h-4 text-blue-600" />
-                          ) : (
-                            <Square className="w-4 h-4 text-slate-300" />
-                          )}
-                        </button>
-                      </td>}
+                      {/* Checkbox */}
+                      {canMatchCandidates && (
+                        <td className="py-3 px-2 text-center">
+                          <button
+                            type="button"
+                            onClick={() => toggleCandidateSelection(candidate.id)}
+                            aria-label={`Pilih ${candidate.fullName}`}
+                            className="rounded p-1.5 text-slate-600 transition hover:bg-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                          >
+                            {isSelected ? (
+                              <CheckSquare className="w-4 h-4 text-blue-600" />
+                            ) : (
+                              <Square className="w-4 h-4 text-slate-300" />
+                            )}
+                          </button>
+                        </td>
+                      )}
 
-                      {/* Name & ID */}
-                      <td className="py-3 px-1">
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-800 font-bold flex items-center justify-center text-xs">
+                      {/* 1. Nama Lengkap, NIK Masked & Domisili */}
+                      <td className="py-3 px-3">
+                        <div className="flex items-start gap-2.5">
+                          <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-800 font-bold flex items-center justify-center text-xs shrink-0 mt-0.5">
                             {candidate.fullName.charAt(0)}
                           </div>
-                          <div>
-                            <span className="font-bold text-slate-900 block leading-tight">
+                          <div className="min-w-0">
+                            <span className="font-bold text-slate-900 block leading-tight truncate">
                               {candidate.fullName}
                             </span>
-                            <span className="text-[11px] text-slate-400 font-mono">
-                              {candidate.id} • {candidate.kabupatenKota}
+                            <span className="text-[11px] text-slate-400 font-mono block">
+                              NIK: {candidate.nik}
                             </span>
+                            <div className="flex items-center gap-1 text-[11px] text-slate-600 mt-0.5">
+                              <span className="font-medium text-slate-700 truncate">
+                                {candidate.kabupatenKota}, {candidate.provinsi}
+                              </span>
+                            </div>
+                            {candidate.sourceType && (
+                              <span
+                                className={`inline-block mt-1 text-[9px] font-bold px-1.5 py-0.5 rounded border ${
+                                  candidate.sourceType.includes('Gardata')
+                                    ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                                    : candidate.sourceType === 'Disnaker Pemda'
+                                    ? 'bg-amber-50 text-amber-800 border-amber-300'
+                                    : 'bg-purple-50 text-purple-800 border-purple-300'
+                                }`}
+                              >
+                                Feeder: {candidate.sourceType}
+                              </span>
+                            )}
                           </div>
                         </div>
                       </td>
 
-                      {/* Institution & Major */}
-                      <td className="py-3 px-1">
-                        <span className="font-semibold text-slate-800 block text-xs">
+                      {/* 2. Pendidikan & Jurusan */}
+                      <td className="py-3 px-2">
+                        <span className="font-semibold text-slate-800 block text-xs leading-snug">
                           {candidate.institutionName}
                         </span>
-                        <span className="text-[11px] text-slate-500 block">
-                          {candidate.educationLevel} — {candidate.major}
+                        <span className="text-[11px] text-slate-500 block mt-0.5">
+                          <strong className="text-blue-700">{candidate.educationLevel}</strong> — {candidate.major}
                         </span>
-                        {candidate.sourceType && (
-                          <span
-                            className={`inline-block mt-1 text-[10px] font-bold px-1.5 py-0.5 rounded border ${
-                              candidate.sourceType === 'Disnaker Pemda'
-                                ? 'bg-amber-50 text-amber-700 border-amber-200'
-                                : candidate.sourceType === 'Lembaga Vokasi'
-                                ? 'bg-purple-50 text-purple-700 border-purple-200'
-                                : 'bg-blue-50 text-blue-700 border-blue-200'
-                            }`}
-                          >
-                            Sumber: {candidate.sourceType}
-                          </span>
-                        )}
                       </td>
 
-                      {/* Language */}
-                      <td className="py-3 px-1">
-                        <div className="flex flex-col items-start gap-1.5">
-                          {candidate.languageProficiency.map((lp, idx) => (
-                            <span
-                              key={idx}
-                              className="inline-flex max-w-full items-center rounded-md border border-indigo-100 bg-indigo-50 px-2 py-1 text-xs font-medium leading-tight text-indigo-700"
-                            >
-                              <span className="truncate">{lp.language}</span>
-                              <span className="mx-1 text-indigo-300" aria-hidden="true">·</span>
-                              <span className="shrink-0">{lp.level}</span>
-                            </span>
-                          ))}
-                          {candidate.languageProficiency.length === 0 && (
-                            <span className="text-xs text-slate-400">Belum diisi</span>
-                          )}
-                        </div>
-                      </td>
-
-                      {/* Skills */}
-                      <td className="py-3 px-1">
-                        <div className="flex flex-wrap gap-1.5">
+                      {/* 3. Bidang Keahlian & Sertifikasi Kompetensi */}
+                      <td className="py-3 px-2">
+                        <div className="flex flex-wrap gap-1 mb-1">
                           {candidate.skills.slice(0, 2).map((sk, idx) => (
                             <span
                               key={idx}
-                              className="max-w-full rounded-md border border-slate-200 bg-slate-100 px-2 py-1 text-xs font-medium leading-tight text-slate-700"
+                              className="rounded px-1.5 py-0.5 text-[10px] font-semibold bg-slate-100 text-slate-700 border border-slate-200"
                             >
                               {sk}
                             </span>
                           ))}
                           {candidate.skills.length > 2 && (
-                            <span className="px-1 py-1 text-xs font-medium text-slate-500">
+                            <span className="text-[10px] text-slate-400 font-semibold self-center">
                               +{candidate.skills.length - 2}
                             </span>
                           )}
-                          {candidate.skills.length === 0 && (
-                            <span className="text-xs text-slate-400">Belum diisi</span>
-                          )}
+                        </div>
+                        {candidate.certifications && candidate.certifications.length > 0 ? (
+                          <div className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-50 border border-emerald-200 text-emerald-800 text-[10px] font-bold">
+                            <Award className="w-3 h-3 text-emerald-600 shrink-0" />
+                            <span className="truncate max-w-[140px]">{candidate.certifications[0].name}</span>
+                          </div>
+                        ) : (
+                          <span className="text-[10px] text-slate-400 italic">Belum bersertifikat</span>
+                        )}
+                      </td>
+
+                      {/* 4. Pengalaman Kerja (Bidang & Lama) */}
+                      <td className="py-3 px-2">
+                        {totalWorkYears > 0 ? (
+                          <div>
+                            <div className="flex items-center gap-1 font-bold text-amber-900 text-xs">
+                              <Briefcase className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                              <span>{totalWorkYears.toFixed(1)} Tahun</span>
+                            </div>
+                            <span className="text-[11px] text-slate-500 block truncate max-w-[130px] mt-0.5" title={candidate.workExperiences?.[0]?.role}>
+                              {candidate.workExperiences?.[0]?.role}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="inline-block text-[11px] px-2 py-0.5 rounded bg-slate-100 text-slate-500 font-medium">
+                            Fresh Graduate
+                          </span>
+                        )}
+                      </td>
+
+                      {/* 5. Bahasa Asing & Minat Negara / Jabatan */}
+                      <td className="py-3 px-2">
+                        <div className="flex flex-col gap-1">
+                          <div className="flex flex-wrap gap-1">
+                            {candidate.languageProficiency.slice(0, 2).map((lp, idx) => (
+                              <span
+                                key={idx}
+                                className="inline-flex items-center rounded border border-indigo-100 bg-indigo-50 px-1.5 py-0.5 text-[10px] font-semibold text-indigo-700"
+                              >
+                                {lp.language} · {lp.level}
+                              </span>
+                            ))}
+                          </div>
+                          <div className="flex items-center gap-1 text-[11px] text-slate-600 mt-0.5">
+                            <Globe className="w-3 h-3 text-blue-500 shrink-0" />
+                            <span className="font-semibold text-slate-800 truncate">
+                              {candidate.preferredCountry.join(', ')}
+                            </span>
+                          </div>
+                          <span className="text-[10px] text-slate-400 truncate">
+                            {candidate.preferredJobRole.join(' / ')}
+                          </span>
                         </div>
                       </td>
 
-                      {/* Readiness */}
-                      <td className="py-3 px-1">
+                      {/* 6. Status Kesiapan */}
+                      <td className="py-3 px-2">
                         <Badge
-                          className="h-auto min-h-8 whitespace-normal px-2 py-1"
+                          className="h-auto min-h-7 whitespace-normal px-2 py-0.5 text-[11px]"
                           variant={
                             candidate.readinessStatus === 'Ready for Placement'
                               ? 'success'
@@ -547,62 +847,44 @@ export const SupplyTable: React.FC = () => {
                         </Badge>
                       </td>
 
-                      {/* Verification Status */}
-                      <td className="py-3 px-1">
-                        <Badge
-                          className="h-auto min-h-8 whitespace-normal px-2 py-1"
-                          variant={
-                            candidate.verificationStatus === 'Verified'
-                              ? 'success'
-                              : candidate.verificationStatus === 'Pending Verification'
-                              ? 'warning'
-                              : 'danger'
-                          }
-                        >
-                          {candidate.verificationStatus === 'Verified' && <CheckCircle2 className="mr-1 h-3.5 w-3.5 shrink-0" />}
-                          {candidate.verificationStatus === 'Pending Verification' && <Clock className="mr-1 h-3.5 w-3.5 shrink-0" />}
-                          {candidate.verificationStatus === 'Unverified' && <AlertCircle className="mr-1 h-3.5 w-3.5 shrink-0" />}
-                          <span className="leading-tight">
-                            {verificationLabels[candidate.verificationStatus]}
-                          </span>
-                        </Badge>
-                      </td>
-
-                      {/* Actions */}
-                      <td className="py-3 px-1 text-right">
+                      {/* 7. Aksi */}
+                      <td className="py-3 px-2 text-right">
                         <div className="flex items-center justify-end gap-1">
-                          {canManageCandidates && <button
+                          <button
                             onClick={() => setActiveCandidate(candidate)}
-                            aria-label={`Lihat profil ${candidate.fullName}`}
-                            className="inline-flex items-center gap-1 rounded-lg bg-slate-100 p-1.5 text-xs font-semibold text-slate-700 shadow-xs transition hover:bg-blue-600 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-                            title="Lihat Detail Profil"
+                            aria-label={`Lihat detail ${candidate.fullName}`}
+                            className="inline-flex items-center gap-1 rounded-lg bg-blue-50 px-2 py-1.5 text-xs font-semibold text-blue-700 shadow-xs transition hover:bg-blue-600 hover:text-white"
+                            title="Lihat Detail Pemetaan"
                           >
                             <Eye className="w-3.5 h-3.5" />
-                            <span className="hidden 2xl:inline">Profil</span>
-                          </button>}
-
-                          {canArchiveCandidates && <button
-                            onClick={() => {
-                              setCandidateToEdit(candidate);
-                              setFormMode('edit');
-                              setIsFormOpen(true);
-                            }}
-                            aria-label={`Ubah data ${candidate.fullName}`}
-                            className="inline-flex items-center gap-1 rounded-lg bg-blue-50 p-1.5 text-xs font-semibold text-blue-700 shadow-xs transition hover:bg-blue-600 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-                            title="Ubah Data Peserta"
-                          >
-                            <Edit2 className="w-3.5 h-3.5" />
-                            <span className="hidden 2xl:inline">Ubah</span>
-                          </button>}
-
-                          <button
-                            onClick={() => setDeletingCandidate(candidate)}
-                            aria-label={`Arsipkan data ${candidate.fullName}`}
-                            className="inline-flex items-center rounded-lg bg-rose-50 p-1.5 text-xs font-semibold text-rose-700 shadow-xs transition hover:bg-rose-600 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
-                            title="Hapus Data Peserta"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
+                            <span>Detail</span>
                           </button>
+
+                          {canArchiveCandidates && (
+                            <button
+                              onClick={() => {
+                                setCandidateToEdit(candidate);
+                                setFormMode('edit');
+                                setIsFormOpen(true);
+                              }}
+                              aria-label={`Ubah data ${candidate.fullName}`}
+                              className="inline-flex items-center rounded-lg bg-slate-100 p-1.5 text-xs font-semibold text-slate-600 shadow-xs transition hover:bg-slate-200"
+                              title="Ubah Data"
+                            >
+                              <Edit2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+
+                          {canArchiveCandidates && (
+                            <button
+                              onClick={() => setDeletingCandidate(candidate)}
+                              aria-label={`Hapus ${candidate.fullName}`}
+                              className="inline-flex items-center rounded-lg bg-rose-50 p-1.5 text-xs font-semibold text-rose-700 shadow-xs transition hover:bg-rose-600 hover:text-white"
+                              title="Hapus"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -644,7 +926,7 @@ export const SupplyTable: React.FC = () => {
         }}
       />
 
-      {/* Delete Confirmation Modal with Audit Reason */}
+      {/* Delete Confirmation Modal */}
       <DeleteConfirmModal
         isOpen={!!deletingCandidate}
         onClose={() => setDeletingCandidate(null)}

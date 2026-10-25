@@ -9,6 +9,21 @@ export interface LanguageProficiency {
   level: string; // e.g. "JLPT N4", "A2", "TOEIC 600", "Basic"
 }
 
+export interface WorkExperienceItem {
+  sector: string; // e.g. "Manufaktur & Pengelasan", "Kesehatan & Caregiver"
+  role: string; // e.g. "Welder Junior", "Asisten Perawat Lansia"
+  durationYears: number; // e.g. 1.5, 2, 0.5 (magang PKL)
+  companyName?: string; // e.g. "PT Astra Honda Motor", "RSUD Banyumas"
+  description?: string;
+}
+
+export interface CompetencyCertificateItem {
+  name: string; // e.g. "Sertifikasi Welder 3G Plate", "SSW Tokutei Ginou Kaigo"
+  issuer: string; // e.g. "BNSP / LSP Las", "Prometric Japan"
+  issueYear?: number;
+  validUntil?: string;
+}
+
 export interface CandidateParticipant {
   id: string; // e.g. "CAND-2026-001"
   nik: string; // Masked e.g. "3201************"
@@ -18,9 +33,12 @@ export interface CandidateParticipant {
   kabupatenKota: string;
   educationLevel: 'SMK' | 'D3' | 'S1' | 'Lainnya';
   institutionName: string; // e.g. "SMKN 1 Gandapura"
-  sourceType?: 'Disnaker Pemda' | 'Lembaga Vokasi' | 'SMK / Pendidikan Vokasi';
+  sourceType?: 'Disnaker Pemda' | 'Lembaga Vokasi' | 'SMK / Pendidikan Vokasi' | 'Gardata / SIPPMI' | string;
   major: string; // e.g. "Teknik Pengelasan", "Kesehatan/Caregiver"
   skills: string[]; // e.g. ["Arc Welding", "GMAW", "Safety Standard"]
+  workExperiences?: WorkExperienceItem[];
+  certifications?: CompetencyCertificateItem[];
+  preferredSectors?: string[]; // e.g. ["Manufaktur & Otomotif", "Kesehatan / Caregiver"]
   languageProficiency: LanguageProficiency[];
   preferredCountry: string[]; // e.g. ["Jepang", "Jerman"]
   preferredJobRole: string[]; // e.g. ["Welder", "Caregiver"]

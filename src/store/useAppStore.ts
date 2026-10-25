@@ -98,7 +98,12 @@ export interface AppState {
   // Modul A Filters
   searchCandidate: string;
   filterProvinsi: string;
+  filterDistrict: string;
   filterEducation: string;
+  filterSector: string;
+  filterWorkExperience: string;
+  filterCertification: string;
+  filterCountry: string;
   filterReadiness: string;
   filterVerification: string;
   filterLanguage: string;
@@ -153,7 +158,12 @@ export interface AppState {
   // Filter setters
   setSearchCandidate: (val: string) => void;
   setFilterProvinsi: (val: string) => void;
+  setFilterDistrict: (val: string) => void;
   setFilterEducation: (val: string) => void;
+  setFilterSector: (val: string) => void;
+  setFilterWorkExperience: (val: string) => void;
+  setFilterCertification: (val: string) => void;
+  setFilterCountry: (val: string) => void;
   setFilterReadiness: (val: string) => void;
   setFilterVerification: (val: string) => void;
   setFilterLanguage: (val: string) => void;
@@ -232,14 +242,14 @@ export const useAppStore = create<AppState>((set, get) => ({
     sektor: 'Kesehatan / Caregiver',
   },
 
-  candidates: [],
+  candidates: mockSupply,
   programs: [],
   providers: [],
   demands: [],
   businessDataLoaded: false,
   businessOptions: { provinces: [], districts: [], sectors: [], occupations: [], countries: [], institutions: [] },
   setBusinessData: (data) => set((state) => ({
-    candidates: data.candidates,
+    candidates: data.candidates.length > 0 ? data.candidates : mockSupply,
     programs: data.programs,
     providers: data.providers,
     demands: data.demands,
@@ -265,7 +275,12 @@ export const useAppStore = create<AppState>((set, get) => ({
   // Modul A Filters
   searchCandidate: '',
   filterProvinsi: 'ALL',
+  filterDistrict: 'ALL',
   filterEducation: 'ALL',
+  filterSector: 'ALL',
+  filterWorkExperience: 'ALL',
+  filterCertification: 'ALL',
+  filterCountry: 'ALL',
   filterReadiness: 'ALL',
   filterVerification: 'ALL',
   filterLanguage: 'ALL',
@@ -481,8 +496,13 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   // Filter Actions
   setSearchCandidate: (val) => set({ searchCandidate: val }),
-  setFilterProvinsi: (val) => set({ filterProvinsi: val }),
+  setFilterProvinsi: (val) => set({ filterProvinsi: val, filterDistrict: 'ALL' }),
+  setFilterDistrict: (val) => set({ filterDistrict: val }),
   setFilterEducation: (val) => set({ filterEducation: val }),
+  setFilterSector: (val) => set({ filterSector: val }),
+  setFilterWorkExperience: (val) => set({ filterWorkExperience: val }),
+  setFilterCertification: (val) => set({ filterCertification: val }),
+  setFilterCountry: (val) => set({ filterCountry: val }),
   setFilterReadiness: (val) => set({ filterReadiness: val }),
   setFilterVerification: (val) => set({ filterVerification: val }),
   setFilterLanguage: (val) => set({ filterLanguage: val }),
