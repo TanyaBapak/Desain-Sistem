@@ -53,7 +53,7 @@ export const ProvidersView: React.FC = () => {
   const canSync = currentRole === 'superadmin' || currentRole === 'taskforce';
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 12;
+  const [itemsPerPage, setItemsPerPage] = useState(24);
 
   const handleLiveSync = () => {
     setIsSyncing(true);
@@ -437,11 +437,31 @@ export const ProvidersView: React.FC = () => {
 
       {/* Pagination Controls */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between bg-white px-5 py-3.5 rounded-2xl border border-slate-200 shadow-xs">
-          <span className="text-xs text-slate-500 font-medium">
-            Halaman <span className="font-bold text-slate-800">{currentPage}</span> dari{' '}
-            <span className="font-bold text-slate-800">{totalPages}</span>
-          </span>
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white px-5 py-3.5 rounded-2xl border border-slate-200 shadow-xs">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5 text-xs text-slate-500">
+              <span>Tampilkan:</span>
+              <select
+                value={itemsPerPage}
+                onChange={(e) => {
+                  setItemsPerPage(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+                className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-700"
+                aria-label="Pilihan jumlah kartu per halaman"
+              >
+                {[12, 24, 60, 100, 150].map((size) => (
+                  <option key={size} value={size}>
+                    {size} / hal
+                  </option>
+                ))}
+              </select>
+            </div>
+            <span className="text-xs text-slate-500 font-medium">
+              Halaman <span className="font-bold text-slate-800">{currentPage}</span> dari{' '}
+              <span className="font-bold text-slate-800">{totalPages}</span>
+            </span>
+          </div>
 
           <div className="flex items-center gap-2">
             <button

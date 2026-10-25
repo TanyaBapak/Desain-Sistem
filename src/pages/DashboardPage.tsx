@@ -39,7 +39,6 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
       providers
         .slice()
         .sort((left, right) => (right.operationalReadinessScore ?? -1) - (left.operationalReadinessScore ?? -1))
-        .slice(0, 8)
         .map((provider) => ({
           id: provider.id,
           name: provider.name,

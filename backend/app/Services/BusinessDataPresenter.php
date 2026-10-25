@@ -219,7 +219,7 @@ class BusinessDataPresenter
 
     private function providers(?string $role, User $user): array
     {
-        if (! in_array($role, ['task_force', 'directorate_admin', 'institution_admin', 'verifier'], true)) {
+        if (! in_array($role, ['leadership', 'task_force', 'directorate_admin', 'institution_admin', 'verifier'], true)) {
             return [];
         }
 
