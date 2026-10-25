@@ -2,6 +2,7 @@ import React, { lazy, Suspense, useEffect, useLayoutEffect } from "react";
 import { useAppStore } from "@/store/useAppStore";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import type { ExecutiveDashboardBreakdownsData } from "@/components/reports/ExecutiveDashboardBreakdowns";
+import type { DashboardTargetManagementData } from "@/pages/user-management-types";
 import {
   CandidateParticipant,
   GlobalDemand,
@@ -48,6 +49,11 @@ const RoleManagementPage = lazy(() =>
 const UserManagementPage = lazy(() =>
   import("@/pages/UserManagementPage").then((module) => ({
     default: module.UserManagementPage,
+  })),
+);
+const TargetManagementPage = lazy(() =>
+  import("@/pages/TargetManagementPage").then((module) => ({
+    default: module.TargetManagementPage,
   })),
 );
 const SippmiMonitoringPage = lazy(() =>
@@ -212,32 +218,8 @@ interface AppProps {
     districts: { id: string; province_id: string; name: string }[];
     institutions: { id: string; name: string }[];
     employers: { id: string; name: string }[];
-    landingKpiTargets: {
-      year: number;
-      targets: {
-        registeredJobSeekers: number | null;
-        readyForPlacement: number | null;
-        activeTrainingPrograms: number | null;
-        activeVocationalInstitutions: number | null;
-        nationalLpkCount: number | null;
-        validatedDemandCount: number | null;
-      };
-    }[];
-    landingCountries: { id: string; name: string }[];
-    landingCountryTargets: {
-      year: number;
-      targets: Record<string, number | null>;
-    }[];
-    landingCountryPerformance: {
-      year: number;
-      countryId: string;
-      countryName: string;
-      target: number;
-      achieved: number;
-      projected: number;
-      percentage: number;
-    }[];
   };
+  adminTargets?: DashboardTargetManagementData;
 }
 
 export function App({
@@ -252,6 +234,7 @@ export function App({
   auth,
   businessData,
   adminUsers,
+  adminTargets,
 }: AppProps) {
   const {
     setCurrentTab,
@@ -475,6 +458,9 @@ export function App({
       ) : (
         <RoleManagementPage />
       );
+      break;
+    case "targets":
+      page = <TargetManagementPage adminTargets={adminTargets} />;
       break;
     case "sippmi-monitoring":
       page = <SippmiMonitoringPage monitoring={businessData?.monitoring ?? {

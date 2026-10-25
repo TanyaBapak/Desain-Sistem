@@ -30,23 +30,47 @@ class DashboardTargetController extends Controller
             'targets.validatedDemandCount' => ['required', 'integer', 'min:1', 'max:999999999'],
             'targets.countries' => ['required', 'array'],
             'targets.countries.*' => ['nullable', 'integer', 'min:0', 'max:999999999'],
+            'targets.countryTrainingTypes' => ['required', 'array'],
+            'targets.countryTrainingTypes.*' => ['required', 'array'],
+            'targets.countryTrainingTypes.*.*' => ['nullable', 'integer', 'min:0', 'max:999999999'],
         ]);
         $countryIds = DB::table('countries')->pluck('id')->map(fn (string $id): string => $id)->all();
         $submittedCountryIds = array_map('strval', array_keys($data['targets']['countries']));
-        if (array_diff($countryIds, $submittedCountryIds) !== [] || array_diff($submittedCountryIds, $countryIds) !== []) {
+        $submittedTrainingCountryIds = array_map('strval', array_keys($data['targets']['countryTrainingTypes']));
+        $trainingTypeKeys = ['upskilling', 'reskilling', 'language', 'integratedTechnical'];
+        if (array_diff($countryIds, $submittedCountryIds) !== []
+            || array_diff($submittedCountryIds, $countryIds) !== []
+            || array_diff($countryIds, $submittedTrainingCountryIds) !== []
+            || array_diff($submittedTrainingCountryIds, $countryIds) !== []) {
             throw ValidationException::withMessages([
                 'targets.countries' => 'Daftar target negara tidak sesuai dengan data negara yang tersedia. Muat ulang halaman.',
             ]);
         }
+        foreach ($data['targets']['countryTrainingTypes'] as $countryId => $trainingTargets) {
+            $submittedTypeKeys = array_map('strval', array_keys($trainingTargets));
+            if (array_diff($trainingTypeKeys, $submittedTypeKeys) !== []
+                || array_diff($submittedTypeKeys, $trainingTypeKeys) !== []) {
+                throw ValidationException::withMessages([
+                    "targets.countryTrainingTypes.{$countryId}" => 'Jenis pelatihan tidak sesuai. Muat ulang halaman.',
+                ]);
+            }
+        }
         $countryTargets = $data['targets']['countries'];
+        $countryTrainingTargets = $data['targets']['countryTrainingTypes'];
         $kpiTargets = $data['targets'];
         unset($kpiTargets['countries']);
+        unset($kpiTargets['countryTrainingTypes']);
 
-        DB::transaction(function () use ($request, $targets, $data, $user, $kpiTargets, $countryTargets): void {
+        DB::transaction(function () use ($request, $targets, $data, $user, $kpiTargets, $countryTargets, $countryTrainingTargets): void {
             $targets->saveLandingKpiTargets((int) $data['year'], $kpiTargets, (int) $user->id);
             $targets->saveLandingCountryTargets(
                 (int) $data['year'],
                 $countryTargets,
+                (int) $user->id,
+            );
+            $targets->saveLandingCountryTrainingTargets(
+                (int) $data['year'],
+                $countryTrainingTargets,
                 (int) $user->id,
             );
             DB::table('audit_logs')->insert([
@@ -59,7 +83,7 @@ class DashboardTargetController extends Controller
                 'entity' => 'dashboard_targets',
                 'entity_id' => (string) $data['year'],
                 'new_value' => json_encode($data, JSON_THROW_ON_ERROR),
-                'justification_reason' => 'Target KPI dan negara tujuan landing page untuk tahun '.$data['year'].' diperbarui.',
+                'justification_reason' => 'Target KPI, negara tujuan, dan jenis pelatihan landing page untuk tahun '.$data['year'].' diperbarui.',
                 'ip_address' => $request->ip() ?? '127.0.0.1',
                 'created_at' => now(),
             ]);
@@ -67,6 +91,6 @@ class DashboardTargetController extends Controller
 
         $businessDataPresenter->forgetAll();
 
-        return back()->with('success', 'Target KPI dan negara tujuan landing page untuk tahun '.$data['year'].' berhasil diperbarui.');
+        return back()->with('success', 'Target KPI, negara tujuan, dan jenis pelatihan landing page untuk tahun '.$data['year'].' berhasil diperbarui.');
     }
 }

@@ -87,20 +87,61 @@ class BusinessDataPresenter
             ->values()
             ->all();
 
-        $trainingTypes = DB::table('training_programs')
+        $manualTrainingTargets = $this->dashboardTargetService->landingCountryTrainingTargets($year);
+        $trainingTypes = [];
+        $programGroups = DB::table('training_programs')
+            ->leftJoin('countries', 'countries.id', '=', 'training_programs.target_country_id')
             ->whereYear('training_programs.created_at', $year)
-            ->select('training_programs.program_type as name')
-            ->selectRaw('SUM(training_programs.quota) as target')
+            ->select(
+                'training_programs.target_country_id as country_id',
+                'countries.name as country_name',
+                'training_programs.program_type as training_type',
+            )
+            ->selectRaw('SUM(training_programs.quota) as program_target')
             ->selectRaw('SUM(training_programs.enrolled_count) as achieved')
-            ->groupBy('training_programs.program_type')
-            ->orderByDesc('target')
-            ->get()
-            ->map(fn (object $row): array => [
-                'name' => $row->name,
-                'target' => (int) $row->target,
-                'achieved' => (int) $row->achieved,
-                'projected' => max(0, (int) $row->target - (int) $row->achieved),
-            ])
+            ->groupBy(
+                'training_programs.target_country_id',
+                'countries.name',
+                'training_programs.program_type',
+            )
+            ->get();
+
+        foreach ($programGroups as $row) {
+            $countryId = (string) ($row->country_id ?? '');
+            $typeKey = $this->landingTrainingTypeKey((string) $row->training_type);
+            $target = $manualTrainingTargets[$countryId][$typeKey] ?? (int) $row->program_target;
+            $achieved = (int) $row->achieved;
+            $trainingTypes["{$countryId}:{$typeKey}"] = [
+                'name' => $row->country_name
+                    ? "{$row->country_name} · {$row->training_type}"
+                    : $row->training_type,
+                'target' => $target,
+                'achieved' => $achieved,
+                'projected' => max(0, $target - $achieved),
+            ];
+        }
+
+        $countryNames = DB::table('countries')->pluck('name', 'id');
+        foreach ($manualTrainingTargets as $countryId => $targets) {
+            foreach ($targets as $typeKey => $target) {
+                $seriesKey = "{$countryId}:{$typeKey}";
+                if (isset($trainingTypes[$seriesKey])) {
+                    continue;
+                }
+                $trainingType = $this->landingTrainingTypeName($typeKey);
+                $trainingTypes[$seriesKey] = [
+                    'name' => isset($countryNames[$countryId])
+                        ? "{$countryNames[$countryId]} · {$trainingType}"
+                        : $trainingType,
+                    'target' => $target,
+                    'achieved' => 0,
+                    'projected' => $target,
+                ];
+            }
+        }
+        $trainingTypes = collect($trainingTypes)
+            ->sortBy('name')
+            ->values()
             ->all();
 
         return [
@@ -1098,6 +1139,28 @@ class BusinessDataPresenter
                     ->orWhereNotIn('external_id', array_column(GardataPlacementSyncService::KNOWN_SUBDOMAINS, 'subdomain'));
             })
             ->count();
+    }
+
+    private function landingTrainingTypeKey(string $trainingType): string
+    {
+        return match ($trainingType) {
+            'Upskilling' => 'upskilling',
+            'Reskilling' => 'reskilling',
+            'Pelatihan Bahasa' => 'language',
+            'Teknis Terpadu' => 'integratedTechnical',
+            default => 'other',
+        };
+    }
+
+    private function landingTrainingTypeName(string $typeKey): string
+    {
+        return match ($typeKey) {
+            'upskilling' => 'Upskilling',
+            'reskilling' => 'Reskilling',
+            'language' => 'Pelatihan Bahasa',
+            'integratedTechnical' => 'Teknis Terpadu',
+            default => 'Jenis pelatihan lainnya',
+        };
     }
 
     private function monitoring(?string $role, User $user, array $filters): array

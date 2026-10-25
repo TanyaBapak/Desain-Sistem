@@ -26,6 +26,7 @@ class AppController extends Controller
         'approvals',
         'audit',
         'rbac',
+        'targets',
         'sippmi-monitoring',
     ];
 
@@ -70,6 +71,10 @@ class AppController extends Controller
 
         if ($tab === 'rbac' && $request->user()->roles()->where('name', 'super_admin')->exists()) {
             $props['adminUsers'] = $userManagementController->indexData($request, $dashboardTargetService);
+        }
+
+        if ($tab === 'targets' && $request->user()->roles()->where('name', 'super_admin')->exists()) {
+            $props['adminTargets'] = $userManagementController->targetData($request, $dashboardTargetService);
         }
 
         return Inertia::render('App', $props);

@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ManagedUserRow } from "@/pages/ManagedUserRow";
 import { UserCreateForm } from "@/pages/UserCreateForm";
-import { DashboardTargetSettings } from "@/pages/DashboardTargetSettings";
 import type { UserManagementData } from "@/pages/user-management-types";
 
 interface UserManagementPageProps {
@@ -23,12 +22,6 @@ export function UserManagementPage({ adminUsers, currentUserId }: UserManagement
         <h1 className="text-2xl font-semibold tracking-tight">Pengelola Pengguna</h1>
         <p className="mt-1 text-sm text-muted-foreground">Buat akun, atur status akses, dan uji tampilan melalui sesi pengguna.</p>
       </header>
-      <DashboardTargetSettings
-        targets={adminUsers.landingKpiTargets}
-        countries={adminUsers.landingCountries}
-        countryTargets={adminUsers.landingCountryTargets}
-        countryPerformance={adminUsers.landingCountryPerformance}
-      />
       <UserCreateForm data={adminUsers} />
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">

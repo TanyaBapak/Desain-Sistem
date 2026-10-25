@@ -69,13 +69,17 @@ class RoleAccessTest extends TestCase
                 ->missing('landingKpiSummary.demandDetails'));
     }
 
-    public function test_super_admin_is_limited_to_access_management_and_audit_modules(): void
+    public function test_super_admin_can_manage_targets_and_is_limited_to_admin_modules(): void
     {
         $superAdmin = $this->userWithRole('super_admin');
 
         $this->actingAs($superAdmin)->get('/app/rbac')->assertOk();
+        $this->actingAs($superAdmin)->get('/app/targets')->assertOk();
         $this->actingAs($superAdmin)->get('/app/modul-a')->assertForbidden();
         $this->actingAs($superAdmin)->post('/business-data/candidates', [])->assertForbidden();
+
+        $leadership = $this->userWithRole('leadership');
+        $this->actingAs($leadership)->get('/app/targets')->assertForbidden();
     }
 
     public function test_leadership_dashboard_includes_database_aggregates_without_personal_data(): void

@@ -12,6 +12,17 @@ export interface LandingCountryPerformance {
 
 interface LandingCountryPerformancePreviewProps {
   performance: LandingCountryPerformance[];
+  trainingPerformance: {
+    year: number;
+    countryId: string;
+    countryName: string;
+    trainingType: string;
+    trainingTypeKey: string;
+    target: number;
+    achieved: number;
+    projected: number;
+    percentage: number;
+  }[];
 }
 
 const numberFormat = new Intl.NumberFormat("id-ID");
@@ -19,6 +30,7 @@ const percentageFormat = new Intl.NumberFormat("id-ID", { maximumFractionDigits:
 
 export function LandingCountryPerformancePreview({
   performance,
+  trainingPerformance,
 }: LandingCountryPerformancePreviewProps) {
   return (
     <Card>
@@ -65,6 +77,54 @@ export function LandingCountryPerformancePreview({
             </table>
           </div>
         )}
+        <div className="mt-6 space-y-3 border-t border-border pt-5">
+          <div>
+            <h3 className="font-semibold">Capaian per negara dan jenis pelatihan</h3>
+            <p className="text-sm text-muted-foreground">
+              Capaian dihitung dari jumlah peserta terdaftar pada program di negara, jenis pelatihan,
+              dan tahun yang sama.
+            </p>
+          </div>
+          {trainingPerformance.length === 0 ? (
+            <p className="rounded-md border border-dashed border-border p-5 text-center text-sm text-muted-foreground">
+              Belum ada data program atau target per negara dan jenis pelatihan.
+            </p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[880px] text-left text-sm">
+                <caption className="sr-only">
+                  Capaian target pelatihan berdasarkan negara tujuan dan periode
+                </caption>
+                <thead className="border-b text-muted-foreground">
+                  <tr>
+                    <th scope="col" className="p-3 font-medium">Periode</th>
+                    <th scope="col" className="p-3 font-medium">Negara</th>
+                    <th scope="col" className="p-3 font-medium">Jenis pelatihan</th>
+                    <th scope="col" className="p-3 text-right font-medium">Target</th>
+                    <th scope="col" className="p-3 text-right font-medium">Capaian</th>
+                    <th scope="col" className="p-3 text-right font-medium">Tercapai</th>
+                    <th scope="col" className="p-3 text-right font-medium">Sisa target</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {trainingPerformance.map((item) => (
+                    <tr key={`${item.year}-${item.countryId}-${item.trainingTypeKey}`}>
+                      <td className="p-3 tabular-nums">{item.year}</td>
+                      <td className="p-3 font-medium">{item.countryName}</td>
+                      <td className="p-3">{item.trainingType}</td>
+                      <td className="p-3 text-right tabular-nums">{numberFormat.format(item.target)}</td>
+                      <td className="p-3 text-right tabular-nums">{numberFormat.format(item.achieved)}</td>
+                      <td className="p-3 text-right tabular-nums">
+                        {percentageFormat.format(item.percentage)}%
+                      </td>
+                      <td className="p-3 text-right tabular-nums">{numberFormat.format(item.projected)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
       </CardContent>
     </Card>
   );

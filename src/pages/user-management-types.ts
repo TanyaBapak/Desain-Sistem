@@ -24,6 +24,9 @@ export interface UserManagementData {
   districts: { id: string; province_id: string; name: string }[];
   institutions: { id: string; name: string }[];
   employers: { id: string; name: string }[];
+}
+
+export interface DashboardTargetManagementData {
   landingKpiTargets: {
     year: number;
     targets: {
@@ -44,6 +47,21 @@ export interface UserManagementData {
     year: number;
     countryId: string;
     countryName: string;
+    target: number;
+    achieved: number;
+    projected: number;
+    percentage: number;
+  }[];
+  landingCountryTrainingTargets: {
+    year: number;
+    targets: Record<string, Record<string, number | null>>;
+  }[];
+  landingCountryTrainingPerformance: {
+    year: number;
+    countryId: string;
+    countryName: string;
+    trainingType: string;
+    trainingTypeKey: string;
     target: number;
     achieved: number;
     projected: number;
