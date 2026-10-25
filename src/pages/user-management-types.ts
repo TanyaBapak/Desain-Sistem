@@ -64,4 +64,16 @@ export interface DashboardTargetManagementData {
     projected: number;
     percentage: number;
   }[];
+  landingPlacementOptions: {
+    sectors: string[];
+    occupations: { sectorName: string; occupationName: string }[];
+  };
+  landingPlacementTargets: {
+    id: number;
+    year: number;
+    sectorName: string;
+    occupationName: string;
+    projectionPlacement: string;
+    target: number;
+  }[];
 }

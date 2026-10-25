@@ -17,6 +17,7 @@ class DatabaseSeeder extends Seeder
             ReferenceDataSeeder::class,
             AccessControlSeeder::class,
             DemoDataSeeder::class,
+            ProgramPlacementTargetSeeder::class,
             DevelopmentAdminSeeder::class,
             DevelopmentRoleUsersSeeder::class,
         ]);

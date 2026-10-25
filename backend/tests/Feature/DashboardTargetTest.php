@@ -6,6 +6,7 @@ use App\Models\Role;
 use App\Models\User;
 use Database\Seeders\AccessControlSeeder;
 use Database\Seeders\DemoDataSeeder;
+use Database\Seeders\ProgramPlacementTargetSeeder;
 use Database\Seeders\ReferenceDataSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -23,6 +24,7 @@ class DashboardTargetTest extends TestCase
             ReferenceDataSeeder::class,
             AccessControlSeeder::class,
             DemoDataSeeder::class,
+            ProgramPlacementTargetSeeder::class,
         ]);
     }
 
@@ -48,7 +50,13 @@ class DashboardTargetTest extends TestCase
                 ->has('adminTargets.landingCountries', 5)
                 ->where('adminTargets.landingCountryTargets', [])
                 ->where('adminTargets.landingCountryTrainingTargets', [])
-                ->where('adminTargets.landingCountrySectorTargets', []));
+                ->where('adminTargets.landingCountrySectorTargets', [])
+                ->where('adminTargets.landingPlacementTargets', fn ($rows): bool => collect($rows)->contains(
+                    fn (array $row): bool => $row['year'] === 2027
+                        && $row['sectorName'] === 'Kesehatan'
+                        && $row['occupationName'] === 'Caregiver (lvl pelaksana)'
+                        && $row['target'] === 540,
+                )));
 
         $this->patch('/admin/dashboard-targets', $this->targetPayload())
             ->assertRedirect()
@@ -57,6 +65,14 @@ class DashboardTargetTest extends TestCase
         $this->assertDatabaseHas('dashboard_targets', [
             'metric_key' => 'validatedDemandCount_'.now()->year,
             'target_value' => 200,
+            'updated_by' => $admin->id,
+        ]);
+        $this->assertDatabaseHas('landing_placement_targets', [
+            'year' => now()->year,
+            'sector_name' => 'Kesehatan',
+            'occupation_name' => 'Caregiver (lvl pelaksana)',
+            'projection_placement' => 'Jepang (SSW)',
+            'target' => 50,
             'updated_by' => $admin->id,
         ]);
         $this->assertDatabaseCount('dashboard_targets', 33);
@@ -116,6 +132,13 @@ class DashboardTargetTest extends TestCase
                         && $row['target'] === 24
                         && $row['achieved'] === 5
                         && $row['projected'] === 19,
+                ))
+                ->where('adminTargets.landingPlacementTargets', fn ($rows): bool => collect($rows)->contains(
+                    fn (array $row): bool => $row['year'] === now()->year
+                        && $row['sectorName'] === 'Kesehatan'
+                        && $row['occupationName'] === 'Caregiver (lvl pelaksana)'
+                        && $row['projectionPlacement'] === 'Jepang (SSW)'
+                        && $row['target'] === 50,
                 )));
 
         auth()->logout();
@@ -147,6 +170,82 @@ class DashboardTargetTest extends TestCase
             ->assertSessionHasErrors('targets.countrySectors.JP');
 
         $this->assertDatabaseCount('dashboard_targets', 0);
+    }
+
+    public function test_target_job_options_are_distinct_from_institution_sector_and_job_metadata(): void
+    {
+        DB::table('institutions')->where('id', 'VOC-DEMO-001')->update([
+            'supported_sectors' => json_encode(['Kesehatan', 'Hospitality'], JSON_THROW_ON_ERROR),
+            'external_metadata' => json_encode([
+                'programs' => [
+                    ['sector' => 'Kesehatan', 'occupation' => 'Perawat'],
+                    ['sector' => 'Kesehatan', 'occupation' => 'Perawat'],
+                    ['sector' => 'Hospitality', 'occupation' => 'Koki'],
+                ],
+            ], JSON_THROW_ON_ERROR),
+        ]);
+
+        $this->actingAs($this->userWithRole('super_admin'))
+            ->get('/app/targets')
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('adminTargets.landingPlacementOptions.sectors', ['Hospitality', 'Kesehatan'])
+                ->where('adminTargets.landingPlacementOptions.occupations', [
+                    ['sectorName' => 'Hospitality', 'occupationName' => 'Koki'],
+                    ['sectorName' => 'Kesehatan', 'occupationName' => 'Perawat'],
+                ]));
+    }
+
+    public function test_program_placement_target_seeder_does_not_overwrite_existing_manual_values(): void
+    {
+        DB::table('landing_placement_targets')
+            ->where('year', 2027)
+            ->where('sector_name', 'Kesehatan')
+            ->where('occupation_name', 'Caregiver (lvl pelaksana)')
+            ->where('projection_placement', 'Jepang (SSW)')
+            ->update(['target' => 555]);
+
+        $this->seed(ProgramPlacementTargetSeeder::class);
+
+        $this->assertDatabaseHas('landing_placement_targets', [
+            'year' => 2027,
+            'sector_name' => 'Kesehatan',
+            'occupation_name' => 'Caregiver (lvl pelaksana)',
+            'projection_placement' => 'Jepang (SSW)',
+            'target' => 555,
+        ]);
+        $this->assertDatabaseCount('landing_placement_targets', 40);
+    }
+
+    public function test_existing_program_placement_target_can_be_updated_by_selected_period(): void
+    {
+        $target = DB::table('landing_placement_targets')
+            ->where('year', 2027)
+            ->where('sector_name', 'Kesehatan')
+            ->where('occupation_name', 'Caregiver (lvl pelaksana)')
+            ->where('projection_placement', 'Jepang (SSW)')
+            ->firstOrFail();
+        $payload = $this->targetPayload();
+        $payload['year'] = 2027;
+        $payload['targets']['placementTargets'] = [[
+            'id' => $target->id,
+            'sectorName' => $target->sector_name,
+            'occupationName' => $target->occupation_name,
+            'projectionPlacement' => 'Jepang (SSW), Taiwan',
+            'target' => 600,
+        ]];
+
+        $this->actingAs($this->userWithRole('super_admin'))
+            ->patch('/admin/dashboard-targets', $payload)
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('landing_placement_targets', [
+            'id' => $target->id,
+            'year' => 2027,
+            'projection_placement' => 'Jepang (SSW), Taiwan',
+            'target' => 600,
+        ]);
+        $this->assertDatabaseCount('landing_placement_targets', 40);
     }
 
     public function test_target_and_processed_quota_are_scoped_to_the_selected_year(): void
@@ -294,6 +393,15 @@ class DashboardTargetTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]);
+        DB::table('landing_placement_targets')->insert([
+            'year' => $year,
+            'sector_name' => 'Kesehatan',
+            'occupation_name' => 'Caregiver (lvl pelaksana)',
+            'projection_placement' => 'Jepang (SSW)',
+            'target' => 540,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
         $currentYear = (int) now()->year;
         $currentDemand = (array) DB::table('job_demands')->where('id', 'DEM-DEMO-001')->first();
         DB::table('job_demands')->insert(array_merge($currentDemand, [
@@ -308,7 +416,7 @@ class DashboardTargetTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->where('landingProjection.year', $year)
-                ->where('landingProjection.periods', [$currentYear, $year])
+                ->where('landingProjection.periods', [2027, $currentYear, $year])
                 ->has('landingProjection.countries', 5)
                 ->where('landingProjection.countries', fn ($rows): bool => collect($rows)->contains(
                     fn (array $row): bool => $row['name'] === 'Jepang'
@@ -319,13 +427,17 @@ class DashboardTargetTest extends TestCase
                 ->where('landingProjection.sectors.0.name', 'Jepang · Manufaktur / Pengelasan')
                 ->where('landingProjection.sectors.0.target', 18)
                 ->where('landingProjection.sectors.0.achieved', 8)
-                ->where('landingProjection.sectors.0.projected', 10));
+                ->where('landingProjection.sectors.0.projected', 10)
+                ->where('landingProjection.placementTargets.0.sectorName', 'Kesehatan')
+                ->where('landingProjection.placementTargets.0.occupationName', 'Caregiver (lvl pelaksana)')
+                ->where('landingProjection.placementTargets.0.projectionPlacement', 'Jepang (SSW)')
+                ->where('landingProjection.placementTargets.0.target', 540));
 
         $this->get('/?projectionYear=all')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->where('landingProjection.year', null)
-                ->where('landingProjection.periods', [$currentYear, $year])
+                ->where('landingProjection.periods', [2027, $currentYear, $year])
                 ->where('landingProjection.countries', fn ($rows): bool => collect($rows)->contains(
                     fn (array $row): bool => $row['name'] === "{$year} · Jepang",
                 ))
@@ -333,6 +445,11 @@ class DashboardTargetTest extends TestCase
                     fn (array $row): bool => $row['name'] === "{$year} · Jepang · Manufaktur / Pengelasan"
                         && $row['target'] === 18
                         && $row['achieved'] === 8,
+                ))
+                ->where('landingProjection.placementTargets', fn ($rows): bool => collect($rows)->contains(
+                    fn (array $row): bool => $row['year'] === $year
+                        && $row['sectorName'] === 'Kesehatan'
+                        && $row['target'] === 540,
                 )));
     }
 
@@ -350,6 +467,14 @@ class DashboardTargetTest extends TestCase
                 'countrySectors' => [
                     'JP' => ['SECT-WELD' => 24],
                     'DE' => ['SECT-CARE' => 12],
+                ],
+                'placementTargets' => [
+                    [
+                        'sectorName' => 'Kesehatan',
+                        'occupationName' => 'Caregiver (lvl pelaksana)',
+                        'projectionPlacement' => 'Jepang (SSW)',
+                        'target' => 50,
+                    ],
                 ],
                 'countries' => [
                     'JP' => 30,

@@ -70,6 +70,8 @@ class UserManagementController extends Controller
             'landingCountryTrainingPerformance' => $dashboardTargets->allLandingCountryTrainingPerformance(),
             'landingCountrySectorTargets' => $dashboardTargets->allLandingCountrySectorTargets(),
             'landingCountrySectorPerformance' => $dashboardTargets->allLandingCountrySectorPerformance(),
+            'landingPlacementOptions' => $dashboardTargets->landingPlacementOptions(),
+            'landingPlacementTargets' => $dashboardTargets->allLandingPlacementTargets(),
         ];
     }
 

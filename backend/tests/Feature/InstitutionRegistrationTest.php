@@ -36,6 +36,7 @@ class InstitutionRegistrationTest extends TestCase
         $this->assertNotNull($institution);
         $this->assertSame('Pending Verification', $institution->verification_status);
         $this->assertSame('Swakelola Tipe 2', $institution->procurement_method);
+        $this->assertSame('https://e-vokasi.kemnaker.go.id/lembaga/test', $institution->evokasi_url);
         $this->assertSame('https://katalog.inaproc.id/katalog/test', $institution->procurement_catalog_url);
         $this->assertSame('https://drive.google.com/file/d/test/view', $institution->mou_drive_url);
         $this->assertSame(3, $institution->class_count);
@@ -94,9 +95,10 @@ class InstitutionRegistrationTest extends TestCase
             ->get('/app/approvals')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->where('businessData.approvalRequests.0.externalLinks.0.label', 'Katalog INAPROC')
-                ->where('businessData.approvalRequests.0.externalLinks.0.url', 'https://katalog.inaproc.id/katalog/test')
-                ->where('businessData.approvalRequests.0.externalLinks.1.label', 'Dokumen MoU di Google Drive'));
+                ->where('businessData.approvalRequests.0.externalLinks.0.label', 'Profil e-Vokasi')
+                ->where('businessData.approvalRequests.0.externalLinks.0.url', 'https://e-vokasi.kemnaker.go.id/lembaga/test')
+                ->where('businessData.approvalRequests.0.externalLinks.1.label', 'Katalog INAPROC')
+                ->where('businessData.approvalRequests.0.externalLinks.2.label', 'Dokumen MoU di Google Drive'));
         $this->actingAs($verifier)
             ->get(route('approvals.documents.download', [$approval->id, $documentId]))
             ->assertOk();
@@ -155,10 +157,11 @@ class InstitutionRegistrationTest extends TestCase
         $payload = $this->registrationPayload();
         $payload['procurementCatalogUrl'] = 'https://example.test/catalog';
         $payload['mouDriveUrl'] = 'https://example.test/mou';
+        $payload['evokasiUrl'] = 'http://example.test/lembaga';
 
         $this->from('/lembaga/daftar')->post('/lembaga/daftar', $payload)
             ->assertRedirect('/lembaga/daftar')
-            ->assertSessionHasErrors(['procurementCatalogUrl', 'mouDriveUrl']);
+            ->assertSessionHasErrors(['procurementCatalogUrl', 'mouDriveUrl', 'evokasiUrl']);
         $this->assertDatabaseCount('institutions', 0);
     }
 
@@ -176,6 +179,7 @@ class InstitutionRegistrationTest extends TestCase
             'contactEmail' => 'lembaga@example.test',
             'contactPhone' => '080000000000',
             'accreditation' => 'B',
+            'evokasiUrl' => 'https://e-vokasi.kemnaker.go.id/lembaga/test',
             'procurementCatalogUrl' => 'https://katalog.inaproc.id/katalog/test',
             'mouDriveUrl' => 'https://drive.google.com/file/d/test/view',
             'instructorCount' => '8',

@@ -28,6 +28,7 @@ export function InstitutionRegistrationPage({ provinces, districts }: Institutio
     contactEmail: "",
     contactPhone: "",
     accreditation: "",
+    evokasiUrl: "",
     procurementCatalogUrl: "",
     mouDriveUrl: "",
     instructorCount: "0",
@@ -135,6 +136,15 @@ export function InstitutionRegistrationPage({ provinces, districts }: Institutio
               </Field>
               <Field label="Akreditasi (jika ada)" error={errors.accreditation}>
                 <Input value={data.accreditation} onChange={(event) => setData("accreditation", event.target.value)} placeholder="Contoh: A, B, Unggul" />
+              </Field>
+              <Field label="Tautan profil e-Vokasi" error={errors.evokasiUrl}>
+                <Input
+                  type="url"
+                  inputMode="url"
+                  placeholder="https://..."
+                  value={data.evokasiUrl}
+                  onChange={(event) => setData("evokasiUrl", event.target.value)}
+                />
               </Field>
               <Field label="Tautan katalog INAPROC" error={errors.procurementCatalogUrl}>
                 <Input

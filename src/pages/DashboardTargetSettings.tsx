@@ -2,22 +2,26 @@ import { useForm } from "@inertiajs/react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { CountrySectorTargetEditor } from "@/pages/CountrySectorTargetEditor";
 import {
   LANDING_KPI_TARGET_FIELDS,
   LandingKpiTargetFields,
 } from "@/pages/LandingKpiTargetFields";
 import {
-  LandingCountryPerformancePreview,
-  type LandingCountryPerformance,
-} from "@/pages/LandingCountryPerformancePreview";
+  LandingPlacementTargetPreview,
+  type LandingPlacementTargetRow,
+} from "@/pages/LandingPlacementTargetPreview";
+import {
+  ProgramPlacementTargetEditor,
+  type ProgramPlacementTarget,
+} from "@/pages/ProgramPlacementTargetEditor";
 import { TargetPeriodSelector } from "@/pages/TargetPeriodSelector";
 
 type KpiTargetKey = (typeof LANDING_KPI_TARGET_FIELDS)[number]["key"];
+type PlacementTargetInput = Omit<ProgramPlacementTarget, "key">;
 type TargetForm = {
   year: string;
   targets: Record<KpiTargetKey, string> & {
-    countrySectors: Record<string, Record<string, string>>;
+    placementTargets: ProgramPlacementTarget[];
   };
 };
 
@@ -26,57 +30,39 @@ export interface DashboardTargetSettingsProps {
     year: number;
     targets: Record<KpiTargetKey, number | null>;
   }[];
-  countries: { id: string; name: string }[];
-  sectors: { id: string; name: string }[];
-  countryPerformance: LandingCountryPerformance[];
-  countrySectorTargets: {
-    year: number;
-    targets: Record<string, Record<string, number | null>>;
-  }[];
-  countrySectorPerformance: {
-    year: number;
-    countryId: string;
-    countryName: string;
-    sectorId: string;
-    sectorName: string;
-    target: number;
-    achieved: number;
-    projected: number;
-    percentage: number;
-  }[];
+  placementOptions: {
+    sectors: string[];
+    occupations: { sectorName: string; occupationName: string }[];
+  };
+  placementTargets: LandingPlacementTargetRow[];
 }
 
 export function DashboardTargetSettings({
   targets,
-  countries,
-  sectors,
-  countryPerformance,
-  countrySectorTargets,
-  countrySectorPerformance,
+  placementOptions,
+  placementTargets,
 }: DashboardTargetSettingsProps) {
   const currentYear = new Date().getFullYear();
   const targetByYear = new Map(targets.map((target) => [target.year, target.targets]));
-  const countrySectorTargetByYear = new Map(
-    countrySectorTargets.map((target) => [target.year, target.targets]),
-  );
+  const placementTargetsByYear = groupTargetsByYear(placementTargets);
   const availableYears = Array.from(
     new Set([
       currentYear,
       ...targets.map((target) => target.year),
-      ...countrySectorTargets.map((target) => target.year),
-      ...countryPerformance.map((item) => item.year),
-      ...countrySectorPerformance.map((item) => item.year),
+      ...placementTargets.map((target) => target.year),
     ]),
   ).sort((left, right) => right - left);
   const currentTargets = targetByYear.get(currentYear);
-  const kpiTargetValues = Object.fromEntries(
-    LANDING_KPI_TARGET_FIELDS.map(({ key }) => [key, currentTargets?.[key]?.toString() ?? ""]),
-  ) as Record<KpiTargetKey, string>;
   const form = useForm<TargetForm>({
     year: currentYear.toString(),
     targets: {
-      ...kpiTargetValues,
-      countrySectors: toFormTargets(countrySectorTargetByYear.get(currentYear) ?? {}),
+      ...Object.fromEntries(
+        LANDING_KPI_TARGET_FIELDS.map(({ key }) => [
+          key,
+          currentTargets?.[key]?.toString() ?? "",
+        ]),
+      ) as Record<KpiTargetKey, string>,
+      placementTargets: placementTargetsByYear.get(currentYear) ?? [],
     },
   });
 
@@ -88,17 +74,13 @@ export function DashboardTargetSettings({
         ...Object.fromEntries(
           LANDING_KPI_TARGET_FIELDS.map(({ key }) => [key, Number(data.targets[key])]),
         ),
-        countrySectors: Object.fromEntries(
-          Object.entries(data.targets.countrySectors).map(([countryId, sectorTargets]) => [
-            countryId,
-            Object.fromEntries(
-              Object.entries(sectorTargets).map(([sectorId, value]) => [
-                sectorId,
-                value === "" ? null : Number(value),
-              ]),
-            ),
-          ]),
-        ),
+        placementTargets: data.targets.placementTargets.map((item) => ({
+          ...(item.id ? { id: item.id } : {}),
+          sectorName: item.sectorName,
+          occupationName: item.occupationName,
+          projectionPlacement: item.projectionPlacement.trim(),
+          target: Number(item.target),
+        })),
       },
     }));
     form.patch("/admin/dashboard-targets", {
@@ -116,7 +98,7 @@ export function DashboardTargetSettings({
           targetByYear.get(Number(value))?.[key]?.toString() ?? "",
         ]),
       ) as Record<KpiTargetKey, string>,
-      countrySectors: toFormTargets(countrySectorTargetByYear.get(Number(value)) ?? {}),
+      placementTargets: placementTargetsByYear.get(Number(value)) ?? [],
     });
   }
 
@@ -124,30 +106,40 @@ export function DashboardTargetSettings({
     form.setData("targets", { ...form.data.targets, [key]: value });
   }
 
-  function changeCountrySectorTarget(countryId: string, sectorId: string, value: string) {
+  function addPlacementTarget(target: PlacementTargetInput) {
     form.setData("targets", {
       ...form.data.targets,
-      countrySectors: {
-        ...form.data.targets.countrySectors,
-        [countryId]: {
-          ...form.data.targets.countrySectors[countryId],
-          [sectorId]: value,
-        },
-      },
+      placementTargets: [
+        ...form.data.targets.placementTargets,
+        { ...target, key: `new-${crypto.randomUUID()}` },
+      ],
+    });
+  }
+
+  function changePlacementTarget(
+    key: string,
+    field: "projectionPlacement" | "target",
+    value: string,
+  ) {
+    form.setData("targets", {
+      ...form.data.targets,
+      placementTargets: form.data.targets.placementTargets.map((target) =>
+        target.key === key ? { ...target, [field]: value } : target,
+      ),
     });
   }
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-lg">Pengaturan target landing page</CardTitle>
+        <CardTitle className="text-lg">Target dan proyeksi program penempatan</CardTitle>
         <CardDescription>
-          Pilih periode, negara, dan sektor untuk menetapkan total target. Capaian dihitung otomatis
-          dari demand yang tersimpan dan disetujui.
+          Atur target tahunan untuk setiap sektor dan jenis jabatan. Proyeksi negara atau wilayah
+          penempatan diisi manual dan bisa berisi lebih dari satu tujuan.
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={submit} className="space-y-4">
+        <form onSubmit={submit} className="space-y-5">
           <TargetPeriodSelector
             year={form.data.year}
             years={availableYears}
@@ -161,13 +153,13 @@ export function DashboardTargetSettings({
               onChange={changeKpiTarget}
             />
           </div>
-          <CountrySectorTargetEditor
-            year={form.data.year}
-            countries={countries}
-            sectors={sectors}
-            targets={form.data.targets.countrySectors}
+          <ProgramPlacementTargetEditor
+            sectors={placementOptions.sectors}
+            occupations={placementOptions.occupations}
+            targets={form.data.targets.placementTargets}
             errors={form.errors}
-            onTargetChange={changeCountrySectorTarget}
+            onAdd={addPlacementTarget}
+            onChange={changePlacementTarget}
           />
           <div className="flex justify-end">
             <Button type="submit" disabled={form.processing}>
@@ -177,27 +169,28 @@ export function DashboardTargetSettings({
         </form>
       </CardContent>
       <div className="border-t border-border p-4 sm:p-6">
-        <LandingCountryPerformancePreview
-          performance={countryPerformance}
-          sectorPerformance={countrySectorPerformance}
-        />
+        <LandingPlacementTargetPreview targets={placementTargets} />
       </div>
     </Card>
   );
 }
 
-function toFormTargets(
-  targets: Record<string, Record<string, number | null>>,
-): Record<string, Record<string, string>> {
-  return Object.fromEntries(
-    Object.entries(targets).map(([countryId, sectorTargets]) => [
-      countryId,
-      Object.fromEntries(
-        Object.entries(sectorTargets).map(([sectorId, target]) => [
-          sectorId,
-          target?.toString() ?? "",
-        ]),
-      ),
-    ]),
-  );
+function groupTargetsByYear(
+  targets: LandingPlacementTargetRow[],
+): Map<number, ProgramPlacementTarget[]> {
+  const grouped = new Map<number, ProgramPlacementTarget[]>();
+  for (const item of targets) {
+    const yearTargets = grouped.get(item.year) ?? [];
+    yearTargets.push({
+      key: item.id === undefined ? `saved-${yearTargets.length}` : `saved-${item.id}`,
+      ...(item.id === undefined ? {} : { id: item.id }),
+      sectorName: item.sectorName,
+      occupationName: item.occupationName,
+      projectionPlacement: item.projectionPlacement,
+      target: item.target.toString(),
+    });
+    grouped.set(item.year, yearTargets);
+  }
+
+  return grouped;
 }

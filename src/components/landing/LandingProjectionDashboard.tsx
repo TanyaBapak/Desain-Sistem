@@ -13,6 +13,13 @@ export interface LandingProjectionData {
   periods: number[];
   countries: LandingProjectionSeries[];
   sectors: LandingProjectionSeries[];
+  placementTargets: {
+    year: number;
+    sectorName: string;
+    occupationName: string;
+    projectionPlacement: string;
+    target: number;
+  }[];
 }
 
 interface LandingProjectionDashboardProps {
@@ -84,11 +91,9 @@ export function LandingProjectionDashboard({ projection }: LandingProjectionDash
             series={projection.countries}
             emptyMessage="Daftar negara tujuan belum tersedia pada master data."
           />
-          <ProjectionCard
-            title="Target negara dan sektor"
-            description="Target manual atau kuota demand dibanding jumlah kuota yang sudah terisi."
-            series={projection.sectors}
-            emptyMessage="Belum ada target sektor atau demand pada periode ini."
+          <PlacementProjectionCard
+            year={projection.year}
+            items={projection.placementTargets}
           />
         </div>
         <p className="text-xs text-muted-foreground">
@@ -98,6 +103,51 @@ export function LandingProjectionDashboard({ projection }: LandingProjectionDash
         </p>
       </div>
     </section>
+  );
+}
+
+function PlacementProjectionCard({
+  year,
+  items,
+}: {
+  year: number | null;
+  items: LandingProjectionData["placementTargets"];
+}) {
+  return (
+    <Card className="shadow-sm">
+      <CardHeader className="space-y-1.5 p-5">
+        <CardTitle className="text-lg">Proyeksi program penempatan</CardTitle>
+        <CardDescription>
+          Target manual per sektor dan jabatan beserta negara atau wilayah tujuan.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3 p-5 pt-0">
+        {items.length === 0 ? (
+          <p className="rounded-lg border border-dashed border-border p-5 text-center text-sm text-muted-foreground">
+            Belum ada proyeksi penempatan untuk periode ini.
+          </p>
+        ) : (
+          items.map((item, index) => (
+            <div
+              key={`${item.year}-${item.sectorName}-${item.occupationName}-${index}`}
+              className="space-y-1 rounded-md border border-border p-3"
+            >
+              <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+                <span className="text-sm font-semibold">
+                  {item.sectorName} · {item.occupationName}
+                </span>
+                <span className="text-xs tabular-nums text-muted-foreground">
+                  {numberFormat.format(item.target)} target
+                </span>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                {year === null ? `${item.year} · ` : ""}{item.projectionPlacement}
+              </p>
+            </div>
+          ))
+        )}
+      </CardContent>
+    </Card>
   );
 }
 

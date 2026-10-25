@@ -53,16 +53,22 @@ class BusinessDataPresenter
      *     year: int|null,
      *     periods: array<int, int>,
      *     countries: array<int, array{name: string, target: int, achieved: int, projected: int}>,
-     *     sectors: array<int, array{name: string, target: int, achieved: int, projected: int}>
+     *     sectors: array<int, array{name: string, target: int, achieved: int, projected: int}>,
+     *     placementTargets: array<int, array{year: int, sectorName: string, occupationName: string, projectionPlacement: string, target: int}>
      * }
      */
     public function publicLandingProjection(?int $year): array
     {
         $countryPerformance = $this->dashboardTargetService->allLandingCountryPerformance();
         $sectorPerformance = $this->dashboardTargetService->allLandingCountrySectorPerformance();
+        $allPlacementTargets = $this->dashboardTargetService->landingPlacementProjection(null);
+        $placementTargets = $year === null
+            ? $allPlacementTargets
+            : collect($allPlacementTargets)->where('year', $year)->values()->all();
         $periods = collect($countryPerformance)
             ->pluck('year')
             ->merge(collect($sectorPerformance)->pluck('year'))
+            ->merge(collect($allPlacementTargets)->pluck('year'))
             ->unique()
             ->sortDesc()
             ->values()
@@ -133,6 +139,7 @@ class BusinessDataPresenter
             'periods' => $periods,
             'countries' => $countries,
             'sectors' => $sectors,
+            'placementTargets' => $placementTargets,
         ];
     }
 
@@ -840,7 +847,7 @@ class BusinessDataPresenter
             ->groupBy('institution_id');
         $institutionLinks = DB::table('institutions')
             ->whereIn('id', $institutionIds)
-            ->get(['id', 'procurement_catalog_url', 'mou_drive_url'])
+            ->get(['id', 'evokasi_url', 'procurement_catalog_url', 'mou_drive_url'])
             ->keyBy('id');
 
         return $rows->map(function (object $row) use ($registrationDocuments, $institutionLinks): array {
@@ -860,6 +867,9 @@ class BusinessDataPresenter
                 ? $institutionLinks->get($row->entity_id)
                 : null;
             $externalLinks = array_values(array_filter([
+                $institutionLink?->evokasi_url
+                    ? ['label' => 'Profil e-Vokasi', 'url' => $institutionLink->evokasi_url]
+                    : null,
                 $institutionLink?->procurement_catalog_url
                     ? ['label' => 'Katalog INAPROC', 'url' => $institutionLink->procurement_catalog_url]
                     : null,

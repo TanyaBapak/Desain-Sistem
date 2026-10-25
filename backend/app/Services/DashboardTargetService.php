@@ -529,6 +529,147 @@ class DashboardTargetService
     }
 
     /**
+     * @return array{
+     *     sectors: list<string>,
+     *     occupations: list<array{sectorName: string, occupationName: string}>
+     * }
+     */
+    public function landingPlacementOptions(): array
+    {
+        $sectors = [];
+        $occupations = [];
+
+        foreach (DB::table('institutions')
+            ->whereNotNull('external_metadata')
+            ->orWhereNotNull('supported_sectors')
+            ->cursor(['external_metadata', 'supported_sectors']) as $institution) {
+            if ($institution->supported_sectors) {
+                $supportedSectors = json_decode($institution->supported_sectors, true, 512, JSON_THROW_ON_ERROR);
+                if (is_array($supportedSectors)) {
+                    foreach ($supportedSectors as $sectorName) {
+                        if (is_string($sectorName) && trim($sectorName) !== '') {
+                            $sectors[trim($sectorName)] = true;
+                        }
+                    }
+                }
+            }
+
+            if (! $institution->external_metadata) {
+                continue;
+            }
+            $metadata = json_decode($institution->external_metadata, true, 512, JSON_THROW_ON_ERROR);
+            if (! is_array($metadata) || ! is_array($metadata['programs'] ?? null)) {
+                continue;
+            }
+
+            foreach ($metadata['programs'] as $program) {
+                if (! is_array($program)) {
+                    continue;
+                }
+                $sectorName = trim((string) ($program['sector'] ?? ''));
+                $occupationName = trim((string) ($program['occupation'] ?? ''));
+                if ($sectorName === '' || $occupationName === '') {
+                    continue;
+                }
+                $sectors[$sectorName] = true;
+                $occupations["{$sectorName}\0{$occupationName}"] = [
+                    'sectorName' => $sectorName,
+                    'occupationName' => $occupationName,
+                ];
+            }
+        }
+
+        $sectorNames = array_keys($sectors);
+        sort($sectorNames, SORT_NATURAL | SORT_FLAG_CASE);
+        $occupationOptions = array_values($occupations);
+        usort($occupationOptions, static fn (array $left, array $right): int => [$left['sectorName'], $left['occupationName']] <=> [$right['sectorName'], $right['occupationName']]
+        );
+
+        return ['sectors' => $sectorNames, 'occupations' => $occupationOptions];
+    }
+
+    /**
+     * @return list<array{id: int, year: int, sectorName: string, occupationName: string, projectionPlacement: string, target: int}>
+     */
+    public function allLandingPlacementTargets(): array
+    {
+        return DB::table('landing_placement_targets')
+            ->orderByDesc('year')
+            ->orderBy('sector_name')
+            ->orderBy('occupation_name')
+            ->orderBy('projection_placement')
+            ->get()
+            ->map(fn (object $row): array => [
+                'id' => (int) $row->id,
+                'year' => (int) $row->year,
+                'sectorName' => $row->sector_name,
+                'occupationName' => $row->occupation_name,
+                'projectionPlacement' => $row->projection_placement,
+                'target' => (int) $row->target,
+            ])
+            ->all();
+    }
+
+    /**
+     * @return list<array{year: int, sectorName: string, occupationName: string, projectionPlacement: string, target: int}>
+     */
+    public function landingPlacementProjection(?int $year): array
+    {
+        return DB::table('landing_placement_targets')
+            ->when($year !== null, fn ($query) => $query->where('year', $year))
+            ->orderByDesc('year')
+            ->orderBy('sector_name')
+            ->orderBy('occupation_name')
+            ->orderBy('projection_placement')
+            ->get(['year', 'sector_name', 'occupation_name', 'projection_placement', 'target'])
+            ->map(fn (object $row): array => [
+                'year' => (int) $row->year,
+                'sectorName' => $row->sector_name,
+                'occupationName' => $row->occupation_name,
+                'projectionPlacement' => $row->projection_placement,
+                'target' => (int) $row->target,
+            ])
+            ->all();
+    }
+
+    /**
+     * @param  list<array{id?: int|null, sectorName: string, occupationName: string, projectionPlacement: string, target: int}>  $targets
+     */
+    public function saveLandingPlacementTargets(int $year, array $targets, int $userId): void
+    {
+        foreach ($targets as $target) {
+            $attributes = [
+                'year' => $year,
+                'sector_name' => $target['sectorName'],
+                'occupation_name' => $target['occupationName'],
+                'projection_placement' => $target['projectionPlacement'],
+                'target' => $target['target'],
+                'updated_by' => $userId,
+                'updated_at' => now(),
+            ];
+
+            if (! empty($target['id'])) {
+                DB::table('landing_placement_targets')
+                    ->where('id', $target['id'])
+                    ->where('year', $year)
+                    ->update($attributes);
+
+                continue;
+            }
+
+            DB::table('landing_placement_targets')->updateOrInsert(
+                [
+                    'year' => $year,
+                    'sector_name' => $target['sectorName'],
+                    'occupation_name' => $target['occupationName'],
+                    'projection_placement' => $target['projectionPlacement'],
+                ],
+                [...$attributes, 'created_at' => now()],
+            );
+        }
+    }
+
+    /**
      * @return array<string, array{0: string, 1: string}>
      */
     private function countrySectorHashes(): array

@@ -26,6 +26,13 @@ interface LandingProjectionData {
   periods: number[];
   countries: { name: string; target: number; achieved: number; projected: number }[];
   sectors: { name: string; target: number; achieved: number; projected: number }[];
+  placementTargets: {
+    year: number;
+    sectorName: string;
+    occupationName: string;
+    projectionPlacement: string;
+    target: number;
+  }[];
 }
 const UnifiedLoginPage = lazy(() =>
   import("@/components/auth/UnifiedLoginPage").then((module) => ({
