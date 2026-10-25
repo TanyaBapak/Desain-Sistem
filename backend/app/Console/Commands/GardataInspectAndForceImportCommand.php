@@ -11,7 +11,7 @@ use Throwable;
 
 class GardataInspectAndForceImportCommand extends Command
 {
-    protected $signature = 'gardata:jurus-jitu';
+    protected $signature = 'gardata:jurus-jitu {--force-vokasi : Paksa impor ulang direktori LPK nasional}';
 
     protected $description = 'Jurus jitu: periksa koneksi, seed wilayah, dan paksa impor seluruh data peserta dan LPK dari Gardata';
 
@@ -46,16 +46,22 @@ class GardataInspectAndForceImportCommand extends Command
             $this->info("   Data wilayah sudah lengkap ({$provincesCount} provinsi, {$districtsCount} kab/kota).");
         }
 
-        $vokasiCount = DB::table('institutions')->count();
+        $csvCount = DB::table('institutions')->where('external_source', 'data_vokasi_csv')->count();
         $csvFile = storage_path('app/reference/data_vokasi.csv');
         if (! is_file($csvFile)) {
             $csvFile = storage_path('app/data_vokasi.csv');
         }
-        if ($vokasiCount < 100 && is_file($csvFile)) {
-            $this->newLine();
-            $this->line("   Mengimpor data direktori LPK & lembaga vokasi nasional ({$csvFile})...");
-            Artisan::call('institutions:import-vokasi', ['file' => $csvFile]);
-            $this->info("   Direktori lembaga vokasi berhasil diimpor: " . DB::table('institutions')->count() . " lembaga.");
+        if (is_file($csvFile)) {
+            if ($csvCount < 2000 || $this->option('force-vokasi')) {
+                $this->newLine();
+                $this->line("   Mengimpor direktori LPK & lembaga vokasi nasional ({$csvFile})...");
+                Artisan::call('institutions:import-vokasi', ['file' => $csvFile]);
+                $this->info("   Direktori lembaga vokasi berhasil diimpor: " . DB::table('institutions')->count() . " lembaga (termasuk ribuan LPK se-Indonesia).");
+            } else {
+                $this->info("   Direktori lembaga vokasi sudah lengkap ({$csvCount} lembaga dari data_vokasi.csv).");
+            }
+        } else {
+            $this->warn("   File rujukan data_vokasi.csv tidak ditemukan di {$csvFile}.");
         }
 
         $this->newLine();

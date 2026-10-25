@@ -256,7 +256,33 @@ class GardataPlacementSyncService
         $defaultInstitution = $source === 'sippmi'
             ? 'SIPPMI - Pusat Penempatan PMI'
             : 'Gardata - Pusat Pelatihan CPMI';
-        $institutionName = $this->cleanString($item['institution_name'] ?? $biodata['institution_name'] ?? $education['school_origin'] ?? $biodata['school_origin'] ?? null, 255) ?? $defaultInstitution;
+        $rawInst = $item['institution_name']
+            ?? $item['lpk_name']
+            ?? $item['nama_lpk']
+            ?? $item['lpk']
+            ?? $item['nama_lembaga']
+            ?? $item['lembaga']
+            ?? $item['tenant_name']
+            ?? $item['tenant']
+            ?? $item['subdomain']
+            ?? $item['partner']
+            ?? $item['partner_name']
+            ?? $biodata['institution_name']
+            ?? $biodata['lpk_name']
+            ?? $biodata['nama_lpk']
+            ?? $biodata['lpk']
+            ?? $biodata['nama_lembaga']
+            ?? $biodata['lembaga']
+            ?? $biodata['tenant_name']
+            ?? $biodata['tenant']
+            ?? $biodata['subdomain']
+            ?? $education['school_origin']
+            ?? $biodata['school_origin']
+            ?? data_get($item, 'classes_history.0.institution_name')
+            ?? data_get($item, 'classes_history.0.lpk')
+            ?? data_get($item, 'classes_history.0.provider_name')
+            ?? null;
+        $institutionName = $this->formatInstitutionName($this->cleanString($rawInst, 255) ?? $defaultInstitution);
         $institutionId = $this->resolveOrCreateInstitution($institutionName, $provinceId, $districtId);
 
         $attributes = [
@@ -651,5 +677,24 @@ class GardataPlacementSyncService
         $cleaned = trim(strip_tags($value));
 
         return $cleaned === '' ? null : Str::limit($cleaned, $maxLength, '');
+    }
+
+    private function formatInstitutionName(string $name): string
+    {
+        $clean = trim($name);
+        if (str_contains($clean, '.')) {
+            $clean = explode('.', $clean)[0];
+        }
+        if (preg_match('/^[a-z0-9\-]+$/i', $clean) && str_contains($clean, '-')) {
+            $words = explode('-', $clean);
+            $capitalized = array_map(function ($w) {
+                return in_array(strtolower($w), ['lpk', 'blk', 'smk', 'lkp'], true)
+                    ? strtoupper($w)
+                    : ucfirst($w);
+            }, $words);
+            $clean = implode(' ', $capitalized);
+        }
+
+        return $clean;
     }
 }

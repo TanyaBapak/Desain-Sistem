@@ -35,7 +35,7 @@ class BusinessDataPresenter
 
     private function candidateMatches(?string $role): array
     {
-        if (! in_array($role, ['task_force', 'directorate_admin'], true)) {
+        if (! in_array($role, ['super_admin', 'task_force', 'directorate_admin'], true)) {
             return [];
         }
 
@@ -72,7 +72,7 @@ class BusinessDataPresenter
 
     private function candidates(?string $role, User $user): array
     {
-        if (! in_array($role, ['task_force', 'province_admin', 'district_admin', 'institution_admin', 'verifier'], true)) {
+        if (! in_array($role, ['super_admin', 'leadership', 'task_force', 'province_admin', 'district_admin', 'institution_admin', 'verifier'], true)) {
             return [];
         }
 
@@ -161,7 +161,7 @@ class BusinessDataPresenter
 
     private function programs(?string $role, User $user): array
     {
-        if (! in_array($role, ['task_force', 'directorate_admin', 'institution_admin', 'training_operator', 'verifier'], true)) {
+        if (! in_array($role, ['super_admin', 'leadership', 'task_force', 'directorate_admin', 'institution_admin', 'training_operator', 'verifier'], true)) {
             return [];
         }
 
@@ -216,7 +216,7 @@ class BusinessDataPresenter
 
     private function providers(?string $role, User $user): array
     {
-        if (! in_array($role, ['leadership', 'task_force', 'directorate_admin', 'institution_admin', 'verifier'], true)) {
+        if (! in_array($role, ['super_admin', 'leadership', 'task_force', 'directorate_admin', 'institution_admin', 'verifier'], true)) {
             return [];
         }
 
@@ -315,7 +315,7 @@ class BusinessDataPresenter
 
     private function demands(?string $role, User $user): array
     {
-        if (! in_array($role, ['task_force', 'demand_admin', 'verifier'], true)) {
+        if (! in_array($role, ['super_admin', 'leadership', 'task_force', 'directorate_admin', 'demand_admin', 'verifier'], true)) {
             return [];
         }
 
@@ -367,7 +367,7 @@ class BusinessDataPresenter
 
     private function allocations(?string $role): array
     {
-        if (! in_array($role, ['task_force', 'directorate_admin'], true)) {
+        if (! in_array($role, ['super_admin', 'task_force', 'directorate_admin'], true)) {
             return [];
         }
 
@@ -414,7 +414,7 @@ class BusinessDataPresenter
 
     private function institutionOptions(?string $role, User $user): array
     {
-        if (! in_array($role, ['task_force', 'directorate_admin', 'institution_admin', 'training_operator'], true)) {
+        if (! in_array($role, ['super_admin', 'leadership', 'task_force', 'directorate_admin', 'institution_admin', 'training_operator'], true)) {
             return [];
         }
 
@@ -431,7 +431,7 @@ class BusinessDataPresenter
 
     private function reportSummary(?string $role): array
     {
-        if (! in_array($role, ['leadership', 'task_force', 'directorate_admin', 'auditor'], true)) {
+        if (! in_array($role, ['super_admin', 'leadership', 'task_force', 'directorate_admin', 'auditor'], true)) {
             return [];
         }
 
@@ -563,7 +563,7 @@ class BusinessDataPresenter
 
     private function approvalRequests(?string $role): array
     {
-        if (! in_array($role, ['task_force', 'verifier'], true)) {
+        if (! in_array($role, ['super_admin', 'task_force', 'verifier'], true)) {
             return [];
         }
 

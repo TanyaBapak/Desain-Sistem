@@ -251,19 +251,25 @@ export const useAppStore = create<AppState>((set, get) => ({
   setBusinessData: (data) => set((state) => {
     const incomingCandidates = Array.isArray(data.candidates) ? data.candidates : [];
     const candidates = incomingCandidates.length > 0 ? incomingCandidates : mockSupply;
+    const incomingPrograms = Array.isArray(data.programs) ? data.programs : [];
+    const programs = incomingPrograms.length > 0 ? incomingPrograms : mockPrograms;
+    const incomingProviders = Array.isArray(data.providers) ? data.providers : [];
+    const providers = incomingProviders.length > 0 ? incomingProviders : mockProviders;
+    const incomingDemands = Array.isArray(data.demands) ? data.demands : [];
+    const demands = incomingDemands.length > 0 ? incomingDemands : mockDemand;
     return {
       candidates,
-      programs: data.programs,
-      providers: data.providers,
-      demands: data.demands,
+      programs,
+      providers,
+      demands,
       approvalRequests: data.approvalRequests ?? [],
       allocations: data.allocations ?? [],
       businessOptions: data.options,
       businessDataLoaded: true,
       selectedCandidateIds: state.selectedCandidateIds.filter((id) => candidates.some((candidate) => candidate.id === id)),
-      selectedDemandId: data.demands.some((demand) => demand.id === state.selectedDemandId) ? state.selectedDemandId : null,
-      selectedProgramId: data.programs.some((program) => program.id === state.selectedProgramId) ? state.selectedProgramId : null,
-      selectedProviderId: data.providers.some((provider) => provider.id === state.selectedProviderId) ? state.selectedProviderId : null,
+      selectedDemandId: demands.some((demand) => demand.id === state.selectedDemandId) ? state.selectedDemandId : null,
+      selectedProgramId: programs.some((program) => program.id === state.selectedProgramId) ? state.selectedProgramId : null,
+      selectedProviderId: providers.some((provider) => provider.id === state.selectedProviderId) ? state.selectedProviderId : null,
     };
   }),
   allocations: [],
