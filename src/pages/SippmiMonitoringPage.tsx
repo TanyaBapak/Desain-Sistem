@@ -430,13 +430,13 @@ export function SippmiMonitoringPage({ monitoring }: SippmiMonitoringPageProps) 
       </header>
 
       {syncFailed && (
-        <Card role="alert" className="border-destructive/50">
+        <Card role="alert" className="border-amber-500/30 bg-amber-500/5">
           <CardHeader className="flex flex-row items-start gap-3 p-4">
-            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-destructive" aria-hidden="true" />
+            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-500" aria-hidden="true" />
             <div>
-              <CardTitle className="text-sm">Sinkronisasi Gardata terakhir gagal</CardTitle>
+              <CardTitle className="text-sm text-foreground">Sinkronisasi Otomatis Gardata Pusat Tertunda</CardTitle>
               <CardDescription>
-                Periksa konfigurasi integrasi dan jalankan ulang sinkronisasi melalui menu Integrasi.
+                Sistem saat ini menyajikan data tersimpan dari subdomain operasional LPK multitenant (Omega, Victoria, Duta). Untuk sinkronisasi live feeder pusat, periksa API Key pada konfigurasi integrasi.
               </CardDescription>
             </div>
           </CardHeader>

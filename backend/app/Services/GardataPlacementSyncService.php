@@ -796,13 +796,27 @@ class GardataPlacementSyncService
             $registered[] = $tenant;
         }
 
-        $hasTenantCandidates = DB::table('job_seekers')
-            ->whereIn('institution_name', ['Omega Cilacap', 'VictoriaHotelSchool', 'DutaInternationalCourse'])
+        $hasTenantRecords = DB::table('external_training_records')
+            ->whereIn('class_code', ['OMEGA-HK-2026', 'OMEGA-FBS-2025', 'VHS-CUL-2026', 'DIC-JPN-2026'])
             ->exists();
 
-        if (! app()->runningUnitTests() && $withInitialData && ! $hasTenantCandidates) {
+        if (! app()->runningUnitTests() && $withInitialData && ! $hasTenantRecords) {
             $this->seedInitialTenantCandidates();
         }
+
+        // Pastikan kandidat yang terdaftar dari LPK tenant memiliki external_source gardata jika belum diset
+        DB::table('job_seekers')
+            ->where(function ($q) {
+                $q->whereNull('external_source')
+                    ->orWhere('external_source', '');
+            })
+            ->where(function ($q) {
+                $q->whereIn('institution_name', ['Omega Cilacap', 'VictoriaHotelSchool', 'DutaInternationalCourse'])
+                    ->orWhere('institution_name', 'LIKE', '%Omega%')
+                    ->orWhere('institution_name', 'LIKE', '%Victoria%')
+                    ->orWhere('institution_name', 'LIKE', '%Duta%');
+            })
+            ->update(['external_source' => self::SOURCE]);
 
         return $registered;
     }
