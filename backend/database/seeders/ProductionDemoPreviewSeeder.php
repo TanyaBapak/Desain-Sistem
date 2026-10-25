@@ -13,18 +13,18 @@ use RuntimeException;
 class ProductionDemoPreviewSeeder extends Seeder
 {
     private const ACCOUNTS = [
-        ['pimpinan', 'Pimpinan Contoh', 'leadership', 'Nasional (data contoh)', 'national', null, null, null, null],
+        ['pimpinan', 'Pimpinan Contoh', 'leadership', 'Nasional (data contoh)', 'national', null, null, null, null, null],
         ['taskforce', 'Koordinator Contoh Task Force', 'task_force', 'BP3MI Jawa Barat (data contoh)', 'provinsi', '32', null, null, null, 'BP3MI-JABAR'],
-        ['direktorat', 'Administrator Contoh Direktorat', 'directorate_admin', 'Nasional (data contoh)', 'national', null, null, null, null],
-        ['disnaker-provinsi', 'Petugas Contoh Disnaker Provinsi', 'province_admin', 'Jawa Barat (data contoh)', 'provinsi', '32', null, null, null],
-        ['disnaker-kabupaten', 'Petugas Contoh Disnaker Kabupaten', 'district_admin', 'Kota Bogor (data contoh)', 'kabupaten', '32', '3271', null, null],
-        ['bp3mi', 'Petugas Contoh BP3MI', 'bp3mi_admin', 'Nasional (data contoh)', 'national', null, null, null, null],
-        ['lembaga-vokasi', 'Operator Contoh Lembaga Vokasi', 'institution_admin', 'SMK Contoh Cibinong', 'lembaga', '32', '3201', 'VOC-DEMO-001', null],
-        ['pengelola-demand', 'Pengelola Contoh Demand', 'demand_admin', 'Pemberi Kerja Contoh', 'demand', null, null, null, 'EMP-DEMO-001'],
-        ['verifikator', 'Verifikator Contoh', 'verifier', 'Nasional (data contoh)', 'national', null, null, null, null],
-        ['operator-pelatihan', 'Operator Contoh Pelatihan', 'training_operator', 'SMK Contoh Cibinong', 'lembaga', '32', '3201', 'VOC-DEMO-001', null],
-        ['petugas-penempatan', 'Petugas Contoh Penempatan', 'placement_officer', 'Nasional (data contoh)', 'national', null, null, null, null],
-        ['auditor', 'Auditor Contoh', 'auditor', 'Nasional (data contoh)', 'national', null, null, null, null],
+        ['direktorat', 'Administrator Contoh Direktorat', 'directorate_admin', 'Nasional (data contoh)', 'national', null, null, null, null, null],
+        ['disnaker-provinsi', 'Petugas Contoh Disnaker Provinsi', 'province_admin', 'Jawa Barat (data contoh)', 'provinsi', '32', null, null, null, null],
+        ['disnaker-kabupaten', 'Petugas Contoh Disnaker Kabupaten', 'district_admin', 'Kota Bogor (data contoh)', 'kabupaten', '32', '3271', null, null, null],
+        ['bp3mi', 'Petugas Contoh BP3MI', 'bp3mi_admin', 'Nasional (data contoh)', 'national', null, null, null, null, null],
+        ['lembaga-vokasi', 'Operator Contoh Lembaga Vokasi', 'institution_admin', 'SMK Contoh Cibinong', 'lembaga', '32', '3201', 'VOC-DEMO-001', null, null],
+        ['pengelola-demand', 'Pengelola Contoh Demand', 'demand_admin', 'Pemberi Kerja Contoh', 'demand', null, null, null, 'EMP-DEMO-001', null],
+        ['verifikator', 'Verifikator Contoh', 'verifier', 'Nasional (data contoh)', 'national', null, null, null, null, null],
+        ['operator-pelatihan', 'Operator Contoh Pelatihan', 'training_operator', 'SMK Contoh Cibinong', 'lembaga', '32', '3201', 'VOC-DEMO-001', null, null],
+        ['petugas-penempatan', 'Petugas Contoh Penempatan', 'placement_officer', 'Nasional (data contoh)', 'national', null, null, null, null, null],
+        ['auditor', 'Auditor Contoh', 'auditor', 'Nasional (data contoh)', 'national', null, null, null, null, null],
     ];
 
     public function run(): void
@@ -67,18 +67,17 @@ class ProductionDemoPreviewSeeder extends Seeder
 
     private function seedPreviewAccounts(): void
     {
-        foreach (self::ACCOUNTS as [
-            $username,
-            $name,
-            $roleName,
-            $scopeName,
-            $scopeLevel,
-            $provinceId,
-            $districtId,
-            $institutionId,
-            $employerId,
-            $bp3miCode,
-        ]) {
+        foreach (self::ACCOUNTS as $account) {
+            $username = $account[0];
+            $name = $account[1];
+            $roleName = $account[2];
+            $scopeName = $account[3];
+            $scopeLevel = $account[4];
+            $provinceId = $account[5] ?? null;
+            $districtId = $account[6] ?? null;
+            $institutionId = $account[7] ?? null;
+            $employerId = $account[8] ?? null;
+            $bp3miCode = $account[9] ?? null;
             $user = User::query()->firstOrCreate(
                 ['username' => 'demo-'.$username],
                 [

@@ -35,7 +35,16 @@ class GardataInspectAndForceImportCommand extends Command
         }
 
         $this->newLine();
-        $this->line("2. Mengisi Master Data Wilayah (Provinsi & Kabupaten/Kota)...");
+        $this->line("2. Menjalankan Migrasi Database...");
+        try {
+            Artisan::call('migrate', ['--force' => true]);
+            $this->info("   Migrasi database berhasil diperiksa dan dijalankan.");
+        } catch (Throwable $e) {
+            $this->warn("   Catatan migrasi: " . $e->getMessage());
+        }
+
+        $this->newLine();
+        $this->line("3. Mengisi Master Data Wilayah (Provinsi & Kabupaten/Kota)...");
         $provincesCount = DB::table('provinces')->count();
         $districtsCount = DB::table('districts')->count();
 
@@ -66,7 +75,7 @@ class GardataInspectAndForceImportCommand extends Command
         }
 
         $this->newLine();
-        $this->line("3. Menyinkronkan Sistem Multitenant Subdomain LPK Gardata...");
+        $this->line("4. Menyinkronkan Sistem Multitenant Subdomain LPK Gardata...");
         $tenants = $syncService->ensureSubdomainTenantsRegistered();
         foreach ($tenants as $t) {
             $this->line("   ✓ Subdomain LPK: {$t['name']} ({$t['subdomain']}) -> Terdaftar & Aktif.");
@@ -74,7 +83,7 @@ class GardataInspectAndForceImportCommand extends Command
 
         if ($apiKey !== '') {
             $this->newLine();
-            $this->line("4. Menghubungi API Gardata di {$baseUrl}/api/v1/placement/candidates ...");
+            $this->line("5. Menghubungi API Gardata di {$baseUrl}/api/v1/placement/candidates ...");
             try {
                 $resp = Http::baseUrl($baseUrl)
                     ->acceptJson()
@@ -102,7 +111,7 @@ class GardataInspectAndForceImportCommand extends Command
             }
 
             $this->newLine();
-            $this->line("5. Memproses dan menyimpan data peserta, lembaga LPK, dan riwayat pelatihan...");
+            $this->line("6. Memproses dan menyimpan data peserta, lembaga LPK, dan riwayat pelatihan...");
             try {
                 $result = $syncService->syncCandidates($baseUrl, $apiKey, 'gardata', true);
 
@@ -121,12 +130,12 @@ class GardataInspectAndForceImportCommand extends Command
             }
         } else {
             $this->newLine();
-            $this->warn("4. Penarikan calon peserta dilewati karena GARDATA_API_KEY kosong.");
+            $this->warn("5. Penarikan calon peserta dilewati karena GARDATA_API_KEY kosong.");
             $this->line("   Tambahkan GARDATA_API_KEY=<kunci_anda> di file .env jika ingin menarik peserta terbaru.");
         }
 
         $this->newLine();
-        $this->line("6. Membersihkan cache aplikasi...");
+        $this->line("7. Membersihkan cache aplikasi...");
         Artisan::call('optimize:clear');
         $this->info("   Cache berhasil dibersihkan.");
 

@@ -30,33 +30,32 @@ class DevelopmentRoleUsersSeeder extends Seeder
             : $adminPasswordHash;
 
         $accounts = [
-            ['pimpinan', 'Pimpinan Contoh', 'pimpinan@example.invalid', 'leadership', 'Nasional (data contoh)', 'national', null, null, null, null],
+            ['pimpinan', 'Pimpinan Contoh', 'pimpinan@example.invalid', 'leadership', 'Nasional (data contoh)', 'national', null, null, null, null, null],
             ['taskforce', 'Koordinator Contoh Task Force', 'taskforce@example.invalid', 'task_force', 'BP3MI Jawa Barat (data contoh)', 'provinsi', '32', null, null, null, 'BP3MI-JABAR'],
-            ['direktorat', 'Administrator Contoh Direktorat', 'direktorat@example.invalid', 'directorate_admin', 'Nasional (data contoh)', 'national', null, null, null, null],
-            ['disnaker-provinsi', 'Petugas Contoh Disnaker Provinsi', 'disnaker-provinsi@example.invalid', 'province_admin', 'Jawa Barat (data contoh)', 'provinsi', '32', null, null, null],
-            ['disnaker-kabupaten', 'Petugas Contoh Disnaker Kabupaten', 'disnaker-kabupaten@example.invalid', 'district_admin', 'Kota Bogor (data contoh)', 'kabupaten', '32', '3271', null, null],
-            ['bp3mi', 'Petugas Contoh BP3MI', 'bp3mi@example.invalid', 'bp3mi_admin', 'Nasional (data contoh)', 'national', null, null, null, null],
-            ['lembaga-vokasi', 'Operator Contoh Lembaga Vokasi', 'lembaga-vokasi@example.invalid', 'institution_admin', 'SMK Contoh Cibinong', 'lembaga', '32', '3201', 'VOC-DEMO-001', null],
-            ['pengelola-demand', 'Pengelola Contoh Demand', 'pengelola-demand@example.invalid', 'demand_admin', 'Pemberi Kerja Contoh', 'demand', null, null, null, 'EMP-DEMO-001'],
-            ['verifikator', 'Verifikator Contoh', 'verifikator@example.invalid', 'verifier', 'Nasional (data contoh)', 'national', null, null, null, null],
-            ['operator-pelatihan', 'Operator Contoh Pelatihan', 'operator-pelatihan@example.invalid', 'training_operator', 'SMK Contoh Cibinong', 'lembaga', '32', '3201', 'VOC-DEMO-001', null],
-            ['petugas-penempatan', 'Petugas Contoh Penempatan', 'petugas-penempatan@example.invalid', 'placement_officer', 'Nasional (data contoh)', 'national', null, null, null, null],
-            ['auditor', 'Auditor Contoh', 'auditor@example.invalid', 'auditor', 'Nasional (data contoh)', 'national', null, null, null, null],
+            ['direktorat', 'Administrator Contoh Direktorat', 'direktorat@example.invalid', 'directorate_admin', 'Nasional (data contoh)', 'national', null, null, null, null, null],
+            ['disnaker-provinsi', 'Petugas Contoh Disnaker Provinsi', 'disnaker-provinsi@example.invalid', 'province_admin', 'Jawa Barat (data contoh)', 'provinsi', '32', null, null, null, null],
+            ['disnaker-kabupaten', 'Petugas Contoh Disnaker Kabupaten', 'disnaker-kabupaten@example.invalid', 'district_admin', 'Kota Bogor (data contoh)', 'kabupaten', '32', '3271', null, null, null],
+            ['bp3mi', 'Petugas Contoh BP3MI', 'bp3mi@example.invalid', 'bp3mi_admin', 'Nasional (data contoh)', 'national', null, null, null, null, null],
+            ['lembaga-vokasi', 'Operator Contoh Lembaga Vokasi', 'lembaga-vokasi@example.invalid', 'institution_admin', 'SMK Contoh Cibinong', 'lembaga', '32', '3201', 'VOC-DEMO-001', null, null],
+            ['pengelola-demand', 'Pengelola Contoh Demand', 'pengelola-demand@example.invalid', 'demand_admin', 'Pemberi Kerja Contoh', 'demand', null, null, null, 'EMP-DEMO-001', null],
+            ['verifikator', 'Verifikator Contoh', 'verifikator@example.invalid', 'verifier', 'Nasional (data contoh)', 'national', null, null, null, null, null],
+            ['operator-pelatihan', 'Operator Contoh Pelatihan', 'operator-pelatihan@example.invalid', 'training_operator', 'SMK Contoh Cibinong', 'lembaga', '32', '3201', 'VOC-DEMO-001', null, null],
+            ['petugas-penempatan', 'Petugas Contoh Penempatan', 'petugas-penempatan@example.invalid', 'placement_officer', 'Nasional (data contoh)', 'national', null, null, null, null, null],
+            ['auditor', 'Auditor Contoh', 'auditor@example.invalid', 'auditor', 'Nasional (data contoh)', 'national', null, null, null, null, null],
         ];
 
-        foreach ($accounts as [
-            $username,
-            $name,
-            $email,
-            $roleName,
-            $scopeName,
-            $scopeLevel,
-            $provinceId,
-            $districtId,
-            $institutionId,
-            $employerId,
-            $bp3miCode,
-        ]) {
+        foreach ($accounts as $account) {
+            $username = $account[0];
+            $name = $account[1];
+            $email = $account[2];
+            $roleName = $account[3];
+            $scopeName = $account[4];
+            $scopeLevel = $account[5];
+            $provinceId = $account[6] ?? null;
+            $districtId = $account[7] ?? null;
+            $institutionId = $account[8] ?? null;
+            $employerId = $account[9] ?? null;
+            $bp3miCode = $account[10] ?? null;
             $role = Role::query()->where('name', $roleName)->firstOrFail();
             $user = User::query()->updateOrCreate(
                 ['username' => 'demo-'.$username],

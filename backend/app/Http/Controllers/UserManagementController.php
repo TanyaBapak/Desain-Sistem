@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
@@ -75,7 +76,7 @@ class UserManagementController extends Controller
         $scope = $this->resolveScope($data);
 
         DB::transaction(function () use ($request, $data, $scope): void {
-            $user = User::query()->create([
+            $attributes = [
                 'user_code' => 'USR-'.Str::upper(Str::random(10)),
                 'name' => $data['name'],
                 'username' => $data['username'],
@@ -84,13 +85,17 @@ class UserManagementController extends Controller
                 'scope_level' => $scope['level'],
                 'scope_name' => $scope['name'],
                 'province_id' => $data['provinceId'] ?? null,
-                'bp3mi_code' => $data['role'] === 'task_force' ? $data['bp3miCode'] : null,
                 'district_id' => $data['districtId'] ?? null,
                 'institution_id' => $data['institutionId'] ?? null,
                 'employer_id' => $data['employerId'] ?? null,
                 'status' => 'Aktif',
                 'avatar_initials' => Str::upper(Str::substr($data['name'], 0, 2)),
-            ]);
+            ];
+            if (Schema::hasColumn('users', 'bp3mi_code')) {
+                $attributes['bp3mi_code'] = $data['role'] === 'task_force' ? ($data['bp3miCode'] ?? null) : null;
+            }
+
+            $user = User::query()->create($attributes);
             $role = Role::query()->where('name', $data['role'])->firstOrFail();
             $user->roles()->sync([$role->id]);
             $this->writeAudit($request, $user, 'Pembuatan akun dan penetapan peran.');
@@ -127,12 +132,14 @@ class UserManagementController extends Controller
                 'scope_level' => $scope['level'],
                 'scope_name' => $scope['name'],
                 'province_id' => $data['provinceId'] ?? null,
-                'bp3mi_code' => $data['role'] === 'task_force' ? $data['bp3miCode'] : null,
                 'district_id' => $data['districtId'] ?? null,
                 'institution_id' => $data['institutionId'] ?? null,
                 'employer_id' => $data['employerId'] ?? null,
                 'avatar_initials' => Str::upper(Str::substr($data['name'], 0, 2)),
             ];
+            if (Schema::hasColumn('users', 'bp3mi_code')) {
+                $attributes['bp3mi_code'] = $data['role'] === 'task_force' ? ($data['bp3miCode'] ?? null) : null;
+            }
             if (filled($data['password'] ?? null)) {
                 $attributes['password'] = Hash::make($data['password']);
             }
