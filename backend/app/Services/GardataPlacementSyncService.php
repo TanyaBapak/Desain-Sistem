@@ -796,7 +796,11 @@ class GardataPlacementSyncService
             $registered[] = $tenant;
         }
 
-        if (! app()->runningUnitTests() && $withInitialData && DB::table('job_seekers')->where('external_source', self::SOURCE)->count() === 0) {
+        $hasTenantCandidates = DB::table('job_seekers')
+            ->whereIn('institution_name', ['Omega Cilacap', 'VictoriaHotelSchool', 'DutaInternationalCourse'])
+            ->exists();
+
+        if (! app()->runningUnitTests() && $withInitialData && ! $hasTenantCandidates) {
             $this->seedInitialTenantCandidates();
         }
 
