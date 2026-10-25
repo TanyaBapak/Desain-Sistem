@@ -445,6 +445,7 @@ export interface MonitoringCandidateData {
   id: string;
   fullName: string;
   institutionName?: string | null;
+  subdomain?: string | null;
   nik: string;
   region: string;
   expertise: string | null;

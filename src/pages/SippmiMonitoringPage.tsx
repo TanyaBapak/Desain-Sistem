@@ -154,6 +154,7 @@ const FALLBACK_CANDIDATES: MonitoringCandidateData[] = [
     id: "GDT-OMG-001",
     fullName: "Bagus Prasetyo",
     institutionName: "Omega Cilacap",
+    subdomain: "omegahotelacademy.sippmi.com",
     nik: "3301••••••••0001",
     region: "Kabupaten Cilacap, Jawa Tengah",
     expertise: "Perhotelan & Tata Graha (Housekeeping)",
@@ -165,6 +166,7 @@ const FALLBACK_CANDIDATES: MonitoringCandidateData[] = [
     id: "GDT-OMG-002",
     fullName: "Dewi Anggraini",
     institutionName: "Omega Cilacap",
+    subdomain: "omegahotelacademy.sippmi.com",
     nik: "3301••••••••0002",
     region: "Kabupaten Cilacap, Jawa Tengah",
     expertise: "Food & Beverage Service Specialist",
@@ -176,6 +178,7 @@ const FALLBACK_CANDIDATES: MonitoringCandidateData[] = [
     id: "GDT-OMG-003",
     fullName: "Rizky Ramadhan",
     institutionName: "Omega Cilacap",
+    subdomain: "omegahotelacademy.sippmi.com",
     nik: "3301••••••••0003",
     region: "Kabupaten Cilacap, Jawa Tengah",
     expertise: "Housekeeping & Laundry Specialist",
@@ -187,6 +190,7 @@ const FALLBACK_CANDIDATES: MonitoringCandidateData[] = [
     id: "GDT-OMG-004",
     fullName: "Siti Nurhaliza",
     institutionName: "Omega Cilacap",
+    subdomain: "omegahotelacademy.sippmi.com",
     nik: "3301••••••••0004",
     region: "Kabupaten Cilacap, Jawa Tengah",
     expertise: "F&B Service & Barista",
@@ -198,6 +202,7 @@ const FALLBACK_CANDIDATES: MonitoringCandidateData[] = [
     id: "GDT-OMG-005",
     fullName: "Fajar Pratama",
     institutionName: "Omega Cilacap",
+    subdomain: "omegahotelacademy.sippmi.com",
     nik: "3301••••••••0005",
     region: "Kabupaten Cilacap, Jawa Tengah",
     expertise: "Front Office Specialist",
@@ -210,6 +215,7 @@ const FALLBACK_CANDIDATES: MonitoringCandidateData[] = [
     id: "GDT-VHS-001",
     fullName: "Aris Setiawan",
     institutionName: "VictoriaHotelSchool",
+    subdomain: "victoriahotelschool.sippmi.com",
     nik: "3371••••••••0001",
     region: "Kota Magelang, Jawa Tengah",
     expertise: "Commercial Cookery & Hot Kitchen",
@@ -221,6 +227,7 @@ const FALLBACK_CANDIDATES: MonitoringCandidateData[] = [
     id: "GDT-VHS-002",
     fullName: "Novi Indriani",
     institutionName: "VictoriaHotelSchool",
+    subdomain: "victoriahotelschool.sippmi.com",
     nik: "3371••••••••0002",
     region: "Kota Magelang, Jawa Tengah",
     expertise: "Pastry & Bakery Specialist",
@@ -232,6 +239,7 @@ const FALLBACK_CANDIDATES: MonitoringCandidateData[] = [
     id: "GDT-VHS-003",
     fullName: "Dimas Pratama",
     institutionName: "VictoriaHotelSchool",
+    subdomain: "victoriahotelschool.sippmi.com",
     nik: "3371••••••••0003",
     region: "Kota Magelang, Jawa Tengah",
     expertise: "Asian & Western Cuisine Specialist",
@@ -243,6 +251,7 @@ const FALLBACK_CANDIDATES: MonitoringCandidateData[] = [
     id: "GDT-VHS-004",
     fullName: "Ratna Sari",
     institutionName: "VictoriaHotelSchool",
+    subdomain: "victoriahotelschool.sippmi.com",
     nik: "3371••••••••0004",
     region: "Kota Magelang, Jawa Tengah",
     expertise: "Cold Kitchen & Garde Manger",
@@ -255,6 +264,7 @@ const FALLBACK_CANDIDATES: MonitoringCandidateData[] = [
     id: "GDT-DIC-001",
     fullName: "Hendra Kusuma",
     institutionName: "DutaInternationalCourse",
+    subdomain: "dutainternationalcourse.sippmi.com",
     nik: "3372••••••••0001",
     region: "Kota Surakarta, Jawa Tengah",
     expertise: "Hospitality & Bahasa Jepang (N4/N3)",
@@ -266,6 +276,7 @@ const FALLBACK_CANDIDATES: MonitoringCandidateData[] = [
     id: "GDT-DIC-002",
     fullName: "Maya Safitri",
     institutionName: "DutaInternationalCourse",
+    subdomain: "dutainternationalcourse.sippmi.com",
     nik: "3372••••••••0002",
     region: "Kota Surakarta, Jawa Tengah",
     expertise: "Hospitality & Bahasa Jepang",
@@ -277,6 +288,7 @@ const FALLBACK_CANDIDATES: MonitoringCandidateData[] = [
     id: "GDT-DIC-003",
     fullName: "Aditya Wardana",
     institutionName: "DutaInternationalCourse",
+    subdomain: "dutainternationalcourse.sippmi.com",
     nik: "3372••••••••0003",
     region: "Kota Surakarta, Jawa Tengah",
     expertise: "Bahasa Jepang Terapan & Front Desk",
@@ -286,14 +298,29 @@ const FALLBACK_CANDIDATES: MonitoringCandidateData[] = [
   },
 ];
 
+export function getCandidateSubdomain(candidate: MonitoringCandidateData): string {
+  if (candidate.subdomain) return candidate.subdomain;
+  const inst = (candidate.institutionName || "").toLowerCase();
+  if (inst.includes("omega")) return "omegahotelacademy.sippmi.com";
+  if (inst.includes("victoria")) return "victoriahotelschool.sippmi.com";
+  if (inst.includes("duta")) return "dutainternationalcourse.sippmi.com";
+  return "gardata.sippmi.com";
+}
+
 export function SippmiMonitoringPage({ monitoring }: SippmiMonitoringPageProps) {
   const { currentScope } = useAppStore();
   const [refreshing, setRefreshing] = React.useState(false);
   const [syncing, setSyncing] = React.useState(false);
+  const [selectedSubdomain, setSelectedSubdomain] = React.useState<string>("all");
   const { summary, classes = [], candidates = [], lastSync, tenants = [] } = monitoring;
 
   const displayClasses = classes && classes.length > 0 ? classes : FALLBACK_CLASSES;
   const displayCandidates = candidates && candidates.length > 0 ? candidates : FALLBACK_CANDIDATES;
+
+  const filteredCandidates = React.useMemo(() => {
+    if (selectedSubdomain === "all") return displayCandidates;
+    return displayCandidates.filter((c) => getCandidateSubdomain(c) === selectedSubdomain);
+  }, [displayCandidates, selectedSubdomain]);
 
   const fallbackCandidateMap: Record<string, number> = {
     "omegahotelacademy.sippmi.com": 5,
@@ -562,22 +589,37 @@ export function SippmiMonitoringPage({ monitoring }: SippmiMonitoringPageProps) 
                       </span>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button
-                        asChild
-                        variant="outline"
-                        size="sm"
-                        className="h-8 text-xs font-medium hover:bg-primary hover:text-primary-foreground"
-                      >
-                        <a
-                          href={tenant.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1"
+                      <div className="flex items-center justify-end gap-1.5">
+                        <Button
+                          type="button"
+                          variant={selectedSubdomain === tenant.subdomain ? "default" : "outline"}
+                          size="sm"
+                          className="h-8 text-xs font-medium"
+                          onClick={() => {
+                            setSelectedSubdomain(tenant.subdomain);
+                            document.getElementById("tabel-peserta-subdomain")?.scrollIntoView({ behavior: "smooth" });
+                          }}
                         >
-                          Buka Subdomain
-                          <ExternalLink className="h-3 w-3" />
-                        </a>
-                      </Button>
+                          <Users className="h-3.5 w-3.5 mr-1" />
+                          Lihat Siswa ({tenant.candidateCount})
+                        </Button>
+                        <Button
+                          asChild
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 text-xs font-medium text-muted-foreground hover:text-foreground"
+                        >
+                          <a
+                            href={tenant.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1"
+                            title={`Buka subdomain ${tenant.subdomain}`}
+                          >
+                            <ExternalLink className="h-3 w-3" />
+                          </a>
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -641,58 +683,142 @@ export function SippmiMonitoringPage({ monitoring }: SippmiMonitoringPageProps) 
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader className="flex flex-row items-start justify-between gap-3">
+      <Card id="tabel-peserta-subdomain" className="scroll-mt-6">
+        <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <CardTitle className="text-base">Peserta dari Gardata / Subdomain</CardTitle>
-            <CardDescription>
-              NIK ditampilkan dalam bentuk tersamarkan. Daftar menampilkan hingga 100 peserta terbaru.
+            <div className="flex flex-wrap items-center gap-2">
+              <CardTitle className="text-base">Peserta dari Gardata / Subdomain</CardTitle>
+              {selectedSubdomain !== "all" && (
+                <Badge variant="secondary" className="text-xs font-normal border">
+                  Filter: {selectedSubdomain}
+                </Badge>
+              )}
+            </div>
+            <CardDescription className="mt-1">
+              Data peserta siap latih / siap kerja yang tersinkronisasi dari Gardata Pusat maupun subdomain LPK operasional.
             </CardDescription>
           </div>
-          <Badge variant="outline">{displayCandidates.length} ditampilkan</Badge>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline">{filteredCandidates.length} dari {displayCandidates.length} peserta</Badge>
+            {selectedSubdomain !== "all" && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 text-xs text-muted-foreground hover:text-foreground"
+                onClick={() => setSelectedSubdomain("all")}
+              >
+                Reset Filter
+              </Button>
+            )}
+          </div>
         </CardHeader>
+
+        {/* Filter Bar per Subdomain */}
+        <div className="px-6 pb-3 pt-1 border-b flex flex-wrap items-center gap-2 bg-muted/20">
+          <span className="text-xs font-medium text-muted-foreground mr-1">Filter Subdomain:</span>
+          <button
+            type="button"
+            onClick={() => setSelectedSubdomain("all")}
+            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+              selectedSubdomain === "all"
+                ? "bg-primary text-primary-foreground shadow-sm"
+                : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
+            }`}
+          >
+            Semua Subdomain
+            <span className="rounded-full bg-background/20 px-1.5 py-0.2 text-[10px] font-bold">
+              {displayCandidates.length}
+            </span>
+          </button>
+          {displayTenants.map((t) => {
+            const count = displayCandidates.filter((c) => getCandidateSubdomain(c) === t.subdomain).length;
+            const isSelected = selectedSubdomain === t.subdomain;
+            return (
+              <button
+                key={t.subdomain}
+                type="button"
+                onClick={() => setSelectedSubdomain(isSelected ? "all" : t.subdomain)}
+                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                  isSelected
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
+                }`}
+              >
+                <Building2 className="h-3 w-3" />
+                {t.name}
+                <span className="rounded-full bg-background/20 px-1.5 py-0.2 text-[10px] font-bold">
+                  {count > 0 ? count : t.candidateCount}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Nama Peserta</TableHead>
+                  <TableHead>Subdomain Asal</TableHead>
                   <TableHead>Asal LPK / Lembaga</TableHead>
                   <TableHead>NIK</TableHead>
                   <TableHead>Wilayah</TableHead>
                   <TableHead>Keahlian</TableHead>
                   <TableHead>Negara Tujuan</TableHead>
+                  <TableHead>Kesiapan</TableHead>
                   <TableHead>Verifikasi</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {displayCandidates.length === 0 ? (
+                {filteredCandidates.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="h-24 text-center text-sm text-muted-foreground">
-                      Belum ada peserta Gardata yang dapat ditampilkan.
+                    <TableCell colSpan={9} className="h-24 text-center text-sm text-muted-foreground">
+                      Tidak ada peserta ditemukan untuk filter subdomain ini.
                     </TableCell>
                   </TableRow>
                 ) : (
-                  displayCandidates.map((candidate) => (
-                    <TableRow key={candidate.id}>
-                      <TableCell className="font-medium">{candidate.fullName}</TableCell>
-                      <TableCell className="text-xs font-medium text-foreground">
-                        {candidate.institutionName ? (
-                          <span className="inline-flex items-center gap-1 rounded bg-muted px-2 py-0.5">
-                            <Building2 className="h-3 w-3 text-primary" />
-                            {candidate.institutionName}
-                          </span>
-                        ) : (
-                          <span className="text-muted-foreground">—</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="font-mono text-sm">{candidate.nik}</TableCell>
-                      <TableCell>{candidate.region}</TableCell>
-                      <TableCell>{candidate.expertise || "—"}</TableCell>
-                      <TableCell>{candidate.targetCountry}</TableCell>
-                      <TableCell><Badge variant="secondary">{candidate.status}</Badge></TableCell>
-                    </TableRow>
-                  ))
+                  filteredCandidates.map((candidate) => {
+                    const candidateSubdomain = getCandidateSubdomain(candidate);
+                    return (
+                      <TableRow key={candidate.id}>
+                        <TableCell className="font-medium">{candidate.fullName}</TableCell>
+                        <TableCell>
+                          <a
+                            href={`https://${candidateSubdomain}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 rounded bg-primary/10 text-primary hover:bg-primary/20 px-2 py-0.5 text-xs font-mono transition-colors"
+                            title={`Buka subdomain https://${candidateSubdomain}`}
+                          >
+                            <Globe className="h-3 w-3" />
+                            {candidateSubdomain}
+                            <ExternalLink className="h-2.5 w-2.5 opacity-60" />
+                          </a>
+                        </TableCell>
+                        <TableCell className="text-xs font-medium text-foreground">
+                          {candidate.institutionName ? (
+                            <span className="inline-flex items-center gap-1 rounded bg-muted px-2 py-0.5">
+                              <Building2 className="h-3 w-3 text-primary" />
+                              {candidate.institutionName}
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="font-mono text-sm">{candidate.nik}</TableCell>
+                        <TableCell>{candidate.region}</TableCell>
+                        <TableCell>{candidate.expertise || "—"}</TableCell>
+                        <TableCell>{candidate.targetCountry}</TableCell>
+                        <TableCell>
+                          <Badge variant={candidate.readinessStatus === "JOB_READY" ? "default" : "outline"} className="text-[11px]">
+                            {candidate.readinessStatus === "JOB_READY" ? "Siap Kerja" : "Siap Latih"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell><Badge variant="secondary">{candidate.status}</Badge></TableCell>
+                      </TableRow>
+                    );
+                  })
                 )}
               </TableBody>
             </Table>
