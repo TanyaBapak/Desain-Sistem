@@ -60,8 +60,10 @@ class DevelopmentRoleUsersSeederTest extends TestCase
             'username' => 'admin-demo',
             'password' => Hash::make('existing-local-demo-password'),
         ]);
+        $superAdminRoleId = DB::table('roles')->where('name', 'super_admin')->value('id');
+        $this->assertNotNull($superAdminRoleId);
         DB::table('model_has_roles')->insert([
-            'role_id' => 1,
+            'role_id' => $superAdminRoleId,
             'model_type' => User::class,
             'model_id' => $admin->id,
         ]);
