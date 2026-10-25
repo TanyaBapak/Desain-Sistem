@@ -308,7 +308,7 @@ class ImportVokasiCsv extends Command
         return match (true) {
             str_contains($type, 'smk'), str_contains($type, 'sma') => 'SMK',
             str_contains($type, 'blk'), str_contains($type, 'balai') => 'BLK',
-            str_contains($type, 'lpk'), str_contains($type, 'lsp') => 'LPK',
+            str_contains($type, 'lpk'), str_contains($type, 'lsp'), str_contains($type, 'migrant center') => 'LPK',
             str_contains($type, 'lkp') => 'LKP',
             str_contains($type, 'universitas'),
             str_contains($type, 'politeknik'),
@@ -316,7 +316,7 @@ class ImportVokasiCsv extends Command
             str_contains($type, 'institut'),
             str_contains($type, 'akademi'),
             str_contains($type, 'sekolah tinggi') => 'Perguruan Tinggi / Politeknik',
-            default => null,
+            default => 'LPK',
         };
     }
 
@@ -334,11 +334,17 @@ class ImportVokasiCsv extends Command
 
     private function parseCapacity(string $value, int $rowNumber): ?int
     {
+        $value = trim($value);
+        if ($value === '' || $value === '-' || $value === 'null') {
+            return null;
+        }
         if (preg_match('/^\d{0,3}(?:\.\d{3})+$/', $value) === 1) {
             $value = str_replace('.', '', $value);
         }
         if (! ctype_digit($value)) {
-            throw new RuntimeException("Nilai kapasitas pada baris {$rowNumber} bukan bilangan bulat.");
+            $this->warn("Kapasitas pada baris {$rowNumber} tidak valid ('{$value}') dan akan disimpan sebagai tidak diketahui.");
+
+            return null;
         }
 
         $normalizedValue = ltrim($value, '0');
