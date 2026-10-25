@@ -872,7 +872,7 @@ class BusinessDataPresenter
             return [];
         }
 
-        $canViewGardata = in_array($role, ['super_admin', 'task_force', 'directorate_admin'], true);
+        $canViewGardata = in_array($role, ['super_admin', 'task_force', 'directorate_admin', 'bp3mi_admin', 'placement_officer', 'institution_admin', 'training_operator'], true);
         $externalClasses = DB::table('external_training_records')
             ->whereIn('external_training_records.external_source', ['gardata', 'sippmi'])
             ->when(! $canViewGardata, fn ($query) => $query->whereRaw('1 = 0'));
@@ -916,10 +916,9 @@ class BusinessDataPresenter
                 fn ($query) => $query->where('training_classes.institution_id', $user->institution_id ?? ''),
             )
             ->when(
-                in_array($role, ['bp3mi_admin', 'placement_officer'], true),
-                fn ($query) => $query->where('institutions.province_id', $user->province_id ?? ''),
-            )
-            ;
+                in_array($role, ['bp3mi_admin', 'placement_officer'], true) && filled($user->province_id),
+                fn ($query) => $query->where('institutions.province_id', $user->province_id),
+            );
         if ($role === 'task_force') {
             $this->bp3miScope->applyToInstitutions($localClasses, $user);
         }
@@ -1063,17 +1062,21 @@ class BusinessDataPresenter
         $tenants = collect(GardataPlacementSyncService::KNOWN_SUBDOMAINS)->map(function (array $t): array {
             $inst = DB::table('institutions')->where('external_id', $t['subdomain'])->first();
             $candCount = DB::table('job_seekers')
+                ->whereNull('deleted_at')
                 ->where(function ($q) use ($t) {
                     $q->where('institution_name', $t['name'])
-                        ->orWhere('external_id', 'LIKE', '%'.$t['subdomain'].'%');
+                        ->orWhere('external_id', 'LIKE', '%'.$t['subdomain'].'%')
+                        ->orWhere('external_id', 'LIKE', '%'.substr($t['name'], 0, 5).'%');
                 })
                 ->count();
             $classCount = DB::table('external_training_records')
                 ->where(function ($q) use ($t) {
                     $q->where('batch_name', 'LIKE', '%'.$t['name'].'%')
-                        ->orWhere('program_name', 'LIKE', '%'.$t['name'].'%');
+                        ->orWhere('program_name', 'LIKE', '%'.$t['name'].'%')
+                        ->orWhere('class_code', 'LIKE', '%'.strtoupper(substr($t['name'], 0, 4)).'%');
                 })
-                ->count();
+                ->distinct('external_batch_id')
+                ->count('external_batch_id');
 
             return [
                 'id' => $inst?->id ?? 'tenant-'.$t['subdomain'],

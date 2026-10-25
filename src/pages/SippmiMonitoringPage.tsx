@@ -97,9 +97,18 @@ export function SippmiMonitoringPage({ monitoring }: SippmiMonitoringPageProps) 
                 .replace("kota ", "")
             ))
     ).length;
+
+    const matchedClassesCount = classes.filter(
+      (cls) =>
+        (cls.name && cls.name.toLowerCase().includes(t.name.toLowerCase())) ||
+        (cls.classCode && cls.classCode.toLowerCase().includes(t.name.substring(0, 4).toLowerCase())) ||
+        (cls.sector && cls.sector.toLowerCase().includes(t.name.toLowerCase()))
+    ).length;
+
     return {
       ...t,
       candidateCount: t.candidateCount > 0 ? t.candidateCount : matchedCount,
+      classCount: t.classCount > 0 ? t.classCount : (matchedClassesCount > 0 ? matchedClassesCount : t.classCount),
     };
   });
 

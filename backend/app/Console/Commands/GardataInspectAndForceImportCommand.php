@@ -76,9 +76,11 @@ class GardataInspectAndForceImportCommand extends Command
 
         $this->newLine();
         $this->line("4. Menyinkronkan Sistem Multitenant Subdomain LPK Gardata...");
-        $tenants = $syncService->ensureSubdomainTenantsRegistered();
+        $tenants = $syncService->ensureSubdomainTenantsRegistered(true);
         foreach ($tenants as $t) {
-            $this->line("   ✓ Subdomain LPK: {$t['name']} ({$t['subdomain']}) -> Terdaftar & Aktif.");
+            $candCount = DB::table('job_seekers')->where('institution_name', $t['name'])->count();
+            $classCount = DB::table('external_training_records')->where('batch_name', 'LIKE', '%'.$t['name'].'%')->distinct('external_batch_id')->count('external_batch_id');
+            $this->line("   ✓ Subdomain LPK: {$t['name']} ({$t['subdomain']}) -> Terdaftar & Aktif ({$candCount} peserta, {$classCount} kelas).");
         }
 
         if ($apiKey !== '') {
