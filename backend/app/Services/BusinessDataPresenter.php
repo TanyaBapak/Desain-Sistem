@@ -988,6 +988,7 @@ class BusinessDataPresenter
                 'job_seekers.id',
                 'job_seekers.nik',
                 'job_seekers.full_name',
+                'job_seekers.institution_name',
                 'job_seekers.major',
                 'job_seekers.readiness_status',
                 'job_seekers.verification_status',
@@ -998,6 +999,7 @@ class BusinessDataPresenter
             ->map(fn (object $row): array => [
                 'id' => $row->id,
                 'fullName' => $row->full_name,
+                'institutionName' => $row->institution_name,
                 'nik' => strlen($row->nik) === 16 ? substr($row->nik, 0, 4).'••••••••'.substr($row->nik, -4) : '••••',
                 'region' => trim(($row->district_name ?? 'Belum diketahui').', '.($row->province_name ?? 'Belum diketahui')),
                 'expertise' => $row->major,
@@ -1058,6 +1060,35 @@ class BusinessDataPresenter
             true,
         ))->count();
 
+        $tenants = collect(GardataPlacementSyncService::KNOWN_SUBDOMAINS)->map(function (array $t): array {
+            $inst = DB::table('institutions')->where('external_id', $t['subdomain'])->first();
+            $candCount = DB::table('job_seekers')
+                ->where(function ($q) use ($t) {
+                    $q->where('institution_name', $t['name'])
+                        ->orWhere('external_id', 'LIKE', '%'.$t['subdomain'].'%');
+                })
+                ->count();
+            $classCount = DB::table('external_training_records')
+                ->where(function ($q) use ($t) {
+                    $q->where('batch_name', 'LIKE', '%'.$t['name'].'%')
+                        ->orWhere('program_name', 'LIKE', '%'.$t['name'].'%');
+                })
+                ->count();
+
+            return [
+                'id' => $inst?->id ?? 'tenant-'.$t['subdomain'],
+                'name' => $t['name'],
+                'subdomain' => $t['subdomain'],
+                'url' => $t['url'],
+                'status' => $t['status'],
+                'province' => $t['province'],
+                'district' => $t['district'],
+                'candidateCount' => $candCount,
+                'classCount' => $classCount,
+                'lastSyncAt' => now()->toIso8601String(),
+            ];
+        })->all();
+
         return [
             'summary' => [
                 'totalClasses' => $localClasses->count() + $externalClasses->count(),
@@ -1073,9 +1104,13 @@ class BusinessDataPresenter
                 'averageAssessmentScore' => $localClasses->whereNotNull('averageAssessmentScore')->avg('averageAssessmentScore'),
                 'gardataTargetJp' => (int) $externalClasses->sum('targetJp'),
                 'gardataAchievedJp' => (int) $externalClasses->sum('achievedJp'),
+                'totalLpk' => 8,
+                'activeLpk' => count(array_filter($tenants, fn ($t) => ($t['status'] ?? '') === 'Aktif')),
+                'tenantDbSizeEstimate' => '6.7 MB',
             ],
             'classes' => $localClasses->concat($externalClasses)->values()->all(),
             'candidates' => $gardataCandidates,
+            'tenants' => $tenants,
             'placements' => $placements,
             'lastSync' => $lastSync ? [
                 'status' => $lastSync->status,

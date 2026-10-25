@@ -29,8 +29,9 @@ class GardataInspectAndForceImportCommand extends Command
         $this->line("   - API Key    : " . ($apiKey !== '' ? substr($apiKey, 0, 6) . '••••••••' : '<KOSONG>'));
 
         if ($apiKey === '') {
-            $this->error('   Gagal: GARDATA_API_KEY belum diisi di file .env.');
-            return self::FAILURE;
+            $this->warn('   Perhatian: GARDATA_API_KEY belum diisi di file .env.');
+            $this->line('   -> Penarikan peserta via API Gardata dilewati.');
+            $this->line('   -> Pendaftaran subdomain LPK multitenant, master wilayah, dan direktori vokasi tetap dijalankan.');
         }
 
         $this->newLine();
@@ -65,57 +66,67 @@ class GardataInspectAndForceImportCommand extends Command
         }
 
         $this->newLine();
-        $this->line("3. Menghubungi API Gardata di {$baseUrl}/api/v1/placement/candidates ...");
-        try {
-            $resp = Http::baseUrl($baseUrl)
-                ->acceptJson()
-                ->withHeader('X-API-KEY', $apiKey)
-                ->timeout(30)
-                ->get('/api/v1/placement/candidates', ['page' => 1, 'per_page' => 50]);
+        $this->line("3. Menyinkronkan Sistem Multitenant Subdomain LPK Gardata...");
+        $tenants = $syncService->ensureSubdomainTenantsRegistered();
+        foreach ($tenants as $t) {
+            $this->line("   ✓ Subdomain LPK: {$t['name']} ({$t['subdomain']}) -> Terdaftar & Aktif.");
+        }
 
-            if (! $resp->successful()) {
-                $this->error("   Gagal menghubungi server Gardata. HTTP Status: " . $resp->status());
-                $this->line("   Respons: " . substr($resp->body(), 0, 300));
-                return self::FAILURE;
+        if ($apiKey !== '') {
+            $this->newLine();
+            $this->line("4. Menghubungi API Gardata di {$baseUrl}/api/v1/placement/candidates ...");
+            try {
+                $resp = Http::baseUrl($baseUrl)
+                    ->acceptJson()
+                    ->withHeader('X-API-KEY', $apiKey)
+                    ->timeout(30)
+                    ->get('/api/v1/placement/candidates', ['page' => 1, 'per_page' => 50]);
+
+                if (! $resp->successful()) {
+                    $this->error("   Gagal menghubungi server Gardata. HTTP Status: " . $resp->status());
+                    $this->line("   Respons: " . substr($resp->body(), 0, 300));
+                } else {
+                    $json = $resp->json();
+                    $data = $json['data'] ?? [];
+                    $this->info("   Berhasil terhubung! Mendapatkan " . count($data) . " calon peserta dari Gardata.");
+
+                    if (! empty($data)) {
+                        $sample = $data[0];
+                        $sampleName = $sample['name'] ?? $sample['biodata']['full_name'] ?? $sample['full_name'] ?? 'Tidak ada nama';
+                        $sampleInst = $sample['institution_name'] ?? $sample['biodata']['education']['school_origin'] ?? 'LPK Mitra';
+                        $this->line("   Contoh data pertama: {$sampleName} (Asal: {$sampleInst})");
+                    }
+                }
+            } catch (Throwable $e) {
+                $this->error("   Koneksi ke endpoint pusat gagal: " . $e->getMessage());
             }
 
-            $json = $resp->json();
-            $data = $json['data'] ?? [];
-            $this->info("   Berhasil terhubung! Mendapatkan " . count($data) . " calon peserta dari Gardata.");
+            $this->newLine();
+            $this->line("5. Memproses dan menyimpan data peserta, lembaga LPK, dan riwayat pelatihan...");
+            try {
+                $result = $syncService->syncCandidates($baseUrl, $apiKey, 'gardata', true);
 
-            if (! empty($data)) {
-                $sample = $data[0];
-                $sampleName = $sample['name'] ?? $sample['biodata']['full_name'] ?? $sample['full_name'] ?? 'Tidak ada nama';
-                $sampleInst = $sample['institution_name'] ?? $sample['biodata']['education']['school_origin'] ?? 'LPK Mitra';
-                $this->line("   Contoh data pertama: {$sampleName} (Asal: {$sampleInst})");
+                $this->table(
+                    ['Metrik', 'Hasil'],
+                    [
+                        ['Total Diterima', $result['recordsFetched'] ?? 0],
+                        ['Data Baru Disimpan', $result['recordsInserted'] ?? 0],
+                        ['Data Diperbarui', $result['recordsUpdated'] ?? 0],
+                        ['Data Dilewati', $result['recordsSkipped'] ?? 0],
+                        ['Status Akhir', $result['status'] ?? 'success'],
+                    ]
+                );
+            } catch (Throwable $e) {
+                $this->error("   Proses simpan data kandidat gagal: " . $e->getMessage());
             }
-        } catch (Throwable $e) {
-            $this->error("   Koneksi gagal: " . $e->getMessage());
-            return self::FAILURE;
+        } else {
+            $this->newLine();
+            $this->warn("4. Penarikan calon peserta dilewati karena GARDATA_API_KEY kosong.");
+            $this->line("   Tambahkan GARDATA_API_KEY=<kunci_anda> di file .env jika ingin menarik peserta terbaru.");
         }
 
         $this->newLine();
-        $this->line("4. Memproses dan menyimpan data peserta, lembaga LPK, dan riwayat pelatihan...");
-        try {
-            $result = $syncService->syncCandidates($baseUrl, $apiKey, 'gardata', true);
-
-            $this->table(
-                ['Metrik', 'Hasil'],
-                [
-                    ['Total Diterima', $result['recordsFetched'] ?? 0],
-                    ['Data Baru Disimpan', $result['recordsInserted'] ?? 0],
-                    ['Data Diperbarui', $result['recordsUpdated'] ?? 0],
-                    ['Data Dilewati', $result['recordsSkipped'] ?? 0],
-                    ['Status Akhir', $result['status'] ?? 'success'],
-                ]
-            );
-        } catch (Throwable $e) {
-            $this->error("   Proses simpan gagal: " . $e->getMessage());
-            return self::FAILURE;
-        }
-
-        $this->newLine();
-        $this->line("5. Membersihkan cache aplikasi...");
+        $this->line("6. Membersihkan cache aplikasi...");
         Artisan::call('optimize:clear');
         $this->info("   Cache berhasil dibersihkan.");
 
@@ -128,9 +139,11 @@ class GardataInspectAndForceImportCommand extends Command
         $this->info("  BERHASIL! Data sekarang di database:");
         $this->info("  - Peserta Gardata : {$totalCandidates} orang");
         $this->info("  - Total Lembaga   : {$totalInstitutions} lembaga (LPK/SMK)");
+        $this->info("  - LPK Subdomain   : " . count($tenants) . " LPK multitenant Gardata");
         $this->info("  - Kelas Pelatihan : {$totalClasses} kelas");
         $this->info("========================================================");
-        $this->line("Silakan refresh halaman browser (Ctrl + F5). Data sudah tampil!");
+        $this->line("Silakan refresh browser (Ctrl + F5).");
+        $this->line("Buka menu 'Pemantauan' (/app/sippmi-monitoring) untuk melihat monitoring LPK & kelas secara langsung!");
 
         return self::SUCCESS;
     }

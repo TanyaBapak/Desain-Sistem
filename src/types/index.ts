@@ -439,12 +439,26 @@ export interface MonitoringClassData {
 export interface MonitoringCandidateData {
   id: string;
   fullName: string;
+  institutionName?: string | null;
   nik: string;
   region: string;
   expertise: string | null;
   targetCountry: string;
   status: string;
   readinessStatus: string;
+}
+
+export interface MonitoringTenantLpk {
+  id: string;
+  name: string;
+  subdomain: string;
+  url: string;
+  status: 'Aktif' | 'Nonaktif' | string;
+  province?: string;
+  district?: string;
+  candidateCount: number;
+  classCount: number;
+  lastSyncAt: string | null;
 }
 
 export interface MonitoringData {
@@ -457,9 +471,13 @@ export interface MonitoringData {
     averageAssessmentScore: number | null;
     gardataTargetJp: number;
     gardataAchievedJp: number;
+    totalLpk?: number;
+    activeLpk?: number;
+    tenantDbSizeEstimate?: string;
   };
   classes: MonitoringClassData[];
   candidates: MonitoringCandidateData[];
+  tenants?: MonitoringTenantLpk[];
   placements: {
     id: string;
     candidateName: string;

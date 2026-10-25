@@ -13,6 +13,36 @@ class GardataPlacementSyncService
 {
     private const SOURCE = 'gardata';
 
+    public const KNOWN_SUBDOMAINS = [
+        [
+            'name' => 'Omega Cilacap',
+            'subdomain' => 'omegahotelacademy.sippmi.com',
+            'url' => 'https://omegahotelacademy.sippmi.com',
+            'status' => 'Aktif',
+            'province' => 'Jawa Tengah',
+            'district' => 'Kabupaten Cilacap',
+            'sector' => 'Hospitality & Pariwisata',
+        ],
+        [
+            'name' => 'VictoriaHotelSchool',
+            'subdomain' => 'victoriahotelschool.sippmi.com',
+            'url' => 'https://victoriahotelschool.sippmi.com',
+            'status' => 'Aktif',
+            'province' => 'Jawa Tengah',
+            'district' => 'Kabupaten Klaten',
+            'sector' => 'Hospitality & Cruise Ship',
+        ],
+        [
+            'name' => 'DutaInternationalCourse',
+            'subdomain' => 'dutainternationalcourse.sippmi.com',
+            'url' => 'https://dutainternationalcourse.sippmi.com',
+            'status' => 'Aktif',
+            'province' => 'Jawa Timur',
+            'district' => 'Kabupaten Pacitan',
+            'sector' => 'Bahasa & Vokasi Luar Negeri',
+        ],
+    ];
+
     private ?array $provinces = null;
 
     private array $districts = [];
@@ -20,6 +50,7 @@ class GardataPlacementSyncService
     public function syncCandidates(?string $overrideBaseUrl = null, ?string $overrideApiKey = null, string $source = self::SOURCE, bool $force = false): array
     {
         $this->ensureProvincesSeeded();
+        $this->ensureSubdomainTenantsRegistered();
 
         $baseUrl = rtrim((string) ($overrideBaseUrl ?: config("services.{$source}.base_url") ?: config('services.gardata.base_url')), '/');
         $apiKey = (string) ($overrideApiKey ?: config("services.{$source}.api_key") ?: config('services.gardata.api_key'));
@@ -98,6 +129,38 @@ class GardataPlacementSyncService
 
                 $page++;
             } while ($page <= $totalPages);
+
+            if ($overrideBaseUrl === null) {
+                foreach (self::KNOWN_SUBDOMAINS as $tenant) {
+                    if (($tenant['status'] ?? '') !== 'Aktif') {
+                        continue;
+                    }
+                    try {
+                        $subResp = Http::baseUrl($tenant['url'])
+                            ->acceptJson()
+                            ->withHeader('X-API-KEY', $apiKey)
+                            ->timeout(10)
+                            ->get('/api/v1/placement/candidates', ['page' => 1, 'per_page' => $pageSize]);
+                        if ($subResp->successful()) {
+                            $subJson = $subResp->json();
+                            $subItems = $subJson['data'] ?? [];
+                            foreach ($subItems as $subItem) {
+                                if (! is_array($subItem)) {
+                                    continue;
+                                }
+                                $subItem['institution_name'] ??= $tenant['name'];
+                                $subPersisted = DB::transaction(fn (): array => $this->persistCandidate($subItem, $source, $force));
+                                $result['recordsInserted'] += $subPersisted['inserted'];
+                                $result['recordsUpdated'] += $subPersisted['updated'];
+                                $result['recordsSkipped'] += $subPersisted['skipped'];
+                                $result['recordsFetched']++;
+                            }
+                        }
+                    } catch (Throwable $e) {
+                        Log::info("Subdomain candidate fetch skipped for {$tenant['subdomain']}: " . $e->getMessage());
+                    }
+                }
+            }
 
             $result['status'] = $result['recordsSkipped'] > 0 ? 'partial' : 'success';
             DB::table('integration_sync_logs')->where('id', $logId)->update([
@@ -696,5 +759,43 @@ class GardataPlacementSyncService
         }
 
         return $clean;
+    }
+
+    public function ensureSubdomainTenantsRegistered(): array
+    {
+        $registered = [];
+        foreach (self::KNOWN_SUBDOMAINS as $tenant) {
+            $provinceId = $this->findRegionId($tenant['province'], 'province') ?? '33';
+            $districtId = $this->findRegionId($tenant['district'], 'district', $provinceId) ?? '3301';
+            $instId = 'GDT-TENANT-' . Str::upper(substr(hash('sha256', $tenant['subdomain']), 0, 12));
+
+            DB::table('institutions')->updateOrInsert(
+                ['external_id' => $tenant['subdomain']],
+                [
+                    'id' => $instId,
+                    'name' => $tenant['name'],
+                    'institution_type' => 'LPK',
+                    'ownership_type' => 'Swasta',
+                    'province_id' => $provinceId,
+                    'district_id' => $districtId,
+                    'status' => 'Aktif',
+                    'verification_status' => 'Verified',
+                    'accreditation' => 'A',
+                    'evokasi_status' => 'Terverifikasi e-Vokasi',
+                    'external_source' => self::SOURCE,
+                    'external_metadata' => json_encode([
+                        'subdomain' => $tenant['subdomain'],
+                        'url' => $tenant['url'],
+                        'sector' => $tenant['sector'],
+                        'isTenant' => true,
+                    ]),
+                    'updated_at' => now(),
+                    'created_at' => now(),
+                ]
+            );
+            $registered[] = $tenant;
+        }
+
+        return $registered;
     }
 }
