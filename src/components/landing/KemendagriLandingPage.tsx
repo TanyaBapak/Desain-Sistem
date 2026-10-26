@@ -28,12 +28,8 @@ interface KemendagriLandingPageProps {
   projection: LandingProjectionData;
 }
 
-const LANDING_KPI_FIELDS = [
-  { key: "readyForPlacement", label: "Suplai tersedia" },
-  { key: "activeTrainingPrograms", label: "Program pelatihan" },
-  { key: "activeVocationalInstitutions", label: "Vokasi tersedia" },
-  { key: "validatedDemandCount", label: "Demand" },
-] as const;
+const TRAINING_SECTORS = ["Hospitality", "Manufaktur", "Kesehatan", "Konstruksi"];
+const DEMAND_COUNTRIES = ["Turki", "Jepang", "Malaysia", "Korea"];
 
 const WIB_DATE_TIME_FORMAT = new Intl.DateTimeFormat("id-ID", {
   weekday: "long",
@@ -52,7 +48,6 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({ kp
     setViewMode,
   } = useAppStore();
 
-  const [activeSlide, setActiveSlide] = useState(0);
   const [currentTime, setCurrentTime] = useState<Date | null>(null);
 
   useEffect(() => {
@@ -63,24 +58,9 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({ kp
     return () => window.clearInterval(intervalId);
   }, []);
 
-  const slides = [
-    {
-      badge: 'PROGRAM PRIORITAS NASIONAL 2026-2029',
-      title: 'TASK FORCE PERCEPATAN SMK GO GLOBAL 2026',
-      subtitle: 'Integrasi terpadu pemetaan kurikulum SMK/Politeknik, verifikasi e-Vokasi, dan pemenuhan demand kerja resmi di Jepang, Jerman, Korea Selatan, dan Taiwan.',
-      ctaText: 'Masuk ke Sistem Aplikasi',
-      tag: 'Kementerian P2MI RI'
-    },
-    {
-      badge: 'STANDARDISASI KOMPETENSI INTERNASIONAL',
-      title: 'Penyelarasan Kurikulum Vokasi Sesuai Standar SSW Kaigo & Welder JIS',
-      subtitle: 'Memastikan seluruh calon pekerja migran lulusan vokasi memiliki sertifikasi BNSP terlisensi dan kemahiran bahasa kerja sebelum penempatan.',
-      ctaText: 'Pelajari 4 Modul Intelijen',
-      tag: 'Kerja Sama Bilateral'
-    }
-  ];
-
-  const validatedDemands = kpiSummary.metrics.find((metric) => metric.key === "validatedDemandCount");
+  const vocationalCount = kpiSummary.metrics.find(
+    (metric) => metric.key === "activeVocationalInstitutions",
+  )?.value;
 
   const handleSelectRole = (roleId: UserRole) => {
     void roleId;
@@ -250,15 +230,15 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({ kp
           <div className="lg:col-span-8 space-y-4">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-600/20 border border-red-500/40 text-red-300 text-xs font-bold uppercase tracking-wider">
               <ShieldCheck className="w-4 h-4 text-red-400" />
-              <span>{slides[activeSlide].badge}</span>
+              <span>PROGRAM PRIORITAS NASIONAL</span>
             </div>
 
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white leading-tight tracking-tight">
-              {slides[activeSlide].title}
+              SMK GO GLOBAL
             </h2>
 
             <p className="text-sm sm:text-base text-slate-300 max-w-2xl leading-relaxed">
-              {slides[activeSlide].subtitle}
+              Sistem Intelijen Penempatan PMI Terpadu Berbasis Pendidikan Vokasi
             </p>
 
             {/* Quick Action Button Group: SSO */}
@@ -282,54 +262,60 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({ kp
             </div>
           </div>
 
-          {/* Right Live Statistics Card */}
+          {/* Right program overview card */}
           <div className="lg:col-span-4 bg-slate-900/90 border border-slate-800 rounded-2xl p-6 shadow-2xl backdrop-blur-md space-y-4">
             <div className="border-b border-slate-800 pb-3">
               <span className="text-[10px] font-bold uppercase tracking-wider text-blue-400 block">
-                STATISTIK NASIONAL TERPADU
+                INFORMASI PROGRAM
               </span>
               <h3 className="text-base font-bold text-white mt-0.5">
-                Capaian Penempatan Vokasi Global
+                Suplai, Pelatihan, dan Demand
               </h3>
             </div>
 
             <div className="space-y-3 text-xs">
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                {LANDING_KPI_FIELDS.map(({ key, label }) => {
-                  const metric = kpiSummary.metrics.find((item) => item.key === key);
-                  if (!metric) {
-                    return null;
-                  }
+              <article className="rounded-xl border border-slate-700/60 bg-slate-800/80 p-3">
+                <span className="block font-bold uppercase text-slate-400">Suplai tersedia</span>
+                <p className="mt-1 text-2xl font-extrabold tabular-nums text-white">12.600</p>
+              </article>
 
-                  const achievement = metric.target
-                    ? Math.round((metric.value / metric.target) * 100)
-                    : null;
+              <article className="rounded-xl border border-slate-700/60 bg-slate-800/80 p-3">
+                <span className="block font-bold uppercase text-slate-400">Program Pelatihan</span>
+                <ul className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5 text-slate-200">
+                  {TRAINING_SECTORS.map((sector) => (
+                    <li key={sector} className="before:mr-1.5 before:content-['•']">
+                      {sector}
+                    </li>
+                  ))}
+                </ul>
+              </article>
 
-                  return (
-                    <article
-                      key={metric.key}
-                      className="min-w-0 rounded-xl border border-slate-700/60 bg-slate-800/80 p-3"
-                    >
-                      <span className="block text-xs font-bold uppercase leading-relaxed text-slate-400">
-                        {label} {metric.key === "validatedDemandCount" ? kpiSummary.year : ""}
-                      </span>
-                      <p className="mt-1 text-base font-extrabold tabular-nums text-white">
-                        {metric.value.toLocaleString("id-ID")} / {metric.target?.toLocaleString("id-ID") ?? "—"}
-                      </p>
-                      <p className="mt-0.5 text-xs font-semibold text-slate-300">
-                        {achievement === null
-                          ? "Target belum diatur"
-                          : `Tercapai ${achievement.toLocaleString("id-ID")}% dari target`}
-                      </p>
-                    </article>
-                  );
-                })}
-              </div>
+              <article className="rounded-xl border border-slate-700/60 bg-slate-800/80 p-3">
+                <span className="block font-bold uppercase text-slate-400">Vokasi</span>
+                <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 font-semibold text-white">
+                  <span>
+                    Jumlah kelas: <span className="tabular-nums">630</span>
+                  </span>
+                  <span>
+                    Jumlah vokasi:{" "}
+                    <span className="tabular-nums">
+                      {vocationalCount?.toLocaleString("id-ID") ?? "—"}
+                    </span>
+                  </span>
+                </div>
+              </article>
+
+              <article className="rounded-xl border border-slate-700/60 bg-slate-800/80 p-3">
+                <span className="block font-bold uppercase text-slate-400">Permintaan / Demand</span>
+                <ul className="mt-2 flex flex-wrap gap-x-3 gap-y-1.5 text-slate-200">
+                  {DEMAND_COUNTRIES.map((country) => (
+                    <li key={country} className="before:mr-1.5 before:content-['•']">
+                      {country}
+                    </li>
+                  ))}
+                </ul>
+              </article>
             </div>
-
-            <p className="text-[10px] text-slate-500 text-center pt-1">
-              Target tahunan dikelola superadmin. Permintaan tervalidasi dihitung dari demand berstatus disetujui pada tahun berjalan.
-            </p>
           </div>
         </div>
       </section>
