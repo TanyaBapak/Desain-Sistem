@@ -20,10 +20,31 @@ class UserManagementController extends Controller
     {
         $this->authorizeSuperAdmin($request);
 
-        $users = User::query()
-            ->with('roles:id,name,title')
-            ->orderBy('name')
-            ->paginate(15);
+        $roleFilter = $request->query('role');
+        $search = $request->query('search');
+
+        $query = User::query()
+            ->with('roles:id,name,title');
+
+        if ($roleFilter && $roleFilter !== 'all') {
+            $query->whereHas('roles', function ($q) use ($roleFilter): void {
+                $q->where('name', $roleFilter);
+            });
+        }
+
+        if ($search && trim((string) $search) !== '') {
+            $keyword = trim((string) $search);
+            $query->where(function ($q) use ($keyword): void {
+                $q->where('name', 'like', "%{$keyword}%")
+                    ->orWhere('email', 'like', "%{$keyword}%")
+                    ->orWhere('username', 'like', "%{$keyword}%");
+            });
+        }
+
+        $users = $query->orderBy('name')
+            ->paginate(15)
+            ->withQueryString();
+
         $users->through(fn (User $user): array => [
             'id' => (string) $user->id,
             'name' => $user->name,
@@ -45,8 +66,13 @@ class UserManagementController extends Controller
             'currentPage' => $users->currentPage(),
             'lastPage' => $users->lastPage(),
             'total' => $users->total(),
+            'selectedRole' => (string) ($roleFilter ?? ''),
+            'search' => (string) ($search ?? ''),
             'roles' => Role::query()
                 ->where('name', '!=', 'super_admin')
+                ->orderBy('title')
+                ->get(['name', 'title']),
+            'filterRoles' => Role::query()
                 ->orderBy('title')
                 ->get(['name', 'title']),
             'provinces' => DB::table('provinces')->orderBy('name')->get(['id', 'name']),

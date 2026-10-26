@@ -450,6 +450,30 @@ class UserManagementTest extends TestCase
         $this->assertDatabaseHas('users', ['id' => $user->id, 'status' => 'Nonaktif']);
     }
 
+    public function test_super_admin_can_filter_users_by_role_and_keyword(): void
+    {
+        $admin = $this->userWithRole('super_admin', ['name' => 'Admin Utama', 'email' => 'admin@test.invalid']);
+        $pimpinan = $this->userWithRole('leadership', ['name' => 'Bapak Menteri', 'email' => 'menteri@test.invalid']);
+        $operator = $this->userWithRole('district_admin', ['name' => 'Operator Disnaker', 'email' => 'disnaker@test.invalid']);
+
+        $this->actingAs($admin)
+            ->get('/app/rbac?role=leadership')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('adminUsers.total', 1)
+                ->where('adminUsers.selectedRole', 'leadership')
+                ->where('adminUsers.data.0.name', 'Bapak Menteri')
+                ->has('adminUsers.filterRoles'));
+
+        $this->actingAs($admin)
+            ->get('/app/rbac?search=Disnaker')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('adminUsers.total', 1)
+                ->where('adminUsers.search', 'Disnaker')
+                ->where('adminUsers.data.0.name', 'Operator Disnaker'));
+    }
+
     private function userWithRole(string $roleName, array $attributes = []): User
     {
         $user = User::factory()->create($attributes);

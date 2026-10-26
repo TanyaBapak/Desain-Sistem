@@ -19,7 +19,10 @@ export interface UserManagementData {
   currentPage: number;
   lastPage: number;
   total: number;
+  selectedRole?: string;
+  search?: string;
   roles: { name: string; title: string }[];
+  filterRoles?: { name: string; title: string }[];
   provinces: { id: string; name: string }[];
   districts: { id: string; province_id: string; name: string }[];
   institutions: { id: string; name: string }[];
