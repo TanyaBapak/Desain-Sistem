@@ -175,6 +175,57 @@ class DashboardTargetTest extends TestCase
                 }));
     }
 
+    public function test_public_korea_south_projection_uses_only_the_six_hundred_fisherman_target(): void
+    {
+        $projection = app(\App\Services\BusinessDataPresenter::class)->publicLandingProjection(2027);
+
+        $korea = collect($projection['countries'])->first(
+            fn (array $country): bool => $country['name'] === 'Korea Selatan',
+        );
+        $koreaSectors = collect($projection['sectors'])
+            ->filter(fn (array $sector): bool => str_starts_with($sector['name'], 'Korea Selatan ·'));
+        $koreaTargets = collect($projection['placementTargets'])
+            ->filter(fn (array $target): bool => $target['projectionPlacement'] === 'Korea Selatan');
+
+        $this->assertNotNull($korea);
+        $this->assertSame(600, $korea['target']);
+        $this->assertSame(600, $koreaSectors->sum('target'));
+        $this->assertSame(
+            ['Sertifikasi Teknis' => 600],
+            $koreaSectors->mapWithKeys(fn (array $sector): array => [
+                substr($sector['name'], strlen('Korea Selatan · ')) => $sector['target'],
+            ])->all(),
+        );
+        $this->assertSame(1, $koreaTargets->count());
+        $this->assertSame('ABK Fishermen', $koreaTargets->first()['occupationName']);
+        $this->assertSame(600, $koreaTargets->first()['target']);
+    }
+
+    public function test_public_japan_malaysia_and_turkey_targets_match_country_totals(): void
+    {
+        $projection = app(\App\Services\BusinessDataPresenter::class)->publicLandingProjection(2027);
+
+        foreach (['Jepang' => 2000, 'Malaysia' => 5000, 'Turki' => 5000] as $countryName => $target) {
+            $country = collect($projection['countries'])->first(
+                fn (array $item): bool => $item['name'] === $countryName,
+            );
+            $sectors = collect($projection['sectors'])
+                ->filter(fn (array $item): bool => str_starts_with($item['name'], "{$countryName} ·"));
+            $placementTargets = collect($projection['placementTargets'])
+                ->filter(function (array $item) use ($countryName): bool {
+                    $destination = preg_replace('/\\s*\\([^)]*\\)/u', '', $item['projectionPlacement'])
+                        ?? $item['projectionPlacement'];
+
+                    return mb_strtolower(trim($destination)) === mb_strtolower($countryName);
+                });
+
+            $this->assertNotNull($country, "{$countryName} must be present in public projection.");
+            $this->assertSame($target, $country['target']);
+            $this->assertSame($target, $sectors->sum('target'));
+            $this->assertSame($target, $placementTargets->sum('target'));
+        }
+    }
+
     public function test_only_super_admin_can_change_manual_landing_target(): void
     {
         $this->actingAs($this->userWithRole('leadership'))
@@ -241,6 +292,18 @@ class DashboardTargetTest extends TestCase
                     )
                         && $countries->contains(
                             fn (array $row): bool => str_ends_with($row['name'], 'Turki')
+                                && $row['target'] === 100,
+                        );
+                })
+                ->where('landingProjection.sectors', function ($rows): bool {
+                    $sectors = collect($rows);
+
+                    return $sectors->contains(
+                        fn (array $row): bool => str_ends_with($row['name'], 'Turki · Kesehatan')
+                            && $row['target'] === 100,
+                    )
+                        && $sectors->contains(
+                            fn (array $row): bool => str_ends_with($row['name'], 'Jepang · Kesehatan')
                                 && $row['target'] === 100,
                         );
                 })
@@ -326,7 +389,7 @@ class DashboardTargetTest extends TestCase
             'projection_placement' => 'Jepang (SSW)',
             'target' => 555,
         ]);
-        $this->assertDatabaseCount('landing_placement_targets', 40);
+        $this->assertDatabaseCount('landing_placement_targets', 41);
     }
 
     public function test_existing_program_placement_target_can_be_updated_by_selected_period(): void
@@ -358,7 +421,7 @@ class DashboardTargetTest extends TestCase
             'projection_placement' => 'Jepang (SSW), Taiwan',
             'target' => 600,
         ]);
-        $this->assertDatabaseCount('landing_placement_targets', 40);
+        $this->assertDatabaseCount('landing_placement_targets', 41);
     }
 
     public function test_target_and_processed_quota_are_scoped_to_the_selected_year(): void
@@ -533,14 +596,14 @@ class DashboardTargetTest extends TestCase
                 ->has('landingProjection.countries', 5)
                 ->where('landingProjection.countries', fn ($rows): bool => collect($rows)->contains(
                     fn (array $row): bool => $row['name'] === 'Jepang'
-                        && $row['target'] === 18
+                        && $row['target'] === 540
                         && $row['achieved'] === 8
-                        && $row['projected'] === 10,
+                        && $row['projected'] === 532,
                 ))
-                ->where('landingProjection.sectors.0.name', 'Jepang · Manufaktur / Pengelasan')
-                ->where('landingProjection.sectors.0.target', 18)
-                ->where('landingProjection.sectors.0.achieved', 8)
-                ->where('landingProjection.sectors.0.projected', 10)
+                ->where('landingProjection.sectors.0.name', 'Jepang · Kesehatan')
+                ->where('landingProjection.sectors.0.target', 540)
+                ->where('landingProjection.sectors.0.achieved', 0)
+                ->where('landingProjection.sectors.0.projected', 540)
                 ->where('landingProjection.placementTargets.0.sectorName', 'Kesehatan')
                 ->where('landingProjection.placementTargets.0.occupationName', 'Caregiver (lvl pelaksana)')
                 ->where('landingProjection.placementTargets.0.projectionPlacement', 'Jepang (SSW)')
@@ -555,9 +618,9 @@ class DashboardTargetTest extends TestCase
                     fn (array $row): bool => $row['name'] === "{$year} · Jepang",
                 ))
                 ->where('landingProjection.sectors', fn ($rows): bool => collect($rows)->contains(
-                    fn (array $row): bool => $row['name'] === "{$year} · Jepang · Manufaktur / Pengelasan"
-                        && $row['target'] === 18
-                        && $row['achieved'] === 8,
+                    fn (array $row): bool => $row['name'] === "{$year} · Jepang · Kesehatan"
+                        && $row['target'] === 540
+                        && $row['achieved'] === 0,
                 ))
                 ->where('landingProjection.placementTargets', fn ($rows): bool => collect($rows)->contains(
                     fn (array $row): bool => $row['year'] === $year
@@ -569,7 +632,7 @@ class DashboardTargetTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->where('landingProjection.year', 2027)
-                ->has('landingProjection.placementTargets', 100)
+                ->has('landingProjection.placementTargets', 96)
                 ->where('landingProjection.placementTargets', fn ($rows): bool => collect($rows)
                     ->pluck('sectorName')
                     ->unique()

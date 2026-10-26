@@ -10,6 +10,14 @@ use Illuminate\Support\Str;
 
 class BusinessDataPresenter
 {
+    private const SEEDED_PLACEMENT_TARGET_YEAR = 2027;
+
+    private const PUBLIC_PLACEMENT_COUNTRY_TARGETS = [
+        'jepang' => 2000,
+        'malaysia' => 5000,
+        'turki' => 5000,
+    ];
+
     private const COUNTRY_ALIASES = [
         'singapur' => ['Singapura', 'Singapore'],
         'singapura' => ['Singapura', 'Singapore'],
@@ -102,6 +110,18 @@ class BusinessDataPresenter
             $this->dashboardTargetService->landingPlacementProjection(null),
             $allowedCountryNames,
         );
+        $allPlacementTargets = array_values(array_filter(
+            $allPlacementTargets,
+            function (array $item): bool {
+                $countryName = preg_replace('/\\s*\\([^)]*\\)/u', '', $item['projectionPlacement'])
+                    ?? $item['projectionPlacement'];
+
+                return $this->normalizeCountryName($countryName) !== 'korea selatan'
+                    || ($item['sectorName'] === 'Sertifikasi Teknis'
+                        && $item['occupationName'] === 'ABK Fishermen');
+            },
+        ));
+        $allPlacementTargets = $this->scalePublicPlacementCountryTargets($allPlacementTargets);
         $placementCountryTargets = $this->placementCountryTargets($allPlacementTargets);
         $placementCountryTargets = array_filter(
             $placementCountryTargets,
@@ -111,18 +131,60 @@ class BusinessDataPresenter
                 true,
             ),
         );
+        $placementCountryPeriods = [];
+        $placementSectorTargets = [];
+        foreach ($placementCountryTargets as $placementTarget) {
+            $countryKey = $this->normalizeCountryName($placementTarget['countryName']);
+            $periodKey = "{$placementTarget['year']}|{$countryKey}";
+            $placementCountryPeriods[$periodKey] = true;
+
+            foreach ($placementTarget['sectors'] as $sectorName => $target) {
+                $sectorKey = "{$periodKey}|".$this->normalizeCountryName($sectorName);
+                $placementSectorTargets[$sectorKey] = [
+                    'year' => $placementTarget['year'],
+                    'countryId' => $placementTarget['countryId'],
+                    'countryName' => $placementTarget['countryName'],
+                    'sectorName' => $sectorName,
+                    'target' => $target,
+                ];
+            }
+        }
+        $existingSectorPerformance = collect($sectorPerformance)
+            ->keyBy(fn (array $item): string => "{$item['year']}|"
+                .$this->normalizeCountryName($item['countryName'])."|"
+                .$this->normalizeCountryName($item['sectorName']))
+            ->all();
+        $sectorPerformance = array_values(array_filter(
+            $sectorPerformance,
+            fn (array $item): bool => ! isset(
+                $placementCountryPeriods["{$item['year']}|".$this->normalizeCountryName($item['countryName'])],
+            ),
+        ));
+        foreach ($placementSectorTargets as $key => $placementTarget) {
+            $existing = $existingSectorPerformance[$key] ?? null;
+            $achieved = $existing['achieved'] ?? 0;
+            $target = $placementTarget['target'];
+            $sectorPerformance[] = [
+                ...$placementTarget,
+                'achieved' => $achieved,
+                'projected' => max(0, $target - $achieved),
+                'percentage' => $target > 0 ? round(($achieved / $target) * 100, 1) : 0.0,
+            ];
+        }
+
         $countryPerformanceByPeriod = collect($countryPerformance)
             ->keyBy(fn (array $item): string => "{$item['year']}|{$item['countryId']}")
             ->all();
         foreach ($placementCountryTargets as $key => $placementTarget) {
             if (isset($countryPerformanceByPeriod[$key])) {
-                if ($countryPerformanceByPeriod[$key]['target'] === 0) {
-                    $countryPerformanceByPeriod[$key]['target'] = $placementTarget['target'];
-                }
+                $countryPerformanceByPeriod[$key]['target'] = $placementTarget['target'];
                 $countryPerformanceByPeriod[$key]['projected'] = max(
                     0,
                     $countryPerformanceByPeriod[$key]['target'] - $countryPerformanceByPeriod[$key]['achieved'],
                 );
+                $countryPerformanceByPeriod[$key]['percentage'] = $placementTarget['target'] > 0
+                    ? round(($countryPerformanceByPeriod[$key]['achieved'] / $placementTarget['target']) * 100, 1)
+                    : 0.0;
 
                 continue;
             }
@@ -217,7 +279,7 @@ class BusinessDataPresenter
 
     /**
      * @param  array<int, array{year: int, sectorName: string, occupationName: string, projectionPlacement: string, target: int}>  $placementTargets
-     * @return array<string, array{year: int, countryId: string|null, countryName: string, target: int}>
+     * @return array<string, array{year: int, countryId: string|null, countryName: string, target: int, sectors: array<string, int>}>
      */
     private function placementCountryTargets(array $placementTargets): array
     {
@@ -273,8 +335,12 @@ class BusinessDataPresenter
                     'countryId' => $country['id'],
                     'countryName' => $country['name'],
                     'target' => 0,
+                    'sectors' => [],
                 ];
-                $targetsByCountry[$key]['target'] += $baseTarget + ($index < $remainingTarget ? 1 : 0);
+                $targetShare = $baseTarget + ($index < $remainingTarget ? 1 : 0);
+                $targetsByCountry[$key]['target'] += $targetShare;
+                $targetsByCountry[$key]['sectors'][$placementTarget['sectorName']] =
+                    ($targetsByCountry[$key]['sectors'][$placementTarget['sectorName']] ?? 0) + $targetShare;
             }
         }
 
@@ -284,6 +350,58 @@ class BusinessDataPresenter
     private function normalizeCountryName(string $name): string
     {
         return mb_strtolower(trim($name));
+    }
+
+    /**
+     * @param  array<int, array{year: int, sectorName: string, occupationName: string, projectionPlacement: string, target: int}>  $targets
+     * @return array<int, array{year: int, sectorName: string, occupationName: string, projectionPlacement: string, target: int}>
+     */
+    private function scalePublicPlacementCountryTargets(array $targets): array
+    {
+        $targetIndexesByCountry = [];
+        foreach ($targets as $index => $target) {
+            if ($target['year'] !== self::SEEDED_PLACEMENT_TARGET_YEAR) {
+                continue;
+            }
+
+            $countryName = preg_replace('/\\s*\\([^)]*\\)/u', '', $target['projectionPlacement'])
+                ?? $target['projectionPlacement'];
+            $normalizedCountry = $this->normalizeCountryName($countryName);
+            if (isset(self::PUBLIC_PLACEMENT_COUNTRY_TARGETS[$normalizedCountry])) {
+                $targetIndexesByCountry[$normalizedCountry][] = $index;
+            }
+        }
+
+        foreach ($targetIndexesByCountry as $countryName => $indexes) {
+            $sourceTotal = array_sum(array_map(
+                fn (int $index): int => $targets[$index]['target'],
+                $indexes,
+            ));
+            if ($sourceTotal === 0) {
+                continue;
+            }
+
+            $countryTarget = self::PUBLIC_PLACEMENT_COUNTRY_TARGETS[$countryName];
+            $remainders = [];
+            $allocatedTotal = 0;
+            foreach ($indexes as $index) {
+                $weightedTarget = $targets[$index]['target'] * $countryTarget;
+                $targets[$index]['target'] = intdiv($weightedTarget, $sourceTotal);
+                $allocatedTotal += $targets[$index]['target'];
+                $remainders[$index] = $weightedTarget % $sourceTotal;
+            }
+
+            $remainingTarget = $countryTarget - $allocatedTotal;
+            if ($remainingTarget > 0) {
+                uksort($remainders, fn (int $left, int $right): int => $remainders[$right] <=> $remainders[$left]
+                    ?: $left <=> $right);
+                foreach (array_slice(array_keys($remainders), 0, $remainingTarget) as $index) {
+                    $targets[$index]['target']++;
+                }
+            }
+        }
+
+        return $targets;
     }
 
     public function make(User $user, array $filters = []): array

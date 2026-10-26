@@ -28,14 +28,12 @@ interface KemendagriLandingPageProps {
   projection: LandingProjectionData;
 }
 
-const KPI_LABELS: Record<string, string> = {
-  registeredJobSeekers: "Pencari kerja terdaftar",
-  readyForPlacement: "Siap penempatan",
-  activeTrainingPrograms: "Program pelatihan aktif",
-  activeVocationalInstitutions: "Lembaga vokasi aktif",
-  nationalLpkCount: "LPK terdaftar nasional",
-  validatedDemandCount: "Permintaan tervalidasi",
-};
+const LANDING_KPI_FIELDS = [
+  { key: "readyForPlacement", label: "Suplai tersedia" },
+  { key: "activeTrainingPrograms", label: "Program pelatihan" },
+  { key: "activeVocationalInstitutions", label: "Vokasi tersedia" },
+  { key: "validatedDemandCount", label: "Demand" },
+] as const;
 
 const WIB_DATE_TIME_FORMAT = new Intl.DateTimeFormat("id-ID", {
   weekday: "long",
@@ -297,7 +295,12 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({ kp
 
             <div className="space-y-3 text-xs">
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                {kpiSummary.metrics.map((metric) => {
+                {LANDING_KPI_FIELDS.map(({ key, label }) => {
+                  const metric = kpiSummary.metrics.find((item) => item.key === key);
+                  if (!metric) {
+                    return null;
+                  }
+
                   const achievement = metric.target
                     ? Math.round((metric.value / metric.target) * 100)
                     : null;
@@ -308,7 +311,7 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({ kp
                       className="min-w-0 rounded-xl border border-slate-700/60 bg-slate-800/80 p-3"
                     >
                       <span className="block text-xs font-bold uppercase leading-relaxed text-slate-400">
-                        {KPI_LABELS[metric.key] ?? metric.key} {metric.key === "validatedDemandCount" ? kpiSummary.year : ""}
+                        {label} {metric.key === "validatedDemandCount" ? kpiSummary.year : ""}
                       </span>
                       <p className="mt-1 text-base font-extrabold tabular-nums text-white">
                         {metric.value.toLocaleString("id-ID")} / {metric.target?.toLocaleString("id-ID") ?? "—"}

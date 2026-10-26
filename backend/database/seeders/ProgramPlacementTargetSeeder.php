@@ -22,6 +22,7 @@ class ProgramPlacementTargetSeeder extends Seeder
         ['Manufaktur', 'Welder', 'Korea Selatan', 300],
         ['Manufaktur', 'Welder', 'Qatar', 200],
         ['Manufaktur', 'Molding', 'Korea Selatan', 40],
+        ['Sertifikasi Teknis', 'ABK Fishermen', 'Korea Selatan', 600],
         ['Manufaktur', 'Operation Production', 'Taiwan', 3200],
         ['Manufaktur', 'Operation Production', 'Malaysia, Slovakia', 2260],
         ['Transportasi', 'Driver', 'Jepang', 20],
