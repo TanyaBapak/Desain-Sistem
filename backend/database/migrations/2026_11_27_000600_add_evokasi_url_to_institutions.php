@@ -9,7 +9,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('institutions', function (Blueprint $table): void {
-            $table->text('evokasi_url')->nullable()->after('mou_drive_url');
+            if (! Schema::hasColumn('institutions', 'evokasi_url')) {
+                $table->text('evokasi_url')->nullable();
+            }
         });
     }
 

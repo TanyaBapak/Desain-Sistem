@@ -887,10 +887,11 @@ class BusinessDataPresenter
                 );
                 $allocIds = $candidateIds->keys()->all();
                 $this->bp3miScope->applyToInstitutions($q, $user);
-                $demandIds = DB::table('job_demands');
-                $this->bp3miScope->applyToJobDemands($demandIds, $user);
                 $q->whereIn('program_allocations.id', $allocIds)
-                    ->whereIn('program_allocations.job_demand_id', $demandIds->select('job_demands.id'));
+                    ->whereIn('program_allocations.job_demand_id', function ($demandQuery) use ($user): void {
+                        $demandQuery->select('job_demands.id')->from('job_demands');
+                        $this->bp3miScope->applyToJobDemands($demandQuery, $user);
+                    });
             });
 
         return $query
@@ -1139,7 +1140,7 @@ class BusinessDataPresenter
             ->groupBy('institution_id');
         $institutionLinks = DB::table('institutions')
             ->whereIn('id', $institutionIds)
-            ->get(['id', 'evokasi_url', 'procurement_catalog_url', 'mou_drive_url'])
+            ->get()
             ->keyBy('id');
 
         return $rows->map(function (object $row) use ($registrationDocuments, $institutionLinks): array {
@@ -1159,13 +1160,13 @@ class BusinessDataPresenter
                 ? $institutionLinks->get($row->entity_id)
                 : null;
             $externalLinks = array_values(array_filter([
-                $institutionLink?->evokasi_url
+                ! empty($institutionLink?->evokasi_url)
                     ? ['label' => 'Profil e-Vokasi', 'url' => $institutionLink->evokasi_url]
                     : null,
-                $institutionLink?->procurement_catalog_url
+                ! empty($institutionLink?->procurement_catalog_url)
                     ? ['label' => 'Katalog INAPROC', 'url' => $institutionLink->procurement_catalog_url]
                     : null,
-                $institutionLink?->mou_drive_url
+                ! empty($institutionLink?->mou_drive_url)
                     ? ['label' => 'Dokumen MoU di Google Drive', 'url' => $institutionLink->mou_drive_url]
                     : null,
             ]));
@@ -1283,25 +1284,38 @@ class BusinessDataPresenter
         }
 
         $provinceIds = $this->bp3miScope->provinceIdsForUser($user);
-        $candidateIds = DB::table('job_seekers')
-            ->whereNull('job_seekers.deleted_at')
-            ->whereIn('job_seekers.province_id', $provinceIds)
-            ->select('job_seekers.id');
-        $institutionIds = DB::table('institutions')
-            ->whereIn('institutions.province_id', $provinceIds)
-            ->select('institutions.id');
-        $programIds = DB::table('training_programs')
-            ->join('institutions', 'institutions.id', '=', 'training_programs.institution_id')
-            ->whereIn('institutions.province_id', $provinceIds)
-            ->select('training_programs.id');
-        $demandIds = DB::table('job_demands');
-        $this->bp3miScope->applyToJobDemands($demandIds, $user);
 
-        return $requests->where(function ($query) use ($candidateIds, $institutionIds, $programIds, $demandIds): void {
-            $query->where(fn ($item) => $item->where('entity_type', 'calon_peserta')->whereIn('entity_id', $candidateIds))
-                ->orWhere(fn ($item) => $item->where('entity_type', 'lembaga_vokasi')->whereIn('entity_id', $institutionIds))
-                ->orWhere(fn ($item) => $item->where('entity_type', 'program_pelatihan')->whereIn('entity_id', $programIds))
-                ->orWhere(fn ($item) => $item->where('entity_type', 'demand_luar_negeri')->whereIn('entity_id', $demandIds->select('job_demands.id')));
+        return $requests->where(function ($query) use ($provinceIds, $user): void {
+            $query->where(function ($item) use ($provinceIds): void {
+                $item->where('approval_requests.entity_type', 'calon_peserta')
+                    ->whereIn('approval_requests.entity_id', function ($q) use ($provinceIds): void {
+                        $q->select('id')->from('job_seekers')
+                            ->whereNull('deleted_at')
+                            ->whereIn('province_id', $provinceIds);
+                    });
+            })
+            ->orWhere(function ($item) use ($provinceIds): void {
+                $item->where('approval_requests.entity_type', 'lembaga_vokasi')
+                    ->whereIn('approval_requests.entity_id', function ($q) use ($provinceIds): void {
+                        $q->select('id')->from('institutions')
+                            ->whereIn('province_id', $provinceIds);
+                    });
+            })
+            ->orWhere(function ($item) use ($provinceIds): void {
+                $item->where('approval_requests.entity_type', 'program_pelatihan')
+                    ->whereIn('approval_requests.entity_id', function ($q) use ($provinceIds): void {
+                        $q->select('training_programs.id')->from('training_programs')
+                            ->join('institutions', 'institutions.id', '=', 'training_programs.institution_id')
+                            ->whereIn('institutions.province_id', $provinceIds);
+                    });
+            })
+            ->orWhere(function ($item) use ($user): void {
+                $item->where('approval_requests.entity_type', 'demand_luar_negeri')
+                    ->whereIn('approval_requests.entity_id', function ($q) use ($user): void {
+                        $q->select('job_demands.id')->from('job_demands');
+                        $this->bp3miScope->applyToJobDemands($q, $user);
+                    });
+            });
         });
     }
 
@@ -1313,11 +1327,7 @@ class BusinessDataPresenter
                 ->leftJoin('districts', 'districts.id', '=', 'job_seekers.district_id')
                 ->where('job_seekers.id', $entityId)
                 ->first([
-                    'job_seekers.full_name',
-                    'job_seekers.nik',
-                    'job_seekers.major',
-                    'job_seekers.education_level',
-                    'job_seekers.verification_status',
+                    'job_seekers.*',
                     'provinces.name as province_name',
                     'districts.name as district_name',
                 ]),
@@ -1326,21 +1336,7 @@ class BusinessDataPresenter
                 ->leftJoin('districts', 'districts.id', '=', 'institutions.district_id')
                 ->where('institutions.id', $entityId)
                 ->first([
-                    'institutions.name',
-                    'institutions.institution_type',
-                    'institutions.verification_status',
-                    'institutions.npsn_or_vin',
-                    'institutions.ownership_type',
-                    'institutions.address',
-                    'institutions.head_name',
-                    'institutions.email',
-                    'institutions.phone',
-                    'institutions.accreditation',
-                    'institutions.procurement_method',
-                    'institutions.instructor_count',
-                    'institutions.workshop_capacity',
-                    'institutions.class_count',
-                    'institutions.ready_participant_count',
+                    'institutions.*',
                     'provinces.name as province_name',
                     'districts.name as district_name',
                 ]),
@@ -1350,9 +1346,7 @@ class BusinessDataPresenter
                 ->leftJoin('countries', 'countries.id', '=', 'training_programs.target_country_id')
                 ->where('training_programs.id', $entityId)
                 ->first([
-                    'training_programs.name',
-                    'training_programs.total_jp',
-                    'training_programs.quota',
+                    'training_programs.*',
                     'sectors.name as sector_name',
                     'occupations.title as occupation_title',
                     'countries.name as country_name',
@@ -1363,12 +1357,10 @@ class BusinessDataPresenter
                 ->leftJoin('occupations', 'occupations.id', '=', 'job_demands.occupation_id')
                 ->where('job_demands.id', $entityId)
                 ->first([
+                    'job_demands.*',
                     'employers.name as employer_name',
                     'countries.name as country_name',
                     'occupations.title as occupation_title',
-                    'job_demands.headcount',
-                    'job_demands.deadline',
-                    'job_demands.verification_status',
                 ]),
         };
         if (! $details) {
@@ -1377,42 +1369,42 @@ class BusinessDataPresenter
 
         return match ($entityType) {
             'calon_peserta' => [
-                ['label' => 'Nama peserta', 'value' => $details->full_name],
-                ['label' => 'NIK', 'value' => strlen($details->nik) === 16
+                ['label' => 'Nama peserta', 'value' => $details->full_name ?? '—'],
+                ['label' => 'NIK', 'value' => isset($details->nik) && strlen($details->nik) === 16
                     ? substr($details->nik, 0, 4).'••••••••'.substr($details->nik, -4)
                     : '••••'],
-                ['label' => 'Pendidikan / keahlian', 'value' => $details->education_level.' / '.$details->major],
+                ['label' => 'Pendidikan / keahlian', 'value' => ($details->education_level ?? '—').' / '.($details->major ?? '—')],
                 ['label' => 'Wilayah', 'value' => trim(($details->district_name ?? 'Belum diketahui').', '.($details->province_name ?? 'Belum diketahui'))],
-                ['label' => 'Status verifikasi', 'value' => $details->verification_status],
+                ['label' => 'Status verifikasi', 'value' => $details->verification_status ?? '—'],
             ],
             'lembaga_vokasi' => [
-                ['label' => 'Nama lembaga', 'value' => $details->name],
-                ['label' => 'Jenis lembaga', 'value' => $details->institution_type],
-                ['label' => 'NPSN / nomor izin', 'value' => $details->npsn_or_vin],
-                ['label' => 'Kepemilikan', 'value' => $details->ownership_type],
+                ['label' => 'Nama lembaga', 'value' => $details->name ?? '—'],
+                ['label' => 'Jenis lembaga', 'value' => $details->institution_type ?? '—'],
+                ['label' => 'NPSN / nomor izin', 'value' => $details->npsn_or_vin ?? '—'],
+                ['label' => 'Kepemilikan', 'value' => $details->ownership_type ?? '—'],
                 ['label' => 'Wilayah', 'value' => trim(($details->district_name ?? 'Belum diketahui').', '.($details->province_name ?? 'Belum diketahui'))],
-                ['label' => 'Alamat', 'value' => $details->address],
-                ['label' => 'Penanggung jawab', 'value' => $details->head_name],
+                ['label' => 'Alamat', 'value' => $details->address ?? '—'],
+                ['label' => 'Penanggung jawab', 'value' => $details->head_name ?? '—'],
                 ['label' => 'Kontak lembaga', 'value' => trim(($details->email ?? '—').' / '.($details->phone ?? '—'))],
-                ['label' => 'Akreditasi', 'value' => $details->accreditation],
-                ['label' => 'Skema penyelenggaraan', 'value' => $details->procurement_method],
+                ['label' => 'Akreditasi', 'value' => $details->accreditation ?? '—'],
+                ['label' => 'Skema penyelenggaraan', 'value' => $details->procurement_method ?? '—'],
                 ['label' => 'Jumlah kelas', 'value' => $details->class_count ?? 'Belum tersedia'],
                 ['label' => 'Peserta siap mengikuti pelatihan', 'value' => $details->ready_participant_count ?? 'Belum tersedia'],
                 ['label' => 'Jumlah instruktur', 'value' => $details->instructor_count ?? 'Belum tersedia'],
-                ['label' => 'Status verifikasi', 'value' => $details->verification_status],
+                ['label' => 'Status verifikasi', 'value' => $details->verification_status ?? '—'],
             ],
             'program_pelatihan' => [
-                ['label' => 'Nama program', 'value' => $details->name],
+                ['label' => 'Nama program', 'value' => $details->name ?? '—'],
                 ['label' => 'Sektor / jabatan', 'value' => trim(($details->sector_name ?? 'Belum dipetakan').' / '.($details->occupation_title ?? 'Belum dipetakan'))],
-                ['label' => 'Negara tujuan', 'value' => $details->country_name],
-                ['label' => 'Jam pelajaran / kuota', 'value' => $details->total_jp.' JP / '.$details->quota.' peserta'],
+                ['label' => 'Negara tujuan', 'value' => $details->country_name ?? '—'],
+                ['label' => 'Jam pelajaran / kuota', 'value' => ($details->total_jp ?? 0).' JP / '.($details->quota ?? 0).' peserta'],
             ],
             'demand_luar_negeri' => [
-                ['label' => 'Pemberi kerja', 'value' => $details->employer_name],
-                ['label' => 'Jabatan', 'value' => $details->occupation_title],
-                ['label' => 'Negara tujuan', 'value' => $details->country_name],
-                ['label' => 'Kuota / batas waktu', 'value' => $details->headcount.' orang / '.$details->deadline],
-                ['label' => 'Status verifikasi', 'value' => $details->verification_status],
+                ['label' => 'Pemberi kerja', 'value' => $details->employer_name ?? '—'],
+                ['label' => 'Jabatan', 'value' => $details->occupation_title ?? '—'],
+                ['label' => 'Negara tujuan', 'value' => $details->country_name ?? '—'],
+                ['label' => 'Kuota / batas waktu', 'value' => ($details->headcount ?? 0).' orang / '.($details->deadline ?? '—')],
+                ['label' => 'Status verifikasi', 'value' => $details->verification_status ?? '—'],
             ],
         };
     }

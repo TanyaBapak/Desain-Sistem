@@ -182,7 +182,11 @@ class Bp3miScope
 
         return DB::table('job_seekers')
             ->whereIn('job_seekers.province_id', $provinceIds)
-            ->whereJsonContains('job_seekers.preferred_countries', $countryName)
+            ->whereNotNull('job_seekers.preferred_countries')
+            ->where(function ($query) use ($countryName): void {
+                $query->where('job_seekers.preferred_countries', 'LIKE', '%"'.$countryName.'"%')
+                    ->orWhere('job_seekers.preferred_countries', 'LIKE', '%'.$countryName.'%');
+            })
             ->exists();
     }
 
@@ -248,7 +252,11 @@ class Bp3miScope
                             $candidates->select(DB::raw(1))
                                 ->from('job_seekers')
                                 ->whereIn('job_seekers.province_id', $provinceIds)
-                                ->whereJsonContains('job_seekers.preferred_countries', $country->name);
+                                ->whereNotNull('job_seekers.preferred_countries')
+                                ->where(function ($sub) use ($country): void {
+                                    $sub->where('job_seekers.preferred_countries', 'LIKE', '%"'.$country->name.'"%')
+                                        ->orWhere('job_seekers.preferred_countries', 'LIKE', '%'.$country->name.'%');
+                                });
                         });
                 });
             }

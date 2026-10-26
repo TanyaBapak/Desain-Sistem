@@ -86,10 +86,10 @@ Route::middleware(['auth', EnsureUserIsActive::class])->group(function () {
     Route::post('/approvals/bulk', [ApprovalWorkflowController::class, 'bulkApprove'])
         ->name('approvals.bulk');
     Route::post('/approvals/{id}', [ApprovalWorkflowController::class, 'update'])
-        ->where('id', '[A-Za-z0-9-]+')
+        ->where('id', '[A-Za-z0-9\-_]+')
         ->name('approvals.update');
     Route::get('/approvals/{id}/documents/{documentId}', [ApprovalWorkflowController::class, 'downloadDocument'])
-        ->where(['id' => '[A-Za-z0-9-]+', 'documentId' => '[0-9]+'])
+        ->where(['id' => '[A-Za-z0-9\-_]+', 'documentId' => '[0-9]+'])
         ->name('approvals.documents.download');
     Route::post('/allocations', [ProgramAllocationController::class, 'store'])->name('allocations.store');
     Route::post('/matching/runs', [MatchingRunController::class, 'store'])->name('matching.runs.store');

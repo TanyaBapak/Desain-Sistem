@@ -9,8 +9,12 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('institutions', function (Blueprint $table): void {
-            $table->text('procurement_catalog_url')->nullable();
-            $table->text('mou_drive_url')->nullable();
+            if (! Schema::hasColumn('institutions', 'procurement_catalog_url')) {
+                $table->text('procurement_catalog_url')->nullable();
+            }
+            if (! Schema::hasColumn('institutions', 'mou_drive_url')) {
+                $table->text('mou_drive_url')->nullable();
+            }
         });
     }
 
