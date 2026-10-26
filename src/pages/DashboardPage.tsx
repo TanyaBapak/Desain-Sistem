@@ -29,17 +29,38 @@ interface DashboardPageProps {
   currentTab: string;
   setCurrentTab: (tab: string) => void;
   nationalLpkCount: number;
+  nationalLpkByProvince?: { province: string; totalCount: number; registeredCount: number }[];
 }
 
 export const DashboardPage: React.FC<DashboardPageProps> = ({
   currentTab,
   setCurrentTab,
   nationalLpkCount,
+  nationalLpkByProvince,
 }) => {
   const { candidates, programs, providers, demands, allocations, currentUser, currentRole, currentScope } =
     useAppStore();
 
   const [activeDrilldown, setActiveDrilldown] = React.useState<DrilldownType | null>(null);
+
+  const registeredVokasiCount = React.useMemo(
+    () => providers.filter((p) => p.evokasiVerificationStatus === "Terverifikasi e-Vokasi").length,
+    [providers]
+  );
+  const lpkProviders = React.useMemo(
+    () =>
+      providers.filter(
+        (p) =>
+          p.providerType === "LPK" ||
+          p.providerType?.toUpperCase().includes("LPK") ||
+          p.providerType === "BLKLN"
+      ),
+    [providers]
+  );
+  const registeredLpkCount = React.useMemo(
+    () => lpkProviders.filter((p) => p.evokasiVerificationStatus === "Terverifikasi e-Vokasi").length,
+    [lpkProviders]
+  );
 
   const roleObj = getRoleInfo(currentRole);
   const stakeholder = STAKEHOLDER_ROLES.find((r) => r.id === currentRole);
@@ -71,6 +92,30 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
       });
       return Array.from(counts, ([status, count]) => ({ status, count }));
     };
+
+    const calculateProvinceBreakdown = (items: typeof providers) => {
+      const map = new Map<string, { totalCount: number; registeredCount: number }>();
+      items.forEach((item) => {
+        const prov = item.provinsi || "Belum dipetakan";
+        const current = map.get(prov) ?? { totalCount: 0, registeredCount: 0 };
+        const isRegistered = item.evokasiVerificationStatus === "Terverifikasi e-Vokasi";
+        map.set(prov, {
+          totalCount: current.totalCount + 1,
+          registeredCount: current.registeredCount + (isRegistered ? 1 : 0),
+        });
+      });
+      return Array.from(map, ([province, stats]) => ({
+        province,
+        totalCount: stats.totalCount,
+        registeredCount: stats.registeredCount,
+      }))
+        .sort((a, b) => b.totalCount - a.totalCount)
+        .slice(0, 8);
+    };
+
+    const institutionsByProvince = calculateProvinceBreakdown(providers);
+    const lpkByProvince = calculateProvinceBreakdown(lpkProviders);
+
     const demandByCountry = new Map<string, { demandCount: number; quota: number; filledQuota: number }>();
 
     demands.forEach((demand) => {
@@ -90,10 +135,13 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         .sort((left, right) => right.count - left.count)
         .slice(0, 8),
       institutionsByEvokasiStatus: countBy(providers, (provider) => provider.evokasiVerificationStatus),
+      institutionsByProvince,
+      lpkByProvince,
+      nationalLpkByProvince,
       demandByCountry: Array.from(demandByCountry, ([country, summary]) => ({ country, ...summary }))
         .sort((left, right) => right.quota - left.quota),
     };
-  }, [candidates, demands, providers]);
+  }, [candidates, demands, providers, lpkProviders, nationalLpkByProvince]);
 
   return (
     <div className="space-y-6">
@@ -126,6 +174,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         <StatCard
           label="Lembaga Vokasi (LPK)"
           value={providers.length}
+          badge={`${registeredVokasiCount.toLocaleString("id-ID")} Terdaftar`}
           icon={Building2}
           desc="Mitra penyelenggara"
           onClick={() => setActiveDrilldown("lembaga")}
@@ -133,6 +182,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         <StatCard
           label="LPK Terdaftar Nasional"
           value={nationalLpkCount}
+          badge="Seluruh RI"
           icon={Building2}
           desc="Seluruh Indonesia"
           onClick={() => setActiveDrilldown("national_lpk")}
@@ -226,12 +276,14 @@ function StatCard({
   value,
   icon: Icon,
   desc,
+  badge,
   onClick,
 }: {
   label: string;
   value: number;
   icon: React.ElementType;
   desc: string;
+  badge?: string;
   onClick?: () => void;
 }) {
   return (
@@ -263,7 +315,14 @@ function StatCard({
         </div>
       </CardHeader>
       <CardContent className="p-4 pt-1">
-        <div className="text-2xl font-bold tabular-nums text-foreground">{value.toLocaleString("id-ID")}</div>
+        <div className="flex items-baseline justify-between gap-2">
+          <div className="text-2xl font-bold tabular-nums text-foreground">{value.toLocaleString("id-ID")}</div>
+          {badge && (
+            <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 tabular-nums">
+              {badge}
+            </span>
+          )}
+        </div>
         {onClick && (
           <p className="mt-2 text-[11px] font-medium text-primary flex items-center gap-1 group-hover:underline">
             Klik untuk melihat detail &rarr;

@@ -1,11 +1,21 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { InstitutionDirectoryItem } from "@/components/dashboard/InstitutionDirectory";
+import { cn } from "@/lib/utils";
+
+export interface ProvinceBreakdownItem {
+  province: string;
+  totalCount: number;
+  registeredCount: number;
+}
 
 export interface ExecutiveDashboardBreakdownsData {
   candidateLifecycle: { status: string; count: number }[];
   candidatesByProvince: { province: string; count: number }[];
   institutionsByEvokasiStatus: { status: string; count: number }[];
+  institutionsByProvince?: ProvinceBreakdownItem[];
+  lpkByProvince?: ProvinceBreakdownItem[];
+  nationalLpkByProvince?: ProvinceBreakdownItem[];
   institutionDirectory?: InstitutionDirectoryItem[];
   demandByCountry: {
     country: string;
@@ -28,6 +38,8 @@ const lifecycleLabels: Record<string, string> = {
 };
 
 export function ExecutiveDashboardBreakdowns({ data }: ExecutiveDashboardBreakdownsProps) {
+  const [lpkScopeTab, setLpkScopeTab] = useState<"scope" | "national">("scope");
+
   const lifecycleTotal = useMemo(
     () => data?.candidateLifecycle.reduce((total, item) => total + item.count, 0) ?? 0,
     [data],
@@ -36,6 +48,41 @@ export function ExecutiveDashboardBreakdowns({ data }: ExecutiveDashboardBreakdo
   const institutionTotal = useMemo(
     () => data?.institutionsByEvokasiStatus.reduce((total, item) => total + item.count, 0) ?? 0,
     [data],
+  );
+
+  const vokasiProvinceMax = useMemo(
+    () => Math.max(0, ...(data?.institutionsByProvince?.map((item) => item.totalCount) ?? [])),
+    [data],
+  );
+  const totalVokasi = useMemo(
+    () => data?.institutionsByProvince?.reduce((acc, curr) => acc + curr.totalCount, 0) ?? institutionTotal,
+    [data, institutionTotal],
+  );
+  const totalRegisteredVokasi = useMemo(
+    () =>
+      data?.institutionsByProvince?.reduce((acc, curr) => acc + curr.registeredCount, 0) ??
+      (data?.institutionsByEvokasiStatus?.find((s) => s.status === "Terverifikasi e-Vokasi")?.count ?? 0),
+    [data],
+  );
+
+  const activeLpkList = useMemo(() => {
+    if (lpkScopeTab === "national" && (data?.nationalLpkByProvince?.length ?? 0) > 0) {
+      return data?.nationalLpkByProvince ?? [];
+    }
+    return data?.lpkByProvince ?? [];
+  }, [lpkScopeTab, data]);
+
+  const lpkProvinceMax = useMemo(
+    () => Math.max(0, ...(activeLpkList.map((item) => item.totalCount) ?? [])),
+    [activeLpkList],
+  );
+  const totalActiveLpk = useMemo(
+    () => activeLpkList.reduce((acc, curr) => acc + curr.totalCount, 0),
+    [activeLpkList],
+  );
+  const totalRegisteredActiveLpk = useMemo(
+    () => activeLpkList.reduce((acc, curr) => acc + curr.registeredCount, 0),
+    [activeLpkList],
   );
 
   return (
@@ -120,6 +167,123 @@ export function ExecutiveDashboardBreakdowns({ data }: ExecutiveDashboardBreakdo
               </div>
             ) : (
               <EmptyBreakdown message="Belum ada lembaga aktif untuk diringkas." />
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-start justify-between gap-2 pb-3">
+            <div>
+              <CardTitle className="text-base">Sebaran lembaga vokasi per provinsi</CardTitle>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                {totalRegisteredVokasi.toLocaleString("id-ID")} terdaftar dari {totalVokasi.toLocaleString("id-ID")} lembaga aktif
+              </p>
+            </div>
+            {totalVokasi > 0 && (
+              <span className="shrink-0 text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 tabular-nums">
+                {Math.round((totalRegisteredVokasi / (totalVokasi || 1)) * 100)}% Terverifikasi
+              </span>
+            )}
+          </CardHeader>
+          <CardContent>
+            {(data?.institutionsByProvince?.length ?? 0) > 0 ? (
+              <div className="space-y-4">
+                {data?.institutionsByProvince?.map((item) => (
+                  <ProvinceRatioBar
+                    key={item.province}
+                    label={item.province}
+                    registered={item.registeredCount}
+                    total={item.totalCount}
+                    maxTotal={vokasiProvinceMax}
+                    unitLabel="lembaga"
+                  />
+                ))}
+                <div className="pt-2 flex items-center justify-between text-xs text-muted-foreground border-t border-border/50">
+                  <div className="flex items-center gap-3">
+                    <span className="flex items-center gap-1.5">
+                      <span className="h-2 w-2 rounded-full bg-emerald-600 dark:bg-emerald-500 inline-block" />
+                      Terverifikasi e-Vokasi
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <span className="h-2 w-2 rounded-full bg-primary/25 dark:bg-primary/30 inline-block" />
+                      Belum Terverifikasi
+                    </span>
+                  </div>
+                  <span>Maksimal 8 wilayah</span>
+                </div>
+              </div>
+            ) : (
+              <EmptyBreakdown message="Sebaran lembaga vokasi per provinsi akan tampil setelah data tersedia." />
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-start justify-between gap-2 pb-3">
+            <div>
+              <CardTitle className="text-base">Sebaran LPK per provinsi</CardTitle>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                {totalRegisteredActiveLpk.toLocaleString("id-ID")} LPK terdaftar dari {totalActiveLpk.toLocaleString("id-ID")} total LPK
+              </p>
+            </div>
+            {(data?.nationalLpkByProvince?.length ?? 0) > 0 && (
+              <div className="flex items-center rounded-lg border border-border p-0.5 text-xs bg-muted/40 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setLpkScopeTab("scope")}
+                  className={cn(
+                    "px-2.5 py-1 rounded-md font-medium transition-all text-xs",
+                    lpkScopeTab === "scope"
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  Lingkup
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLpkScopeTab("national")}
+                  className={cn(
+                    "px-2.5 py-1 rounded-md font-medium transition-all text-xs",
+                    lpkScopeTab === "national"
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  Nasional
+                </button>
+              </div>
+            )}
+          </CardHeader>
+          <CardContent>
+            {activeLpkList.length > 0 ? (
+              <div className="space-y-4">
+                {activeLpkList.map((item) => (
+                  <ProvinceRatioBar
+                    key={item.province}
+                    label={item.province}
+                    registered={item.registeredCount}
+                    total={item.totalCount}
+                    maxTotal={lpkProvinceMax}
+                    unitLabel="LPK"
+                  />
+                ))}
+                <div className="pt-2 flex items-center justify-between text-xs text-muted-foreground border-t border-border/50">
+                  <div className="flex items-center gap-3">
+                    <span className="flex items-center gap-1.5">
+                      <span className="h-2 w-2 rounded-full bg-emerald-600 dark:bg-emerald-500 inline-block" />
+                      LPK Terdaftar
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <span className="h-2 w-2 rounded-full bg-primary/25 dark:bg-primary/30 inline-block" />
+                      Belum Terverifikasi
+                    </span>
+                  </div>
+                  <span>{lpkScopeTab === "national" ? "Cakupan Nasional" : "Lingkup Wilayah"}</span>
+                </div>
+              </div>
+            ) : (
+              <EmptyBreakdown message="Sebaran LPK per provinsi akan tampil setelah data tersedia." />
             )}
           </CardContent>
         </Card>
@@ -233,6 +397,70 @@ function BreakdownBar({
   );
 }
 
+function ProvinceRatioBar({
+  label,
+  registered,
+  total,
+  maxTotal,
+  unitLabel = "lembaga",
+}: {
+  label: string;
+  registered: number;
+  total: number;
+  maxTotal: number;
+  unitLabel?: string;
+}) {
+  const safeTotal = Math.max(total, 1);
+  const registeredPct = Math.round((registered / safeTotal) * 100);
+  const totalBarWidth = maxTotal > 0 ? Math.min(Math.round((total / maxTotal) * 100), 100) : 0;
+  const registeredSegmentWidth = Math.min(Math.round((registered / safeTotal) * 100), 100);
+
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-center justify-between gap-3 text-sm">
+        <span className="font-medium text-foreground truncate">{label}</span>
+        <div className="shrink-0 flex items-center gap-1.5 tabular-nums text-xs sm:text-sm">
+          <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+            {registered.toLocaleString("id-ID")} terdaftar
+          </span>
+          <span className="text-muted-foreground">/</span>
+          <span className="text-foreground">
+            {total.toLocaleString("id-ID")} {unitLabel}
+          </span>
+          <span className="text-xs text-muted-foreground font-normal">
+            ({registeredPct}%)
+          </span>
+        </div>
+      </div>
+      <div
+        className="h-2.5 overflow-hidden rounded-full bg-muted/80"
+        role="progressbar"
+        aria-label={`${label}: ${registered} terdaftar dari ${total} ${unitLabel}`}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={registeredPct}
+      >
+        <div
+          className="h-full rounded-full flex overflow-hidden transition-[width] motion-reduce:transition-none"
+          style={{ width: `${Math.max(totalBarWidth, 6)}%` }}
+        >
+          <div
+            className="h-full bg-emerald-600 dark:bg-emerald-500 transition-[width]"
+            style={{ width: `${registeredSegmentWidth}%` }}
+            title={`Terdaftar: ${registered} (${registeredPct}%)`}
+          />
+          <div
+            className="h-full bg-primary/25 dark:bg-primary/30 transition-[width]"
+            style={{ width: `${100 - registeredSegmentWidth}%` }}
+            title={`Belum terverifikasi: ${total - registered}`}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function EmptyBreakdown({ message }: { message: string }) {
   return <p className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">{message}</p>;
 }
+

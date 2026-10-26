@@ -423,6 +423,7 @@ class BusinessDataPresenter
                 'candidateMatches' => $this->candidateMatches($role, $user),
                 'allocations' => $this->allocations($role, $user),
                 'nationalLpkCount' => $nationalLpkCount,
+                'nationalLpkByProvince' => $this->nationalLpkByProvince(),
                 'reportSummary' => $this->reportSummary(
                     $role,
                     $user,
@@ -1043,6 +1044,36 @@ class BusinessDataPresenter
                         'status' => $row->evokasi_status,
                         'count' => (int) $row->count,
                     ])->all(),
+                'institutionsByProvince' => (clone $institutions)
+                    ->selectRaw("COALESCE(provinces.name, 'Belum dipetakan') as province")
+                    ->selectRaw('COUNT(*) as total_count')
+                    ->selectRaw("SUM(CASE WHEN institutions.evokasi_status = 'Terverifikasi e-Vokasi' THEN 1 ELSE 0 END) as registered_count")
+                    ->groupBy('provinces.name')
+                    ->orderByDesc('total_count')
+                    ->orderBy('province')
+                    ->limit(8)
+                    ->get()
+                    ->map(fn (object $row): array => [
+                        'province' => $row->province,
+                        'totalCount' => (int) $row->total_count,
+                        'registeredCount' => (int) ($row->registered_count ?? 0),
+                    ])->all(),
+                'lpkByProvince' => (clone $institutions)
+                    ->where('institutions.institution_type', 'LPK')
+                    ->selectRaw("COALESCE(provinces.name, 'Belum dipetakan') as province")
+                    ->selectRaw('COUNT(*) as total_count')
+                    ->selectRaw("SUM(CASE WHEN institutions.evokasi_status = 'Terverifikasi e-Vokasi' THEN 1 ELSE 0 END) as registered_count")
+                    ->groupBy('provinces.name')
+                    ->orderByDesc('total_count')
+                    ->orderBy('province')
+                    ->limit(8)
+                    ->get()
+                    ->map(fn (object $row): array => [
+                        'province' => $row->province,
+                        'totalCount' => (int) $row->total_count,
+                        'registeredCount' => (int) ($row->registered_count ?? 0),
+                    ])->all(),
+                'nationalLpkByProvince' => $this->nationalLpkByProvince(),
                 'institutionDirectory' => (clone $institutions)
                     ->leftJoin('districts', 'districts.id', '=', 'institutions.district_id')
                     ->orderByRaw('institutions.readiness_score IS NULL')
@@ -1418,6 +1449,35 @@ class BusinessDataPresenter
                     ->orWhereNotIn('external_id', array_column(GardataPlacementSyncService::KNOWN_SUBDOMAINS, 'subdomain'));
             })
             ->count();
+    }
+
+    /**
+     * @return array<int, array{province: string, totalCount: int, registeredCount: int}>
+     */
+    private function nationalLpkByProvince(): array
+    {
+        return DB::table('institutions')
+            ->leftJoin('provinces', 'provinces.id', '=', 'institutions.province_id')
+            ->where('institutions.institution_type', 'LPK')
+            ->where('institutions.status', 'Aktif')
+            ->where(function ($query): void {
+                $query->whereNull('institutions.external_id')
+                    ->orWhereNotIn('institutions.external_id', array_column(GardataPlacementSyncService::KNOWN_SUBDOMAINS, 'subdomain'));
+            })
+            ->selectRaw("COALESCE(provinces.name, 'Belum dipetakan') as province")
+            ->selectRaw('COUNT(*) as total_count')
+            ->selectRaw("SUM(CASE WHEN institutions.evokasi_status = 'Terverifikasi e-Vokasi' THEN 1 ELSE 0 END) as registered_count")
+            ->groupBy('provinces.name')
+            ->orderByDesc('total_count')
+            ->orderBy('province')
+            ->limit(8)
+            ->get()
+            ->map(fn (object $row): array => [
+                'province' => $row->province,
+                'totalCount' => (int) $row->total_count,
+                'registeredCount' => (int) ($row->registered_count ?? 0),
+            ])
+            ->all();
     }
 
     private function monitoring(?string $role, User $user, array $filters): array

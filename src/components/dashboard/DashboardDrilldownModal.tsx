@@ -65,6 +65,7 @@ interface FilterStep {
   readinessStatus?: string;
   sourceType?: string;
   country?: string;
+  province?: string;
 }
 
 export const DashboardDrilldownModal: React.FC<DashboardDrilldownModalProps> = ({
@@ -299,6 +300,11 @@ const LembagaDrilldown: React.FC<LembagaDrilldownProps> = ({
           p.offerings?.some((o) => o.occupation === step.occupation)
         );
       }
+      if (step.province) {
+        result = result.filter(
+          (p) => (p.provinsi || "Belum dipetakan") === step.province
+        );
+      }
     }
     return result;
   }, [baseProviders, filterStack]);
@@ -381,6 +387,25 @@ const LembagaDrilldown: React.FC<LembagaDrilldownProps> = ({
     );
   }, [filteredProviders, currentSector]);
 
+  // Province breakdown with registered / total counts
+  const provinceCounts = useMemo(() => {
+    const map = new Map<string, { totalCount: number; registeredCount: number }>();
+    filteredProviders.forEach((p) => {
+      const prov = p.provinsi || "Belum dipetakan";
+      const current = map.get(prov) ?? { totalCount: 0, registeredCount: 0 };
+      const isRegistered = p.evokasiVerificationStatus === "Terverifikasi e-Vokasi";
+      map.set(prov, {
+        totalCount: current.totalCount + 1,
+        registeredCount: current.registeredCount + (isRegistered ? 1 : 0),
+      });
+    });
+    return Array.from(map, ([province, stats]) => ({
+      province,
+      totalCount: stats.totalCount,
+      registeredCount: stats.registeredCount,
+    })).sort((a, b) => b.totalCount - a.totalCount);
+  }, [filteredProviders]);
+
   // Search in list
   const searchResults = useMemo(() => {
     if (!searchQuery.trim()) return filteredProviders;
@@ -445,6 +470,38 @@ const LembagaDrilldown: React.FC<LembagaDrilldownProps> = ({
                         title: item.name,
                         subtitle: `${item.count} lembaga. Pilih rincian di bawah untuk mempersempit daftar.`,
                         layer: item.name,
+                      })
+                    }
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Province Section */}
+          {!filterStack.some((s) => s.province) && provinceCounts.length > 0 && (
+            <div>
+              <div className="flex items-center justify-between mb-2.5">
+                <h3 className="text-xs font-bold text-foreground">
+                  {isNational ? "Rincian LPK per provinsi" : "Rincian lembaga vokasi per provinsi"}
+                </h3>
+                <span className="text-[11px] text-muted-foreground">
+                  Pilih provinsi untuk menyaring daftar
+                </span>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                {provinceCounts.slice(0, 10).map((item) => (
+                  <DrilldownCard
+                    key={item.province}
+                    title={item.province}
+                    subtitle={`${item.registeredCount.toLocaleString("id-ID")} terdaftar / ${item.totalCount.toLocaleString("id-ID")} ${isNational ? "LPK" : "lembaga"}`}
+                    badge={`${Math.round((item.registeredCount / (item.totalCount || 1)) * 100)}%`}
+                    onClick={() =>
+                      onPushFilter({
+                        tag: "PROVINSI",
+                        title: item.province,
+                        subtitle: `${item.registeredCount} terdaftar dari ${item.totalCount} ${isNational ? "LPK" : "lembaga"} di ${item.province}.`,
+                        province: item.province,
                       })
                     }
                   />
@@ -1488,10 +1545,12 @@ function MiniStatBox({
 function DrilldownCard({
   title,
   subtitle,
+  badge,
   onClick,
 }: {
   title: string;
   subtitle: string;
+  badge?: string;
   onClick: () => void;
 }) {
   return (
@@ -1500,13 +1559,20 @@ function DrilldownCard({
       onClick={onClick}
       className="flex items-center justify-between p-3.5 rounded-xl border border-border bg-card hover:border-primary/60 hover:bg-muted/40 transition-all text-left group w-full"
     >
-      <div>
+      <div className="flex-1 pr-2">
         <span className="font-semibold text-sm text-foreground group-hover:text-primary transition-colors block">
           {title}
         </span>
         <span className="text-xs text-muted-foreground">{subtitle}</span>
       </div>
-      <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
+      <div className="flex items-center gap-2 shrink-0">
+        {badge && (
+          <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 tabular-nums">
+            {badge}
+          </span>
+        )}
+        <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
+      </div>
     </button>
   );
 }

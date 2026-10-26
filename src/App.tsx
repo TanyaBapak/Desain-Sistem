@@ -139,6 +139,7 @@ interface AppProps {
     candidateMatches: PersistedCandidateMatch[];
     allocations: ProgramAllocationDecision[];
     nationalLpkCount: number;
+    nationalLpkByProvince?: { province: string; totalCount: number; registeredCount: number }[];
     reportSummary: {
       candidateCount: number;
       readyCandidateCount: number;
@@ -396,6 +397,7 @@ export function App({
           currentTab="dashboard"
           setCurrentTab={setCurrentTab}
           nationalLpkCount={businessData?.nationalLpkCount ?? 0}
+          nationalLpkByProvince={businessData?.nationalLpkByProvince}
         />
       );
       break;
@@ -405,6 +407,7 @@ export function App({
           currentTab={activeTab}
           setCurrentTab={setCurrentTab}
           nationalLpkCount={businessData?.nationalLpkCount ?? 0}
+          nationalLpkByProvince={businessData?.nationalLpkByProvince}
         />
       );
       break;
