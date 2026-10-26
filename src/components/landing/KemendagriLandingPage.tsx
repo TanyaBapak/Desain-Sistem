@@ -149,7 +149,7 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({ kp
                 SMK GO GLOBAL
               </h1>
               <p className="text-[11px] text-slate-500 font-medium">
-                Sistem Intelijen Penempatan PMI Terpadu Berbasis Pendidikan Vokasi
+                Task force SMK Go Global 2026
               </p>
             </div>
           </div>
@@ -238,7 +238,7 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({ kp
             </h2>
 
             <p className="text-sm sm:text-base text-slate-300 max-w-2xl leading-relaxed">
-              Sistem Intelijen Penempatan PMI Terpadu Berbasis Pendidikan Vokasi
+              Task force SMK Go Global 2026
             </p>
 
             {/* Quick Action Button Group: SSO */}
