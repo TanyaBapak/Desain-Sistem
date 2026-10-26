@@ -144,6 +144,9 @@ class DashboardTargetService
         }
 
         $aliases = [
+            'korea' => ['Korea', 'Korea Selatan'],
+            'korea selatan' => ['Korea', 'Korea Selatan'],
+            'south korea' => ['Korea', 'Korea Selatan'],
             'singapur' => ['Singapura', 'Singapore'],
             'singapura' => ['Singapura', 'Singapore'],
             'singapore' => ['Singapura', 'Singapore'],

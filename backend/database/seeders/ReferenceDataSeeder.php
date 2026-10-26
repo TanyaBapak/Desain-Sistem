@@ -96,10 +96,9 @@ class ReferenceDataSeeder extends Seeder
 
         foreach ([
             ['JP', 'Jepang', 'JP', 'JPY', 104.50],
-            ['DE', 'Jerman', 'DE', 'EUR', 17200.00],
-            ['KR', 'Korea Selatan', 'KR', 'KRW', 11.80],
-            ['TW', 'Taiwan', 'TW', 'TWD', 490.00],
-            ['SA', 'Arab Saudi', 'SA', 'SAR', 4200.00],
+            ['KR', 'Korea', 'KR', 'KRW', 11.80],
+            ['MY', 'Malaysia', 'MY', 'MYR', 3550.00],
+            ['TR', 'Turki', 'TR', 'TRY', 450.00],
         ] as [$id, $name, $flagCode, $currency, $exchangeRate]) {
             DB::table('countries')->updateOrInsert(
                 ['id' => $id],
@@ -111,6 +110,8 @@ class ReferenceDataSeeder extends Seeder
                 ],
             );
         }
+
+        DB::table('countries')->whereNotIn('id', ['JP', 'KR', 'MY', 'TR'])->delete();
 
         foreach ([
             ['OCC-KG-01', 'SECT-CARE', 'Caregiver / Kaigo', 'KG-SSW-01', 'Standar keperawatan dan bahasa Jepang'],

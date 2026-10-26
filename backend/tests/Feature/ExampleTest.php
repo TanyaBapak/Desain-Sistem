@@ -44,6 +44,6 @@ class ExampleTest extends TestCase
         $user->roles()->attach($role->id);
 
         $this->actingAs($user)->get('/app/unknown-module')
-            ->assertRedirect('/app/rbac');
+            ->assertRedirect('/app/targets');
     }
 }

@@ -19,6 +19,9 @@ class BusinessDataPresenter
     ];
 
     private const COUNTRY_ALIASES = [
+        'korea' => ['Korea', 'Korea Selatan'],
+        'korea selatan' => ['Korea', 'Korea Selatan'],
+        'south korea' => ['Korea', 'Korea Selatan'],
         'singapur' => ['Singapura', 'Singapore'],
         'singapura' => ['Singapura', 'Singapore'],
         'singapore' => ['Singapura', 'Singapore'],
@@ -116,7 +119,7 @@ class BusinessDataPresenter
                 $countryName = preg_replace('/\\s*\\([^)]*\\)/u', '', $item['projectionPlacement'])
                     ?? $item['projectionPlacement'];
 
-                return $this->normalizeCountryName($countryName) !== 'korea selatan'
+                return ! in_array($this->normalizeCountryName($countryName), ['korea', 'korea selatan'], true)
                     || ($item['sectorName'] === 'Sertifikasi Teknis'
                         && $item['occupationName'] === 'ABK Fishermen');
             },

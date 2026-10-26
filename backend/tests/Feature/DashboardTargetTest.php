@@ -47,7 +47,7 @@ class DashboardTargetTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->where('auth.user.accessibleTabs', ['targets', 'rbac', 'audit'])
                 ->where('adminTargets.landingKpiTargets', [])
-                ->has('adminTargets.landingCountries', 5)
+                ->has('adminTargets.landingCountries', 4)
                 ->where('adminTargets.landingCountryTargets', [])
                 ->where('adminTargets.landingCountryTrainingTargets', [])
                 ->where('adminTargets.landingCountrySectorTargets', [])
@@ -75,7 +75,7 @@ class DashboardTargetTest extends TestCase
             'target' => 50,
             'updated_by' => $admin->id,
         ]);
-        $this->assertDatabaseCount('dashboard_targets', 33);
+        $this->assertDatabaseCount('dashboard_targets', 28);
         $this->assertDatabaseHas('dashboard_targets', [
             'metric_key' => 'countryTarget_JP_'.now()->year,
             'target_value' => 30,
@@ -92,7 +92,7 @@ class DashboardTargetTest extends TestCase
             'updated_by' => $admin->id,
         ]);
         $this->assertDatabaseHas('dashboard_targets', [
-            'metric_key' => 'cst_'.substr(hash('sha256', "DE\0SECT-CARE"), 0, 40).'_'.now()->year,
+            'metric_key' => 'cst_'.substr(hash('sha256', "MY\0SECT-CARE"), 0, 40).'_'.now()->year,
             'target_value' => 12,
             'updated_by' => $admin->id,
         ]);
@@ -107,7 +107,7 @@ class DashboardTargetTest extends TestCase
                 ->where('adminTargets.landingKpiTargets.0.year', now()->year)
                 ->where('adminTargets.landingKpiTargets.0.targets.registeredJobSeekers', 10000)
                 ->where('adminTargets.landingKpiTargets.0.targets.validatedDemandCount', 200)
-                ->has('adminTargets.landingCountryPerformance', 5)
+                ->has('adminTargets.landingCountryPerformance', 4)
                 ->where('adminTargets.landingCountryPerformance', fn ($rows): bool => collect($rows)->contains(
                     fn (array $row): bool => $row['year'] === now()->year
                         && $row['countryId'] === 'JP'
@@ -115,7 +115,7 @@ class DashboardTargetTest extends TestCase
                         && $row['achieved'] === 5
                         && $row['percentage'] === 20.8,
                 ))
-                ->has('adminTargets.landingCountryTrainingPerformance', 20)
+                ->has('adminTargets.landingCountryTrainingPerformance', 16)
                 ->where('adminTargets.landingCountryTrainingPerformance', fn ($rows): bool => collect($rows)->contains(
                     fn (array $row): bool => $row['year'] === now()->year
                         && $row['countryId'] === 'JP'
@@ -180,12 +180,12 @@ class DashboardTargetTest extends TestCase
         $projection = app(\App\Services\BusinessDataPresenter::class)->publicLandingProjection(2027);
 
         $korea = collect($projection['countries'])->first(
-            fn (array $country): bool => $country['name'] === 'Korea Selatan',
+            fn (array $country): bool => in_array($country['name'], ['Korea', 'Korea Selatan'], true),
         );
         $koreaSectors = collect($projection['sectors'])
-            ->filter(fn (array $sector): bool => str_starts_with($sector['name'], 'Korea Selatan ·'));
+            ->filter(fn (array $sector): bool => str_starts_with($sector['name'], "{$korea['name']} ·"));
         $koreaTargets = collect($projection['placementTargets'])
-            ->filter(fn (array $target): bool => $target['projectionPlacement'] === 'Korea Selatan');
+            ->filter(fn (array $target): bool => in_array($target['projectionPlacement'], ['Korea', 'Korea Selatan'], true));
 
         $this->assertNotNull($korea);
         $this->assertSame(600, $korea['target']);
@@ -193,7 +193,7 @@ class DashboardTargetTest extends TestCase
         $this->assertSame(
             ['Sertifikasi Teknis' => 600],
             $koreaSectors->mapWithKeys(fn (array $sector): array => [
-                substr($sector['name'], strlen('Korea Selatan · ')) => $sector['target'],
+                substr($sector['name'], strlen("{$korea['name']} · ")) => $sector['target'],
             ])->all(),
         );
         $this->assertSame(1, $koreaTargets->count());
@@ -476,7 +476,7 @@ class DashboardTargetTest extends TestCase
         $this->actingAs($this->userWithRole('super_admin'))
             ->get('/app/targets')
             ->assertInertia(fn (Assert $page) => $page
-                ->has('adminTargets.landingCountryPerformance', 10)
+                ->has('adminTargets.landingCountryPerformance', 8)
                 ->where('adminTargets.landingCountryPerformance', function ($rows) use ($year, $previousYear): bool {
                     $periods = collect($rows);
 
@@ -496,7 +496,7 @@ class DashboardTargetTest extends TestCase
                             && $row['percentage'] == 40,
                     );
                 })
-                ->has('adminTargets.landingCountryTrainingPerformance', 40)
+                ->has('adminTargets.landingCountryTrainingPerformance', 32)
                 ->where('adminTargets.landingCountryTrainingPerformance', function ($rows) use ($year, $previousYear): bool {
                     $periods = collect($rows);
 
@@ -593,7 +593,7 @@ class DashboardTargetTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->where('landingProjection.year', $year)
                 ->where('landingProjection.periods', [2027, $currentYear, $year])
-                ->has('landingProjection.countries', 5)
+                ->has('landingProjection.countries', 4)
                 ->where('landingProjection.countries', fn ($rows): bool => collect($rows)->contains(
                     fn (array $row): bool => $row['name'] === 'Jepang'
                         && $row['target'] === 540
@@ -663,7 +663,7 @@ class DashboardTargetTest extends TestCase
                 'validatedDemandCount' => 200,
                 'countrySectors' => [
                     'JP' => ['SECT-WELD' => 24],
-                    'DE' => ['SECT-CARE' => 12],
+                    'MY' => ['SECT-CARE' => 12],
                 ],
                 'placementTargets' => [
                     [
@@ -675,20 +675,13 @@ class DashboardTargetTest extends TestCase
                 ],
                 'countries' => [
                     'JP' => 30,
-                    'DE' => null,
                     'KR' => null,
-                    'TW' => null,
-                    'SA' => null,
+                    'MY' => null,
+                    'TR' => null,
                 ],
                 'countryTrainingTypes' => [
                     'JP' => [
                         'upskilling' => 40,
-                        'reskilling' => null,
-                        'language' => null,
-                        'integratedTechnical' => null,
-                    ],
-                    'DE' => [
-                        'upskilling' => null,
                         'reskilling' => null,
                         'language' => null,
                         'integratedTechnical' => null,
@@ -699,13 +692,13 @@ class DashboardTargetTest extends TestCase
                         'language' => null,
                         'integratedTechnical' => null,
                     ],
-                    'TW' => [
+                    'MY' => [
                         'upskilling' => null,
                         'reskilling' => null,
                         'language' => null,
                         'integratedTechnical' => null,
                     ],
-                    'SA' => [
+                    'TR' => [
                         'upskilling' => null,
                         'reskilling' => null,
                         'language' => null,

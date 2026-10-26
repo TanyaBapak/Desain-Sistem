@@ -321,7 +321,7 @@ class BusinessDataPersistenceTest extends TestCase
             'operationalReadinessScore' => 60,
             'facilities' => ['Ruang Kelas'],
             'supportedSectors' => ['Kesehatan / Caregiver'],
-            'supportedCountries' => ['DE'],
+            'supportedCountries' => ['TR'],
             'institutionStatus' => 'Swasta',
         ])->assertRedirect()->assertSessionHasNoErrors();
 
@@ -334,7 +334,7 @@ class BusinessDataPersistenceTest extends TestCase
             true,
             flags: JSON_THROW_ON_ERROR,
         );
-        $this->assertSame(['DE'], $updatedProviderMetadata['supportedCountries']);
+        $this->assertSame(['TR'], $updatedProviderMetadata['supportedCountries']);
     }
 
     private function userWithRole(string $roleName, array $attributes = []): User
