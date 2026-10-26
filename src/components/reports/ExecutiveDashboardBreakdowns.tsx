@@ -397,7 +397,7 @@ function BreakdownBar({
   );
 }
 
-function ProvinceRatioBar({
+export function ProvinceRatioBar({
   label,
   registered,
   total,

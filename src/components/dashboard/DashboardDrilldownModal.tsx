@@ -32,6 +32,8 @@ import {
   TrainingProgram,
   VocationalProvider,
 } from "@/types";
+import { cn } from "@/lib/utils";
+import { ProvinceRatioBar } from "@/components/reports/ExecutiveDashboardBreakdowns";
 
 export type DrilldownType =
   | "lembaga"
@@ -46,6 +48,7 @@ interface DashboardDrilldownModalProps {
   onClose: () => void;
   scopeName?: string;
   nationalLpkCount?: number;
+  nationalLpkByProvince?: { province: string; totalCount: number; registeredCount: number }[];
   providers: VocationalProvider[];
   candidates: CandidateParticipant[];
   programs: TrainingProgram[];
@@ -73,12 +76,14 @@ export const DashboardDrilldownModal: React.FC<DashboardDrilldownModalProps> = (
   onClose,
   scopeName = "Lingkup Anda",
   nationalLpkCount,
+  nationalLpkByProvince,
   providers,
   candidates,
   programs,
   demands,
   allocations,
 }) => {
+  const [modalType, setModalType] = useState<DrilldownType>(type ?? "lembaga");
   const [filterStack, setFilterStack] = useState<FilterStep[]>([]);
   const [viewMode, setViewMode] = useState<"categories" | "list">("categories");
   const [searchQuery, setSearchQuery] = useState("");
@@ -87,6 +92,9 @@ export const DashboardDrilldownModal: React.FC<DashboardDrilldownModalProps> = (
 
   // Reset filter state when modal type changes
   React.useEffect(() => {
+    if (type) {
+      setModalType(type);
+    }
     setFilterStack([]);
     setViewMode("categories");
     setSearchQuery("");
@@ -114,7 +122,7 @@ export const DashboardDrilldownModal: React.FC<DashboardDrilldownModalProps> = (
       <DialogContent className="max-w-4xl w-[95vw] max-h-[90vh] flex flex-col p-0 gap-0 overflow-hidden rounded-2xl border bg-card text-card-foreground shadow-2xl">
         {/* Modal Header */}
         <DialogHeader className="p-5 md:p-6 pb-4 border-b border-border bg-muted/20">
-          <div className="flex items-start justify-between gap-4">
+          <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
             <div className="flex items-start gap-3">
               {filterStack.length > 0 && (
                 <Button
@@ -130,19 +138,62 @@ export const DashboardDrilldownModal: React.FC<DashboardDrilldownModalProps> = (
               )}
               <div>
                 <span className="text-[11px] font-bold tracking-wider text-muted-foreground uppercase block">
-                  {currentStep ? currentStep.tag : getRootTag(type, scopeName)}
+                  {currentStep ? currentStep.tag : getRootTag(modalType, scopeName)}
                 </span>
                 <DialogTitle className="text-xl md:text-2xl font-bold text-foreground mt-0.5">
-                  {currentStep ? currentStep.title : getRootTitle(type)}
+                  {currentStep ? currentStep.title : getRootTitle(modalType)}
                 </DialogTitle>
                 <p className="text-xs text-muted-foreground mt-1">
                   {currentStep?.subtitle ??
-                    `Pilih rincian di bawah untuk mempersempit daftar pada ${scopeName}.`}
+                    (modalType === "national_lpk"
+                      ? "Pilih rincian di bawah untuk mempersempit daftar LPK pada Seluruh Indonesia."
+                      : `Pilih rincian di bawah untuk mempersempit daftar pada ${scopeName}.`)}
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              {(modalType === "lembaga" || modalType === "national_lpk") && filterStack.length === 0 && (
+                <div className="inline-flex rounded-lg bg-muted p-1 border text-xs">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setModalType("lembaga");
+                      setFilterStack([]);
+                      setViewMode("categories");
+                      setSearchQuery("");
+                      setPage(1);
+                    }}
+                    className={cn(
+                      "px-2.5 py-1 rounded-md font-medium transition-all text-xs",
+                      modalType === "lembaga"
+                        ? "bg-background text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    Semua Lembaga Vokasi (LPK)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setModalType("national_lpk");
+                      setFilterStack([]);
+                      setViewMode("categories");
+                      setSearchQuery("");
+                      setPage(1);
+                    }}
+                    className={cn(
+                      "px-2.5 py-1 rounded-md font-medium transition-all text-xs",
+                      modalType === "national_lpk"
+                        ? "bg-background text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    LPK Terdaftar Nasional
+                  </button>
+                </div>
+              )}
+
               <Button
                 type="button"
                 variant={viewMode === "list" ? "default" : "outline"}
@@ -169,10 +220,12 @@ export const DashboardDrilldownModal: React.FC<DashboardDrilldownModalProps> = (
         {/* Modal Body */}
         <div className="flex-1 overflow-y-auto p-5 md:p-6 space-y-6">
           {/* RENDER BY TYPE */}
-          {type === "lembaga" || type === "national_lpk" ? (
+          {modalType === "lembaga" || modalType === "national_lpk" ? (
             <LembagaDrilldown
               providers={providers}
-              isNational={type === "national_lpk"}
+              isNational={modalType === "national_lpk"}
+              nationalLpkByProvince={nationalLpkByProvince}
+              scopeName={scopeName}
               filterStack={filterStack}
               onPushFilter={handlePushFilter}
               viewMode={viewMode}
@@ -182,7 +235,7 @@ export const DashboardDrilldownModal: React.FC<DashboardDrilldownModalProps> = (
               setPage={setPage}
               pageSize={pageSize}
             />
-          ) : type === "peserta" ? (
+          ) : modalType === "peserta" ? (
             <PesertaDrilldown
               candidates={candidates}
               filterStack={filterStack}
@@ -194,7 +247,7 @@ export const DashboardDrilldownModal: React.FC<DashboardDrilldownModalProps> = (
               setPage={setPage}
               pageSize={pageSize}
             />
-          ) : type === "program" ? (
+          ) : modalType === "program" ? (
             <ProgramDrilldown
               programs={programs}
               filterStack={filterStack}
@@ -206,7 +259,7 @@ export const DashboardDrilldownModal: React.FC<DashboardDrilldownModalProps> = (
               setPage={setPage}
               pageSize={pageSize}
             />
-          ) : type === "demand" ? (
+          ) : modalType === "demand" ? (
             <DemandDrilldown
               demands={demands}
               filterStack={filterStack}
@@ -243,6 +296,8 @@ export const DashboardDrilldownModal: React.FC<DashboardDrilldownModalProps> = (
 interface LembagaDrilldownProps {
   providers: VocationalProvider[];
   isNational: boolean;
+  nationalLpkByProvince?: { province: string; totalCount: number; registeredCount: number }[];
+  scopeName?: string;
   filterStack: FilterStep[];
   onPushFilter: (step: FilterStep) => void;
   viewMode: "categories" | "list";
@@ -256,6 +311,8 @@ interface LembagaDrilldownProps {
 const LembagaDrilldown: React.FC<LembagaDrilldownProps> = ({
   providers,
   isNational,
+  nationalLpkByProvince,
+  scopeName,
   filterStack,
   onPushFilter,
   viewMode,
@@ -265,6 +322,8 @@ const LembagaDrilldown: React.FC<LembagaDrilldownProps> = ({
   setPage,
   pageSize,
 }) => {
+  const [showAllProvinces, setShowAllProvinces] = useState(false);
+
   // Filter base by national or scoped
   const baseProviders = useMemo(() => {
     return isNational
@@ -389,6 +448,9 @@ const LembagaDrilldown: React.FC<LembagaDrilldownProps> = ({
 
   // Province breakdown with registered / total counts
   const provinceCounts = useMemo(() => {
+    if (isNational && nationalLpkByProvince && nationalLpkByProvince.length > 0 && filterStack.length === 0) {
+      return nationalLpkByProvince;
+    }
     const map = new Map<string, { totalCount: number; registeredCount: number }>();
     filteredProviders.forEach((p) => {
       const prov = p.provinsi || "Belum dipetakan";
@@ -404,7 +466,22 @@ const LembagaDrilldown: React.FC<LembagaDrilldownProps> = ({
       totalCount: stats.totalCount,
       registeredCount: stats.registeredCount,
     })).sort((a, b) => b.totalCount - a.totalCount);
-  }, [filteredProviders]);
+  }, [filteredProviders, isNational, nationalLpkByProvince, filterStack]);
+
+  const provinceMaxTotal = useMemo(
+    () => Math.max(0, ...provinceCounts.map((p) => p.totalCount)),
+    [provinceCounts]
+  );
+
+  const provinceTotalCount = useMemo(
+    () => provinceCounts.reduce((acc, curr) => acc + curr.totalCount, 0),
+    [provinceCounts]
+  );
+
+  const provinceTotalRegistered = useMemo(
+    () => provinceCounts.reduce((acc, curr) => acc + curr.registeredCount, 0),
+    [provinceCounts]
+  );
 
   // Search in list
   const searchResults = useMemo(() => {
@@ -430,28 +507,98 @@ const LembagaDrilldown: React.FC<LembagaDrilldownProps> = ({
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <MiniStatBox
           icon={Building2}
-          label="Lembaga"
-          value={filteredProviders.length}
+          label={isNational ? "Total LPK" : "Lembaga"}
+          value={isNational && filterStack.length === 0 ? (provinceTotalCount || filteredProviders.length) : filteredProviders.length}
         />
         <MiniStatBox
           icon={MapPin}
           label="Provinsi"
-          value={uniqueProvinces}
+          value={isNational && filterStack.length === 0 ? (provinceCounts.length || uniqueProvinces) : uniqueProvinces}
+        />
+        <MiniStatBox
+          icon={CheckCircle2}
+          label="Terverifikasi"
+          value={provinceTotalRegistered}
         />
         <MiniStatBox
           icon={Briefcase}
           label="Sektor"
           value={uniqueSectors}
         />
-        <MiniStatBox
-          icon={Award}
-          label="Jabatan"
-          value={uniqueOccupations}
-        />
       </div>
 
       {viewMode === "categories" ? (
         <div className="space-y-6">
+          {/* Sebaran Wilayah / Provinsi Section (Tampil Utama) */}
+          {!filterStack.some((s) => s.province) && provinceCounts.length > 0 && (
+            <div className="rounded-xl border border-border bg-card p-4 space-y-3 shadow-sm">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-border/60 pb-3">
+                <div>
+                  <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                    <MapPin className="h-4 w-4 text-primary" />
+                    <span>
+                      {isNational
+                        ? "Sebaran LPK per provinsi"
+                        : "Sebaran lembaga vokasi per provinsi"}
+                    </span>
+                  </h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {isNational
+                      ? `${provinceTotalRegistered.toLocaleString("id-ID")} terdaftar dari ${provinceTotalCount.toLocaleString("id-ID")} LPK di seluruh Indonesia (Pilih provinsi untuk menyaring)`
+                      : `${provinceTotalRegistered.toLocaleString("id-ID")} terdaftar dari ${provinceTotalCount.toLocaleString("id-ID")} lembaga di ${scopeName || "lingkup Anda"} (Pilih provinsi untuk menyaring)`}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 tabular-nums">
+                    {Math.round((provinceTotalRegistered / (provinceTotalCount || 1)) * 100)}% Terverifikasi
+                  </span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+                {(showAllProvinces ? provinceCounts : provinceCounts.slice(0, 8)).map((item) => (
+                  <button
+                    key={item.province}
+                    type="button"
+                    onClick={() =>
+                      onPushFilter({
+                        tag: "PROVINSI",
+                        title: item.province,
+                        subtitle: `${item.registeredCount} terdaftar dari ${item.totalCount} ${isNational ? "LPK" : "lembaga"} di ${item.province}.`,
+                        province: item.province,
+                      })
+                    }
+                    className="p-3 rounded-lg border border-border/70 bg-muted/20 hover:bg-muted/50 hover:border-primary/50 transition-all text-left group"
+                  >
+                    <ProvinceRatioBar
+                      label={item.province}
+                      registered={item.registeredCount}
+                      total={item.totalCount}
+                      maxTotal={provinceMaxTotal}
+                      unitLabel={isNational ? "LPK" : "lembaga"}
+                    />
+                  </button>
+                ))}
+              </div>
+
+              {provinceCounts.length > 8 && (
+                <div className="pt-2 flex justify-center border-t border-border/50">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowAllProvinces(!showAllProvinces)}
+                    className="text-xs text-primary hover:text-primary/80 font-medium"
+                  >
+                    {showAllProvinces
+                      ? "Tampilkan Lebih Sedikit (8 Wilayah)"
+                      : `Tampilkan Semua (${provinceCounts.length} Provinsi)`}
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Layer Section */}
           {!filterStack.some((s) => s.layer) && (
             <div>
@@ -470,38 +617,6 @@ const LembagaDrilldown: React.FC<LembagaDrilldownProps> = ({
                         title: item.name,
                         subtitle: `${item.count} lembaga. Pilih rincian di bawah untuk mempersempit daftar.`,
                         layer: item.name,
-                      })
-                    }
-                  />
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Province Section */}
-          {!filterStack.some((s) => s.province) && provinceCounts.length > 0 && (
-            <div>
-              <div className="flex items-center justify-between mb-2.5">
-                <h3 className="text-xs font-bold text-foreground">
-                  {isNational ? "Rincian LPK per provinsi" : "Rincian lembaga vokasi per provinsi"}
-                </h3>
-                <span className="text-[11px] text-muted-foreground">
-                  Pilih provinsi untuk menyaring daftar
-                </span>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
-                {provinceCounts.slice(0, 10).map((item) => (
-                  <DrilldownCard
-                    key={item.province}
-                    title={item.province}
-                    subtitle={`${item.registeredCount.toLocaleString("id-ID")} terdaftar / ${item.totalCount.toLocaleString("id-ID")} ${isNational ? "LPK" : "lembaga"}`}
-                    badge={`${Math.round((item.registeredCount / (item.totalCount || 1)) * 100)}%`}
-                    onClick={() =>
-                      onPushFilter({
-                        tag: "PROVINSI",
-                        title: item.province,
-                        subtitle: `${item.registeredCount} terdaftar dari ${item.totalCount} ${isNational ? "LPK" : "lembaga"} di ${item.province}.`,
-                        province: item.province,
                       })
                     }
                   />

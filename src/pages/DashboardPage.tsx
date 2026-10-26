@@ -5,6 +5,7 @@ import { useAppStore } from "@/store/useAppStore";
 import {
   ExecutiveDashboardBreakdowns,
   ExecutiveDashboardBreakdownsData,
+  ProvinceRatioBar,
 } from "@/components/reports/ExecutiveDashboardBreakdowns";
 import { ProcessStages } from "@/components/dashboard/ProcessStages";
 import { InstitutionDirectory, InstitutionDirectoryItem } from "@/components/dashboard/InstitutionDirectory";
@@ -17,7 +18,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/button";
-import { Users, GraduationCap, Building2, Globe2, Workflow, Monitor } from "lucide-react";
+import { Users, GraduationCap, Building2, Globe2, Workflow, Monitor, ChevronRight } from "lucide-react";
 import { STAKEHOLDER_ROLES } from "@/lib/stakeholder-roles";
 import { cn } from "@/lib/utils";
 import {
@@ -42,6 +43,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     useAppStore();
 
   const [activeDrilldown, setActiveDrilldown] = React.useState<DrilldownType | null>(null);
+  const [vokasiProvinceTab, setVokasiProvinceTab] = React.useState<"lembaga" | "national_lpk">("lembaga");
 
   const registeredVokasiCount = React.useMemo(
     () => providers.filter((p) => p.evokasiVerificationStatus === "Terverifikasi e-Vokasi").length,
@@ -143,6 +145,38 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     };
   }, [candidates, demands, providers, lpkProviders, nationalLpkByProvince]);
 
+  const totalVokasi = React.useMemo(
+    () => dashboardBreakdowns.institutionsByProvince?.reduce((acc, curr) => acc + curr.totalCount, 0) ?? providers.length,
+    [dashboardBreakdowns, providers.length]
+  );
+  const totalRegisteredVokasi = React.useMemo(
+    () => dashboardBreakdowns.institutionsByProvince?.reduce((acc, curr) => acc + curr.registeredCount, 0) ?? registeredVokasiCount,
+    [dashboardBreakdowns, registeredVokasiCount]
+  );
+  const vokasiProvinceMax = React.useMemo(
+    () => Math.max(0, ...(dashboardBreakdowns.institutionsByProvince?.map((item) => item.totalCount) ?? [])),
+    [dashboardBreakdowns]
+  );
+
+  const activeNationalLpkList = React.useMemo(() => {
+    return (nationalLpkByProvince && nationalLpkByProvince.length > 0)
+      ? nationalLpkByProvince
+      : (dashboardBreakdowns.lpkByProvince ?? []);
+  }, [nationalLpkByProvince, dashboardBreakdowns.lpkByProvince]);
+
+  const totalNationalLpk = React.useMemo(
+    () => activeNationalLpkList.reduce((acc, curr) => acc + curr.totalCount, 0) || nationalLpkCount,
+    [activeNationalLpkList, nationalLpkCount]
+  );
+  const totalRegisteredNationalLpk = React.useMemo(
+    () => activeNationalLpkList.reduce((acc, curr) => acc + curr.registeredCount, 0),
+    [activeNationalLpkList]
+  );
+  const nationalLpkProvinceMax = React.useMemo(
+    () => Math.max(0, ...(activeNationalLpkList.map((item) => item.totalCount) ?? [])),
+    [activeNationalLpkList]
+  );
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -203,11 +237,159 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         />
       </div>
 
+      {/* Sebaran Wilayah Lembaga Vokasi & LPK */}
+      <Card className="border shadow-sm">
+        <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b bg-muted/20">
+          <div>
+            <div className="flex items-center gap-2">
+              <Building2 className="h-4 w-4 text-primary" />
+              <CardTitle className="text-base font-semibold text-foreground">
+                Sebaran Wilayah: Lembaga Vokasi &amp; LPK Terdaftar
+              </CardTitle>
+            </div>
+            <CardDescription className="text-xs mt-1">
+              {vokasiProvinceTab === "lembaga"
+                ? `Sebaran lembaga vokasi per provinsi • ${totalRegisteredVokasi.toLocaleString("id-ID")} terdaftar dari ${totalVokasi.toLocaleString("id-ID")} lembaga (${Math.round((totalRegisteredVokasi / (totalVokasi || 1)) * 100)}% Terverifikasi)`
+                : `Sebaran LPK per provinsi • ${totalRegisteredNationalLpk.toLocaleString("id-ID")} terdaftar dari ${totalNationalLpk.toLocaleString("id-ID")} LPK (${Math.round((totalRegisteredNationalLpk / (totalNationalLpk || 1)) * 100)}% Terverifikasi)`}
+            </CardDescription>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {/* Tab Switcher antara Semua Lembaga Vokasi (LPK) dan LPK Terdaftar Nasional */}
+            <div className="inline-flex rounded-lg bg-muted p-1 border text-xs">
+              <button
+                type="button"
+                onClick={() => setVokasiProvinceTab("lembaga")}
+                className={cn(
+                  "px-3 py-1.5 rounded-md font-medium transition-all text-xs",
+                  vokasiProvinceTab === "lembaga"
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                Semua Lembaga Vokasi (LPK)
+              </button>
+              <button
+                type="button"
+                onClick={() => setVokasiProvinceTab("national_lpk")}
+                className={cn(
+                  "px-3 py-1.5 rounded-md font-medium transition-all text-xs",
+                  vokasiProvinceTab === "national_lpk"
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                LPK Terdaftar Nasional
+              </button>
+            </div>
+
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setActiveDrilldown(vokasiProvinceTab)}
+              className="text-xs gap-1 h-8 rounded-lg shrink-0"
+              title="Buka rincian lengkap / drilldown"
+            >
+              <span>Detail</span>
+              <ChevronRight className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        </CardHeader>
+
+        <CardContent className="pt-4">
+          {vokasiProvinceTab === "lembaga" ? (
+            (dashboardBreakdowns.institutionsByProvince?.length ?? 0) > 0 ? (
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                  {dashboardBreakdowns.institutionsByProvince?.map((item) => (
+                    <div
+                      key={item.province}
+                      onClick={() => setActiveDrilldown("lembaga")}
+                      className="cursor-pointer rounded-lg p-2 hover:bg-muted/40 transition-colors"
+                      title="Klik untuk melihat rincian lembaga di provinsi ini"
+                    >
+                      <ProvinceRatioBar
+                        label={item.province}
+                        registered={item.registeredCount}
+                        total={item.totalCount}
+                        maxTotal={vokasiProvinceMax}
+                        unitLabel="lembaga"
+                      />
+                    </div>
+                  ))}
+                </div>
+                <div className="pt-2 flex items-center justify-between text-xs text-muted-foreground border-t border-border/50">
+                  <div className="flex items-center gap-3">
+                    <span className="flex items-center gap-1.5">
+                      <span className="h-2 w-2 rounded-full bg-emerald-600 dark:bg-emerald-500 inline-block" />
+                      Terverifikasi e-Vokasi
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <span className="h-2 w-2 rounded-full bg-primary/25 dark:bg-primary/30 inline-block" />
+                      Belum Terverifikasi
+                    </span>
+                  </div>
+                  <span className="text-[11px]">
+                    Lingkup: {currentScope?.name ?? "Wilayah Anda"} (Maksimal 8 wilayah)
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground py-4 text-center">
+                Belum ada data sebaran lembaga vokasi per provinsi pada lingkup ini.
+              </p>
+            )
+          ) : (
+            activeNationalLpkList.length > 0 ? (
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                  {activeNationalLpkList.slice(0, 8).map((item) => (
+                    <div
+                      key={item.province}
+                      onClick={() => setActiveDrilldown("national_lpk")}
+                      className="cursor-pointer rounded-lg p-2 hover:bg-muted/40 transition-colors"
+                      title="Klik untuk melihat rincian LPK nasional di provinsi ini"
+                    >
+                      <ProvinceRatioBar
+                        label={item.province}
+                        registered={item.registeredCount}
+                        total={item.totalCount}
+                        maxTotal={nationalLpkProvinceMax}
+                        unitLabel="LPK"
+                      />
+                    </div>
+                  ))}
+                </div>
+                <div className="pt-2 flex items-center justify-between text-xs text-muted-foreground border-t border-border/50">
+                  <div className="flex items-center gap-3">
+                    <span className="flex items-center gap-1.5">
+                      <span className="h-2 w-2 rounded-full bg-emerald-600 dark:bg-emerald-500 inline-block" />
+                      Terverifikasi e-Vokasi
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <span className="h-2 w-2 rounded-full bg-primary/25 dark:bg-primary/30 inline-block" />
+                      Belum Terverifikasi
+                    </span>
+                  </div>
+                  <span className="text-[11px]">Cakupan: Seluruh Indonesia (Maksimal 8 wilayah)</span>
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground py-4 text-center">
+                Belum ada data sebaran LPK per provinsi nasional.
+              </p>
+            )
+          )}
+        </CardContent>
+      </Card>
+
       <DashboardDrilldownModal
         type={activeDrilldown}
         onClose={() => setActiveDrilldown(null)}
         scopeName={currentScope?.name ?? "Lingkup Anda"}
         nationalLpkCount={nationalLpkCount}
+        nationalLpkByProvince={nationalLpkByProvince}
         providers={providers}
         candidates={candidates}
         programs={programs}

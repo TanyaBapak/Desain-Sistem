@@ -1470,7 +1470,6 @@ class BusinessDataPresenter
             ->groupBy('provinces.name')
             ->orderByDesc('total_count')
             ->orderBy('province')
-            ->limit(8)
             ->get()
             ->map(fn (object $row): array => [
                 'province' => $row->province,
