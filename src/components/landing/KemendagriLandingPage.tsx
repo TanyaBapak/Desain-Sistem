@@ -68,7 +68,7 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({ kp
   const slides = [
     {
       badge: 'PROGRAM PRIORITAS NASIONAL 2026-2029',
-      title: 'Pemberdayaan & Penempatan 50.000 Lulusan Vokasi ke Industri Global',
+      title: 'TASK FORCE PERCEPATAN SMK GO GLOBAL 2026',
       subtitle: 'Integrasi terpadu pemetaan kurikulum SMK/Politeknik, verifikasi e-Vokasi, dan pemenuhan demand kerja resmi di Jepang, Jerman, Korea Selatan, dan Taiwan.',
       ctaText: 'Masuk ke Sistem Aplikasi',
       tag: 'Kementerian P2MI RI'

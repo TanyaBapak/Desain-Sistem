@@ -39,6 +39,8 @@ export interface DashboardTargetManagementData {
     };
   }[];
   landingCountries: { id: string; name: string }[];
+  landingProjectionCountryOptions: string[];
+  landingProjectionCountries: string[];
   landingSectors: { id: string; name: string }[];
   landingCountryPerformance: {
     year: number;

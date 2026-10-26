@@ -10,6 +10,23 @@ use Illuminate\Support\Str;
 
 class BusinessDataPresenter
 {
+    private const COUNTRY_ALIASES = [
+        'singapur' => ['Singapura', 'Singapore'],
+        'singapura' => ['Singapura', 'Singapore'],
+        'singapore' => ['Singapura', 'Singapore'],
+        'belanda' => ['Belanda', 'Netherlands', 'Holland'],
+        'netherlands' => ['Belanda', 'Netherlands', 'Holland'],
+        'holland' => ['Belanda', 'Netherlands', 'Holland'],
+        'slowakia' => ['Slovakia', 'Slowakia', 'Slovak Republic'],
+        'slovakia' => ['Slovakia', 'Slowakia', 'Slovak Republic'],
+        'slovak republic' => ['Slovakia', 'Slowakia', 'Slovak Republic'],
+        'uea' => ['Uni Emirat Arab', 'UEA', 'UAE', 'United Arab Emirates'],
+        'uae' => ['Uni Emirat Arab', 'UEA', 'UAE', 'United Arab Emirates'],
+        'united arab emirates' => ['Uni Emirat Arab', 'UEA', 'UAE', 'United Arab Emirates'],
+    ];
+
+    private const NON_COUNTRY_DESTINATIONS = ['eropa timur', 'timur tengah'];
+
     public function __construct(
         private readonly Bp3miScope $bp3miScope = new Bp3miScope,
         private readonly DashboardTargetService $dashboardTargetService = new DashboardTargetService,
@@ -59,10 +76,41 @@ class BusinessDataPresenter
      */
     public function publicLandingProjection(?int $year): array
     {
+        $allowedCountryNames = $this->dashboardTargetService->landingProjectionCountries();
+        $normalizedAllowedCountryNames = array_map(
+            fn (string $countryName): string => $this->normalizeCountryName($countryName),
+            $allowedCountryNames,
+        );
         $countryPerformance = $this->dashboardTargetService->allLandingCountryPerformance();
-        $sectorPerformance = $this->dashboardTargetService->allLandingCountrySectorPerformance();
-        $allPlacementTargets = $this->dashboardTargetService->landingPlacementProjection(null);
+        $countryPerformance = array_values(array_filter(
+            $countryPerformance,
+            fn (array $item): bool => in_array(
+                $this->normalizeCountryName($item['countryName']),
+                $normalizedAllowedCountryNames,
+                true,
+            ),
+        ));
+        $sectorPerformance = array_values(array_filter(
+            $this->dashboardTargetService->allLandingCountrySectorPerformance(),
+            fn (array $item): bool => in_array(
+                $this->normalizeCountryName($item['countryName']),
+                $normalizedAllowedCountryNames,
+                true,
+            ),
+        ));
+        $allPlacementTargets = $this->dashboardTargetService->filterLandingPlacementTargetsForCountries(
+            $this->dashboardTargetService->landingPlacementProjection(null),
+            $allowedCountryNames,
+        );
         $placementCountryTargets = $this->placementCountryTargets($allPlacementTargets);
+        $placementCountryTargets = array_filter(
+            $placementCountryTargets,
+            fn (array $item): bool => in_array(
+                $this->normalizeCountryName($item['countryName']),
+                $normalizedAllowedCountryNames,
+                true,
+            ),
+        );
         $countryPerformanceByPeriod = collect($countryPerformance)
             ->keyBy(fn (array $item): string => "{$item['year']}|{$item['countryId']}")
             ->all();
@@ -111,12 +159,10 @@ class BusinessDataPresenter
         if ($year === null && $selectedCountries === []) {
             $fallbackYear = (int) now()->year;
             $periods = [$fallbackYear];
-            $selectedCountries = DB::table('countries')
-                ->orderBy('name')
-                ->get(['id', 'name'])
-                ->map(fn (object $country): array => [
+            $selectedCountries = collect($allowedCountryNames)
+                ->map(fn (string $countryName): array => [
                     'year' => $fallbackYear,
-                    'countryName' => $country->name,
+                    'countryName' => $countryName,
                     'target' => 0,
                     'achieved' => 0,
                     'projected' => 0,
@@ -125,12 +171,10 @@ class BusinessDataPresenter
         }
 
         if ($year !== null && $selectedCountries === []) {
-            $selectedCountries = DB::table('countries')
-                ->orderBy('name')
-                ->get(['id', 'name'])
-                ->map(fn (object $country): array => [
+            $selectedCountries = collect($allowedCountryNames)
+                ->map(fn (string $countryName): array => [
                     'year' => $year,
-                    'countryName' => $country->name,
+                    'countryName' => $countryName,
                     'target' => 0,
                     'achieved' => 0,
                     'projected' => 0,
@@ -186,21 +230,6 @@ class BusinessDataPresenter
             ];
         }
 
-        $aliases = [
-            'singapur' => ['Singapura', 'Singapore'],
-            'singapura' => ['Singapura', 'Singapore'],
-            'singapore' => ['Singapura', 'Singapore'],
-            'belanda' => ['Belanda', 'Netherlands', 'Holland'],
-            'netherlands' => ['Belanda', 'Netherlands', 'Holland'],
-            'holland' => ['Belanda', 'Netherlands', 'Holland'],
-            'slowakia' => ['Slovakia', 'Slowakia', 'Slovak Republic'],
-            'slovakia' => ['Slovakia', 'Slowakia', 'Slovak Republic'],
-            'slovak republic' => ['Slovakia', 'Slowakia', 'Slovak Republic'],
-            'uea' => ['Uni Emirat Arab', 'UEA', 'UAE', 'United Arab Emirates'],
-            'uae' => ['Uni Emirat Arab', 'UEA', 'UAE', 'United Arab Emirates'],
-            'united arab emirates' => ['Uni Emirat Arab', 'UEA', 'UAE', 'United Arab Emirates'],
-        ];
-        $nonCountryDestinations = ['eropa timur', 'timur tengah'];
         $targetsByCountry = [];
 
         foreach ($placementTargets as $placementTarget) {
@@ -209,13 +238,13 @@ class BusinessDataPresenter
             foreach ($destinations as $destination) {
                 $cleanDestination = preg_replace('/\\s*\\([^)]*\\)/u', '', $destination) ?? $destination;
                 $normalizedDestination = $this->normalizeCountryName($cleanDestination);
-                if ($normalizedDestination === '' || in_array($normalizedDestination, $nonCountryDestinations, true)) {
+                if ($normalizedDestination === '' || in_array($normalizedDestination, self::NON_COUNTRY_DESTINATIONS, true)) {
                     continue;
                 }
 
                 $country = $normalizedCountries[$normalizedDestination] ?? null;
                 $displayName = mb_convert_case(trim($cleanDestination), MB_CASE_TITLE, 'UTF-8');
-                foreach ($aliases[$normalizedDestination] ?? [$displayName] as $alias) {
+                foreach (self::COUNTRY_ALIASES[$normalizedDestination] ?? [$displayName] as $alias) {
                     $country ??= $normalizedCountries[$this->normalizeCountryName($alias)] ?? null;
                     if ($country !== null) {
                         break;
@@ -223,13 +252,21 @@ class BusinessDataPresenter
                 }
 
                 if ($country === null) {
-                    $displayName = $aliases[$normalizedDestination][0] ?? $displayName;
+                    $displayName = self::COUNTRY_ALIASES[$normalizedDestination][0] ?? $displayName;
                     $country = ['id' => null, 'name' => $displayName];
                 }
                 $matchedCountries[$country['id'] ?? $this->normalizeCountryName($country['name'])] = $country;
             }
 
-            foreach ($matchedCountries as $country) {
+            $countryCount = count($matchedCountries);
+            $baseTarget = $countryCount > 0
+                ? intdiv($placementTarget['target'], $countryCount)
+                : 0;
+            $remainingTarget = $countryCount > 0
+                ? $placementTarget['target'] % $countryCount
+                : 0;
+
+            foreach (array_values($matchedCountries) as $index => $country) {
                 $key = "{$placementTarget['year']}|".($country['id'] ?? $this->normalizeCountryName($country['name']));
                 $targetsByCountry[$key] ??= [
                     'year' => $placementTarget['year'],
@@ -237,7 +274,7 @@ class BusinessDataPresenter
                     'countryName' => $country['name'],
                     'target' => 0,
                 ];
-                $targetsByCountry[$key]['target'] += $placementTarget['target'];
+                $targetsByCountry[$key]['target'] += $baseTarget + ($index < $remainingTarget ? 1 : 0);
             }
         }
 

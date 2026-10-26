@@ -73,6 +73,163 @@ class DashboardTargetService
     }
 
     /**
+     * @return list<string>
+     */
+    public function landingProjectionCountryOptions(): array
+    {
+        $normalizedMasterCountries = [];
+        foreach (DB::table('countries')->orderBy('name')->get(['name']) as $country) {
+            $normalizedMasterCountries[mb_strtolower(trim($country->name))] = $country->name;
+        }
+
+        $countryNames = [];
+        foreach ($normalizedMasterCountries as $countryName) {
+            $countryNames[mb_strtolower($countryName)] = $countryName;
+        }
+        foreach ($this->landingPlacementProjection(null) as $target) {
+            $destinations = preg_split('/[,\\/]/u', $target['projectionPlacement']) ?: [];
+            foreach ($destinations as $destination) {
+                $countryName = $this->canonicalProjectionCountry($destination, $normalizedMasterCountries);
+                if ($countryName !== null) {
+                    $countryNames[mb_strtolower($countryName)] = $countryName;
+                }
+            }
+        }
+
+        $options = array_values($countryNames);
+        usort($options, 'strnatcasecmp');
+
+        return $options;
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function landingProjectionCountries(): array
+    {
+        $settings = DB::table('dashboard_targets')
+            ->where('metric_key', 'LIKE', 'landingProjectionCountry_%')
+            ->get(['metric_key', 'target_value']);
+
+        if ($settings->isEmpty()) {
+            return $this->landingProjectionCountryOptions();
+        }
+
+        $optionByKey = [];
+        foreach ($this->landingProjectionCountryOptions() as $countryName) {
+            $optionByKey[$this->projectionCountryMetricKey($countryName)] = $countryName;
+        }
+
+        return $settings
+            ->filter(fn (object $row): bool => (int) $row->target_value === 1)
+            ->map(fn (object $row): ?string => $optionByKey[$row->metric_key] ?? null)
+            ->filter(fn (?string $countryName): bool => $countryName !== null)
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @param  array<string, string>  $normalizedMasterCountries
+     */
+    private function canonicalProjectionCountry(string $destination, array $normalizedMasterCountries): ?string
+    {
+        $cleanDestination = preg_replace('/\\s*\\([^)]*\\)/u', '', $destination) ?? $destination;
+        $normalizedDestination = mb_strtolower(trim($cleanDestination));
+        if ($normalizedDestination === '' || in_array($normalizedDestination, ['eropa timur', 'timur tengah'], true)) {
+            return null;
+        }
+
+        if (isset($normalizedMasterCountries[$normalizedDestination])) {
+            return $normalizedMasterCountries[$normalizedDestination];
+        }
+
+        $aliases = [
+            'singapur' => ['Singapura', 'Singapore'],
+            'singapura' => ['Singapura', 'Singapore'],
+            'singapore' => ['Singapura', 'Singapore'],
+            'belanda' => ['Belanda', 'Netherlands', 'Holland'],
+            'netherlands' => ['Belanda', 'Netherlands', 'Holland'],
+            'holland' => ['Belanda', 'Netherlands', 'Holland'],
+            'slowakia' => ['Slovakia', 'Slowakia', 'Slovak Republic'],
+            'slovakia' => ['Slovakia', 'Slowakia', 'Slovak Republic'],
+            'slovak republic' => ['Slovakia', 'Slowakia', 'Slovak Republic'],
+            'uea' => ['Uni Emirat Arab', 'UEA', 'UAE', 'United Arab Emirates'],
+            'uae' => ['Uni Emirat Arab', 'UEA', 'UAE', 'United Arab Emirates'],
+            'united arab emirates' => ['Uni Emirat Arab', 'UEA', 'UAE', 'United Arab Emirates'],
+        ];
+        foreach ($aliases[$normalizedDestination] ?? [] as $alias) {
+            $normalizedAlias = mb_strtolower($alias);
+            if (isset($normalizedMasterCountries[$normalizedAlias])) {
+                return $normalizedMasterCountries[$normalizedAlias];
+            }
+        }
+
+        return $aliases[$normalizedDestination][0]
+            ?? mb_convert_case(trim($cleanDestination), MB_CASE_TITLE, 'UTF-8');
+    }
+
+    /**
+     * @param  list<array{year: int, sectorName: string, occupationName: string, projectionPlacement: string, target: int}>  $targets
+     * @param  list<string>  $allowedCountryNames
+     * @return list<array{year: int, sectorName: string, occupationName: string, projectionPlacement: string, target: int}>
+     */
+    public function filterLandingPlacementTargetsForCountries(array $targets, array $allowedCountryNames): array
+    {
+        if ($allowedCountryNames === []) {
+            return [];
+        }
+
+        $normalizedMasterCountries = [];
+        foreach (DB::table('countries')->orderBy('name')->get(['name']) as $country) {
+            $normalizedMasterCountries[mb_strtolower(trim($country->name))] = $country->name;
+        }
+
+        $allowedCountryNames = array_fill_keys(
+            array_map(fn (string $name): string => mb_strtolower(trim($name)), $allowedCountryNames),
+            true,
+        );
+        $filteredTargets = [];
+        foreach ($targets as $target) {
+            $matchedCountries = [];
+            $destinations = preg_split('/[,\\/]/u', $target['projectionPlacement']) ?: [];
+            foreach ($destinations as $destination) {
+                $countryName = $this->canonicalProjectionCountry($destination, $normalizedMasterCountries);
+                if ($countryName !== null) {
+                    $matchedCountries[mb_strtolower($countryName)] = $countryName;
+                }
+            }
+
+            $countryCount = count($matchedCountries);
+            if ($countryCount === 0) {
+                continue;
+            }
+
+            $baseTarget = intdiv($target['target'], $countryCount);
+            $remainingTarget = $target['target'] % $countryCount;
+            foreach (array_values($matchedCountries) as $index => $countryName) {
+                if (! isset($allowedCountryNames[mb_strtolower($countryName)])) {
+                    continue;
+                }
+
+                $filteredTargets[] = [
+                    ...$target,
+                    'projectionPlacement' => $countryCount === 1
+                        ? trim($target['projectionPlacement'])
+                        : $countryName,
+                    'target' => $baseTarget + ($index < $remainingTarget ? 1 : 0),
+                ];
+            }
+        }
+
+        return $filteredTargets;
+    }
+
+    private function projectionCountryMetricKey(string $countryName): string
+    {
+        return 'landingProjectionCountry_'.substr(hash('sha256', mb_strtolower(trim($countryName))), 0, 36);
+    }
+
+    /**
      * @return array<int, array{year: int, targets: array<string, int|null>}>
      */
     public function allLandingCountryTargets(): array
@@ -736,6 +893,37 @@ class DashboardTargetService
                 'updated_at' => $now,
             ];
         }
+
+        if ($rows === []) {
+            return;
+        }
+
+        DB::table('dashboard_targets')->upsert(
+            $rows,
+            ['metric_key'],
+            ['target_value', 'updated_by', 'updated_at'],
+        );
+    }
+
+    /**
+     * @param  list<string>  $selectedCountryNames
+     */
+    public function saveLandingProjectionCountries(array $selectedCountryNames, int $userId): void
+    {
+        $now = now();
+        $selectedCountryNames = array_fill_keys(
+            array_map(fn (string $name): string => mb_strtolower(trim($name)), $selectedCountryNames),
+            true,
+        );
+        $rows = collect($this->landingProjectionCountryOptions())
+            ->map(fn (string $countryName): array => [
+                'metric_key' => $this->projectionCountryMetricKey($countryName),
+                'target_value' => isset($selectedCountryNames[mb_strtolower(trim($countryName))]) ? 1 : 0,
+                'updated_by' => $userId,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ])
+            ->all();
 
         if ($rows === []) {
             return;

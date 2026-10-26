@@ -67,18 +67,25 @@ function getCountrySectors(
       return;
     }
 
-    const matchesCountry = item.projectionPlacement
+    const destinations = Array.from(new Set(item.projectionPlacement
       .split(/[,/]/u)
-      .some((destination) => normalizeCountryName(destination) === normalizeCountryName(country.name));
+      .map(normalizeCountryName)
+      .filter(Boolean)));
+    const destinationIndex = destinations.findIndex(
+      (destination) => destination === normalizeCountryName(country.name),
+    );
 
-    if (!matchesCountry) {
+    if (destinationIndex < 0 || destinations.length === 0) {
       return;
     }
 
+    const baseTarget = Math.floor(item.target / destinations.length);
+    const remainingTarget = item.target % destinations.length;
+    const targetShare = baseTarget + (destinationIndex < remainingTarget ? 1 : 0);
     const occupations = sectors.get(item.sectorName) ?? new Map<string, number>();
     occupations.set(
       item.occupationName,
-      (occupations.get(item.occupationName) ?? 0) + item.target,
+      (occupations.get(item.occupationName) ?? 0) + targetShare,
     );
     sectors.set(item.sectorName, occupations);
   });

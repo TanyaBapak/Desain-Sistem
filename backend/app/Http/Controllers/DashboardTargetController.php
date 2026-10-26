@@ -34,6 +34,8 @@ class DashboardTargetController extends Controller
             'targets.placementTargets.*.occupationName' => ['required', 'string', 'max:150'],
             'targets.placementTargets.*.projectionPlacement' => ['required', 'string', 'max:255'],
             'targets.placementTargets.*.target' => ['required', 'integer', 'min:0', 'max:999999999'],
+            'targets.projectionCountries' => ['sometimes', 'array'],
+            'targets.projectionCountries.*' => ['required', 'string', 'max:150'],
             'targets.countrySectors' => ['sometimes', 'array'],
             'targets.countrySectors.*' => ['required', 'array'],
             'targets.countrySectors.*.*' => ['nullable', 'integer', 'min:0', 'max:999999999'],
@@ -43,6 +45,17 @@ class DashboardTargetController extends Controller
             'targets.countryTrainingTypes.*' => ['required', 'array'],
             'targets.countryTrainingTypes.*.*' => ['nullable', 'integer', 'min:0', 'max:999999999'],
         ]);
+        if (isset($data['targets']['projectionCountries'])) {
+            $invalidCountryNames = array_diff(
+                array_unique($data['targets']['projectionCountries']),
+                $targets->landingProjectionCountryOptions(),
+            );
+            if ($invalidCountryNames !== []) {
+                throw ValidationException::withMessages([
+                    'targets.projectionCountries' => 'Negara harus dipilih dari daftar negara tujuan yang tersedia.',
+                ]);
+            }
+        }
         $placementOptions = $targets->landingPlacementOptions();
         $validPairs = collect($placementOptions['occupations'])
             ->mapWithKeys(fn (array $option): array => [
@@ -133,11 +146,19 @@ class DashboardTargetController extends Controller
         $countrySectorTargets = $kpiTargets['countrySectors'] ?? null;
         $countryTargets = $kpiTargets['countries'] ?? null;
         $countryTrainingTargets = $kpiTargets['countryTrainingTypes'] ?? null;
+        $projectionCountries = $kpiTargets['projectionCountries'] ?? null;
         unset($kpiTargets['countries'], $kpiTargets['countryTrainingTypes']);
+        unset($kpiTargets['projectionCountries']);
 
-        DB::transaction(function () use ($request, $targets, $data, $user, $kpiTargets, $countryTargets, $countryTrainingTargets, $countrySectorTargets, $placementTargets): void {
+        DB::transaction(function () use ($request, $targets, $data, $user, $kpiTargets, $countryTargets, $countryTrainingTargets, $countrySectorTargets, $projectionCountries, $placementTargets): void {
             $targets->saveLandingKpiTargets((int) $data['year'], $kpiTargets, (int) $user->id);
             $targets->saveLandingPlacementTargets((int) $data['year'], $placementTargets, (int) $user->id);
+            if ($projectionCountries !== null) {
+                $targets->saveLandingProjectionCountries(
+                    array_values(array_unique($projectionCountries)),
+                    (int) $user->id,
+                );
+            }
             if ($countryTargets !== null) {
                 $targets->saveLandingCountryTargets((int) $data['year'], $countryTargets, (int) $user->id);
             }
@@ -157,7 +178,7 @@ class DashboardTargetController extends Controller
                 'entity' => 'dashboard_targets',
                 'entity_id' => (string) $data['year'],
                 'new_value' => json_encode($data, JSON_THROW_ON_ERROR),
-                'justification_reason' => 'Target KPI dan proyeksi program penempatan landing page untuk tahun '.$data['year'].' diperbarui.',
+                'justification_reason' => 'Target KPI, proyeksi program, dan negara yang ditampilkan pada landing page diperbarui untuk tahun '.$data['year'].'.',
                 'ip_address' => $request->ip() ?? '127.0.0.1',
                 'created_at' => now(),
             ]);

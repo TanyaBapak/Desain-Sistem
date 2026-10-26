@@ -184,6 +184,95 @@ class DashboardTargetTest extends TestCase
         $this->assertDatabaseCount('dashboard_targets', 0);
     }
 
+    public function test_super_admin_can_limit_public_projection_countries_and_split_multi_country_targets_equally(): void
+    {
+        $this->withoutVite();
+        $admin = $this->userWithRole('super_admin');
+        $payload = $this->targetPayload();
+        $payload['targets']['projectionCountries'] = ['Turki', 'Jepang'];
+        $payload['targets']['placementTargets'] = [[
+            'sectorName' => 'Kesehatan',
+            'occupationName' => 'Caregiver (lvl pelaksana)',
+            'projectionPlacement' => 'Turki, Jepang',
+            'target' => 200,
+        ]];
+
+        $this->actingAs($admin)
+            ->get('/app/targets')
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('adminTargets.landingProjectionCountryOptions', fn ($countries): bool => collect($countries)->contains('Turki')
+                    && collect($countries)->contains('Jepang')));
+
+        $splitTargets = app(\App\Services\DashboardTargetService::class)
+            ->filterLandingPlacementTargetsForCountries([[
+                'year' => now()->year,
+                'sectorName' => 'Kesehatan',
+                'occupationName' => 'Caregiver (lvl pelaksana)',
+                'projectionPlacement' => 'Turki, Jepang, Malaysia',
+                'target' => 200,
+            ]], ['Turki', 'Jepang', 'Malaysia']);
+        $this->assertSame(
+            ['Turki' => 67, 'Jepang' => 67, 'Malaysia' => 66],
+            collect($splitTargets)->mapWithKeys(fn (array $target): array => [
+                $target['projectionPlacement'] => $target['target'],
+            ])->all(),
+        );
+
+        $this->actingAs($admin)
+            ->patch('/admin/dashboard-targets', $payload)
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame(
+            ['Jepang', 'Turki'],
+            app(\App\Services\DashboardTargetService::class)->landingProjectionCountries(),
+        );
+
+        auth()->logout();
+        $this->get('/')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('landingProjection.countries', function ($rows): bool {
+                    $countries = collect($rows);
+
+                    return $countries->every(
+                        fn (array $row): bool => str_ends_with($row['name'], 'Jepang')
+                            || str_ends_with($row['name'], 'Turki'),
+                    )
+                        && $countries->contains(
+                            fn (array $row): bool => str_ends_with($row['name'], 'Turki')
+                                && $row['target'] === 100,
+                        );
+                })
+                ->where('landingProjection.placementTargets', function ($rows): bool {
+                    $targets = collect($rows)->where('year', now()->year);
+
+                    return $targets->contains(
+                        fn (array $row): bool => $row['projectionPlacement'] === 'Turki'
+                            && $row['target'] === 100,
+                    )
+                        && $targets->contains(
+                            fn (array $row): bool => $row['projectionPlacement'] === 'Jepang'
+                                && $row['target'] === 100,
+                        )
+                        && $targets->every(
+                            fn (array $row): bool => in_array($row['projectionPlacement'], ['Turki', 'Jepang'], true),
+                        );
+                }));
+    }
+
+    public function test_super_admin_cannot_select_a_country_outside_available_projection_options(): void
+    {
+        $payload = $this->targetPayload();
+        $payload['targets']['projectionCountries'] = ['Atlantis'];
+
+        $this->actingAs($this->userWithRole('super_admin'))
+            ->patch('/admin/dashboard-targets', $payload)
+            ->assertSessionHasErrors('targets.projectionCountries');
+
+        $this->assertDatabaseCount('dashboard_targets', 0);
+    }
+
     public function test_manual_country_sector_target_must_use_existing_master_data(): void
     {
         $payload = $this->targetPayload();
@@ -480,7 +569,7 @@ class DashboardTargetTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->where('landingProjection.year', 2027)
-                ->has('landingProjection.placementTargets', 40)
+                ->has('landingProjection.placementTargets', 100)
                 ->where('landingProjection.placementTargets', fn ($rows): bool => collect($rows)
                     ->pluck('sectorName')
                     ->unique()

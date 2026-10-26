@@ -15,6 +15,7 @@ import {
   type ProgramPlacementTarget,
 } from "@/pages/ProgramPlacementTargetEditor";
 import { TargetPeriodSelector } from "@/pages/TargetPeriodSelector";
+import { LandingProjectionCountrySelector } from "@/pages/LandingProjectionCountrySelector";
 
 type KpiTargetKey = (typeof LANDING_KPI_TARGET_FIELDS)[number]["key"];
 type PlacementTargetInput = Omit<ProgramPlacementTarget, "key">;
@@ -22,11 +23,14 @@ type TargetForm = {
   year: string;
   targets: Record<KpiTargetKey, string> & {
     placementTargets: ProgramPlacementTarget[];
+    projectionCountries: string[];
   };
 };
 
 export interface DashboardTargetSettingsProps {
   countries: { id: string; name: string }[];
+  projectionCountryOptions: string[];
+  projectionCountries: string[];
   targets: {
     year: number;
     targets: Record<KpiTargetKey, number | null>;
@@ -40,6 +44,8 @@ export interface DashboardTargetSettingsProps {
 
 export function DashboardTargetSettings({
   countries,
+  projectionCountryOptions,
+  projectionCountries,
   targets,
   placementOptions,
   placementTargets,
@@ -65,6 +71,7 @@ export function DashboardTargetSettings({
         ]),
       ) as Record<KpiTargetKey, string>,
       placementTargets: placementTargetsByYear.get(currentYear) ?? [],
+      projectionCountries,
     },
   });
 
@@ -83,6 +90,7 @@ export function DashboardTargetSettings({
           projectionPlacement: item.projectionPlacement.trim(),
           target: Number(item.target),
         })),
+        projectionCountries: data.targets.projectionCountries,
       },
     }));
     form.patch("/admin/dashboard-targets", {
@@ -101,11 +109,19 @@ export function DashboardTargetSettings({
         ]),
       ) as Record<KpiTargetKey, string>,
       placementTargets: placementTargetsByYear.get(Number(value)) ?? [],
+      projectionCountries: form.data.targets.projectionCountries,
     });
   }
 
   function changeKpiTarget(key: KpiTargetKey, value: string) {
     form.setData("targets", { ...form.data.targets, [key]: value });
+  }
+
+  function changeProjectionCountries(countryIds: string[]) {
+    form.setData("targets", {
+      ...form.data.targets,
+      projectionCountries: countryIds,
+    });
   }
 
   function addPlacementTarget(target: PlacementTargetInput) {
@@ -155,6 +171,11 @@ export function DashboardTargetSettings({
               onChange={changeKpiTarget}
             />
           </div>
+          <LandingProjectionCountrySelector
+            countries={projectionCountryOptions}
+            selectedCountries={form.data.targets.projectionCountries}
+            onChange={changeProjectionCountries}
+          />
           <ProgramPlacementTargetEditor
             sectors={placementOptions.sectors}
             occupations={placementOptions.occupations}
