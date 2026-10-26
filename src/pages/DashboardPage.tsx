@@ -43,7 +43,6 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     useAppStore();
 
   const [activeDrilldown, setActiveDrilldown] = React.useState<DrilldownType | null>(null);
-  const [vokasiProvinceTab, setVokasiProvinceTab] = React.useState<"lembaga" | "national_lpk">("lembaga");
 
   const registeredVokasiCount = React.useMemo(
     () => providers.filter((p) => p.evokasiVerificationStatus === "Terverifikasi e-Vokasi").length,
@@ -212,7 +211,22 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           icon={Building2}
           desc="Mitra penyelenggara"
           onClick={() => setActiveDrilldown("lembaga")}
-        />
+        >
+          <div className="mt-2 space-y-1">
+            <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+              <span>{currentScope?.name ?? "Wilayah"}</span>
+              <span className="tabular-nums font-medium text-emerald-600 dark:text-emerald-400">
+                {registeredVokasiCount} / {providers.length} ({Math.round((registeredVokasiCount / (providers.length || 1)) * 100)}%)
+              </span>
+            </div>
+            <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+              <div
+                className="h-full rounded-full bg-emerald-600 dark:bg-emerald-500"
+                style={{ width: `${Math.max(Math.round((registeredVokasiCount / (providers.length || 1)) * 100), 4)}%` }}
+              />
+            </div>
+          </div>
+        </StatCard>
         <StatCard
           label="LPK Terdaftar Nasional"
           value={nationalLpkCount}
@@ -220,7 +234,22 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           icon={Building2}
           desc="Seluruh Indonesia"
           onClick={() => setActiveDrilldown("national_lpk")}
-        />
+        >
+          <div className="mt-2 space-y-1">
+            <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+              <span>Nasional</span>
+              <span className="tabular-nums font-medium text-emerald-600 dark:text-emerald-400">
+                {totalRegisteredNationalLpk} / {nationalLpkCount} ({Math.round((totalRegisteredNationalLpk / (nationalLpkCount || 1)) * 100)}%)
+              </span>
+            </div>
+            <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+              <div
+                className="h-full rounded-full bg-emerald-600 dark:bg-emerald-500"
+                style={{ width: `${Math.max(Math.round((totalRegisteredNationalLpk / (nationalLpkCount || 1)) * 100), 4)}%` }}
+              />
+            </div>
+          </div>
+        </StatCard>
         <StatCard
           label="Demand Luar Negeri"
           value={demands.length}
@@ -237,152 +266,134 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         />
       </div>
 
-      {/* Sebaran Wilayah Lembaga Vokasi & LPK */}
-      <Card className="border shadow-sm">
-        <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b bg-muted/20">
-          <div>
-            <div className="flex items-center gap-2">
-              <Building2 className="h-4 w-4 text-primary" />
-              <CardTitle className="text-base font-semibold text-foreground">
-                Sebaran Wilayah: Lembaga Vokasi &amp; LPK Terdaftar
+      {/* Sebaran Wilayah per Provinsi (Kotak Sendiri-sendiri) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6 gap-4">
+        {/* Kotak 1: Sebaran Wilayah Lembaga Vokasi */}
+        <Card
+          role="button"
+          tabIndex={0}
+          onClick={() => setActiveDrilldown("lembaga")}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              setActiveDrilldown("lembaga");
+            }
+          }}
+          className="transition-all duration-200 select-none cursor-pointer hover:border-primary/60 hover:shadow-md hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring group"
+        >
+          <CardHeader className="flex flex-row items-center justify-between p-4 pb-2">
+            <div>
+              <CardTitle className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">
+                Sebaran Lembaga Vokasi
               </CardTitle>
+              <CardDescription className="text-xs">
+                Per provinsi ({currentScope?.name ?? "Wilayah Anda"})
+              </CardDescription>
             </div>
-            <CardDescription className="text-xs mt-1">
-              {vokasiProvinceTab === "lembaga"
-                ? `Sebaran lembaga vokasi per provinsi • ${totalRegisteredVokasi.toLocaleString("id-ID")} terdaftar dari ${totalVokasi.toLocaleString("id-ID")} lembaga (${Math.round((totalRegisteredVokasi / (totalVokasi || 1)) * 100)}% Terverifikasi)`
-                : `Sebaran LPK per provinsi • ${totalRegisteredNationalLpk.toLocaleString("id-ID")} terdaftar dari ${totalNationalLpk.toLocaleString("id-ID")} LPK (${Math.round((totalRegisteredNationalLpk / (totalNationalLpk || 1)) * 100)}% Terverifikasi)`}
-            </CardDescription>
-          </div>
-
-          <div className="flex items-center gap-2">
-            {/* Tab Switcher antara Semua Lembaga Vokasi (LPK) dan LPK Terdaftar Nasional */}
-            <div className="inline-flex rounded-lg bg-muted p-1 border text-xs">
-              <button
-                type="button"
-                onClick={() => setVokasiProvinceTab("lembaga")}
-                className={cn(
-                  "px-3 py-1.5 rounded-md font-medium transition-all text-xs",
-                  vokasiProvinceTab === "lembaga"
-                    ? "bg-background text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                Semua Lembaga Vokasi (LPK)
-              </button>
-              <button
-                type="button"
-                onClick={() => setVokasiProvinceTab("national_lpk")}
-                className={cn(
-                  "px-3 py-1.5 rounded-md font-medium transition-all text-xs",
-                  vokasiProvinceTab === "national_lpk"
-                    ? "bg-background text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                LPK Terdaftar Nasional
-              </button>
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-all">
+              <Building2 className="h-4 w-4" aria-hidden="true" />
+            </div>
+          </CardHeader>
+          <CardContent className="p-4 pt-1">
+            <div className="flex items-baseline justify-between gap-2">
+              <div className="text-2xl font-bold tabular-nums text-foreground">
+                {totalRegisteredVokasi.toLocaleString("id-ID")}
+                <span className="text-xs font-normal text-muted-foreground ml-1">
+                  / {totalVokasi.toLocaleString("id-ID")}
+                </span>
+              </div>
+              <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 tabular-nums">
+                {Math.round((totalRegisteredVokasi / (totalVokasi || 1)) * 100)}% Terverifikasi
+              </span>
             </div>
 
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setActiveDrilldown(vokasiProvinceTab)}
-              className="text-xs gap-1 h-8 rounded-lg shrink-0"
-              title="Buka rincian lengkap / drilldown"
-            >
-              <span>Detail</span>
-              <ChevronRight className="h-3.5 w-3.5" />
-            </Button>
-          </div>
-        </CardHeader>
+            {/* Mini Province Ratio Bar */}
+            <div className="mt-2.5 space-y-1.5">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-medium text-foreground truncate">
+                  {dashboardBreakdowns.institutionsByProvince?.[0]?.province ?? currentScope?.name ?? "Jawa Tengah"}
+                </span>
+                <span className="text-muted-foreground tabular-nums text-[11px]">
+                  <strong className="text-emerald-600 dark:text-emerald-400 font-semibold">{totalRegisteredVokasi.toLocaleString("id-ID")}</strong> / {totalVokasi.toLocaleString("id-ID")}
+                </span>
+              </div>
+              <div className="h-2 overflow-hidden rounded-full bg-muted/80">
+                <div
+                  className="h-full rounded-full bg-emerald-600 dark:bg-emerald-500 transition-all"
+                  style={{ width: `${Math.max(Math.round((totalRegisteredVokasi / (totalVokasi || 1)) * 100), 4)}%` }}
+                />
+              </div>
+            </div>
 
-        <CardContent className="pt-4">
-          {vokasiProvinceTab === "lembaga" ? (
-            (dashboardBreakdowns.institutionsByProvince?.length ?? 0) > 0 ? (
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-                  {dashboardBreakdowns.institutionsByProvince?.map((item) => (
-                    <div
-                      key={item.province}
-                      onClick={() => setActiveDrilldown("lembaga")}
-                      className="cursor-pointer rounded-lg p-2 hover:bg-muted/40 transition-colors"
-                      title="Klik untuk melihat rincian lembaga di provinsi ini"
-                    >
-                      <ProvinceRatioBar
-                        label={item.province}
-                        registered={item.registeredCount}
-                        total={item.totalCount}
-                        maxTotal={vokasiProvinceMax}
-                        unitLabel="lembaga"
-                      />
-                    </div>
-                  ))}
-                </div>
-                <div className="pt-2 flex items-center justify-between text-xs text-muted-foreground border-t border-border/50">
-                  <div className="flex items-center gap-3">
-                    <span className="flex items-center gap-1.5">
-                      <span className="h-2 w-2 rounded-full bg-emerald-600 dark:bg-emerald-500 inline-block" />
-                      Terverifikasi e-Vokasi
-                    </span>
-                    <span className="flex items-center gap-1.5">
-                      <span className="h-2 w-2 rounded-full bg-primary/25 dark:bg-primary/30 inline-block" />
-                      Belum Terverifikasi
-                    </span>
-                  </div>
-                  <span className="text-[11px]">
-                    Lingkup: {currentScope?.name ?? "Wilayah Anda"} (Maksimal 8 wilayah)
-                  </span>
-                </div>
+            <p className="mt-2 text-[11px] font-medium text-primary flex items-center gap-1 group-hover:underline">
+              Klik untuk melihat detail &rarr;
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Kotak 2: Sebaran Wilayah LPK Nasional */}
+        <Card
+          role="button"
+          tabIndex={0}
+          onClick={() => setActiveDrilldown("national_lpk")}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              setActiveDrilldown("national_lpk");
+            }
+          }}
+          className="transition-all duration-200 select-none cursor-pointer hover:border-primary/60 hover:shadow-md hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring group"
+        >
+          <CardHeader className="flex flex-row items-center justify-between p-4 pb-2">
+            <div>
+              <CardTitle className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">
+                Sebaran LPK per Provinsi
+              </CardTitle>
+              <CardDescription className="text-xs">
+                Cakupan Nasional (Seluruh RI)
+              </CardDescription>
+            </div>
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-all">
+              <Globe2 className="h-4 w-4" aria-hidden="true" />
+            </div>
+          </CardHeader>
+          <CardContent className="p-4 pt-1">
+            <div className="flex items-baseline justify-between gap-2">
+              <div className="text-2xl font-bold tabular-nums text-foreground">
+                {totalRegisteredNationalLpk.toLocaleString("id-ID")}
+                <span className="text-xs font-normal text-muted-foreground ml-1">
+                  / {totalNationalLpk.toLocaleString("id-ID")}
+                </span>
               </div>
-            ) : (
-              <p className="text-sm text-muted-foreground py-4 text-center">
-                Belum ada data sebaran lembaga vokasi per provinsi pada lingkup ini.
-              </p>
-            )
-          ) : (
-            activeNationalLpkList.length > 0 ? (
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-                  {activeNationalLpkList.slice(0, 8).map((item) => (
-                    <div
-                      key={item.province}
-                      onClick={() => setActiveDrilldown("national_lpk")}
-                      className="cursor-pointer rounded-lg p-2 hover:bg-muted/40 transition-colors"
-                      title="Klik untuk melihat rincian LPK nasional di provinsi ini"
-                    >
-                      <ProvinceRatioBar
-                        label={item.province}
-                        registered={item.registeredCount}
-                        total={item.totalCount}
-                        maxTotal={nationalLpkProvinceMax}
-                        unitLabel="LPK"
-                      />
-                    </div>
-                  ))}
-                </div>
-                <div className="pt-2 flex items-center justify-between text-xs text-muted-foreground border-t border-border/50">
-                  <div className="flex items-center gap-3">
-                    <span className="flex items-center gap-1.5">
-                      <span className="h-2 w-2 rounded-full bg-emerald-600 dark:bg-emerald-500 inline-block" />
-                      Terverifikasi e-Vokasi
-                    </span>
-                    <span className="flex items-center gap-1.5">
-                      <span className="h-2 w-2 rounded-full bg-primary/25 dark:bg-primary/30 inline-block" />
-                      Belum Terverifikasi
-                    </span>
-                  </div>
-                  <span className="text-[11px]">Cakupan: Seluruh Indonesia (Maksimal 8 wilayah)</span>
-                </div>
+              <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 tabular-nums">
+                {Math.round((totalRegisteredNationalLpk / (totalNationalLpk || 1)) * 100)}% Terverifikasi
+              </span>
+            </div>
+
+            {/* Mini Province Ratio Bar */}
+            <div className="mt-2.5 space-y-1.5">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-medium text-foreground truncate">
+                  {activeNationalLpkList[0]?.province ? `${activeNationalLpkList[0].province} (Terbanyak)` : "Nasional"}
+                </span>
+                <span className="text-muted-foreground tabular-nums text-[11px]">
+                  <strong className="text-emerald-600 dark:text-emerald-400 font-semibold">{totalRegisteredNationalLpk.toLocaleString("id-ID")}</strong> / {totalNationalLpk.toLocaleString("id-ID")}
+                </span>
               </div>
-            ) : (
-              <p className="text-sm text-muted-foreground py-4 text-center">
-                Belum ada data sebaran LPK per provinsi nasional.
-              </p>
-            )
-          )}
-        </CardContent>
-      </Card>
+              <div className="h-2 overflow-hidden rounded-full bg-muted/80">
+                <div
+                  className="h-full rounded-full bg-emerald-600 dark:bg-emerald-500 transition-all"
+                  style={{ width: `${Math.max(Math.round((totalRegisteredNationalLpk / (totalNationalLpk || 1)) * 100), 4)}%` }}
+                />
+              </div>
+            </div>
+
+            <p className="mt-2 text-[11px] font-medium text-primary flex items-center gap-1 group-hover:underline">
+              Klik untuk melihat detail &rarr;
+            </p>
+          </CardContent>
+        </Card>
+      </div>
 
       <DashboardDrilldownModal
         type={activeDrilldown}
@@ -459,6 +470,7 @@ function StatCard({
   icon: Icon,
   desc,
   badge,
+  children,
   onClick,
 }: {
   label: string;
@@ -466,6 +478,7 @@ function StatCard({
   icon: React.ElementType;
   desc: string;
   badge?: string;
+  children?: React.ReactNode;
   onClick?: () => void;
 }) {
   return (
@@ -505,6 +518,7 @@ function StatCard({
             </span>
           )}
         </div>
+        {children}
         {onClick && (
           <p className="mt-2 text-[11px] font-medium text-primary flex items-center gap-1 group-hover:underline">
             Klik untuk melihat detail &rarr;
