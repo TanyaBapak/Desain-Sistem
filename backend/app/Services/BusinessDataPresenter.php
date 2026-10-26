@@ -1022,18 +1022,17 @@ class BusinessDataPresenter
                         'status' => $row->lifecycle_status,
                         'count' => (int) $row->count,
                     ])->all(),
-                'candidatesByProvince' => (clone $candidates)
+                'candidatesByProvince' => rescue(fn () => (clone $candidates)
                     ->selectRaw("COALESCE(provinces.name, 'Belum dipetakan') as province")
                     ->selectRaw('COUNT(*) as count')
-                    ->groupBy('provinces.name')
+                    ->groupBy(DB::raw("COALESCE(provinces.name, 'Belum dipetakan')"))
                     ->orderByDesc('count')
-                    ->orderBy('province')
                     ->limit(8)
                     ->get()
                     ->map(fn (object $row): array => [
-                        'province' => $row->province,
+                        'province' => (string) $row->province,
                         'count' => (int) $row->count,
-                    ])->all(),
+                    ])->all(), []),
                 'institutionsByEvokasiStatus' => (clone $institutions)
                     ->select('institutions.evokasi_status')
                     ->selectRaw('COUNT(*) as count')
@@ -1044,35 +1043,33 @@ class BusinessDataPresenter
                         'status' => $row->evokasi_status,
                         'count' => (int) $row->count,
                     ])->all(),
-                'institutionsByProvince' => (clone $institutions)
+                'institutionsByProvince' => rescue(fn () => (clone $institutions)
                     ->selectRaw("COALESCE(provinces.name, 'Belum dipetakan') as province")
                     ->selectRaw('COUNT(*) as total_count')
                     ->selectRaw("SUM(CASE WHEN institutions.evokasi_status = 'Terverifikasi e-Vokasi' THEN 1 ELSE 0 END) as registered_count")
-                    ->groupBy('provinces.name')
+                    ->groupBy(DB::raw("COALESCE(provinces.name, 'Belum dipetakan')"))
                     ->orderByDesc('total_count')
-                    ->orderBy('province')
                     ->limit(8)
                     ->get()
                     ->map(fn (object $row): array => [
-                        'province' => $row->province,
+                        'province' => (string) $row->province,
                         'totalCount' => (int) $row->total_count,
                         'registeredCount' => (int) ($row->registered_count ?? 0),
-                    ])->all(),
-                'lpkByProvince' => (clone $institutions)
+                    ])->all(), []),
+                'lpkByProvince' => rescue(fn () => (clone $institutions)
                     ->where('institutions.institution_type', 'LPK')
                     ->selectRaw("COALESCE(provinces.name, 'Belum dipetakan') as province")
                     ->selectRaw('COUNT(*) as total_count')
                     ->selectRaw("SUM(CASE WHEN institutions.evokasi_status = 'Terverifikasi e-Vokasi' THEN 1 ELSE 0 END) as registered_count")
-                    ->groupBy('provinces.name')
+                    ->groupBy(DB::raw("COALESCE(provinces.name, 'Belum dipetakan')"))
                     ->orderByDesc('total_count')
-                    ->orderBy('province')
                     ->limit(8)
                     ->get()
                     ->map(fn (object $row): array => [
-                        'province' => $row->province,
+                        'province' => (string) $row->province,
                         'totalCount' => (int) $row->total_count,
                         'registeredCount' => (int) ($row->registered_count ?? 0),
-                    ])->all(),
+                    ])->all(), []),
                 'nationalLpkByProvince' => $this->nationalLpkByProvince(),
                 'institutionDirectory' => (clone $institutions)
                     ->leftJoin('districts', 'districts.id', '=', 'institutions.district_id')
@@ -1442,13 +1439,15 @@ class BusinessDataPresenter
 
     private function nationalLpkCount(): int
     {
-        return (int) DB::table('institutions')
-            ->where('institution_type', 'LPK')
-            ->where(function ($query): void {
-                $query->whereNull('external_id')
-                    ->orWhereNotIn('external_id', array_column(GardataPlacementSyncService::KNOWN_SUBDOMAINS, 'subdomain'));
-            })
-            ->count();
+        return rescue(function (): int {
+            return (int) DB::table('institutions')
+                ->where('institution_type', 'LPK')
+                ->where(function ($query): void {
+                    $query->whereNull('external_id')
+                        ->orWhereNotIn('external_id', array_column(GardataPlacementSyncService::KNOWN_SUBDOMAINS, 'subdomain'));
+                })
+                ->count();
+        }, 0);
     }
 
     /**
@@ -1456,27 +1455,28 @@ class BusinessDataPresenter
      */
     private function nationalLpkByProvince(): array
     {
-        return DB::table('institutions')
-            ->leftJoin('provinces', 'provinces.id', '=', 'institutions.province_id')
-            ->where('institutions.institution_type', 'LPK')
-            ->where('institutions.status', 'Aktif')
-            ->where(function ($query): void {
-                $query->whereNull('institutions.external_id')
-                    ->orWhereNotIn('institutions.external_id', array_column(GardataPlacementSyncService::KNOWN_SUBDOMAINS, 'subdomain'));
-            })
-            ->selectRaw("COALESCE(provinces.name, 'Belum dipetakan') as province")
-            ->selectRaw('COUNT(*) as total_count')
-            ->selectRaw("SUM(CASE WHEN institutions.evokasi_status = 'Terverifikasi e-Vokasi' THEN 1 ELSE 0 END) as registered_count")
-            ->groupBy('provinces.name')
-            ->orderByDesc('total_count')
-            ->orderBy('province')
-            ->get()
-            ->map(fn (object $row): array => [
-                'province' => $row->province,
-                'totalCount' => (int) $row->total_count,
-                'registeredCount' => (int) ($row->registered_count ?? 0),
-            ])
-            ->all();
+        return rescue(function (): array {
+            return DB::table('institutions')
+                ->leftJoin('provinces', 'provinces.id', '=', 'institutions.province_id')
+                ->where('institutions.institution_type', 'LPK')
+                ->where('institutions.status', 'Aktif')
+                ->where(function ($query): void {
+                    $query->whereNull('institutions.external_id')
+                        ->orWhereNotIn('institutions.external_id', array_column(GardataPlacementSyncService::KNOWN_SUBDOMAINS, 'subdomain'));
+                })
+                ->selectRaw("COALESCE(provinces.name, 'Belum dipetakan') as province")
+                ->selectRaw('COUNT(*) as total_count')
+                ->selectRaw("SUM(CASE WHEN institutions.evokasi_status = 'Terverifikasi e-Vokasi' THEN 1 ELSE 0 END) as registered_count")
+                ->groupBy(DB::raw("COALESCE(provinces.name, 'Belum dipetakan')"))
+                ->orderByDesc('total_count')
+                ->get()
+                ->map(fn (object $row): array => [
+                    'province' => (string) $row->province,
+                    'totalCount' => (int) $row->total_count,
+                    'registeredCount' => (int) ($row->registered_count ?? 0),
+                ])
+                ->all();
+        }, []);
     }
 
     private function monitoring(?string $role, User $user, array $filters): array

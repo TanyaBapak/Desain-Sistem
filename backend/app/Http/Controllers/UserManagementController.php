@@ -68,17 +68,17 @@ class UserManagementController extends Controller
             'total' => $users->total(),
             'selectedRole' => (string) ($roleFilter ?? ''),
             'search' => (string) ($search ?? ''),
-            'roles' => Role::query()
+            'roles' => rescue(fn () => Role::query()
                 ->where('name', '!=', 'super_admin')
                 ->orderBy('title')
-                ->get(['name', 'title']),
-            'filterRoles' => Role::query()
+                ->get(['name', 'title']), []),
+            'filterRoles' => rescue(fn () => Role::query()
                 ->orderBy('title')
-                ->get(['name', 'title']),
-            'provinces' => DB::table('provinces')->orderBy('name')->get(['id', 'name']),
-            'districts' => DB::table('districts')->orderBy('name')->get(['id', 'province_id', 'name']),
-            'institutions' => DB::table('institutions')->where('status', 'Aktif')->orderBy('name')->get(['id', 'name']),
-            'employers' => DB::table('employers')->orderBy('name')->get(['id', 'name']),
+                ->get(['name', 'title']), []),
+            'provinces' => rescue(fn () => DB::table('provinces')->orderBy('name')->get(['id', 'name']), []),
+            'districts' => rescue(fn () => DB::table('districts')->orderBy('name')->get(['id', 'province_id', 'name']), []),
+            'institutions' => rescue(fn () => DB::table('institutions')->where('status', 'Aktif')->orderBy('name')->get(['id', 'name']), []),
+            'employers' => rescue(fn () => DB::table('employers')->orderBy('name')->get(['id', 'name']), []),
         ];
     }
 
