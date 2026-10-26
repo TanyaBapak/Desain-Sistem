@@ -716,6 +716,7 @@ class BusinessDataPresenter
             ->map(function (object $row) use ($facilitiesByInstitution): array {
                 $metadata = $this->decodeArray($row->external_metadata);
                 $offerings = [];
+                $layer = 'Belum e-Vokasi';
                 if (! empty($metadata['programs']) && is_array($metadata['programs'])) {
                     $seen = [];
                     foreach ($metadata['programs'] as $prog) {
@@ -729,7 +730,32 @@ class BusinessDataPresenter
                                 ];
                             }
                         }
+                        if (! empty($prog['sourceStatuses']) && is_array($prog['sourceStatuses'])) {
+                            foreach ($prog['sourceStatuses'] as $status) {
+                                if (! empty($status['programStatus'])) {
+                                    $layer = 'Layer 3/program';
+                                } elseif (! empty($status['facilityStatus']) && $layer !== 'Layer 3/program') {
+                                    $layer = 'Layer 2/fasilitas';
+                                } elseif (! empty($status['legalityStatus']) && $layer === 'Belum e-Vokasi') {
+                                    $layer = 'Layer 1/legalitas diterima';
+                                }
+                            }
+                        }
                     }
+                }
+                if ($layer === 'Belum e-Vokasi' && $row->evokasi_status === 'Terverifikasi e-Vokasi') {
+                    $layer = 'Layer 3/program';
+                }
+
+                $category = $metadata['institutionCategory'] ?? $metadata['sourceType'] ?? null;
+                if (! $category) {
+                    $ownershipLower = strtolower((string) ($row->ownership_type ?? ''));
+                    $category = match (true) {
+                        str_contains($ownershipLower, 'kementerian') => 'Kementerian',
+                        str_contains($ownershipLower, 'pemerintah') => 'Pemerintah Daerah',
+                        str_contains($ownershipLower, 'migrant') => 'Migrant Center',
+                        default => 'Non Kementerian',
+                    };
                 }
 
                 return [
@@ -759,6 +785,8 @@ class BusinessDataPresenter
                     'website' => $metadata['website'] ?? null,
                     'leaderPosition' => $metadata['leaderPosition'] ?? null,
                     'institutionForm' => $metadata['institutionForm'] ?? $metadata['institutionCategory'] ?? null,
+                    'institutionCategory' => $category,
+                    'layer' => $layer,
                     'sectorals' => is_array($metadata['sectorals'] ?? null) ? $metadata['sectorals'] : [],
                     'programs' => [],
                     'offerings' => $offerings,

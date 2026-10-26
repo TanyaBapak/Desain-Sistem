@@ -141,6 +141,8 @@ export interface VocationalProvider {
   source?: 'kp2mi-api' | 'vokasi.kp2mi.go.id' | 'local' | string;
   verificationStatus?: string;
   procurementMethod?: string | null;
+  layer?: 'Layer 3/program' | 'Layer 2/fasilitas' | 'Layer 1/legalitas diterima' | 'Belum e-Vokasi' | string;
+  institutionCategory?: string;
 }
 
 // ==========================================

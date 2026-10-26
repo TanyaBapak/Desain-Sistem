@@ -19,6 +19,11 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/button";
 import { Users, GraduationCap, Building2, Globe2, Workflow, Monitor } from "lucide-react";
 import { STAKEHOLDER_ROLES } from "@/lib/stakeholder-roles";
+import { cn } from "@/lib/utils";
+import {
+  DashboardDrilldownModal,
+  DrilldownType,
+} from "@/components/dashboard/DashboardDrilldownModal";
 
 interface DashboardPageProps {
   currentTab: string;
@@ -33,6 +38,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 }) => {
   const { candidates, programs, providers, demands, allocations, currentUser, currentRole, currentScope } =
     useAppStore();
+
+  const [activeDrilldown, setActiveDrilldown] = React.useState<DrilldownType | null>(null);
 
   const roleObj = getRoleInfo(currentRole);
   const stakeholder = STAKEHOLDER_ROLES.find((r) => r.id === currentRole);
@@ -107,38 +114,56 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           value={candidates.length}
           icon={Users}
           desc="Seluruh peserta pada lingkup Anda"
+          onClick={() => setActiveDrilldown("peserta")}
         />
         <StatCard
           label="Program Pelatihan"
           value={programs.length}
           icon={GraduationCap}
           desc="Program pada katalog Anda"
+          onClick={() => setActiveDrilldown("program")}
         />
         <StatCard
           label="Lembaga Vokasi (LPK)"
           value={providers.length}
           icon={Building2}
           desc="Mitra penyelenggara"
+          onClick={() => setActiveDrilldown("lembaga")}
         />
         <StatCard
           label="LPK Terdaftar Nasional"
           value={nationalLpkCount}
           icon={Building2}
           desc="Seluruh Indonesia"
+          onClick={() => setActiveDrilldown("national_lpk")}
         />
         <StatCard
           label="Demand Luar Negeri"
           value={demands.length}
           icon={Globe2}
           desc="Lowongan kerja LN"
+          onClick={() => setActiveDrilldown("demand")}
         />
         <StatCard
           label="Alokasi Penempatan"
           value={allocations.length}
           icon={Workflow}
           desc="Batch sudah dialokasi"
+          onClick={() => setActiveDrilldown("alokasi")}
         />
       </div>
+
+      <DashboardDrilldownModal
+        type={activeDrilldown}
+        onClose={() => setActiveDrilldown(null)}
+        scopeName={currentScope?.name ?? "Lingkup Anda"}
+        nationalLpkCount={nationalLpkCount}
+        providers={providers}
+        candidates={candidates}
+        programs={programs}
+        demands={demands}
+        allocations={allocations}
+      />
 
       <ExecutiveDashboardBreakdowns data={dashboardBreakdowns} />
       <InstitutionDirectory
@@ -196,20 +221,54 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   );
 };
 
-function StatCard({ label, value, icon: Icon, desc }: { label: string; value: number; icon: React.ElementType; desc: string }) {
+function StatCard({
+  label,
+  value,
+  icon: Icon,
+  desc,
+  onClick,
+}: {
+  label: string;
+  value: number;
+  icon: React.ElementType;
+  desc: string;
+  onClick?: () => void;
+}) {
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between p-4 pb-3">
+    <Card
+      onClick={onClick}
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={(e) => {
+        if (onClick && (e.key === "Enter" || e.key === " ")) {
+          e.preventDefault();
+          onClick();
+        }
+      }}
+      className={cn(
+        "transition-all duration-200 select-none",
+        onClick &&
+          "cursor-pointer hover:border-primary/60 hover:shadow-md hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring group"
+      )}
+    >
+      <CardHeader className="flex flex-row items-center justify-between p-4 pb-2">
         <div>
-          <CardTitle className="text-sm font-semibold">{label}</CardTitle>
+          <CardTitle className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">
+            {label}
+          </CardTitle>
           <CardDescription className="text-xs">{desc}</CardDescription>
         </div>
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-all">
           <Icon className="h-4 w-4" aria-hidden="true" />
         </div>
       </CardHeader>
-      <CardContent>
-        <div className="text-2xl font-bold tabular-nums">{value.toLocaleString("id-ID")}</div>
+      <CardContent className="p-4 pt-1">
+        <div className="text-2xl font-bold tabular-nums text-foreground">{value.toLocaleString("id-ID")}</div>
+        {onClick && (
+          <p className="mt-2 text-[11px] font-medium text-primary flex items-center gap-1 group-hover:underline">
+            Klik untuk melihat detail &rarr;
+          </p>
+        )}
       </CardContent>
     </Card>
   );
