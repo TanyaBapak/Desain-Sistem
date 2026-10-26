@@ -83,16 +83,16 @@ class User extends Authenticatable
     {
         return match ($roleName) {
             'super_admin' => ['targets', 'rbac', 'audit'],
-            'leadership' => ['dashboard', 'reports'],
+            'leadership' => ['dashboard', 'reports', 'sippmi-monitoring'],
             'task_force' => ['dashboard', 'modul-a', 'modul-b', 'modul-c', 'modul-d', 'matching', 'sippmi-monitoring', 'approvals', 'reports'],
-            'directorate_admin' => ['dashboard', 'modul-b', 'modul-c', 'matching', 'sippmi-monitoring', 'reports'],
+            'directorate_admin' => ['dashboard', 'modul-b', 'modul-c', 'matching', 'reports'],
             'province_admin', 'district_admin' => ['modul-a'],
-            'bp3mi_admin', 'placement_officer' => ['matching', 'sippmi-monitoring'],
-            'institution_admin' => ['modul-a', 'modul-b', 'modul-c', 'sippmi-monitoring'],
+            'bp3mi_admin', 'placement_officer' => ['matching'],
+            'institution_admin' => ['modul-a', 'modul-b', 'modul-c'],
             'demand_admin' => ['modul-d'],
             'verifier' => ['modul-a', 'modul-b', 'modul-c', 'modul-d', 'approvals'],
-            'training_operator' => ['modul-b', 'sippmi-monitoring'],
-            'auditor' => ['reports'],
+            'training_operator' => ['modul-b'],
+            'auditor' => ['reports', 'sippmi-monitoring'],
             default => [],
         };
     }

@@ -51,7 +51,7 @@ export function getCandidateSubdomain(candidate: MonitoringCandidateData): strin
 }
 
 export function SippmiMonitoringPage({ monitoring }: SippmiMonitoringPageProps) {
-  const { currentScope } = useAppStore();
+  const { currentScope, currentUser } = useAppStore();
   const [refreshing, setRefreshing] = React.useState(false);
   const [syncing, setSyncing] = React.useState(false);
   const [syncQueued, setSyncQueued] = React.useState(false);
@@ -187,15 +187,17 @@ export function SippmiMonitoringPage({ monitoring }: SippmiMonitoringPageProps) 
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Button
-            onClick={handleSyncGardata}
-            variant="default"
-            size="sm"
-            disabled={syncing || syncQueued || refreshing}
-          >
-            <CloudDownload className={`mr-2 h-4 w-4 ${syncing || syncQueued ? "animate-spin" : ""}`} />
-            {syncing ? "Memulai sinkronisasi…" : syncQueued ? "Menunggu hasil sinkronisasi…" : "Tarik Data Gardata"}
-          </Button>
+          {(currentUser?.roleName === "task_force" || currentUser?.roleName === "super_admin") && (
+            <Button
+              onClick={handleSyncGardata}
+              variant="default"
+              size="sm"
+              disabled={syncing || syncQueued || refreshing}
+            >
+              <CloudDownload className={`mr-2 h-4 w-4 ${syncing || syncQueued ? "animate-spin" : ""}`} />
+              {syncing ? "Memulai sinkronisasi…" : syncQueued ? "Menunggu hasil sinkronisasi…" : "Tarik Data Gardata"}
+            </Button>
+          )}
           <Button onClick={refresh} variant="outline" size="sm" disabled={refreshing || syncing || syncQueued}>
             <RefreshCw className={`mr-2 h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
             {refreshing ? "Memuat ulang…" : "Segarkan"}

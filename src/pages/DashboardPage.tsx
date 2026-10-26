@@ -31,6 +31,7 @@ interface DashboardPageProps {
   setCurrentTab: (tab: string) => void;
   nationalLpkCount: number;
   nationalLpkByProvince?: { province: string; totalCount: number; registeredCount: number }[];
+  accessibleTabs?: string[];
 }
 
 export const DashboardPage: React.FC<DashboardPageProps> = ({
@@ -38,6 +39,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   setCurrentTab,
   nationalLpkCount,
   nationalLpkByProvince,
+  accessibleTabs,
 }) => {
   const { candidates, programs, providers, demands, allocations, currentUser, currentRole, currentScope } =
     useAppStore();
@@ -441,24 +443,30 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
       {/* Quick actions */}
       <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <QuickActionCard
-          title="Input Calon Peserta (Modul A)"
-          desc="Disnaker / LPK input data pencari kerja"
-          icon={Users}
-          onClick={() => setCurrentTab("modul-a")}
-        />
-        <QuickActionCard
-          title="Kelola Program (Modul B)"
-          desc="Direktorat menetapkan kurikulum & kuota"
-          icon={GraduationCap}
-          onClick={() => setCurrentTab("modul-b")}
-        />
-        <QuickActionCard
-          title="Monitoring SIPPMI (T4-6)"
-          desc="Batch, kehadiran, JP, sertifikasi & penempatan"
-          icon={Monitor}
-          onClick={() => setCurrentTab("sippmi-monitoring")}
-        />
+        {(!accessibleTabs || accessibleTabs.includes("modul-a")) && (
+          <QuickActionCard
+            title="Input Calon Peserta (Modul A)"
+            desc="Disnaker / LPK input data pencari kerja"
+            icon={Users}
+            onClick={() => setCurrentTab("modul-a")}
+          />
+        )}
+        {(!accessibleTabs || accessibleTabs.includes("modul-b")) && (
+          <QuickActionCard
+            title="Kelola Program (Modul B)"
+            desc="Direktorat menetapkan kurikulum & kuota"
+            icon={GraduationCap}
+            onClick={() => setCurrentTab("modul-b")}
+          />
+        )}
+        {(!accessibleTabs || accessibleTabs.includes("sippmi-monitoring")) && (
+          <QuickActionCard
+            title="Monitoring SIPPMI (T4-6)"
+            desc="Batch, kehadiran, JP, sertifikasi & penempatan"
+            icon={Monitor}
+            onClick={() => setCurrentTab("sippmi-monitoring")}
+          />
+        )}
       </section>
     </div>
   );

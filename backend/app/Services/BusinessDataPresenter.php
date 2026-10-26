@@ -1481,11 +1481,11 @@ class BusinessDataPresenter
 
     private function monitoring(?string $role, User $user, array $filters): array
     {
-        if (! in_array($role, ['super_admin', 'task_force', 'directorate_admin', 'institution_admin', 'training_operator', 'bp3mi_admin', 'placement_officer'], true)) {
+        if (! in_array($role, ['super_admin', 'task_force', 'leadership', 'auditor'], true)) {
             return [];
         }
 
-        $canViewGardata = in_array($role, ['super_admin', 'task_force', 'directorate_admin', 'bp3mi_admin', 'placement_officer', 'institution_admin', 'training_operator'], true);
+        $canViewGardata = in_array($role, ['super_admin', 'task_force', 'leadership', 'auditor'], true);
         $externalClasses = DB::table('external_training_records')
             ->leftJoin('job_seekers', 'job_seekers.id', '=', 'external_training_records.job_seeker_id')
             ->whereIn('external_training_records.external_source', ['gardata', 'sippmi'])

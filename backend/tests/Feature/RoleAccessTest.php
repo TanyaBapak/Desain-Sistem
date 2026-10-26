@@ -26,18 +26,24 @@ class RoleAccessTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('App')
-                ->where('auth.user.accessibleTabs', ['dashboard', 'reports'])
+                ->where('auth.user.accessibleTabs', ['dashboard', 'reports', 'sippmi-monitoring'])
                 ->where('businessData.candidates', [])
                 ->has('businessData.reportSummary.candidateCount'));
 
         $this->actingAs($leadership)->get('/app/dashboard')->assertOk();
+        $this->actingAs($leadership)->get('/app/sippmi-monitoring')->assertOk();
         $this->actingAs($leadership)->get('/app/audit')->assertForbidden();
         $this->actingAs($leadership)->post('/business-data/candidates', [])->assertForbidden();
 
         $auditor = $this->userWithRole('auditor');
         $this->actingAs($auditor)->get('/app/reports')->assertOk();
+        $this->actingAs($auditor)->get('/app/sippmi-monitoring')->assertOk();
         $this->actingAs($auditor)->get('/app/modul-a')->assertForbidden();
         $this->actingAs($auditor)->get('/app/audit')->assertForbidden();
+
+        $this->actingAs($this->userWithRole('institution_admin'))->get('/app/sippmi-monitoring')->assertForbidden();
+        $this->actingAs($this->userWithRole('directorate_admin'))->get('/app/sippmi-monitoring')->assertForbidden();
+        $this->actingAs($this->userWithRole('province_admin'))->get('/app/sippmi-monitoring')->assertForbidden();
     }
 
     public function test_public_landing_combines_manual_target_with_approved_processed_quota(): void

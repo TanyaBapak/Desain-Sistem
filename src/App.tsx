@@ -516,6 +516,8 @@ export function App({
           currentTab="overview"
           setCurrentTab={setCurrentTab}
           nationalLpkCount={businessData?.nationalLpkCount ?? 0}
+          nationalLpkByProvince={businessData?.nationalLpkByProvince}
+          accessibleTabs={authenticatedUser.accessibleTabs}
         />
       );
   }

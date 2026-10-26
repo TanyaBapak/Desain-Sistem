@@ -262,9 +262,7 @@ class GardataPlacementSyncTest extends TestCase
             'services.sippmi.api_key' => null,
         ]);
 
-        Http::fake([
-            'gardata.test/api/v1/placement/candidates*' => Http::response($this->candidatePage(), 200),
-        ]);
+        $this->fakeCandidateEndpoints($this->candidatePage());
 
         (new SyncGardataPlacementData())
             ->handle(app(GardataPlacementSyncService::class));
