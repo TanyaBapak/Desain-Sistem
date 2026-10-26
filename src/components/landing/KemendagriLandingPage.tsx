@@ -339,7 +339,7 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({ kp
                     KEMENTERIAN PELINDUNGAN PEKERJA MIGRAN INDONESIA
                   </span>
                   <span className="text-[10px] text-slate-400 font-medium">
-                    Platform Intelijen Penempatan Vokasi SMK Go Global
+                    Task force SMK Go Global 2026
                   </span>
                 </div>
               </div>
