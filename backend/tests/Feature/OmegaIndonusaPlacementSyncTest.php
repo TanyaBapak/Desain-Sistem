@@ -52,18 +52,23 @@ class OmegaIndonusaPlacementSyncTest extends TestCase
         $syncService = app(GardataPlacementSyncService::class);
         $result = $syncService->ensureIndonusaCandidates(true);
 
-        $this->assertSame(50, $result['inserted']);
-        $this->assertSame(50, DB::table('job_seekers')->where('institution_name', 'Politeknik Indonusa Surakarta')->count());
+        $this->assertSame(147, $result['inserted']);
+        $this->assertSame(147, DB::table('job_seekers')->where('institution_name', 'Politeknik Indonusa Surakarta')->count());
 
         // Pastikan kelas manufaktur dan waiter tersinkronkan
         $this->assertGreaterThanOrEqual(10, DB::table('external_training_records')
             ->where('external_source', 'sippmi')
-            ->where('class_code', 'INDO-MFG-2026')
+            ->where('class_code', 'CPMI-MAN-26092399')
             ->count());
         $this->assertGreaterThanOrEqual(10, DB::table('external_training_records')
             ->where('external_source', 'sippmi')
-            ->where('class_code', 'INDO-WAIT-2026')
+            ->where('class_code', 'CPMI-PER-26092595')
             ->count());
+
+        // Pastikan kandidat spesifik dari screenshot ada
+        $iqbal = DB::table('job_seekers')->where('nik', '3310161407080004')->first();
+        $this->assertNotNull($iqbal);
+        $this->assertSame('IQBAL HAFIZ ILYASA', $iqbal->full_name);
 
         $suciUser = User::query()->where('email', 'sucipurwandari@sippmi.co')->first();
         $this->assertNotNull($suciUser);
@@ -77,7 +82,7 @@ class OmegaIndonusaPlacementSyncTest extends TestCase
         $this->assertContains('Politeknik Indonusa Surakarta', $scope['patterns']);
 
         $data = $presenter->make($suciUser);
-        $this->assertGreaterThanOrEqual(50, count($data['candidates']));
+        $this->assertGreaterThanOrEqual(147, count($data['candidates']));
         foreach ($data['candidates'] as $candidate) {
             $this->assertSame('Politeknik Indonusa Surakarta', $candidate['institutionName']);
         }
@@ -93,7 +98,7 @@ class OmegaIndonusaPlacementSyncTest extends TestCase
         $this->artisan('gardata:sync', ['--tenant' => 'Indonusa', '--force' => true])
             ->assertSuccessful();
 
-        $this->assertSame(50, DB::table('job_seekers')->where('institution_name', 'Politeknik Indonusa Surakarta')->count());
+        $this->assertSame(147, DB::table('job_seekers')->where('institution_name', 'Politeknik Indonusa Surakarta')->count());
     }
 
     public function test_monitoring_presents_all_subdomain_candidates_without_bp3mi_truncation(): void
@@ -122,12 +127,12 @@ class OmegaIndonusaPlacementSyncTest extends TestCase
 
         // Semua Subdomain harus menampilkan seluruh peserta gabungan tanpa terpotong filter domisili
         $allData = $presenter->make($taskForceUser, ['tab' => 'sippmi-monitoring', 'candidateSource' => 'all']);
-        $this->assertGreaterThanOrEqual(60, $allData['monitoring']['candidatePagination']['total']);
+        $this->assertGreaterThanOrEqual(150, $allData['monitoring']['candidatePagination']['total']);
 
-        // Filter Politeknik Indonusa Surakarta (sippmi.com) harus menampilkan seluruh 50 siswa
-        $indonusaData = $presenter->make($taskForceUser, ['tab' => 'sippmi-monitoring', 'candidateSource' => 'sippmi.com', 'candidatePerPage' => 50]);
-        $this->assertSame(50, $indonusaData['monitoring']['candidatePagination']['total']);
-        $this->assertSame(50, count($indonusaData['monitoring']['candidates']));
+        // Filter Politeknik Indonusa Surakarta (sippmi.com) harus menampilkan seluruh 147 siswa
+        $indonusaData = $presenter->make($taskForceUser, ['tab' => 'sippmi-monitoring', 'candidateSource' => 'sippmi.com', 'candidatePerPage' => 150]);
+        $this->assertSame(147, $indonusaData['monitoring']['candidatePagination']['total']);
+        $this->assertSame(147, count($indonusaData['monitoring']['candidates']));
         foreach ($indonusaData['monitoring']['candidates'] as $candidate) {
             $this->assertSame('Politeknik Indonusa Surakarta', $candidate['institutionName']);
             $this->assertSame('sippmi.com', $candidate['subdomain']);

@@ -220,7 +220,7 @@ class GardataPlacementSyncService
 
                     // Pastikan kandidat Politeknik Indonusa Surakarta tersinkronisasi jika data masih kosong atau force
                     $indonusaCount = DB::table('job_seekers')->where('institution_name', 'LIKE', '%Indonusa%')->count();
-                    if ($indonusaCount === 0 || $force) {
+                    if ($indonusaCount < 147 || $force) {
                         $indoResult = $this->ensureIndonusaCandidates($force);
                         $result['recordsInserted'] += $indoResult['inserted'];
                         $result['recordsUpdated'] += $indoResult['updated'];
@@ -1917,1556 +1917,15 @@ class GardataPlacementSyncService
             }
         }
 
-        $candidates = [
-            // Kelas Waiter & Food Beverage Service (INDO-BATCH-2026-FNB)
-            [
-                'external_id' => 'INDO-CPMI-2026-001',
-                'nik' => '3372051004010001',
-                'name' => 'Muhammad Fauzan Hakim',
-                'gender' => 'L',
-                'education' => 'D3',
-                'major' => 'D3 Perhotelan & Kapal Pesiar (F&B)',
-                'expertise' => 'Food & Beverage Service & Bar Manager',
-                'sector_name' => 'Tourism, Travel, dan Hospitality',
-                'batch_id' => 'INDO-BATCH-2026-FNB',
-                'class_code' => 'INDO-WAIT-2026',
-                'batch_name' => 'Kelas Waiter & Food Beverage Service Internasional',
-                'program_name' => 'Program Vokasi Waiter & Banquet Service Bintang Lima',
-                'target_jp' => 450,
-                'achieved_jp' => 450,
-                'skills' => ['Fine Dining Management', 'Specialty Coffee & Barista', 'Wine Sommelier Basics', 'POS Point of Sales', 'Food Safety HACCP'],
-                'work_experiences' => [
-                    ['sector' => 'Tourism, Travel, dan Hospitality', 'role' => 'F&B Captain (OJT Bintang 5)', 'durationYears' => 2.0, 'companyName' => 'Alila Solo Hotel', 'description' => 'Memimpin tim waiter/waitress fine dining, pengawasan standar hygiene makanan dan minuman.'],
-                ],
-                'certifications' => [
-                    ['name' => 'Sertifikasi BNSP Level 4 - Food & Beverage Supervisor', 'issuer' => 'LSP Pariwisata Nusantara', 'issueYear' => 2025, 'validUntil' => '2028-10-15'],
-                    ['name' => 'Basic Safety Training (BST) STCW 2010', 'issuer' => 'Politeknik Ilmu Pelayaran Semarang', 'issueYear' => 2025, 'validUntil' => '2030-05-20'],
-                ],
-                'languages' => [
-                    ['language' => 'Inggris', 'level' => 'Fluent'],
-                    ['language' => 'Jepang', 'level' => 'Menengah (N3)'],
-                ],
-                'preferred_countries' => ['Kapal Pesiar Internasional', 'Jepang', 'Jerman'],
-                'preferred_roles' => ['F&B Supervisor', 'Barista Specialist', 'Head Waiter'],
-                'readiness_status' => 'Ready for Placement',
-                'verification_status' => 'Verified',
-            ],
-            [
-                'external_id' => 'INDO-CPMI-2026-007',
-                'nik' => '3372012808010007',
-                'name' => 'Rangga Aditya Kusuma',
-                'gender' => 'L',
-                'education' => 'D3',
-                'major' => 'D3 Perhotelan (Beverage Operations)',
-                'expertise' => 'Cruise Ship Bartender & Mixologist',
-                'sector_name' => 'Tourism, Travel, dan Hospitality',
-                'batch_id' => 'INDO-BATCH-2026-FNB',
-                'class_code' => 'INDO-WAIT-2026',
-                'batch_name' => 'Kelas Waiter & Food Beverage Service Internasional',
-                'program_name' => 'Program Vokasi Waiter & Banquet Service Bintang Lima',
-                'target_jp' => 450,
-                'achieved_jp' => 450,
-                'skills' => ['Cocktail Crafting & Mixology', 'Flair Bartending', 'Bar Inventory & Cost Control', 'STCW Marine Safety'],
-                'work_experiences' => [
-                    ['sector' => 'Tourism, Travel, dan Hospitality', 'role' => 'Head Bartender Lounge', 'durationYears' => 2.0, 'companyName' => 'The Sunan Hotel Surakarta', 'description' => 'Mengelola bar koktail hotel berbintang, inventarisasi minuman impor dan melayani tamu internasional.'],
-                ],
-                'certifications' => [
-                    ['name' => 'Sertifikasi BNSP Bartender Profesional', 'issuer' => 'LSP Pariwisata Nusantara', 'issueYear' => 2025, 'validUntil' => '2028-10-25'],
-                    ['name' => 'Basic Safety Training (BST) STCW', 'issuer' => 'Politeknik Ilmu Pelayaran', 'issueYear' => 2025, 'validUntil' => '2030-05-15'],
-                ],
-                'languages' => [
-                    ['language' => 'Inggris', 'level' => 'Fluent'],
-                ],
-                'preferred_countries' => ['Kapal Pesiar Internasional', 'Australia', 'Uni Emirat Arab'],
-                'preferred_roles' => ['Bartender', 'Bar Server', 'Lounge Attendant'],
-                'readiness_status' => 'Ready for Placement',
-                'verification_status' => 'Verified',
-            ],
-            [
-                'external_id' => 'INDO-CPMI-2026-021',
-                'nik' => '3372025203020019',
-                'name' => 'Annisa Rahmawati',
-                'gender' => 'P',
-                'education' => 'D3',
-                'major' => 'D3 Perhotelan (F&B Service)',
-                'expertise' => 'Fine Dining Server & Banquet Waitress',
-                'sector_name' => 'Tourism, Travel, dan Hospitality',
-                'batch_id' => 'INDO-BATCH-2026-FNB',
-                'class_code' => 'INDO-WAIT-2026',
-                'batch_name' => 'Kelas Waiter & Food Beverage Service Internasional',
-                'program_name' => 'Program Vokasi Waiter & Banquet Service Bintang Lima',
-                'target_jp' => 450,
-                'achieved_jp' => 450,
-                'skills' => ['Table Set-up Classical', 'Order Taking & Upselling', 'Banquet Service Protocol', 'English for Waiter'],
-                'work_experiences' => [
-                    ['sector' => 'Tourism, Travel, dan Hospitality', 'role' => 'Banquet Waitress', 'durationYears' => 1.5, 'companyName' => 'Solo Paragon Hotel', 'description' => 'Penyajian hidangan banquet pada konferensi nasional dan internasional.'],
-                ],
-                'certifications' => [
-                    ['name' => 'Sertifikasi BNSP Waiter / Waitress Level 3', 'issuer' => 'LSP Pariwisata Indonesia', 'issueYear' => 2025, 'validUntil' => '2028-09-10'],
-                ],
-                'languages' => [
-                    ['language' => 'Inggris', 'level' => 'Fluent'],
-                ],
-                'preferred_countries' => ['Uni Emirat Arab', 'Singapura', 'Qatar'],
-                'preferred_roles' => ['Senior Waitress', 'Banquet Server', 'F&B Attendant'],
-                'readiness_status' => 'Ready for Placement',
-                'verification_status' => 'Verified',
-            ],
-            [
-                'external_id' => 'INDO-CPMI-2026-022',
-                'nik' => '3372036504020020',
-                'name' => 'Dwi Lestari Wulandari',
-                'gender' => 'P',
-                'education' => 'D3',
-                'major' => 'D3 Perhotelan',
-                'expertise' => 'Senior Waitress & Wine Server',
-                'sector_name' => 'Tourism, Travel, dan Hospitality',
-                'batch_id' => 'INDO-BATCH-2026-FNB',
-                'class_code' => 'INDO-WAIT-2026',
-                'batch_name' => 'Kelas Waiter & Food Beverage Service Internasional',
-                'program_name' => 'Program Vokasi Waiter & Banquet Service Bintang Lima',
-                'target_jp' => 450,
-                'achieved_jp' => 450,
-                'skills' => ['Silver Service', 'Wine Pairing & Decanting', 'Guest Relations', 'Point of Sales Micros'],
-                'work_experiences' => [
-                    ['sector' => 'Tourism, Travel, dan Hospitality', 'role' => 'Fine Dining Waitress', 'durationYears' => 1.8, 'companyName' => 'Alila Solo', 'description' => 'Melayani tamu fine dining restoran internasional.'],
-                ],
-                'certifications' => [
-                    ['name' => 'Sertifikasi BNSP Food & Beverage Attendant', 'issuer' => 'LSP Pariwisata', 'issueYear' => 2025, 'validUntil' => '2028-07-20'],
-                ],
-                'languages' => [
-                    ['language' => 'Inggris', 'level' => 'Fluent'],
-                ],
-                'preferred_countries' => ['Kapal Pesiar Internasional', 'Uni Emirat Arab'],
-                'preferred_roles' => ['Fine Dining Waitress', 'Wine Steward', 'F&B Server'],
-                'readiness_status' => 'Ready for Placement',
-                'verification_status' => 'Verified',
-            ],
-            [
-                'external_id' => 'INDO-CPMI-2026-023',
-                'nik' => '3372041105010021',
-                'name' => 'Galih Wicaksono',
-                'gender' => 'L',
-                'education' => 'D3',
-                'major' => 'D3 Perhotelan',
-                'expertise' => 'Restaurant Waiter & Room Service Runner',
-                'sector_name' => 'Tourism, Travel, dan Hospitality',
-                'batch_id' => 'INDO-BATCH-2026-FNB',
-                'class_code' => 'INDO-WAIT-2026',
-                'batch_name' => 'Kelas Waiter & Food Beverage Service Internasional',
-                'program_name' => 'Program Vokasi Waiter & Banquet Service Bintang Lima',
-                'target_jp' => 450,
-                'achieved_jp' => 450,
-                'skills' => ['Tray Carrying Techniques', 'Room Service Protocol', 'Beverage Service', 'Hygiene Sanitation'],
-                'work_experiences' => [
-                    ['sector' => 'Tourism, Travel, dan Hospitality', 'role' => 'Room Service Server', 'durationYears' => 1.6, 'companyName' => 'The Royal Heritage Solo', 'description' => 'Mengantarkan pesanan makanan dan minuman ke kamar tamu VIP.'],
-                ],
-                'certifications' => [
-                    ['name' => 'Sertifikasi BNSP Waiter', 'issuer' => 'LSP Pariwisata Nusantara', 'issueYear' => 2025, 'validUntil' => '2028-06-15'],
-                ],
-                'languages' => [
-                    ['language' => 'Inggris', 'level' => 'Conversational'],
-                ],
-                'preferred_countries' => ['Singapura', 'Malaysia', 'Kapal Pesiar Internasional'],
-                'preferred_roles' => ['Waiter', 'Room Service Runner', 'Restaurant Server'],
-                'readiness_status' => 'Ready for Placement',
-                'verification_status' => 'Verified',
-            ],
-            [
-                'external_id' => 'INDO-CPMI-2026-024',
-                'nik' => '3372054906020022',
-                'name' => 'Maya Anggraini',
-                'gender' => 'P',
-                'education' => 'D3',
-                'major' => 'D3 Perhotelan',
-                'expertise' => 'Barista Specialty Coffee & Latte Artist',
-                'sector_name' => 'Tourism, Travel, dan Hospitality',
-                'batch_id' => 'INDO-BATCH-2026-FNB',
-                'class_code' => 'INDO-WAIT-2026',
-                'batch_name' => 'Kelas Waiter & Food Beverage Service Internasional',
-                'program_name' => 'Program Vokasi Waiter & Banquet Service Bintang Lima',
-                'target_jp' => 450,
-                'achieved_jp' => 450,
-                'skills' => ['Espresso Calibration', 'Manual Brewing V60', 'Latte Art Pouring', 'Customer Engagement'],
-                'work_experiences' => [
-                    ['sector' => 'Tourism, Travel, dan Hospitality', 'role' => 'Lead Barista', 'durationYears' => 2.0, 'companyName' => 'Kopi Teori Solo', 'description' => 'Menyajikan specialty coffee dan melatih barista junior.'],
-                ],
-                'certifications' => [
-                    ['name' => 'Sertifikasi BNSP Barista Level 3', 'issuer' => 'LSP Kopi Nusantara', 'issueYear' => 2025, 'validUntil' => '2028-08-10'],
-                ],
-                'languages' => [
-                    ['language' => 'Inggris', 'level' => 'Fluent'],
-                ],
-                'preferred_countries' => ['Australia', 'Jepang', 'Singapura'],
-                'preferred_roles' => ['Barista Specialist', 'Coffee Shop Supervisor', 'F&B Service Staff'],
-                'readiness_status' => 'Ready for Placement',
-                'verification_status' => 'Verified',
-            ],
-            [
-                'external_id' => 'INDO-CPMI-2026-025',
-                'nik' => '3372061407010023',
-                'name' => 'Surya Darmawan',
-                'gender' => 'L',
-                'education' => 'D3',
-                'major' => 'D3 Perhotelan',
-                'expertise' => 'Banquet Head Waiter & Catering Crew',
-                'sector_name' => 'Tourism, Travel, dan Hospitality',
-                'batch_id' => 'INDO-BATCH-2026-FNB',
-                'class_code' => 'INDO-WAIT-2026',
-                'batch_name' => 'Kelas Waiter & Food Beverage Service Internasional',
-                'program_name' => 'Program Vokasi Waiter & Banquet Service Bintang Lima',
-                'target_jp' => 450,
-                'achieved_jp' => 450,
-                'skills' => ['Banquet Operations', 'Buffet Arrangement', 'Event Coordination', 'Table Etiquette'],
-                'work_experiences' => [
-                    ['sector' => 'Tourism, Travel, dan Hospitality', 'role' => 'Banquet Captain', 'durationYears' => 1.9, 'companyName' => 'Novotel Hotel Solo', 'description' => 'Mengawasi alur penyajian catering acara perkawinan dan seminar 800 tamu.'],
-                ],
-                'certifications' => [
-                    ['name' => 'Sertifikasi BNSP Food & Beverage Captain', 'issuer' => 'LSP Pariwisata Indonesia', 'issueYear' => 2025, 'validUntil' => '2028-11-05'],
-                ],
-                'languages' => [
-                    ['language' => 'Inggris', 'level' => 'Fluent'],
-                ],
-                'preferred_countries' => ['Kapal Pesiar Internasional', 'Uni Emirat Arab'],
-                'preferred_roles' => ['Banquet Captain', 'Head Waiter', 'Senior Server'],
-                'readiness_status' => 'Ready for Placement',
-                'verification_status' => 'Verified',
-            ],
-            [
-                'external_id' => 'INDO-CPMI-2026-026',
-                'nik' => '3372075708020024',
-                'name' => 'Putri Ayu Sekar',
-                'gender' => 'P',
-                'education' => 'D3',
-                'major' => 'D3 Perhotelan',
-                'expertise' => 'Restaurant Hostess & Waitress',
-                'sector_name' => 'Tourism, Travel, dan Hospitality',
-                'batch_id' => 'INDO-BATCH-2026-FNB',
-                'class_code' => 'INDO-WAIT-2026',
-                'batch_name' => 'Kelas Waiter & Food Beverage Service Internasional',
-                'program_name' => 'Program Vokasi Waiter & Banquet Service Bintang Lima',
-                'target_jp' => 450,
-                'achieved_jp' => 450,
-                'skills' => ['Seating Protocol', 'Menu Presentation', 'Multilingual Welcoming', 'Reservation Management'],
-                'work_experiences' => [
-                    ['sector' => 'Tourism, Travel, dan Hospitality', 'role' => 'Restaurant Hostess', 'durationYears' => 1.7, 'companyName' => 'The Sunan Hotel', 'description' => 'Menyambut tamu restoran hotel bintang 4 dan mengatur alokasi meja.'],
-                ],
-                'certifications' => [
-                    ['name' => 'Sertifikasi BNSP Restoran Host / Hostess', 'issuer' => 'LSP Pariwisata', 'issueYear' => 2025, 'validUntil' => '2028-05-18'],
-                ],
-                'languages' => [
-                    ['language' => 'Inggris', 'level' => 'Fluent'],
-                ],
-                'preferred_countries' => ['Uni Emirat Arab', 'Singapura', 'Jepang'],
-                'preferred_roles' => ['Hostess', 'Senior Waitress', 'Dining Coordinator'],
-                'readiness_status' => 'Ready for Placement',
-                'verification_status' => 'Verified',
-            ],
-            [
-                'external_id' => 'INDO-CPMI-2026-027',
-                'nik' => '3372082009010049',
-                'name' => 'Bayu Setiaji',
-                'gender' => 'L',
-                'education' => 'D3',
-                'major' => 'D3 Perhotelan',
-                'expertise' => 'Dining Room Attendant & Waiter',
-                'sector_name' => 'Tourism, Travel, dan Hospitality',
-                'batch_id' => 'INDO-BATCH-2026-FNB',
-                'class_code' => 'INDO-WAIT-2026',
-                'batch_name' => 'Kelas Waiter & Food Beverage Service Internasional',
-                'program_name' => 'Program Vokasi Waiter & Banquet Service Bintang Lima',
-                'target_jp' => 450,
-                'achieved_jp' => 450,
-                'skills' => ['Table Clearing', 'Beverage Replenishment', 'Glassware Polishing', 'Customer Care'],
-                'work_experiences' => [
-                    ['sector' => 'Tourism, Travel, dan Hospitality', 'role' => 'Waiter OJT', 'durationYears' => 1.4, 'companyName' => 'Grand Mercure Solo', 'description' => 'Pelayanan makanan dan minuman di all-day dining restaurant.'],
-                ],
-                'certifications' => [
-                    ['name' => 'Sertifikasi BNSP Waiter', 'issuer' => 'LSP Pariwisata Nusantara', 'issueYear' => 2025, 'validUntil' => '2028-10-12'],
-                ],
-                'languages' => [
-                    ['language' => 'Inggris', 'level' => 'Conversational'],
-                ],
-                'preferred_countries' => ['Kapal Pesiar Internasional', 'Uni Emirat Arab'],
-                'preferred_roles' => ['Dining Room Waiter', 'Assistant Server', 'F&B Attendant'],
-                'readiness_status' => 'Ready for Placement',
-                'verification_status' => 'Verified',
-            ],
-            [
-                'external_id' => 'INDO-CPMI-2026-028',
-                'nik' => '3372095310020050',
-                'name' => 'Clarissa Amanda',
-                'gender' => 'P',
-                'education' => 'D3',
-                'major' => 'D3 Perhotelan',
-                'expertise' => 'VIP Lounge Waitress & Butler Service',
-                'sector_name' => 'Tourism, Travel, dan Hospitality',
-                'batch_id' => 'INDO-BATCH-2026-FNB',
-                'class_code' => 'INDO-WAIT-2026',
-                'batch_name' => 'Kelas Waiter & Food Beverage Service Internasional',
-                'program_name' => 'Program Vokasi Waiter & Banquet Service Bintang Lima',
-                'target_jp' => 450,
-                'achieved_jp' => 450,
-                'skills' => ['Executive Lounge Hospitality', 'High Tea Etiquette', 'Butler Operations', 'Wine Decanting'],
-                'work_experiences' => [
-                    ['sector' => 'Tourism, Travel, dan Hospitality', 'role' => 'Lounge Attendant', 'durationYears' => 1.8, 'companyName' => 'Alila Solo Hotel', 'description' => 'Melayani tamu VIP club lounge dengan standar internasional.'],
-                ],
-                'certifications' => [
-                    ['name' => 'Sertifikasi BNSP VIP Lounge Butler', 'issuer' => 'LSP Pariwisata Indonesia', 'issueYear' => 2025, 'validUntil' => '2028-09-25'],
-                ],
-                'languages' => [
-                    ['language' => 'Inggris', 'level' => 'Fluent'],
-                    ['language' => 'Jepang', 'level' => 'Dasar (N4)'],
-                ],
-                'preferred_countries' => ['Uni Emirat Arab', 'Singapura', 'Jepang'],
-                'preferred_roles' => ['Lounge Waitress', 'Butler', 'VIP Food Server'],
-                'readiness_status' => 'Ready for Placement',
-                'verification_status' => 'Verified',
-            ],
+        $candidates = $this->getIndonusa147CandidatesList();
 
-            // Kelas Manufaktur & Pengelasan (INDO-BATCH-2026-MFG)
-            [
-                'external_id' => 'INDO-CPMI-2026-011',
-                'nik' => '3372011203010011',
-                'name' => 'Bagas Prasetyo Utomo',
-                'gender' => 'L',
-                'education' => 'D3',
-                'major' => 'D3 Teknik Mesin Manufaktur',
-                'expertise' => 'Operator CNC Bubut & Milling Presisi',
-                'sector_name' => 'Manufaktur',
-                'batch_id' => 'INDO-BATCH-2026-MFG',
-                'class_code' => 'INDO-MFG-2026',
-                'batch_name' => 'Kelas Manufaktur & Pengelasan Presisi Global',
-                'program_name' => 'Program D3 Vokasi Manufaktur & Fabrikasi Presisi Siap Kerja Luar Negeri',
-                'target_jp' => 480,
-                'achieved_jp' => 480,
-                'skills' => ['CNC Milling 3-Axis & 5-Axis', 'Mastercam Programming', 'Precision Vernier Caliper & Micrometer', 'G-Code Programming', 'Engineering Drawing GD&T'],
-                'work_experiences' => [
-                    ['sector' => 'Manufaktur', 'role' => 'Operator Mesin CNC', 'durationYears' => 2.0, 'companyName' => 'PT Mega Andalan Kalasan', 'description' => 'Mengoperasikan mesin CNC milling untuk produksi komponen suku cadang otomotif presisi tinggi.'],
-                ],
-                'certifications' => [
-                    ['name' => 'Sertifikasi BNSP Operator Mesin Bubut CNC', 'issuer' => 'LSP Logam Mesin', 'issueYear' => 2025, 'validUntil' => '2028-11-20'],
-                ],
-                'languages' => [
-                    ['language' => 'Inggris', 'level' => 'Conversational'],
-                    ['language' => 'Jepang', 'level' => 'Menengah (N3)'],
-                ],
-                'preferred_countries' => ['Jepang', 'Korea', 'Jerman'],
-                'preferred_roles' => ['CNC Machine Operator', 'Milling Machinist', 'Manufacturing Technician'],
-                'readiness_status' => 'Ready for Placement',
-                'verification_status' => 'Verified',
-            ],
-            [
-                'external_id' => 'INDO-CPMI-2026-012',
-                'nik' => '3372021504010012',
-                'name' => 'Hendra Kurniawan',
-                'gender' => 'L',
-                'education' => 'D3',
-                'major' => 'D3 Teknik Mesin',
-                'expertise' => 'Juru Las / Welder 3G/6G SMAW-FCAW',
-                'sector_name' => 'Manufaktur',
-                'batch_id' => 'INDO-BATCH-2026-MFG',
-                'class_code' => 'INDO-MFG-2026',
-                'batch_name' => 'Kelas Manufaktur & Pengelasan Presisi Global',
-                'program_name' => 'Program D3 Vokasi Manufaktur & Fabrikasi Presisi Siap Kerja Luar Negeri',
-                'target_jp' => 480,
-                'achieved_jp' => 480,
-                'skills' => ['SMAW 3G/4G/6G Welder', 'FCAW & GMAW / MIG-MAG', 'Piping Welding Standards ASME', 'WPS Understanding', 'Weld Defect Visual Inspection'],
-                'work_experiences' => [
-                    ['sector' => 'Manufaktur', 'role' => 'Welder Fabrikasi Baja', 'durationYears' => 2.2, 'companyName' => 'PT Barata Indonesia', 'description' => 'Melakukan pengelasan struktur baja jembatan dan pressure vessel sesuai standar ASME.'],
-                ],
-                'certifications' => [
-                    ['name' => 'Sertifikasi BNSP Juru Las 6G Pipa', 'issuer' => 'LSP Las Indonesia', 'issueYear' => 2025, 'validUntil' => '2028-09-15'],
-                    ['name' => 'Kemenaker RI Sertifikat Las Kelas I', 'issuer' => 'Kementerian Ketenagakerjaan', 'issueYear' => 2025, 'validUntil' => '2028-09-15'],
-                ],
-                'languages' => [
-                    ['language' => 'Inggris', 'level' => 'Conversational'],
-                    ['language' => 'Korea', 'level' => 'Dasar (EPS-TOPIK)'],
-                ],
-                'preferred_countries' => ['Korea', 'Jepang', 'Australia'],
-                'preferred_roles' => ['Shipyard Welder', 'Structural Welder', 'Fabrication Welder'],
-                'readiness_status' => 'Ready for Placement',
-                'verification_status' => 'Verified',
-            ],
-            [
-                'external_id' => 'INDO-CPMI-2026-013',
-                'nik' => '3372031805010013',
-                'name' => 'Aditya Rizky Pratama',
-                'gender' => 'L',
-                'education' => 'D3',
-                'major' => 'D3 Teknik Mesin',
-                'expertise' => 'Teknisi Fabrikasi Logam Industri',
-                'sector_name' => 'Manufaktur',
-                'batch_id' => 'INDO-BATCH-2026-MFG',
-                'class_code' => 'INDO-MFG-2026',
-                'batch_name' => 'Kelas Manufaktur & Pengelasan Presisi Global',
-                'program_name' => 'Program D3 Vokasi Manufaktur & Fabrikasi Presisi Siap Kerja Luar Negeri',
-                'target_jp' => 480,
-                'achieved_jp' => 480,
-                'skills' => ['Metal Bending & Shearing', 'Plasma Cutting CNC', 'Jig & Fixture Assembling', 'Blueprint Reading'],
-                'work_experiences' => [
-                    ['sector' => 'Manufaktur', 'role' => 'Metal Fabrication Fitter', 'durationYears' => 1.8, 'companyName' => 'PT Bukaka Teknik Utama', 'description' => 'Perakitan komponen struktural baja dan pekerjaan fitting presisi.'],
-                ],
-                'certifications' => [
-                    ['name' => 'Sertifikasi BNSP Pipe Fitter & Fabricator', 'issuer' => 'LSP Logam Indonesia', 'issueYear' => 2025, 'validUntil' => '2028-10-30'],
-                ],
-                'languages' => [
-                    ['language' => 'Inggris', 'level' => 'Conversational'],
-                ],
-                'preferred_countries' => ['Jepang', 'Polandia', 'Korea'],
-                'preferred_roles' => ['Metal Fabricator', 'Fitter', 'Assembly Mechanic'],
-                'readiness_status' => 'Ready for Placement',
-                'verification_status' => 'Verified',
-            ],
-            [
-                'external_id' => 'INDO-CPMI-2026-014',
-                'nik' => '3372042106010014',
-                'name' => 'Dimas Wahyu Saputro',
-                'gender' => 'L',
-                'education' => 'D3',
-                'major' => 'D3 Teknik Mesin',
-                'expertise' => 'Quality Control & Dimension Inspection',
-                'sector_name' => 'Manufaktur',
-                'batch_id' => 'INDO-BATCH-2026-MFG',
-                'class_code' => 'INDO-MFG-2026',
-                'batch_name' => 'Kelas Manufaktur & Pengelasan Presisi Global',
-                'program_name' => 'Program D3 Vokasi Manufaktur & Fabrikasi Presisi Siap Kerja Luar Negeri',
-                'target_jp' => 480,
-                'achieved_jp' => 480,
-                'skills' => ['Coordinate Measuring Machine (CMM)', 'Profile Projector', 'Hardness Tester', 'Statistical Process Control (SPC)', 'ISO 9001:2015 Standards'],
-                'work_experiences' => [
-                    ['sector' => 'Manufaktur', 'role' => 'QC Inspector Line', 'durationYears' => 2.0, 'companyName' => 'PT Astra Otoparts', 'description' => 'Inspeksi dimensi produk mesin cetak presisi dan pembuatan laporan NDT/CMM.'],
-                ],
-                'certifications' => [
-                    ['name' => 'Sertifikasi BNSP Quality Control Inspector', 'issuer' => 'LSP Manufaktur Indonesia', 'issueYear' => 2025, 'validUntil' => '2028-08-25'],
-                ],
-                'languages' => [
-                    ['language' => 'Inggris', 'level' => 'Fluent'],
-                    ['language' => 'Jepang', 'level' => 'Dasar (N4)'],
-                ],
-                'preferred_countries' => ['Jepang', 'Taiwan', 'Jerman'],
-                'preferred_roles' => ['QC Inspector', 'Metrology Technician', 'Quality Assurance Staff'],
-                'readiness_status' => 'Ready for Placement',
-                'verification_status' => 'Verified',
-            ],
-            [
-                'external_id' => 'INDO-CPMI-2026-015',
-                'nik' => '3372052407010015',
-                'name' => 'Fajar Nugroho',
-                'gender' => 'L',
-                'education' => 'D3',
-                'major' => 'D3 Teknik Mesin',
-                'expertise' => 'Teknisi Maintenance Mesin Pabrik',
-                'sector_name' => 'Manufaktur',
-                'batch_id' => 'INDO-BATCH-2026-MFG',
-                'class_code' => 'INDO-MFG-2026',
-                'batch_name' => 'Kelas Manufaktur & Pengelasan Presisi Global',
-                'program_name' => 'Program D3 Vokasi Manufaktur & Fabrikasi Presisi Siap Kerja Luar Negeri',
-                'target_jp' => 480,
-                'achieved_jp' => 480,
-                'skills' => ['Preventive Maintenance Systems', 'Hydraulic Pump Rebuild', 'Pneumatic Actuator Servicing', 'Vibration Analysis', 'Lubrication Management'],
-                'work_experiences' => [
-                    ['sector' => 'Manufaktur', 'role' => 'Maintenance Technician', 'durationYears' => 2.1, 'companyName' => 'PT Indo Acidatama', 'description' => 'Pemeliharaan harian boiler, pompa sirkulasi bertekanan tinggi dan kompresor industri.'],
-                ],
-                'certifications' => [
-                    ['name' => 'Sertifikasi BNSP Teknisi Pemeliharaan Mesin Industri', 'issuer' => 'LSP Perawatan Mesin', 'issueYear' => 2025, 'validUntil' => '2028-12-10'],
-                ],
-                'languages' => [
-                    ['language' => 'Inggris', 'level' => 'Conversational'],
-                ],
-                'preferred_countries' => ['Jepang', 'Korea', 'Hungaria'],
-                'preferred_roles' => ['Plant Maintenance Technician', 'Industrial Mechanic', 'Overhaul Specialist'],
-                'readiness_status' => 'Ready for Placement',
-                'verification_status' => 'Verified',
-            ],
-            [
-                'external_id' => 'INDO-CPMI-2026-016',
-                'nik' => '3372062708010016',
-                'name' => 'Bayu Aji Pamungkas',
-                'gender' => 'L',
-                'education' => 'D3',
-                'major' => 'D3 Teknik Mesin',
-                'expertise' => 'Operator Sheet Metal & Press Tooling',
-                'sector_name' => 'Manufaktur',
-                'batch_id' => 'INDO-BATCH-2026-MFG',
-                'class_code' => 'INDO-MFG-2026',
-                'batch_name' => 'Kelas Manufaktur & Pengelasan Presisi Global',
-                'program_name' => 'Program D3 Vokasi Manufaktur & Fabrikasi Presisi Siap Kerja Luar Negeri',
-                'target_jp' => 480,
-                'achieved_jp' => 480,
-                'skills' => ['Hydraulic Press Machine Operation', 'Die Setting & Alignment', 'Stamping Tool Maintenance', 'Sheet Metal Forming'],
-                'work_experiences' => [
-                    ['sector' => 'Manufaktur', 'role' => 'Stamping Press Operator', 'durationYears' => 1.9, 'companyName' => 'PT Toyota Boshoku Indonesia', 'description' => 'Mengoperasikan mesin stamping 200 ton untuk rangka kursi otomotif.'],
-                ],
-                'certifications' => [
-                    ['name' => 'Sertifikasi BNSP Operator Mesin Press', 'issuer' => 'LSP Otomotif Mesin', 'issueYear' => 2025, 'validUntil' => '2028-06-20'],
-                ],
-                'languages' => [
-                    ['language' => 'Inggris', 'level' => 'Conversational'],
-                    ['language' => 'Jepang', 'level' => 'Dasar (N4)'],
-                ],
-                'preferred_countries' => ['Jepang', 'Taiwan'],
-                'preferred_roles' => ['Press Machine Operator', 'Stamping Technician', 'Die Setter'],
-                'readiness_status' => 'Ready for Placement',
-                'verification_status' => 'Verified',
-            ],
-            [
-                'external_id' => 'INDO-CPMI-2026-017',
-                'nik' => '3372073009010017',
-                'name' => 'Ilham Ramadhan',
-                'gender' => 'L',
-                'education' => 'D3',
-                'major' => 'D3 Teknik Mesin',
-                'expertise' => 'Teknisi Mekatronika & Pneumatik Manufaktur',
-                'sector_name' => 'Manufaktur',
-                'batch_id' => 'INDO-BATCH-2026-MFG',
-                'class_code' => 'INDO-MFG-2026',
-                'batch_name' => 'Kelas Manufaktur & Pengelasan Presisi Global',
-                'program_name' => 'Program D3 Vokasi Manufaktur & Fabrikasi Presisi Siap Kerja Luar Negeri',
-                'target_jp' => 480,
-                'achieved_jp' => 480,
-                'skills' => ['Electro-pneumatic Control Systems', 'Sensor Calibration', 'Relay Logic & PLC Wiring', 'Conveyor Automation'],
-                'work_experiences' => [
-                    ['sector' => 'Manufaktur', 'role' => 'Automation Line Technician', 'durationYears' => 1.7, 'companyName' => 'PT Indofood Sukses Makmur', 'description' => 'Pengawasan sistem pneumatic packaging dan sensor penyortir kemasan.'],
-                ],
-                'certifications' => [
-                    ['name' => 'Sertifikasi BNSP Teknisi Pneumatik Industri', 'issuer' => 'LSP Elektronika & Mekatronika', 'issueYear' => 2025, 'validUntil' => '2028-07-15'],
-                ],
-                'languages' => [
-                    ['language' => 'Inggris', 'level' => 'Conversational'],
-                    ['language' => 'Jerman', 'level' => 'Dasar (A2)'],
-                ],
-                'preferred_countries' => ['Jerman', 'Jepang', 'Polandia'],
-                'preferred_roles' => ['Pneumatic Technician', 'Automation Assembly Staff', 'Machine Setter'],
-                'readiness_status' => 'Ready for Placement',
-                'verification_status' => 'Verified',
-            ],
-            [
-                'external_id' => 'INDO-CPMI-2026-018',
-                'nik' => '3372080310010018',
-                'name' => 'Rizki Maulana Ibrahim',
-                'gender' => 'L',
-                'education' => 'D3',
-                'major' => 'D3 Teknik Mesin',
-                'expertise' => 'Welder TIG/Argon Stainless Steel',
-                'sector_name' => 'Manufaktur',
-                'batch_id' => 'INDO-BATCH-2026-MFG',
-                'class_code' => 'INDO-MFG-2026',
-                'batch_name' => 'Kelas Manufaktur & Pengelasan Presisi Global',
-                'program_name' => 'Program D3 Vokasi Manufaktur & Fabrikasi Presisi Siap Kerja Luar Negeri',
-                'target_jp' => 480,
-                'achieved_jp' => 480,
-                'skills' => ['GTAW / TIG Welding Stainless Steel', 'Purging Techniques for Food Grade Piping', 'Non-Destructive Testing Penetrant', 'Polishing Weld Seams'],
-                'work_experiences' => [
-                    ['sector' => 'Manufaktur', 'role' => 'TIG Welder Food Grade', 'durationYears' => 2.0, 'companyName' => 'PT Frisian Flag Indonesia', 'description' => 'Pengelasan pipa stainless steel sanitary untuk jalur distribusi susu cair.'],
-                ],
-                'certifications' => [
-                    ['name' => 'Sertifikasi BNSP Juru Las GTAW Stainless Steel', 'issuer' => 'LSP Las Nusantara', 'issueYear' => 2025, 'validUntil' => '2028-11-01'],
-                ],
-                'languages' => [
-                    ['language' => 'Inggris', 'level' => 'Conversational'],
-                    ['language' => 'Jepang', 'level' => 'Menengah (N3)'],
-                ],
-                'preferred_countries' => ['Jepang', 'Australia', 'Korea'],
-                'preferred_roles' => ['TIG Welder Specialist', 'Sanitary Welder', 'Pipe Welder'],
-                'readiness_status' => 'Ready for Placement',
-                'verification_status' => 'Verified',
-            ],
-            [
-                'external_id' => 'INDO-CPMI-2026-019',
-                'nik' => '3372010802010047',
-                'name' => 'Tegar Satria Wibawa',
-                'gender' => 'L',
-                'education' => 'D3',
-                'major' => 'D3 Teknik Mesin',
-                'expertise' => 'Assembly & Assembly Tool Operator',
-                'sector_name' => 'Manufaktur',
-                'batch_id' => 'INDO-BATCH-2026-MFG',
-                'class_code' => 'INDO-MFG-2026',
-                'batch_name' => 'Kelas Manufaktur & Pengelasan Presisi Global',
-                'program_name' => 'Program D3 Vokasi Manufaktur & Fabrikasi Presisi Siap Kerja Luar Negeri',
-                'target_jp' => 480,
-                'achieved_jp' => 480,
-                'skills' => ['Torque Wrench Calibration', 'Fastening & Riveting', 'Sub-assembly Line Balancing', '5S & Kaizen Implementation'],
-                'work_experiences' => [
-                    ['sector' => 'Manufaktur', 'role' => 'Assembly Line Leader', 'durationYears' => 1.9, 'companyName' => 'PT Komatsu Indonesia', 'description' => 'Perakitan komponen hidrolik ekskavator dengan standar keselamatan kerja Jepang.'],
-                ],
-                'certifications' => [
-                    ['name' => 'Sertifikasi BNSP Teknisi Perakitan Mesin', 'issuer' => 'LSP Logam Mesin', 'issueYear' => 2025, 'validUntil' => '2028-04-12'],
-                ],
-                'languages' => [
-                    ['language' => 'Inggris', 'level' => 'Conversational'],
-                    ['language' => 'Jepang', 'level' => 'Dasar (N4)'],
-                ],
-                'preferred_countries' => ['Jepang', 'Korea'],
-                'preferred_roles' => ['Assembly Line Operator', 'Mechanical Assembler', 'Production Staff'],
-                'readiness_status' => 'Ready for Placement',
-                'verification_status' => 'Verified',
-            ],
-            [
-                'external_id' => 'INDO-CPMI-2026-020',
-                'nik' => '3372021103010048',
-                'name' => 'Wildan Ardiansyah',
-                'gender' => 'L',
-                'education' => 'D3',
-                'major' => 'D3 Teknik Mesin',
-                'expertise' => 'Desain CAD/CAM & Pemrograman CNC',
-                'sector_name' => 'Manufaktur',
-                'batch_id' => 'INDO-BATCH-2026-MFG',
-                'class_code' => 'INDO-MFG-2026',
-                'batch_name' => 'Kelas Manufaktur & Pengelasan Presisi Global',
-                'program_name' => 'Program D3 Vokasi Manufaktur & Fabrikasi Presisi Siap Kerja Luar Negeri',
-                'target_jp' => 480,
-                'achieved_jp' => 480,
-                'skills' => ['SolidWorks 3D Modeling', 'AutoCAD 2D Mechanical', 'Fusion 360 Toolpathing', 'Rapid Prototyping & 3D Print'],
-                'work_experiences' => [
-                    ['sector' => 'Manufaktur', 'role' => 'CAD Drafter & CAM Programmer', 'durationYears' => 2.0, 'companyName' => 'PT Rekayasa Industri', 'description' => 'Membuat gambar kerja fabrikasi dan konversi model 3D menjadi instruksi pemotongan mesin.'],
-                ],
-                'certifications' => [
-                    ['name' => 'Certified SolidWorks Associate (CSWA)', 'issuer' => 'Dassault Systemes', 'issueYear' => 2025, 'validUntil' => '2028-05-30'],
-                ],
-                'languages' => [
-                    ['language' => 'Inggris', 'level' => 'Fluent'],
-                ],
-                'preferred_countries' => ['Jerman', 'Jepang', 'Taiwan'],
-                'preferred_roles' => ['CAD/CAM Engineer', 'Mechanical Drafter', 'Tooling Designer'],
-                'readiness_status' => 'Ready for Placement',
-                'verification_status' => 'Verified',
-            ],
-
-            // Kelas Otomotif & Alat Berat (INDO-BATCH-2026-AUTO)
-            [
-                'external_id' => 'INDO-CPMI-2026-005',
-                'nik' => '3372091402010005',
-                'name' => 'Wahyu Setiawan Nugroho',
-                'gender' => 'L',
-                'education' => 'D3',
-                'major' => 'D3 Teknik Mesin & Otomotif',
-                'expertise' => 'Mekatronika Industri & Alat Berat',
-                'sector_name' => 'Otomotif',
-                'batch_id' => 'INDO-BATCH-2026-AUTO',
-                'class_code' => 'INDO-AUTO-2026',
-                'batch_name' => 'Kelas Otomotif & Maintenance Alat Berat',
-                'program_name' => 'Program D3 Vokasi Otomotif Kendaraan Ringan & Alat Berat Global',
-                'target_jp' => 460,
-                'achieved_jp' => 460,
-                'skills' => ['PLC Omron & Siemens Programming', 'Hydraulic & Pneumatic Systems', 'Automotive Diagnostic Scanner', 'Industrial Maintenance'],
-                'work_experiences' => [
-                    ['sector' => 'Otomotif', 'role' => 'Teknisi Mekatronika Pabrik', 'durationYears' => 2.0, 'companyName' => 'PT Dan Liris Sukoharjo', 'description' => 'Pemeliharaan berkala mesin produksi tekstil otomatis dan sensor hidrolik industri.'],
-                ],
-                'certifications' => [
-                    ['name' => 'Sertifikasi BNSP Teknisi Mekatronika', 'issuer' => 'LSP Elektronika & Mekatronika', 'issueYear' => 2025, 'validUntil' => '2028-12-15'],
-                ],
-                'languages' => [
-                    ['language' => 'Inggris', 'level' => 'Conversational'],
-                    ['language' => 'Jerman', 'level' => 'Menengah (B1)'],
-                    ['language' => 'Jepang', 'level' => 'Dasar (N4)'],
-                ],
-                'preferred_countries' => ['Jerman', 'Jepang', 'Korea'],
-                'preferred_roles' => ['Mechatronics Technician', 'Automation Operator', 'Machinery Maintenance'],
-                'readiness_status' => 'Ready for Placement',
-                'verification_status' => 'Verified',
-            ],
-            [
-                'external_id' => 'INDO-CPMI-2026-029',
-                'nik' => '3372081909010025',
-                'name' => 'Yoga Pratama',
-                'gender' => 'L',
-                'education' => 'D3',
-                'major' => 'D3 Teknik Otomotif',
-                'expertise' => 'Mekanik Diesel Engine & Alat Berat',
-                'sector_name' => 'Otomotif',
-                'batch_id' => 'INDO-BATCH-2026-AUTO',
-                'class_code' => 'INDO-AUTO-2026',
-                'batch_name' => 'Kelas Otomotif & Maintenance Alat Berat',
-                'program_name' => 'Program D3 Vokasi Otomotif Kendaraan Ringan & Alat Berat Global',
-                'target_jp' => 460,
-                'achieved_jp' => 460,
-                'skills' => ['Common Rail Diesel Diagnostics', 'Turbocharger Overhaul', 'Heavy Equipment Engine Tune-up', 'Fuel Injection Pump Timing'],
-                'work_experiences' => [
-                    ['sector' => 'Otomotif', 'role' => 'Diesel Mechanic Assistant', 'durationYears' => 2.0, 'companyName' => 'United Tractors Semarang', 'description' => 'Servis berkala mesin diesel excavator Komatsu PC200 dan buldozer.'],
-                ],
-                'certifications' => [
-                    ['name' => 'Sertifikasi BNSP Mekanik Mesin Diesel Alat Berat', 'issuer' => 'LSP Alat Berat Indonesia', 'issueYear' => 2025, 'validUntil' => '2028-09-30'],
-                ],
-                'languages' => [
-                    ['language' => 'Inggris', 'level' => 'Conversational'],
-                    ['language' => 'Jepang', 'level' => 'Dasar (N4)'],
-                ],
-                'preferred_countries' => ['Jepang', 'Australia', 'Uni Emirat Arab'],
-                'preferred_roles' => ['Heavy Duty Diesel Mechanic', 'Field Service Technician', 'Equipment Overhaul Specialist'],
-                'readiness_status' => 'Ready for Placement',
-                'verification_status' => 'Verified',
-            ],
-            [
-                'external_id' => 'INDO-CPMI-2026-030',
-                'nik' => '3372092210010026',
-                'name' => 'Angga Setiawan',
-                'gender' => 'L',
-                'education' => 'D3',
-                'major' => 'D3 Teknik Otomotif',
-                'expertise' => 'Teknisi Kelistrikan & EFI Kendaraan',
-                'sector_name' => 'Otomotif',
-                'batch_id' => 'INDO-BATCH-2026-AUTO',
-                'class_code' => 'INDO-AUTO-2026',
-                'batch_name' => 'Kelas Otomotif & Maintenance Alat Berat',
-                'program_name' => 'Program D3 Vokasi Otomotif Kendaraan Ringan & Alat Berat Global',
-                'target_jp' => 460,
-                'achieved_jp' => 460,
-                'skills' => ['Electronic Fuel Injection (EFI) Calibration', 'Wiring Harness Troubleshooting', 'CAN-Bus Diagnostics', 'Starter & Alternator Rebuilding'],
-                'work_experiences' => [
-                    ['sector' => 'Otomotif', 'role' => 'Auto Electrician', 'durationYears' => 1.8, 'companyName' => 'Nasmoco Solo Slamet Riyadi', 'description' => 'Pemeriksaan sistem kelistrikan body, sensor ECU dan pengisian baterai kendaraan Toyota.'],
-                ],
-                'certifications' => [
-                    ['name' => 'Sertifikasi BNSP Teknisi Kelistrikan Otomotif', 'issuer' => 'LSP Otomotif Indonesia', 'issueYear' => 2025, 'validUntil' => '2028-10-20'],
-                ],
-                'languages' => [
-                    ['language' => 'Inggris', 'level' => 'Conversational'],
-                ],
-                'preferred_countries' => ['Jepang', 'Taiwan'],
-                'preferred_roles' => ['Auto Electrician', 'EFI Specialist', 'Vehicle Diagnostic Technician'],
-                'readiness_status' => 'Ready for Placement',
-                'verification_status' => 'Verified',
-            ],
-            [
-                'external_id' => 'INDO-CPMI-2026-031',
-                'nik' => '3372102511010027',
-                'name' => 'Danang Tri Wibowo',
-                'gender' => 'L',
-                'education' => 'D3',
-                'major' => 'D3 Teknik Otomotif',
-                'expertise' => 'Teknisi Chassis & Powertrain Kendaraan',
-                'sector_name' => 'Otomotif',
-                'batch_id' => 'INDO-BATCH-2026-AUTO',
-                'class_code' => 'INDO-AUTO-2026',
-                'batch_name' => 'Kelas Otomotif & Maintenance Alat Berat',
-                'program_name' => 'Program D3 Vokasi Otomotif Kendaraan Ringan & Alat Berat Global',
-                'target_jp' => 460,
-                'achieved_jp' => 460,
-                'skills' => ['Manual & Automatic Transmission Overhaul', 'Wheel Alignment 3D & Balancing', 'Anti-lock Braking System (ABS)', 'Differential Rebuild'],
-                'work_experiences' => [
-                    ['sector' => 'Otomotif', 'role' => 'Chassis Mechanic', 'durationYears' => 2.0, 'companyName' => 'Bengkel Mobil Maju Bersama', 'description' => 'Servis transmisi otomatis, penggantian kopling, dan spooring balancing digital.'],
-                ],
-                'certifications' => [
-                    ['name' => 'Sertifikasi BNSP Teknisi Sistem Rem & Suspensi', 'issuer' => 'LSP Otomotif', 'issueYear' => 2025, 'validUntil' => '2028-08-14'],
-                ],
-                'languages' => [
-                    ['language' => 'Inggris', 'level' => 'Conversational'],
-                ],
-                'preferred_countries' => ['Jepang', 'Korea'],
-                'preferred_roles' => ['Transmission Specialist', 'Chassis Mechanic', 'Brake & Steering Technician'],
-                'readiness_status' => 'Ready for Placement',
-                'verification_status' => 'Verified',
-            ],
-            [
-                'external_id' => 'INDO-CPMI-2026-032',
-                'nik' => '3372012812010028',
-                'name' => 'Bima Arya Sena',
-                'gender' => 'L',
-                'education' => 'D3',
-                'major' => 'D3 Teknik Otomotif',
-                'expertise' => 'Teknisi Sistem Hidrolik Industri & Forklift',
-                'sector_name' => 'Otomotif',
-                'batch_id' => 'INDO-BATCH-2026-AUTO',
-                'class_code' => 'INDO-AUTO-2026',
-                'batch_name' => 'Kelas Otomotif & Maintenance Alat Berat',
-                'program_name' => 'Program D3 Vokasi Otomotif Kendaraan Ringan & Alat Berat Global',
-                'target_jp' => 460,
-                'achieved_jp' => 460,
-                'skills' => ['Hydraulic Cylinder Resealing', 'Directional Control Valve Testing', 'Forklift Maintenance', 'Pressure Relief Calibration'],
-                'work_experiences' => [
-                    ['sector' => 'Otomotif', 'role' => 'Forklift & Hydraulic Technician', 'durationYears' => 1.8, 'companyName' => 'PT Traktor Nusantara', 'description' => 'Perawatan armada forklift diesel dan sistem hidrolik material handling pabrik.'],
-                ],
-                'certifications' => [
-                    ['name' => 'Sertifikasi BNSP Teknisi Hidrolik Kendaraan', 'issuer' => 'LSP Mesin & Otomotif', 'issueYear' => 2025, 'validUntil' => '2028-11-20'],
-                ],
-                'languages' => [
-                    ['language' => 'Inggris', 'level' => 'Conversational'],
-                    ['language' => 'Jepang', 'level' => 'Dasar (N4)'],
-                ],
-                'preferred_countries' => ['Jepang', 'Singapura'],
-                'preferred_roles' => ['Hydraulic Mechanic', 'Forklift Technician', 'Material Handling Specialist'],
-                'readiness_status' => 'Ready for Placement',
-                'verification_status' => 'Verified',
-            ],
-            [
-                'external_id' => 'INDO-CPMI-2026-033',
-                'nik' => '3372020201010029',
-                'name' => 'Farhan Nur Hidayat',
-                'gender' => 'L',
-                'education' => 'D3',
-                'major' => 'D3 Teknik Otomotif',
-                'expertise' => 'Diagnostic Scanner & Tune-Up Specialist',
-                'sector_name' => 'Otomotif',
-                'batch_id' => 'INDO-BATCH-2026-AUTO',
-                'class_code' => 'INDO-AUTO-2026',
-                'batch_name' => 'Kelas Otomotif & Maintenance Alat Berat',
-                'program_name' => 'Program D3 Vokasi Otomotif Kendaraan Ringan & Alat Berat Global',
-                'target_jp' => 460,
-                'achieved_jp' => 460,
-                'skills' => ['OBD-II Diagnostic Tools (Launch/Autel)', 'Live Data Stream Analysis', 'Emissions Gas Analyzer', 'Oscilloscope Waveform Testing'],
-                'work_experiences' => [
-                    ['sector' => 'Otomotif', 'role' => 'Diagnostic Technician', 'durationYears' => 2.0, 'companyName' => 'Bosch Car Service Solo', 'description' => 'Mendiagnosa kode kerusakan sensor mesin, uji emisi gas buang dan kalibrasi sensor throttle.'],
-                ],
-                'certifications' => [
-                    ['name' => 'Sertifikasi BNSP Teknisi Tune Up Kendaraan', 'issuer' => 'LSP Otomotif', 'issueYear' => 2025, 'validUntil' => '2028-06-30'],
-                ],
-                'languages' => [
-                    ['language' => 'Inggris', 'level' => 'Fluent'],
-                ],
-                'preferred_countries' => ['Jepang', 'Australia', 'Jerman'],
-                'preferred_roles' => ['Diagnostic Master Technician', 'Service Advisor', 'Engine Tuner'],
-                'readiness_status' => 'Ready for Placement',
-                'verification_status' => 'Verified',
-            ],
-            [
-                'external_id' => 'INDO-CPMI-2026-034',
-                'nik' => '3372030502010051',
-                'name' => 'Satria Yudha',
-                'gender' => 'L',
-                'education' => 'D3',
-                'major' => 'D3 Teknik Otomotif',
-                'expertise' => 'Teknisi Mobil Listrik & Kendaraan Hybrid',
-                'sector_name' => 'Otomotif',
-                'batch_id' => 'INDO-BATCH-2026-AUTO',
-                'class_code' => 'INDO-AUTO-2026',
-                'batch_name' => 'Kelas Otomotif & Maintenance Alat Berat',
-                'program_name' => 'Program D3 Vokasi Otomotif Kendaraan Ringan & Alat Berat Global',
-                'target_jp' => 460,
-                'achieved_jp' => 460,
-                'skills' => ['High Voltage Safety Disconnect', 'EV Battery Management System (BMS)', 'Inverter & Electric Motor Servicing', 'Regenerative Braking Systems'],
-                'work_experiences' => [
-                    ['sector' => 'Otomotif', 'role' => 'EV Service Technician', 'durationYears' => 1.9, 'companyName' => 'Hyundai Solo Baru', 'description' => 'Perawatan rutin kendaraan listrik Hyundai Ioniq 5 dan modul baterai bertegangan tinggi.'],
-                ],
-                'certifications' => [
-                    ['name' => 'High Voltage Vehicle Safety Certification', 'issuer' => 'LSP Otomotif Masa Depan', 'issueYear' => 2025, 'validUntil' => '2028-10-10'],
-                ],
-                'languages' => [
-                    ['language' => 'Inggris', 'level' => 'Fluent'],
-                    ['language' => 'Korea', 'level' => 'Dasar (Topik I)'],
-                ],
-                'preferred_countries' => ['Korea', 'Jepang', 'Jerman'],
-                'preferred_roles' => ['EV Technician', 'Hybrid Vehicle Specialist', 'Battery Service Mechanic'],
-                'readiness_status' => 'Ready for Placement',
-                'verification_status' => 'Verified',
-            ],
-
-            // Kelas Kuliner & Pastry Kapal Pesiar (INDO-BATCH-2026-CUL)
-            [
-                'external_id' => 'INDO-CPMI-2026-003',
-                'nik' => '3372071907010003',
-                'name' => 'Bagus Dwi Wicaksono',
-                'gender' => 'L',
-                'education' => 'D3',
-                'major' => 'D3 Perhotelan (Culinary & Pastry)',
-                'expertise' => 'Western & Asian Chef de Partie',
-                'sector_name' => 'Tourism, Travel, dan Hospitality',
-                'batch_id' => 'INDO-BATCH-2026-CUL',
-                'class_code' => 'INDO-CUL-2026',
-                'batch_name' => 'Kelas Culinary & Pastry Production Kapal Pesiar',
-                'program_name' => 'Program Vokasi Kuliner & Pastry Kapal Pesiar Internasional',
-                'target_jp' => 450,
-                'achieved_jp' => 450,
-                'skills' => ['Western Classical Cooking', 'Pastry & Bakery Arts', 'Food Costing & Portion Control', 'Kitchen HACCP Standards'],
-                'work_experiences' => [
-                    ['sector' => 'Tourism, Travel, dan Hospitality', 'role' => 'Demi Chef de Partie', 'durationYears' => 2.2, 'companyName' => 'The Royal Surakarta Heritage', 'description' => 'Memimpin station cold & hot kitchen, mengawasi standar penyajian hidangan banquet skala 500 porsi.'],
-                ],
-                'certifications' => [
-                    ['name' => 'Sertifikasi BNSP Demi Chef de Partie', 'issuer' => 'LSP Kuliner Gastronomi', 'issueYear' => 2025, 'validUntil' => '2028-11-20'],
-                    ['name' => 'Basic Safety Training (BST) STCW', 'issuer' => 'Pertamina Maritime Training Center', 'issueYear' => 2025, 'validUntil' => '2030-06-10'],
-                ],
-                'languages' => [
-                    ['language' => 'Inggris', 'level' => 'Fluent'],
-                    ['language' => 'Jerman', 'level' => 'Dasar (A2)'],
-                ],
-                'preferred_countries' => ['Australia', 'Jepang', 'Jerman'],
-                'preferred_roles' => ['Chef de Partie', 'Commis Chef', 'Pastry Chef'],
-                'readiness_status' => 'Ready for Placement',
-                'verification_status' => 'Verified',
-            ],
-            [
-                'external_id' => 'INDO-CPMI-2026-010',
-                'nik' => '3372044812020010',
-                'name' => 'Alifa Zahra Maharani',
-                'gender' => 'P',
-                'education' => 'D3',
-                'major' => 'D3 Perhotelan',
-                'expertise' => 'Executive Housekeeper Supervisor',
-                'sector_name' => 'Tourism, Travel, dan Hospitality',
-                'batch_id' => 'INDO-BATCH-2026-CUL',
-                'class_code' => 'INDO-CUL-2026',
-                'batch_name' => 'Kelas Culinary & Pastry Production Kapal Pesiar',
-                'program_name' => 'Program Vokasi Kuliner & Pastry Kapal Pesiar Internasional',
-                'target_jp' => 450,
-                'achieved_jp' => 450,
-                'skills' => ['Housekeeping Standard Operating Procedures', 'Room Inspection Checklist', 'Linen & Laundry Control', 'Staff Scheduling & Training'],
-                'work_experiences' => [
-                    ['sector' => 'Tourism, Travel, dan Hospitality', 'role' => 'Housekeeping Floor Supervisor', 'durationYears' => 2.1, 'companyName' => 'Alila Solo Hotel', 'description' => 'Supervisi kebersihan 80 kamar tamu, audit kualitas linen, dan evaluasi kerja staf room attendant.'],
-                ],
-                'certifications' => [
-                    ['name' => 'Sertifikasi BNSP Housekeeping Supervisor', 'issuer' => 'LSP Pariwisata Nusantara', 'issueYear' => 2025, 'validUntil' => '2028-09-28'],
-                    ['name' => 'Basic Safety Training (BST) STCW', 'issuer' => 'Balai Diklat Pelayaran', 'issueYear' => 2025, 'validUntil' => '2030-06-05'],
-                ],
-                'languages' => [
-                    ['language' => 'Inggris', 'level' => 'Fluent'],
-                    ['language' => 'Jerman', 'level' => 'Dasar (A2)'],
-                ],
-                'preferred_countries' => ['Kapal Pesiar Internasional', 'Jerman', 'Uni Emirat Arab'],
-                'preferred_roles' => ['Housekeeping Supervisor', 'Floor Supervisor', 'Executive Housekeeper'],
-                'readiness_status' => 'Ready for Placement',
-                'verification_status' => 'Verified',
-            ],
-            [
-                'external_id' => 'INDO-CPMI-2026-035',
-                'nik' => '3372031502010030',
-                'name' => 'Rio Septian',
-                'gender' => 'L',
-                'education' => 'D3',
-                'major' => 'D3 Perhotelan',
-                'expertise' => 'Commis Chef Hot Kitchen & Western Grill',
-                'sector_name' => 'Tourism, Travel, dan Hospitality',
-                'batch_id' => 'INDO-BATCH-2026-CUL',
-                'class_code' => 'INDO-CUL-2026',
-                'batch_name' => 'Kelas Culinary & Pastry Production Kapal Pesiar',
-                'program_name' => 'Program Vokasi Kuliner & Pastry Kapal Pesiar Internasional',
-                'target_jp' => 450,
-                'achieved_jp' => 450,
-                'skills' => ['Meat Temperature Cooking', 'Sauce Making Espagnole & Bechamel', 'Line Cook Speed', 'Knife Skills Brunoise/Julienne'],
-                'work_experiences' => [
-                    ['sector' => 'Tourism, Travel, dan Hospitality', 'role' => 'Commis 1 Hot Kitchen', 'durationYears' => 1.8, 'companyName' => 'Swiss-Belhotel Solo', 'description' => 'Mengoperasikan grill station dan persiapan bahan utama buffet dinner.'],
-                ],
-                'certifications' => [
-                    ['name' => 'Sertifikasi BNSP Commis Chef', 'issuer' => 'LSP Kuliner Nusantara', 'issueYear' => 2025, 'validUntil' => '2028-08-20'],
-                ],
-                'languages' => [
-                    ['language' => 'Inggris', 'level' => 'Conversational'],
-                ],
-                'preferred_countries' => ['Kapal Pesiar Internasional', 'Australia'],
-                'preferred_roles' => ['Commis 1', 'Grill Cook', 'Hot Kitchen Line Cook'],
-                'readiness_status' => 'Ready for Placement',
-                'verification_status' => 'Verified',
-            ],
-            [
-                'external_id' => 'INDO-CPMI-2026-036',
-                'nik' => '3372045803020031',
-                'name' => 'Citra Dewi Puspitasari',
-                'gender' => 'P',
-                'education' => 'D3',
-                'major' => 'D3 Perhotelan',
-                'expertise' => 'Baker & Artisan Pastry Assistant',
-                'sector_name' => 'Tourism, Travel, dan Hospitality',
-                'batch_id' => 'INDO-BATCH-2026-CUL',
-                'class_code' => 'INDO-CUL-2026',
-                'batch_name' => 'Kelas Culinary & Pastry Production Kapal Pesiar',
-                'program_name' => 'Program Vokasi Kuliner & Pastry Kapal Pesiar Internasional',
-                'target_jp' => 450,
-                'achieved_jp' => 450,
-                'skills' => ['Sourdough & Baguette Baking', 'French Viennoiserie Croissant', 'Chocolate Tempering', 'Cake Decorating'],
-                'work_experiences' => [
-                    ['sector' => 'Tourism, Travel, dan Hospitality', 'role' => 'Pastry Commis', 'durationYears' => 2.0, 'companyName' => 'Solo Paragon Bakery', 'description' => 'Produksi harian 300 croissant, roti artisan dan dekorasi cake ulang tahun hotel.'],
-                ],
-                'certifications' => [
-                    ['name' => 'Sertifikasi BNSP Baker & Pastry Chef', 'issuer' => 'LSP Gastronomi Indonesia', 'issueYear' => 2025, 'validUntil' => '2028-07-15'],
-                ],
-                'languages' => [
-                    ['language' => 'Inggris', 'level' => 'Fluent'],
-                ],
-                'preferred_countries' => ['Perancis', 'Australia', 'Jepang'],
-                'preferred_roles' => ['Pastry Cook', 'Baker Assistant', 'Dessert Decorator'],
-                'readiness_status' => 'Ready for Placement',
-                'verification_status' => 'Verified',
-            ],
-            [
-                'external_id' => 'INDO-CPMI-2026-037',
-                'nik' => '3372051904010032',
-                'name' => 'Gilang Pratama',
-                'gender' => 'L',
-                'education' => 'D3',
-                'major' => 'D3 Perhotelan',
-                'expertise' => 'Cold Kitchen & Garde Manger Cook',
-                'sector_name' => 'Tourism, Travel, dan Hospitality',
-                'batch_id' => 'INDO-BATCH-2026-CUL',
-                'class_code' => 'INDO-CUL-2026',
-                'batch_name' => 'Kelas Culinary & Pastry Production Kapal Pesiar',
-                'program_name' => 'Program Vokasi Kuliner & Pastry Kapal Pesiar Internasional',
-                'target_jp' => 450,
-                'achieved_jp' => 450,
-                'skills' => ['Salad & Cold Appetizer Plating', 'Charcuterie Board Setup', 'Canapes Assembly', 'Fruit Carving'],
-                'work_experiences' => [
-                    ['sector' => 'Tourism, Travel, dan Hospitality', 'role' => 'Garde Manger Cook', 'durationYears' => 1.7, 'companyName' => 'Alila Solo Hotel', 'description' => 'Persiapan cold appetizer dan salad bar segar untuk sarapan dan buffet dinner.'],
-                ],
-                'certifications' => [
-                    ['name' => 'Sertifikasi BNSP Garde Manger Cook', 'issuer' => 'LSP Pariwisata', 'issueYear' => 2025, 'validUntil' => '2028-09-10'],
-                ],
-                'languages' => [
-                    ['language' => 'Inggris', 'level' => 'Conversational'],
-                ],
-                'preferred_countries' => ['Kapal Pesiar Internasional', 'Singapura'],
-                'preferred_roles' => ['Garde Manger Cook', 'Cold Kitchen Commis', 'Buffet Cook'],
-                'readiness_status' => 'Ready for Placement',
-                'verification_status' => 'Verified',
-            ],
-            [
-                'external_id' => 'INDO-CPMI-2026-038',
-                'nik' => '3372066205020033',
-                'name' => 'Vina Amelia',
-                'gender' => 'P',
-                'education' => 'D3',
-                'major' => 'D3 Perhotelan',
-                'expertise' => 'Food Safety & Kitchen Hygiene Assistant',
-                'sector_name' => 'Tourism, Travel, dan Hospitality',
-                'batch_id' => 'INDO-BATCH-2026-CUL',
-                'class_code' => 'INDO-CUL-2026',
-                'batch_name' => 'Kelas Culinary & Pastry Production Kapal Pesiar',
-                'program_name' => 'Program Vokasi Kuliner & Pastry Kapal Pesiar Internasional',
-                'target_jp' => 450,
-                'achieved_jp' => 450,
-                'skills' => ['HACCP Log Documentation', 'Chemical Sanitation Concentration Testing', 'Chiller Temperature Log', 'Waste Segregation'],
-                'work_experiences' => [
-                    ['sector' => 'Tourism, Travel, dan Hospitality', 'role' => 'Kitchen Hygiene Staff', 'durationYears' => 1.5, 'companyName' => 'Grand Mercure Solo', 'description' => 'Monitoring sanitasi dapur utama, audit kebersihan peralatan masak dan lemari pendingin.'],
-                ],
-                'certifications' => [
-                    ['name' => 'HACCP Food Safety Officer Certification', 'issuer' => 'LSP Keamanan Pangan', 'issueYear' => 2025, 'validUntil' => '2028-05-15'],
-                ],
-                'languages' => [
-                    ['language' => 'Inggris', 'level' => 'Fluent'],
-                ],
-                'preferred_countries' => ['Kapal Pesiar Internasional', 'Australia'],
-                'preferred_roles' => ['Kitchen Hygiene Inspector', 'Food Safety Steward', 'Prep Cook'],
-                'readiness_status' => 'Ready for Placement',
-                'verification_status' => 'Verified',
-            ],
-            [
-                'external_id' => 'INDO-CPMI-2026-039',
-                'nik' => '3372070806010052',
-                'name' => 'Kevin Aldiansyah',
-                'gender' => 'L',
-                'education' => 'D3',
-                'major' => 'D3 Perhotelan',
-                'expertise' => 'Western Butchery & Prep Cook',
-                'sector_name' => 'Tourism, Travel, dan Hospitality',
-                'batch_id' => 'INDO-BATCH-2026-CUL',
-                'class_code' => 'INDO-CUL-2026',
-                'batch_name' => 'Kelas Culinary & Pastry Production Kapal Pesiar',
-                'program_name' => 'Program Vokasi Kuliner & Pastry Kapal Pesiar Internasional',
-                'target_jp' => 450,
-                'achieved_jp' => 450,
-                'skills' => ['Meat Deboning & Fabrication', 'Fish Filleting & Portioning', 'Vacuum Seal Packaging', 'Inventory Temperature Checks'],
-                'work_experiences' => [
-                    ['sector' => 'Tourism, Travel, dan Hospitality', 'role' => 'Butcher Assistant', 'durationYears' => 1.8, 'companyName' => 'The Sunan Hotel', 'description' => 'Memotong daging sapi, ayam dan ikan fillet segar sesuai standar resep gramatur.'],
-                ],
-                'certifications' => [
-                    ['name' => 'Sertifikasi BNSP Butcher Daging', 'issuer' => 'LSP Kuliner Indonesia', 'issueYear' => 2025, 'validUntil' => '2028-10-18'],
-                ],
-                'languages' => [
-                    ['language' => 'Inggris', 'level' => 'Conversational'],
-                ],
-                'preferred_countries' => ['Kapal Pesiar Internasional', 'Uni Emirat Arab'],
-                'preferred_roles' => ['Butcher Commis', 'Kitchen Prep Cook', 'Meat Cutter'],
-                'readiness_status' => 'Ready for Placement',
-                'verification_status' => 'Verified',
-            ],
-
-            // Kelas Teknologi Informasi & Sistem Perhotelan (INDO-BATCH-2026-IT)
-            [
-                'external_id' => 'INDO-CPMI-2026-002',
-                'nik' => '3372064508020002',
-                'name' => 'Tiara Anggraini Putri',
-                'gender' => 'P',
-                'education' => 'D3',
-                'major' => 'D3 Manajemen Informatika',
-                'expertise' => 'Hotel PMS Administrator & IT Support',
-                'sector_name' => 'Teknologi Informasi',
-                'batch_id' => 'INDO-BATCH-2026-IT',
-                'class_code' => 'INDO-IT-2026',
-                'batch_name' => 'Kelas Teknologi Informasi & Sistem Perhotelan Global',
-                'program_name' => 'Program D3 Manajemen Informatika & Cloud Network',
-                'target_jp' => 420,
-                'achieved_jp' => 420,
-                'skills' => ['Opera PMS Configuration', 'Database SQL Server', 'LAN/WAN Network Support', 'Web Application Troubleshooting', 'IT Service Desk'],
-                'work_experiences' => [
-                    ['sector' => 'Teknologi Informasi', 'role' => 'Hotel IT Support Staff', 'durationYears' => 1.8, 'companyName' => 'Solo Paragon Hotel & Residences', 'description' => 'Mengelola server PMS hotel, troubleshooting jaringan WiFi kamar, dan maintenance POS restoran.'],
-                ],
-                'certifications' => [
-                    ['name' => 'Sertifikasi BNSP Network Administrator', 'issuer' => 'LSP Informatika Indonesia', 'issueYear' => 2025, 'validUntil' => '2028-09-01'],
-                    ['name' => 'Cisco Certified Network Associate (CCNA)', 'issuer' => 'Cisco Systems', 'issueYear' => 2025, 'validUntil' => '2028-08-15'],
-                ],
-                'languages' => [
-                    ['language' => 'Inggris', 'level' => 'Fluent'],
-                    ['language' => 'Jepang', 'level' => 'Dasar (N4)'],
-                ],
-                'preferred_countries' => ['Singapura', 'Jepang', 'Jerman'],
-                'preferred_roles' => ['IT Support Specialist', 'PMS Administrator', 'Network Technician'],
-                'readiness_status' => 'Ready for Placement',
-                'verification_status' => 'Verified',
-            ],
-            [
-                'external_id' => 'INDO-CPMI-2026-009',
-                'nik' => '3372031704010009',
-                'name' => 'Guntur Tri Pamungkas',
-                'gender' => 'L',
-                'education' => 'D3',
-                'major' => 'D3 Manajemen Informatika',
-                'expertise' => 'Network & Systems Engineer',
-                'sector_name' => 'Teknologi Informasi',
-                'batch_id' => 'INDO-BATCH-2026-IT',
-                'class_code' => 'INDO-IT-2026',
-                'batch_name' => 'Kelas Teknologi Informasi & Sistem Perhotelan Global',
-                'program_name' => 'Program D3 Manajemen Informatika & Cloud Network',
-                'target_jp' => 420,
-                'achieved_jp' => 420,
-                'skills' => ['Mikrotik Routing & Firewall', 'Cisco Switch Configuration', 'Linux Server Administration', 'Cloud Infrastructure'],
-                'work_experiences' => [
-                    ['sector' => 'Teknologi Informasi', 'role' => 'Junior Network Engineer', 'durationYears' => 2.0, 'companyName' => 'PT Solo Net Multimedia', 'description' => 'Instalasi perangkat jaringan fiber optic, konfigurasi routing BGP/OSPF, dan maintenance server data center.'],
-                ],
-                'certifications' => [
-                    ['name' => 'MikroTik Certified Network Associate (MTCNA)', 'issuer' => 'MikroTik Academy', 'issueYear' => 2025, 'validUntil' => '2028-06-20'],
-                    ['name' => 'Sertifikasi BNSP Network Administrator', 'issuer' => 'LSP Telematika', 'issueYear' => 2025, 'validUntil' => '2028-07-15'],
-                ],
-                'languages' => [
-                    ['language' => 'Inggris', 'level' => 'Fluent'],
-                    ['language' => 'Jepang', 'level' => 'Dasar (N4)'],
-                ],
-                'preferred_countries' => ['Jepang', 'Malaysia', 'Singapura'],
-                'preferred_roles' => ['Network Engineer', 'System Administrator', 'Infrastructure Engineer'],
-                'readiness_status' => 'Ready for Placement',
-                'verification_status' => 'Verified',
-            ],
-            [
-                'external_id' => 'INDO-CPMI-2026-040',
-                'nik' => '3372072106010034',
-                'name' => 'Aris Munandar',
-                'gender' => 'L',
-                'education' => 'D3',
-                'major' => 'D3 Manajemen Informatika',
-                'expertise' => 'Junior Full-stack Web Developer',
-                'sector_name' => 'Teknologi Informasi',
-                'batch_id' => 'INDO-BATCH-2026-IT',
-                'class_code' => 'INDO-IT-2026',
-                'batch_name' => 'Kelas Teknologi Informasi & Sistem Perhotelan Global',
-                'program_name' => 'Program D3 Manajemen Informatika & Cloud Network',
-                'target_jp' => 420,
-                'achieved_jp' => 420,
-                'skills' => ['PHP Laravel & Node.js', 'React & TailwindCSS', 'RESTful API Integration', 'Git Version Control & Docker'],
-                'work_experiences' => [
-                    ['sector' => 'Teknologi Informasi', 'role' => 'Web Developer Intern', 'durationYears' => 1.7, 'companyName' => 'PT Cipta Digital Nusantara', 'description' => 'Membangun modul dashboard reservasi dan integrasi payment gateway.'],
-                ],
-                'certifications' => [
-                    ['name' => 'Sertifikasi BNSP Junior Web Developer', 'issuer' => 'LSP Informatika', 'issueYear' => 2025, 'validUntil' => '2028-08-19'],
-                ],
-                'languages' => [
-                    ['language' => 'Inggris', 'level' => 'Fluent'],
-                ],
-                'preferred_countries' => ['Singapura', 'Jepang', 'Australia'],
-                'preferred_roles' => ['Web Developer', 'Software Engineer', 'Frontend Developer'],
-                'readiness_status' => 'Ready for Placement',
-                'verification_status' => 'Verified',
-            ],
-            [
-                'external_id' => 'INDO-CPMI-2026-041',
-                'nik' => '3372086407020035',
-                'name' => 'Rina Novitasari',
-                'gender' => 'P',
-                'education' => 'D3',
-                'major' => 'D3 Manajemen Informatika',
-                'expertise' => 'Database Administrator & Helpdesk',
-                'sector_name' => 'Teknologi Informasi',
-                'batch_id' => 'INDO-BATCH-2026-IT',
-                'class_code' => 'INDO-IT-2026',
-                'batch_name' => 'Kelas Teknologi Informasi & Sistem Perhotelan Global',
-                'program_name' => 'Program D3 Manajemen Informatika & Cloud Network',
-                'target_jp' => 420,
-                'achieved_jp' => 420,
-                'skills' => ['MySQL & PostgreSQL Query Optimization', 'Database Backup Automation', 'ITIL Helpdesk Ticketing', 'Hardware Troubleshooting'],
-                'work_experiences' => [
-                    ['sector' => 'Teknologi Informasi', 'role' => 'IT Helpdesk Officer', 'durationYears' => 1.8, 'companyName' => 'RS Dr. Oen Solo Baru', 'description' => 'Mendukung operasional sistem informasi manajemen dan backup rutin basis data.'],
-                ],
-                'certifications' => [
-                    ['name' => 'Sertifikasi BNSP Database Administrator Associate', 'issuer' => 'LSP Telematika', 'issueYear' => 2025, 'validUntil' => '2028-10-14'],
-                ],
-                'languages' => [
-                    ['language' => 'Inggris', 'level' => 'Fluent'],
-                ],
-                'preferred_countries' => ['Singapura', 'Malaysia'],
-                'preferred_roles' => ['Database Administrator', 'IT Support Specialist', 'Technical Helpdesk'],
-                'readiness_status' => 'Ready for Placement',
-                'verification_status' => 'Verified',
-            ],
-            [
-                'external_id' => 'INDO-CPMI-2026-042',
-                'nik' => '3372091708010036',
-                'name' => 'Kevin Sanjaya',
-                'gender' => 'L',
-                'education' => 'D3',
-                'major' => 'D3 Manajemen Informatika',
-                'expertise' => 'Network Security & Infrastructure',
-                'sector_name' => 'Teknologi Informasi',
-                'batch_id' => 'INDO-BATCH-2026-IT',
-                'class_code' => 'INDO-IT-2026',
-                'batch_name' => 'Kelas Teknologi Informasi & Sistem Perhotelan Global',
-                'program_name' => 'Program D3 Manajemen Informatika & Cloud Network',
-                'target_jp' => 420,
-                'achieved_jp' => 420,
-                'skills' => ['Firewall Fortinet & pfSense', 'VLAN Segmentation', 'VPN Setup OpenVPN/Wireguard', 'Network Monitoring Zabbix'],
-                'work_experiences' => [
-                    ['sector' => 'Teknologi Informasi', 'role' => 'Network Technician', 'durationYears' => 2.0, 'companyName' => 'PT Indonet Solo', 'description' => 'Pemasangan access point enterprise, routing switch VLAN dan monitoring uptime koneksi hotel.'],
-                ],
-                'certifications' => [
-                    ['name' => 'CompTIA Network+ Certified', 'issuer' => 'CompTIA', 'issueYear' => 2025, 'validUntil' => '2028-06-25'],
-                ],
-                'languages' => [
-                    ['language' => 'Inggris', 'level' => 'Fluent'],
-                    ['language' => 'Jepang', 'level' => 'Dasar (N4)'],
-                ],
-                'preferred_countries' => ['Jepang', 'Singapura'],
-                'preferred_roles' => ['Network Security Staff', 'IT Infrastructure Engineer', 'Systems Technician'],
-                'readiness_status' => 'Ready for Placement',
-                'verification_status' => 'Verified',
-            ],
-            [
-                'external_id' => 'INDO-CPMI-2026-043',
-                'nik' => '3372107009020037',
-                'name' => 'Intan Permatasari',
-                'gender' => 'P',
-                'education' => 'D3',
-                'major' => 'D3 Manajemen Informatika',
-                'expertise' => 'UI/UX Designer & Web Operator',
-                'sector_name' => 'Teknologi Informasi',
-                'batch_id' => 'INDO-BATCH-2026-IT',
-                'class_code' => 'INDO-IT-2026',
-                'batch_name' => 'Kelas Teknologi Informasi & Sistem Perhotelan Global',
-                'program_name' => 'Program D3 Manajemen Informatika & Cloud Network',
-                'target_jp' => 420,
-                'achieved_jp' => 420,
-                'skills' => ['Figma UI Prototyping', 'User Flow Mapping', 'HTML5 & CSS Responsive', 'Content Management System (WordPress/Shopify)'],
-                'work_experiences' => [
-                    ['sector' => 'Teknologi Informasi', 'role' => 'Digital Content Specialist', 'durationYears' => 1.6, 'companyName' => 'Solo Creative Agency', 'description' => 'Mendesain antarmuka aplikasi pemesanan kamar hotel dan mengelola aset grafis media sosial.'],
-                ],
-                'certifications' => [
-                    ['name' => 'Sertifikasi BNSP Desainer Grafis & UI', 'issuer' => 'LSP Teknologi Informasi', 'issueYear' => 2025, 'validUntil' => '2028-09-08'],
-                ],
-                'languages' => [
-                    ['language' => 'Inggris', 'level' => 'Fluent'],
-                ],
-                'preferred_countries' => ['Singapura', 'Malaysia', 'Uni Emirat Arab'],
-                'preferred_roles' => ['UI Designer', 'Digital Operations Specialist', 'Web Content Editor'],
-                'readiness_status' => 'Ready for Placement',
-                'verification_status' => 'Verified',
-            ],
-
-            // Kelas Bisnis & Manajemen Hospitality (INDO-BATCH-2026-BUS)
-            [
-                'external_id' => 'INDO-CPMI-2026-004',
-                'nik' => '3372085311010004',
-                'name' => 'Nadia Safitri Handayani',
-                'gender' => 'P',
-                'education' => 'D3',
-                'major' => 'D3 Komunikasi Bisnis & Pariwisata',
-                'expertise' => 'Front Office & Guest Relations Executive',
-                'sector_name' => 'Bisnis dan Manajemen',
-                'batch_id' => 'INDO-BATCH-2026-BUS',
-                'class_code' => 'INDO-BUS-2026',
-                'batch_name' => 'Kelas Manajemen Bisnis & Keuangan Hospitality',
-                'program_name' => 'Program D3 Vokasi Administrasi Bisnis & Front Office',
-                'target_jp' => 400,
-                'achieved_jp' => 400,
-                'skills' => ['VIP Guest Hospitality', 'Multilingual Communication', 'Front Desk Management', 'Event Coordination', 'Complaint Resolution'],
-                'work_experiences' => [
-                    ['sector' => 'Bisnis dan Manajemen', 'role' => 'Guest Relations Officer (GRO)', 'durationYears' => 1.9, 'companyName' => 'Novotel Hotel Solo', 'description' => 'Menyambut tamu kenegaraan dan korporat internasional, mengoordinasikan akomodasi dan transportasi.'],
-                ],
-                'certifications' => [
-                    ['name' => 'Sertifikasi BNSP Front Office Manager', 'issuer' => 'LSP Pariwisata Indonesia', 'issueYear' => 2025, 'validUntil' => '2028-05-10'],
-                    ['name' => 'TOEIC Official Certificate (Score: 820)', 'issuer' => 'ETS Global', 'issueYear' => 2025, 'validUntil' => '2027-05-10'],
-                ],
-                'languages' => [
-                    ['language' => 'Inggris', 'level' => 'Fluent'],
-                    ['language' => 'Jepang', 'level' => 'Menengah (N3)'],
-                ],
-                'preferred_countries' => ['Jepang', 'Uni Emirat Arab', 'Singapura'],
-                'preferred_roles' => ['Guest Relations Officer', 'Front Office Supervisor', 'Concierge Executive'],
-                'readiness_status' => 'Ready for Placement',
-                'verification_status' => 'Verified',
-            ],
-            [
-                'external_id' => 'INDO-CPMI-2026-008',
-                'nik' => '3372025910020008',
-                'name' => 'Salsa Billa Rahmadani',
-                'gender' => 'P',
-                'education' => 'D3',
-                'major' => 'D3 Akuntansi Perpajakan',
-                'expertise' => 'Hospitality Financial Auditor & Cashier',
-                'sector_name' => 'Bisnis dan Manajemen',
-                'batch_id' => 'INDO-BATCH-2026-BUS',
-                'class_code' => 'INDO-BUS-2026',
-                'batch_name' => 'Kelas Manajemen Bisnis & Keuangan Hospitality',
-                'program_name' => 'Program D3 Vokasi Administrasi Bisnis & Front Office',
-                'target_jp' => 400,
-                'achieved_jp' => 400,
-                'skills' => ['Hospitality Accounting & Auditing', 'QuickBooks & SAP ERP', 'Daily Revenue Night Audit', 'Tax Compliance'],
-                'work_experiences' => [
-                    ['sector' => 'Bisnis dan Manajemen', 'role' => 'Night Auditor & Accounting Staff', 'durationYears' => 1.7, 'companyName' => 'Swiss-Belhotel Solo', 'description' => 'Melakukan rekonsiliasi penerimaan kas harian hotel, audit transaksi front desk dan outlet restoran.'],
-                ],
-                'certifications' => [
-                    ['name' => 'Sertifikasi BNSP Teknisi Akuntansi Ahli', 'issuer' => 'LSP Akuntansi Profesional', 'issueYear' => 2025, 'validUntil' => '2028-11-10'],
-                ],
-                'languages' => [
-                    ['language' => 'Inggris', 'level' => 'Fluent'],
-                ],
-                'preferred_countries' => ['Singapura', 'Malaysia', 'Uni Emirat Arab'],
-                'preferred_roles' => ['Hotel Accountant', 'Night Auditor', 'Financial Clerk'],
-                'readiness_status' => 'Ready for Placement',
-                'verification_status' => 'Verified',
-            ],
-            [
-                'external_id' => 'INDO-CPMI-2026-044',
-                'nik' => '3372012211010038',
-                'name' => 'Reza Pahlevi',
-                'gender' => 'L',
-                'education' => 'D3',
-                'major' => 'D3 Komunikasi Bisnis',
-                'expertise' => 'Front Desk Officer & Guest Service',
-                'sector_name' => 'Bisnis dan Manajemen',
-                'batch_id' => 'INDO-BATCH-2026-BUS',
-                'class_code' => 'INDO-BUS-2026',
-                'batch_name' => 'Kelas Manajemen Bisnis & Keuangan Hospitality',
-                'program_name' => 'Program D3 Vokasi Administrasi Bisnis & Front Office',
-                'target_jp' => 400,
-                'achieved_jp' => 400,
-                'skills' => ['Check-in / Check-out Opera', 'Currency Exchange Protocol', 'Concierge Tour Planning', 'Telephone Etiquette'],
-                'work_experiences' => [
-                    ['sector' => 'Bisnis dan Manajemen', 'role' => 'Front Desk Agent', 'durationYears' => 2.0, 'companyName' => 'The Royal Heritage Surakarta', 'description' => 'Menerima tamu check-in, penanganan kunci kamar dan penjelasan fasilitas hotel bintang lima.'],
-                ],
-                'certifications' => [
-                    ['name' => 'Sertifikasi BNSP Resepsionis Hotel', 'issuer' => 'LSP Pariwisata', 'issueYear' => 2025, 'validUntil' => '2028-07-28'],
-                ],
-                'languages' => [
-                    ['language' => 'Inggris', 'level' => 'Fluent'],
-                ],
-                'preferred_countries' => ['Uni Emirat Arab', 'Singapura', 'Qatar'],
-                'preferred_roles' => ['Front Desk Agent', 'Concierge', 'Guest Service Officer'],
-                'readiness_status' => 'Ready for Placement',
-                'verification_status' => 'Verified',
-            ],
-            [
-                'external_id' => 'INDO-CPMI-2026-045',
-                'nik' => '3372026512020039',
-                'name' => 'Sabrina Maharani',
-                'gender' => 'P',
-                'education' => 'D3',
-                'major' => 'D3 Akuntansi',
-                'expertise' => 'Ekspor-Impor & Logistics Staff',
-                'sector_name' => 'Bisnis dan Manajemen',
-                'batch_id' => 'INDO-BATCH-2026-BUS',
-                'class_code' => 'INDO-BUS-2026',
-                'batch_name' => 'Kelas Manajemen Bisnis & Keuangan Hospitality',
-                'program_name' => 'Program D3 Vokasi Administrasi Bisnis & Front Office',
-                'target_jp' => 400,
-                'achieved_jp' => 400,
-                'skills' => ['Customs Clearance Documentation', 'Letter of Credit (L/C)', 'Warehouse Inventory Tracking', 'Incoterms 2020'],
-                'work_experiences' => [
-                    ['sector' => 'Bisnis dan Manajemen', 'role' => 'Logistics Admin', 'durationYears' => 1.8, 'companyName' => 'PT Dan Liris Ekspor', 'description' => 'Menyusun dokumen bill of lading, invoice ekspor tekstil, dan koordinasi container shipping.'],
-                ],
-                'certifications' => [
-                    ['name' => 'Sertifikasi Ahli Kepabeanan & Logistik', 'issuer' => 'LSP Logistik Insan Prima', 'issueYear' => 2025, 'validUntil' => '2028-09-15'],
-                ],
-                'languages' => [
-                    ['language' => 'Inggris', 'level' => 'Fluent'],
-                ],
-                'preferred_countries' => ['Singapura', 'Malaysia', 'Uni Emirat Arab'],
-                'preferred_roles' => ['Logistics Coordinator', 'Import Export Clerk', 'Supply Chain Assistant'],
-                'readiness_status' => 'Ready for Placement',
-                'verification_status' => 'Verified',
-            ],
-            [
-                'external_id' => 'INDO-CPMI-2026-046',
-                'nik' => '3372031801010040',
-                'name' => 'Arif Budiman',
-                'gender' => 'L',
-                'education' => 'D3',
-                'major' => 'D3 Manajemen',
-                'expertise' => 'Human Resources & Training Assistant',
-                'sector_name' => 'Bisnis dan Manajemen',
-                'batch_id' => 'INDO-BATCH-2026-BUS',
-                'class_code' => 'INDO-BUS-2026',
-                'batch_name' => 'Kelas Manajemen Bisnis & Keuangan Hospitality',
-                'program_name' => 'Program D3 Vokasi Administrasi Bisnis & Front Office',
-                'target_jp' => 400,
-                'achieved_jp' => 400,
-                'skills' => ['Employee Attendance Tracking', 'Training Needs Analysis', 'Payroll Administration', 'Labor Law Understanding'],
-                'work_experiences' => [
-                    ['sector' => 'Bisnis dan Manajemen', 'role' => 'HR Staff', 'durationYears' => 1.6, 'companyName' => 'Alila Solo Hotel', 'description' => 'Rekapitulasi absensi staf, koordinasi jadwal training internal hospitality dan rekrutmen magang.'],
-                ],
-                'certifications' => [
-                    ['name' => 'Sertifikasi BNSP Staf Sumber Daya Manusia', 'issuer' => 'LSP MSDM Indonesia', 'issueYear' => 2025, 'validUntil' => '2028-11-12'],
-                ],
-                'languages' => [
-                    ['language' => 'Inggris', 'level' => 'Fluent'],
-                ],
-                'preferred_countries' => ['Singapura', 'Malaysia'],
-                'preferred_roles' => ['HR Assistant', 'Training Coordinator', 'Administrative Officer'],
-                'readiness_status' => 'Ready for Placement',
-                'verification_status' => 'Verified',
-            ],
-
-            // Kelas Rekam Medis & Caregiver (Kaigo) (INDO-BATCH-2026-MED)
-            [
-                'external_id' => 'INDO-CPMI-2026-006',
-                'nik' => '3372106709020006',
-                'name' => 'Dina Marlina',
-                'gender' => 'P',
-                'education' => 'D3',
-                'major' => 'D3 Rekam Medis & Informasi Kesehatan',
-                'expertise' => 'Caregiver Medis & Hospital Administrator',
-                'sector_name' => 'Kesehatan',
-                'batch_id' => 'INDO-BATCH-2026-MED',
-                'class_code' => 'INDO-MED-2026',
-                'batch_name' => 'Kelas Caregiver Medis & Rekam Medis Rumah Sakit',
-                'program_name' => 'Program Vokasi Rekam Medis & Careworker Kaigo Jepang',
-                'target_jp' => 480,
-                'achieved_jp' => 480,
-                'skills' => ['Elderly Patient Care (Kaigo)', 'Vital Sign Monitoring & Medication', 'Hospital Information System', 'Ergonomic Patient Transfer'],
-                'work_experiences' => [
-                    ['sector' => 'Kesehatan', 'role' => 'Asisten Perawat & Rekam Medis', 'durationYears' => 1.6, 'companyName' => 'RSUD dr. Moewardi Surakarta', 'description' => 'Pendampingan perawatan pasien geriatri, penginputan catatan rekam medis terpadu.'],
-                ],
-                'certifications' => [
-                    ['name' => 'Sertifikasi BNSP Careworker / Caregiver', 'issuer' => 'LSP Kesehatan Indonesia', 'issueYear' => 2025, 'validUntil' => '2028-08-30'],
-                    ['name' => 'JLPT N3 Sertifikat Bahasa Jepang', 'issuer' => 'Japan Foundation', 'issueYear' => 2025, 'validUntil' => '2030-01-01'],
-                ],
-                'languages' => [
-                    ['language' => 'Jepang', 'level' => 'Menengah (N3)'],
-                    ['language' => 'Inggris', 'level' => 'Conversational'],
-                ],
-                'preferred_countries' => ['Jepang', 'Jerman'],
-                'preferred_roles' => ['Caregiver (Kaigo)', 'Hospital Assistant', 'Health Data Administrator'],
-                'readiness_status' => 'Ready for Placement',
-                'verification_status' => 'Verified',
-            ],
-            [
-                'external_id' => 'INDO-CPMI-2026-047',
-                'nik' => '3372056303020042',
-                'name' => 'Eka Wulandari',
-                'gender' => 'P',
-                'education' => 'D3',
-                'major' => 'D3 Rekam Medis',
-                'expertise' => 'Elderly Care Specialist / Kaigo Jepang',
-                'sector_name' => 'Kesehatan',
-                'batch_id' => 'INDO-BATCH-2026-MED',
-                'class_code' => 'INDO-MED-2026',
-                'batch_name' => 'Kelas Caregiver Medis & Rekam Medis Rumah Sakit',
-                'program_name' => 'Program Vokasi Rekam Medis & Careworker Kaigo Jepang',
-                'target_jp' => 480,
-                'achieved_jp' => 480,
-                'skills' => ['Bathing & Feeding Assistance', 'Wheelchair Transfer Protocols', 'Dementia Care (Ninchisho)', 'Japanese Nursing Terminology'],
-                'work_experiences' => [
-                    ['sector' => 'Kesehatan', 'role' => 'Caregiver Magang', 'durationYears' => 1.8, 'companyName' => 'Panti Wreda Dharma Bakti Surakarta', 'description' => 'Membantu aktivitas harian lansia, senam pagi fisioterapi dan pemberian nutrisi.'],
-                ],
-                'certifications' => [
-                    ['name' => 'Sertifikasi Careworker Kaigo Level 3', 'issuer' => 'LSP Tenaga Perawat Asing', 'issueYear' => 2025, 'validUntil' => '2028-09-20'],
-                    ['name' => 'JLPT N3 Bahasa Jepang', 'issuer' => 'Japan Foundation', 'issueYear' => 2025, 'validUntil' => '2030-01-01'],
-                ],
-                'languages' => [
-                    ['language' => 'Jepang', 'level' => 'Menengah (N3)'],
-                    ['language' => 'Inggris', 'level' => 'Conversational'],
-                ],
-                'preferred_countries' => ['Jepang'],
-                'preferred_roles' => ['Kaigo Caregiver', 'Nursing Home Attendant', 'Elderly Companion'],
-                'readiness_status' => 'Ready for Placement',
-                'verification_status' => 'Verified',
-            ],
-            [
-                'external_id' => 'INDO-CPMI-2026-048',
-                'nik' => '3372066604020043',
-                'name' => 'Tri Wahyuni',
-                'gender' => 'P',
-                'education' => 'D3',
-                'major' => 'D3 Rekam Medis',
-                'expertise' => 'Asisten Fisioterapi & Caregiver Geriatri',
-                'sector_name' => 'Kesehatan',
-                'batch_id' => 'INDO-BATCH-2026-MED',
-                'class_code' => 'INDO-MED-2026',
-                'batch_name' => 'Kelas Caregiver Medis & Rekam Medis Rumah Sakit',
-                'program_name' => 'Program Vokasi Rekam Medis & Careworker Kaigo Jepang',
-                'target_jp' => 480,
-                'achieved_jp' => 480,
-                'skills' => ['Range of Motion (ROM) Exercises', 'Bed Mobility Training', 'Fall Prevention Strategies', 'Daily Health Charting'],
-                'work_experiences' => [
-                    ['sector' => 'Kesehatan', 'role' => 'Asisten Fisioterapi', 'durationYears' => 1.6, 'companyName' => 'Klinik Rehab Medis Solo', 'description' => 'Pendampingan terapi fisik pasien pasca stroke dan latihan mobilitas.'],
-                ],
-                'certifications' => [
-                    ['name' => 'Sertifikasi BNSP Asisten Tenaga Kesehatan', 'issuer' => 'LSP Kesehatan', 'issueYear' => 2025, 'validUntil' => '2028-10-15'],
-                ],
-                'languages' => [
-                    ['language' => 'Jepang', 'level' => 'Dasar (N4)'],
-                    ['language' => 'Inggris', 'level' => 'Fluent'],
-                ],
-                'preferred_countries' => ['Jepang', 'Jerman'],
-                'preferred_roles' => ['Physiotherapy Assistant', 'Geriatric Caregiver', 'Health Attendant'],
-                'readiness_status' => 'Ready for Placement',
-                'verification_status' => 'Verified',
-            ],
-            [
-                'external_id' => 'INDO-CPMI-2026-049',
-                'nik' => '3372071905010044',
-                'name' => 'Ahmad Zulfikar',
-                'gender' => 'L',
-                'education' => 'D3',
-                'major' => 'D3 Rekam Medis',
-                'expertise' => 'Medical Record & ICD-10 Specialist',
-                'sector_name' => 'Kesehatan',
-                'batch_id' => 'INDO-BATCH-2026-MED',
-                'class_code' => 'INDO-MED-2026',
-                'batch_name' => 'Kelas Caregiver Medis & Rekam Medis Rumah Sakit',
-                'program_name' => 'Program Vokasi Rekam Medis & Careworker Kaigo Jepang',
-                'target_jp' => 480,
-                'achieved_jp' => 480,
-                'skills' => ['Electronic Health Record (EHR)', 'ICD-10 & ICD-9-CM Coding', 'Medical Data Security HIPAA', 'Health Statistics Reporting'],
-                'work_experiences' => [
-                    ['sector' => 'Kesehatan', 'role' => 'Staf Rekam Medis', 'durationYears' => 2.0, 'companyName' => 'RS Kasih Ibu Surakarta', 'description' => 'Koding diagnosa penyakit pasien rawat inap dan pengelolaan arsip berkas rekam medis elektronik.'],
-                ],
-                'certifications' => [
-                    ['name' => 'Sertifikasi Perekam Medis Berlisensi (STR)', 'issuer' => 'Majelis Tenaga Kesehatan Indonesia', 'issueYear' => 2025, 'validUntil' => '2030-05-10'],
-                ],
-                'languages' => [
-                    ['language' => 'Inggris', 'level' => 'Fluent'],
-                ],
-                'preferred_countries' => ['Uni Emirat Arab', 'Singapura', 'Malaysia'],
-                'preferred_roles' => ['Medical Records Officer', 'Clinical Coder', 'Hospital Information Staff'],
-                'readiness_status' => 'Ready for Placement',
-                'verification_status' => 'Verified',
-            ],
-            [
-                'external_id' => 'INDO-CPMI-2026-050',
-                'nik' => '3372087206020045',
-                'name' => 'Nabila Nurul Fitri',
-                'gender' => 'P',
-                'education' => 'D3',
-                'major' => 'D3 Rekam Medis',
-                'expertise' => 'Caregiver Lansia Bersertifikat BNSP',
-                'sector_name' => 'Kesehatan',
-                'batch_id' => 'INDO-BATCH-2026-MED',
-                'class_code' => 'INDO-MED-2026',
-                'batch_name' => 'Kelas Caregiver Medis & Rekam Medis Rumah Sakit',
-                'program_name' => 'Program Vokasi Rekam Medis & Careworker Kaigo Jepang',
-                'target_jp' => 480,
-                'achieved_jp' => 480,
-                'skills' => ['Basic Life Support (BLS)', 'Geriatric Personal Hygiene', 'Vital Sign Recording', 'Communication with Dementia Patients'],
-                'work_experiences' => [
-                    ['sector' => 'Kesehatan', 'role' => 'Senior Caregiver', 'durationYears' => 1.9, 'companyName' => 'Home Care Husada Solo', 'description' => 'Perawatan intensif lansia dengan kebutuhan khusus di rumah (home care).'],
-                ],
-                'certifications' => [
-                    ['name' => 'Sertifikasi BNSP Caregiver Lansia', 'issuer' => 'LSP Kesehatan Indonesia', 'issueYear' => 2025, 'validUntil' => '2028-11-25'],
-                    ['name' => 'Basic Life Support (BLS) AHA', 'issuer' => 'American Heart Association', 'issueYear' => 2025, 'validUntil' => '2027-11-25'],
-                ],
-                'languages' => [
-                    ['language' => 'Jepang', 'level' => 'Menengah (N3)'],
-                    ['language' => 'Inggris', 'level' => 'Conversational'],
-                ],
-                'preferred_countries' => ['Jepang', 'Australia'],
-                'preferred_roles' => ['Certified Caregiver', 'Geriatric Home Attendant', 'Medical Companion'],
-                'readiness_status' => 'Ready for Placement',
-                'verification_status' => 'Verified',
-            ],
-        ];
+        if ($force) {
+            $validExternalIds = array_column($candidates, 'external_id');
+            DB::table('job_seekers')
+                ->where('external_source', 'sippmi')
+                ->whereNotIn('external_id', $validExternalIds)
+                ->delete();
+        }
 
         $now = now();
         $inserted = 0;
@@ -3569,5 +2028,1611 @@ class GardataPlacementSyncService
             'skipped' => 0,
         ];
     }
+
+    private function getIndonusa147CandidatesList(): array
+    {
+        $batchConfigs = array (
+  'manufaktur' => 
+  array (
+    'batch_id' => 'CPMI-MAN-26092399',
+    'class_code' => 'CPMI-MAN-26092399',
+    'batch_name' => 'Batch 1 - Manufaktur 2',
+    'program_name' => 'Program Vokasi Manufaktur, Permesinan CNC & Pengelasan Presisi',
+    'sector_name' => 'Manufaktur & Pengelasan',
+    'major' => 'D3 Teknik Mesin & Manufaktur',
+    'expertise' => 'Operator CNC & Teknisi Manufaktur',
+    'target_jp' => 520,
+    'skills' => 
+    array (
+      0 => 'CNC Milling & Lathe',
+      1 => 'Welding 3G/6G SMAW',
+      2 => 'Membaca Gambar Teknik CAD',
+      3 => 'Metrologi & Pengukuran Presisi',
+      4 => '5S & K3 Manufaktur',
+    ),
+    'certifications' => 
+    array (
+      0 => 
+      array (
+        'name' => 'Sertifikasi BNSP Pengelasan 3G SMAW / Operator CNC',
+        'issuer' => 'LSP Logam Mesin Indonesia',
+        'issueYear' => 2025,
+        'validUntil' => '2028-11-20',
+      ),
+    ),
+    'languages' => 
+    array (
+      0 => 
+      array (
+        'language' => 'Jepang',
+        'level' => 'Menengah (N4/N3)',
+      ),
+      1 => 
+      array (
+        'language' => 'Inggris',
+        'level' => 'Dasar',
+      ),
+    ),
+    'preferred_countries' => 
+    array (
+      0 => 'Jepang',
+      1 => 'Korea Selatan',
+      2 => 'Taiwan',
+      3 => 'Jerman',
+    ),
+    'preferred_roles' => 
+    array (
+      0 => 'Operator CNC',
+      1 => 'Welder Pabrikasi',
+      2 => 'Teknisi Maintenance Mesin',
+    ),
+  ),
+  'waiter' => 
+  array (
+    'batch_id' => 'CPMI-PER-26092595',
+    'class_code' => 'CPMI-PER-26092595',
+    'batch_name' => 'Batch 1 - waiter',
+    'program_name' => 'Program Vokasi Food & Beverage Service dan Barista Perhotelan',
+    'sector_name' => 'Tourism, Travel, dan Hospitality',
+    'major' => 'D3 Perhotelan (Food & Beverage Service)',
+    'expertise' => 'Food & Beverage Service & Barista',
+    'target_jp' => 450,
+    'skills' => 
+    array (
+      0 => 'Fine Dining Protocol',
+      1 => 'Order Taking & POS System',
+      2 => 'Barista Specialty Coffee',
+      3 => 'Wine & Beverage Service',
+      4 => 'HACCP & Hygiene',
+    ),
+    'certifications' => 
+    array (
+      0 => 
+      array (
+        'name' => 'Sertifikasi BNSP Waiter / Waitress Level 3',
+        'issuer' => 'LSP Pariwisata Nusantara',
+        'issueYear' => 2025,
+        'validUntil' => '2028-10-15',
+      ),
+    ),
+    'languages' => 
+    array (
+      0 => 
+      array (
+        'language' => 'Inggris',
+        'level' => 'Fluent',
+      ),
+      1 => 
+      array (
+        'language' => 'Jepang',
+        'level' => 'Dasar',
+      ),
+    ),
+    'preferred_countries' => 
+    array (
+      0 => 'Kapal Pesiar Internasional',
+      1 => 'Uni Emirat Arab',
+      2 => 'Singapura',
+      3 => 'Qatar',
+    ),
+    'preferred_roles' => 
+    array (
+      0 => 'Senior Waiter',
+      1 => 'Barista Specialist',
+      2 => 'Banquet Server',
+    ),
+  ),
+  'housekeeping' => 
+  array (
+    'batch_id' => 'CPMI-PER-26092526',
+    'class_code' => 'CPMI-PER-26092526',
+    'batch_name' => 'Batch 1 - Housekeeping 2',
+    'program_name' => 'Program Vokasi Housekeeping & Cruise Ship Accommodation',
+    'sector_name' => 'Tourism, Travel, dan Hospitality',
+    'major' => 'D3 Perhotelan (Accommodation Management)',
+    'expertise' => 'Housekeeping & Room Attendant',
+    'target_jp' => 450,
+    'skills' => 
+    array (
+      0 => 'Making Bed & Linen Control',
+      1 => 'Room Inspection Standards',
+      2 => 'Chemical Handling & Safety',
+      3 => 'STCW Basic Safety Training',
+      4 => 'Public Area Cleaning',
+    ),
+    'certifications' => 
+    array (
+      0 => 
+      array (
+        'name' => 'Sertifikasi BNSP Housekeeping Attendant Level 3',
+        'issuer' => 'LSP Pariwisata Indonesia',
+        'issueYear' => 2025,
+        'validUntil' => '2028-09-30',
+      ),
+    ),
+    'languages' => 
+    array (
+      0 => 
+      array (
+        'language' => 'Inggris',
+        'level' => 'Fluent',
+      ),
+    ),
+    'preferred_countries' => 
+    array (
+      0 => 'Kapal Pesiar Internasional',
+      1 => 'Malaysia',
+      2 => 'Singapura',
+      3 => 'Uni Emirat Arab',
+    ),
+    'preferred_roles' => 
+    array (
+      0 => 'Room Attendant',
+      1 => 'Housekeeping Supervisor',
+      2 => 'Public Area Attendant',
+    ),
+  ),
+  'bahasa_inggris' => 
+  array (
+    'batch_id' => 'CPMI-BAH-26092535',
+    'class_code' => 'CPMI-BAH-26092535',
+    'batch_name' => 'Batch 1 - Bahasa Inggris',
+    'program_name' => 'Program Pelatihan Komunikasi Bahasa Inggris Perhotelan Internasional',
+    'sector_name' => 'Hospitality & Komunikasi Bahasa Asing',
+    'major' => 'D3 Bahasa Inggris Perhotelan',
+    'expertise' => 'Hospitality English Communication & Customer Care',
+    'target_jp' => 400,
+    'skills' => 
+    array (
+      0 => 'Conversational English C1',
+      1 => 'Guest Complaint Handling',
+      2 => 'Cross-Cultural Communication',
+      3 => 'Telephone Courtesy',
+      4 => 'Hospitality Business English',
+    ),
+    'certifications' => 
+    array (
+      0 => 
+      array (
+        'name' => 'Test of English for International Communication (TOEIC 780+)',
+        'issuer' => 'ETS Global',
+        'issueYear' => 2025,
+        'validUntil' => '2027-08-20',
+      ),
+    ),
+    'languages' => 
+    array (
+      0 => 
+      array (
+        'language' => 'Inggris',
+        'level' => 'Fluent',
+      ),
+    ),
+    'preferred_countries' => 
+    array (
+      0 => 'Kapal Pesiar Internasional',
+      1 => 'Australia',
+      2 => 'Inggris',
+      3 => 'Uni Emirat Arab',
+    ),
+    'preferred_roles' => 
+    array (
+      0 => 'Guest Service Agent',
+      1 => 'Front Desk Receptionist',
+      2 => 'VIP Lounge Host',
+    ),
+  ),
+  'bahasa_inggris_2' => 
+  array (
+    'batch_id' => 'CPMI-BAH-26092510',
+    'class_code' => 'CPMI-BAH-26092510',
+    'batch_name' => 'Batch 1 - Bahsa Inggris 2',
+    'program_name' => 'Program Pelatihan Intensif Bahasa Inggris Profesi Luar Negeri',
+    'sector_name' => 'Hospitality & Komunikasi Bahasa Asing',
+    'major' => 'D3 Bahasa Asing Terapan',
+    'expertise' => 'Professional Workplace English',
+    'target_jp' => 400,
+    'skills' => 
+    array (
+      0 => 'Business Presentation in English',
+      1 => 'Workplace Safety English',
+      2 => 'Interview Readiness',
+      3 => 'Technical Hospitality Vocabulary',
+    ),
+    'certifications' => 
+    array (
+      0 => 
+      array (
+        'name' => 'Sertifikasi BNSP Bahasa Inggris Komunikasi Profesi',
+        'issuer' => 'LSP Bahasa Nusantara',
+        'issueYear' => 2025,
+        'validUntil' => '2028-07-15',
+      ),
+    ),
+    'languages' => 
+    array (
+      0 => 
+      array (
+        'language' => 'Inggris',
+        'level' => 'Fluent',
+      ),
+    ),
+    'preferred_countries' => 
+    array (
+      0 => 'Kapal Pesiar Internasional',
+      1 => 'Selandia Baru',
+      2 => 'Singapura',
+    ),
+    'preferred_roles' => 
+    array (
+      0 => 'Hospitality Crew',
+      1 => 'Customer Support',
+      2 => 'Dining Attendant',
+    ),
+  ),
+  'otomotif' => 
+  array (
+    'batch_id' => 'CPMI-OTO-26092401',
+    'class_code' => 'CPMI-OTO-26092401',
+    'batch_name' => 'Batch 1 - Otomotif & Alat Berat',
+    'program_name' => 'Program Vokasi Mekatronika Otomotif, Alat Berat & Diesel Mesin',
+    'sector_name' => 'Otomotif & Mekatronika',
+    'major' => 'D3 Teknik Otomotif & Alat Berat',
+    'expertise' => 'Mekatronika Otomotif & Teknisi Alat Berat',
+    'target_jp' => 500,
+    'skills' => 
+    array (
+      0 => 'Diesel Engine Overhaul',
+      1 => 'Hydraulic System Diagnostics',
+      2 => 'Electronic Fuel Injection (EFI)',
+      3 => 'CAN-Bus Diagnostic Scanner',
+      4 => 'Heavy Equipment Safety',
+    ),
+    'certifications' => 
+    array (
+      0 => 
+      array (
+        'name' => 'Sertifikasi BNSP Teknisi Alat Berat Level 4',
+        'issuer' => 'LSP Alat Berat Indonesia',
+        'issueYear' => 2025,
+        'validUntil' => '2028-12-10',
+      ),
+    ),
+    'languages' => 
+    array (
+      0 => 
+      array (
+        'language' => 'Jepang',
+        'level' => 'Menengah (N4)',
+      ),
+      1 => 
+      array (
+        'language' => 'Inggris',
+        'level' => 'Menengah',
+      ),
+    ),
+    'preferred_countries' => 
+    array (
+      0 => 'Jepang',
+      1 => 'Australia',
+      2 => 'Korea Selatan',
+    ),
+    'preferred_roles' => 
+    array (
+      0 => 'Mekanik Alat Berat',
+      1 => 'Teknisi Diesel Industri',
+      2 => 'Otomotif Specialist',
+    ),
+  ),
+  'kuliner' => 
+  array (
+    'batch_id' => 'CPMI-KUL-26092402',
+    'class_code' => 'CPMI-KUL-26092402',
+    'batch_name' => 'Batch 1 - Kuliner & Pastry Kapal Pesiar',
+    'program_name' => 'Program Vokasi Tata Boga Kuliner Western & Pastry Kapal Pesiar',
+    'sector_name' => 'Tourism, Travel, dan Hospitality',
+    'major' => 'D3 Seni Kuliner & Tata Boga Perhotelan',
+    'expertise' => 'Commercial Cookery & Pastry Chef',
+    'target_jp' => 480,
+    'skills' => 
+    array (
+      0 => 'Western & Continental Cooking',
+      1 => 'Baking & Pastry Arts',
+      2 => 'Knife Skills & Butchery',
+      3 => 'Kitchen Sanitation & HACCP',
+      4 => 'Food Portioning & Costing',
+    ),
+    'certifications' => 
+    array (
+      0 => 
+      array (
+        'name' => 'Sertifikasi BNSP Commis Chef Level 3',
+        'issuer' => 'LSP Kuliner Nusantara',
+        'issueYear' => 2025,
+        'validUntil' => '2028-11-05',
+      ),
+    ),
+    'languages' => 
+    array (
+      0 => 
+      array (
+        'language' => 'Inggris',
+        'level' => 'Fluent',
+      ),
+    ),
+    'preferred_countries' => 
+    array (
+      0 => 'Kapal Pesiar Internasional',
+      1 => 'Australia',
+      2 => 'Prancis',
+      3 => 'Uni Emirat Arab',
+    ),
+    'preferred_roles' => 
+    array (
+      0 => 'Demi Chef de Partie',
+      1 => 'Commis Hot Kitchen',
+      2 => 'Pastry Baker',
+    ),
+  ),
+  'it' => 
+  array (
+    'batch_id' => 'CPMI-INF-26092403',
+    'class_code' => 'CPMI-INF-26092403',
+    'batch_name' => 'Batch 1 - IT & Sistem Perhotelan',
+    'program_name' => 'Program Vokasi Manajemen Sistem Informasi & Jaringan Komputer',
+    'sector_name' => 'Teknologi Informasi & Komunikasi',
+    'major' => 'D3 Manajemen Informatika & TI',
+    'expertise' => 'Hotel PMS Administrator & Network Support',
+    'target_jp' => 450,
+    'skills' => 
+    array (
+      0 => 'Opera & Fidelio PMS Administration',
+      1 => 'TCP/IP Network Troubleshooting',
+      2 => 'Database SQL Querying',
+      3 => 'Hardware Maintenance',
+      4 => 'Cyber Security Basics',
+    ),
+    'certifications' => 
+    array (
+      0 => 
+      array (
+        'name' => 'Sertifikasi BNSP Network Administrator',
+        'issuer' => 'LSP Informatika Indonesia',
+        'issueYear' => 2025,
+        'validUntil' => '2028-09-18',
+      ),
+    ),
+    'languages' => 
+    array (
+      0 => 
+      array (
+        'language' => 'Inggris',
+        'level' => 'Fluent',
+      ),
+    ),
+    'preferred_countries' => 
+    array (
+      0 => 'Jepang',
+      1 => 'Singapura',
+      2 => 'Jerman',
+    ),
+    'preferred_roles' => 
+    array (
+      0 => 'IT Support Specialist',
+      1 => 'PMS Administrator',
+      2 => 'Junior Network Engineer',
+    ),
+  ),
+  'bisnis' => 
+  array (
+    'batch_id' => 'CPMI-AKN-26092404',
+    'class_code' => 'CPMI-AKN-26092404',
+    'batch_name' => 'Batch 1 - Bisnis, Akuntansi & Guest Relations',
+    'program_name' => 'Program Vokasi Akuntansi Perhotelan & Guest Relations Officer',
+    'sector_name' => 'Bisnis, Manajemen & Keuangan',
+    'major' => 'D3 Akuntansi & Manajemen Keuangan Perhotelan',
+    'expertise' => 'Hospitality Accounting & Front Office',
+    'target_jp' => 420,
+    'skills' => 
+    array (
+      0 => 'Hotel Night Audit',
+      1 => 'Accounts Payable & Receivable',
+      2 => 'Guest Registration & Billing',
+      3 => 'Financial Reporting Excel Advanced',
+      4 => 'Cashiering Systems',
+    ),
+    'certifications' => 
+    array (
+      0 => 
+      array (
+        'name' => 'Sertifikasi BNSP Teknisi Akuntansi Yunior',
+        'issuer' => 'LSP Akuntansi Indonesia',
+        'issueYear' => 2025,
+        'validUntil' => '2028-10-30',
+      ),
+    ),
+    'languages' => 
+    array (
+      0 => 
+      array (
+        'language' => 'Inggris',
+        'level' => 'Fluent',
+      ),
+    ),
+    'preferred_countries' => 
+    array (
+      0 => 'Uni Emirat Arab',
+      1 => 'Singapura',
+      2 => 'Malaysia',
+    ),
+    'preferred_roles' => 
+    array (
+      0 => 'Night Auditor',
+      1 => 'Front Desk Agent',
+      2 => 'Accounts Clerk',
+    ),
+  ),
+  'caregiver' => 
+  array (
+    'batch_id' => 'CPMI-MED-26092405',
+    'class_code' => 'CPMI-MED-26092405',
+    'batch_name' => 'Batch 1 - Caregiver & Kaigo',
+    'program_name' => 'Program Vokasi Rekam Medis & Caregiver Kaigo Standar Jepang',
+    'sector_name' => 'Kesehatan, Farmasi, dan Caregiver',
+    'major' => 'D3 Rekam Medis & Informasi Kesehatan',
+    'expertise' => 'Caregiver Lansia Medis & Kaigo Care',
+    'target_jp' => 550,
+    'skills' => 
+    array (
+      0 => 'Kaigo Technique & Mobility Assistance',
+      1 => 'Vital Signs Monitoring',
+      2 => 'Hygiene & Bed Bathing',
+      3 => 'Emergency First Aid (CPR)',
+      4 => 'Medical Record ICD-10 Coding',
+    ),
+    'certifications' => 
+    array (
+      0 => 
+      array (
+        'name' => 'Sertifikasi Kaigo Care Worker Standar MHLW Jepang',
+        'issuer' => 'Kaigo Certification Board',
+        'issueYear' => 2025,
+        'validUntil' => '2030-03-31',
+      ),
+    ),
+    'languages' => 
+    array (
+      0 => 
+      array (
+        'language' => 'Jepang',
+        'level' => 'Menengah (N3 Kaigo)',
+      ),
+      1 => 
+      array (
+        'language' => 'Inggris',
+        'level' => 'Menengah',
+      ),
+    ),
+    'preferred_countries' => 
+    array (
+      0 => 'Jepang',
+      1 => 'Taiwan',
+      2 => 'Jerman',
+    ),
+    'preferred_roles' => 
+    array (
+      0 => 'Caregiver Lansia (Kaigo)',
+      1 => 'Asisten Fisioterapi',
+      2 => 'Medical Record Operator',
+    ),
+  ),
+);
+
+        $students = array (
+  1 => 
+  array (
+    'name' => 'Muhammad Fauzan Hakim',
+    'gender' => 'L',
+    'batch' => 'waiter',
+    'nik' => '3372051004010001',
+  ),
+  2 => 
+  array (
+    'name' => 'Bagas Prasetyo Utomo',
+    'gender' => 'L',
+    'batch' => 'manufaktur',
+    'nik' => '3372041505000002',
+  ),
+  3 => 
+  array (
+    'name' => 'Rangga Aditya Kusuma',
+    'gender' => 'L',
+    'batch' => 'waiter',
+    'nik' => '3372012808010007',
+  ),
+  4 => 
+  array (
+    'name' => 'Fajar Nugroho Saputra',
+    'gender' => 'L',
+    'batch' => 'manufaktur',
+    'nik' => '3372031206010003',
+  ),
+  5 => 
+  array (
+    'name' => 'Annisa Rahmawati',
+    'gender' => 'P',
+    'batch' => 'waiter',
+    'nik' => '3372025203020019',
+  ),
+  6 => 
+  array (
+    'name' => 'Wahyu Hidayatullah',
+    'gender' => 'L',
+    'batch' => 'manufaktur',
+    'nik' => '3372052009000004',
+  ),
+  7 => 
+  array (
+    'name' => 'Dwi Lestari Wulandari',
+    'gender' => 'P',
+    'batch' => 'waiter',
+    'nik' => '3372036504020020',
+  ),
+  8 => 
+  array (
+    'name' => 'Eko Prasetyo Wibowo',
+    'gender' => 'L',
+    'batch' => 'manufaktur',
+    'nik' => '3372021101010005',
+  ),
+  9 => 
+  array (
+    'name' => 'Rizky Firmansyah Pratama',
+    'gender' => 'L',
+    'batch' => 'waiter',
+    'nik' => '3372041807010021',
+  ),
+  10 => 
+  array (
+    'name' => 'Agus Setiawan',
+    'gender' => 'L',
+    'batch' => 'manufaktur',
+    'nik' => '3372010803000006',
+  ),
+  11 => 
+  array (
+    'name' => 'Siti Nurhaliza',
+    'gender' => 'P',
+    'batch' => 'waiter',
+    'nik' => '3372056108020022',
+  ),
+  12 => 
+  array (
+    'name' => 'Bambang Triyono',
+    'gender' => 'L',
+    'batch' => 'manufaktur',
+    'nik' => '3372042211000007',
+  ),
+  13 => 
+  array (
+    'name' => 'Ahmad Danial Rifqi',
+    'gender' => 'L',
+    'batch' => 'waiter',
+    'nik' => '3372021402010023',
+  ),
+  14 => 
+  array (
+    'name' => 'Danang Hendra Wijaya',
+    'gender' => 'L',
+    'batch' => 'manufaktur',
+    'nik' => '3372031707010008',
+  ),
+  15 => 
+  array (
+    'name' => 'Novita Sari Dewi',
+    'gender' => 'P',
+    'batch' => 'waiter',
+    'nik' => '3372014909020024',
+  ),
+  16 => 
+  array (
+    'name' => 'Galih Pambudi',
+    'gender' => 'L',
+    'batch' => 'manufaktur',
+    'nik' => '3372020512000009',
+  ),
+  17 => 
+  array (
+    'name' => 'Dimas Arya Permana',
+    'gender' => 'L',
+    'batch' => 'waiter',
+    'nik' => '3372052510010025',
+  ),
+  18 => 
+  array (
+    'name' => 'Hendra Kurniawan',
+    'gender' => 'L',
+    'batch' => 'manufaktur',
+    'nik' => '3372043004010010',
+  ),
+  19 => 
+  array (
+    'name' => 'Putri Ayu Wandira',
+    'gender' => 'P',
+    'batch' => 'waiter',
+    'nik' => '3372035311020026',
+  ),
+  20 => 
+  array (
+    'name' => 'Ilham Maulana Akbar',
+    'gender' => 'L',
+    'batch' => 'manufaktur',
+    'nik' => '3372011908000011',
+  ),
+  21 => 
+  array (
+    'name' => 'Yoga Pratama Yudha',
+    'gender' => 'L',
+    'batch' => 'housekeeping',
+    'nik' => '3372020901010012',
+  ),
+  22 => 
+  array (
+    'name' => 'Intan Permata Sari',
+    'gender' => 'P',
+    'batch' => 'bahasa_inggris',
+    'nik' => '3372054202020027',
+  ),
+  23 => 
+  array (
+    'name' => 'Bayu Anggoro Murti',
+    'gender' => 'L',
+    'batch' => 'housekeeping',
+    'nik' => '3372041403010013',
+  ),
+  24 => 
+  array (
+    'name' => 'Lutfi Tri Wahyuni',
+    'gender' => 'P',
+    'batch' => 'bahasa_inggris',
+    'nik' => '3372035505020028',
+  ),
+  25 => 
+  array (
+    'name' => 'Riko Septian Nugraha',
+    'gender' => 'L',
+    'batch' => 'housekeeping',
+    'nik' => '3372012109000014',
+  ),
+  26 => 
+  array (
+    'name' => 'Rina Melati Santoso',
+    'gender' => 'P',
+    'batch' => 'bahasa_inggris',
+    'nik' => '3372024707020029',
+  ),
+  27 => 
+  array (
+    'name' => 'Ferry Andika Putra',
+    'gender' => 'L',
+    'batch' => 'housekeeping',
+    'nik' => '3372051610010015',
+  ),
+  28 => 
+  array (
+    'name' => 'Tiara Kusuma Wardani',
+    'gender' => 'P',
+    'batch' => 'bahasa_inggris',
+    'nik' => '3372045812010030',
+  ),
+  29 => 
+  array (
+    'name' => 'Guntur Bumi Pamungkas',
+    'gender' => 'L',
+    'batch' => 'housekeeping',
+    'nik' => '3372030304010016',
+  ),
+  30 => 
+  array (
+    'name' => 'Nanda Eka Pratiwi',
+    'gender' => 'P',
+    'batch' => 'bahasa_inggris',
+    'nik' => '3372016203020031',
+  ),
+  31 => 
+  array (
+    'name' => 'Aditya Nur Rahman',
+    'gender' => 'L',
+    'batch' => 'housekeeping',
+    'nik' => '3372022706010017',
+  ),
+  32 => 
+  array (
+    'name' => 'Dewi Anggraini',
+    'gender' => 'P',
+    'batch' => 'bahasa_inggris',
+    'nik' => '3372055001020032',
+  ),
+  33 => 
+  array (
+    'name' => 'Satria Wibisono',
+    'gender' => 'L',
+    'batch' => 'housekeeping',
+    'nik' => '3372040908000018',
+  ),
+  34 => 
+  array (
+    'name' => 'Mega Puspita Indah',
+    'gender' => 'P',
+    'batch' => 'bahasa_inggris',
+    'nik' => '3372036406020033',
+  ),
+  35 => 
+  array (
+    'name' => 'Panji Asmoro Bangun',
+    'gender' => 'L',
+    'batch' => 'housekeeping',
+    'nik' => '3372011511010019',
+  ),
+  36 => 
+  array (
+    'name' => 'Aldi Kurnia Wardana',
+    'gender' => 'L',
+    'batch' => 'bahasa_inggris',
+    'nik' => '3372021812000020',
+  ),
+  37 => 
+  array (
+    'name' => 'Dicky Wahyu Saputro',
+    'gender' => 'L',
+    'batch' => 'housekeeping',
+    'nik' => '3372050205010021',
+  ),
+  38 => 
+  array (
+    'name' => 'Farhan Alamsyah',
+    'gender' => 'L',
+    'batch' => 'bahasa_inggris',
+    'nik' => '3372042307010022',
+  ),
+  39 => 
+  array (
+    'name' => 'Wisnu Broto',
+    'gender' => 'L',
+    'batch' => 'housekeeping',
+    'nik' => '3372031109000023',
+  ),
+  40 => 
+  array (
+    'name' => 'Gilang Ramadhan',
+    'gender' => 'L',
+    'batch' => 'bahasa_inggris',
+    'nik' => '3372010410010024',
+  ),
+  41 => 
+  array (
+    'name' => 'Raditya Arya Mahendra',
+    'gender' => 'L',
+    'batch' => 'otomotif',
+    'nik' => '3372021303010025',
+  ),
+  42 => 
+  array (
+    'name' => 'Kevin Sanjaya Sukamuljo',
+    'gender' => 'L',
+    'batch' => 'kuliner',
+    'nik' => '3372051904010034',
+  ),
+  43 => 
+  array (
+    'name' => 'Bima Sakti Pratama',
+    'gender' => 'L',
+    'batch' => 'otomotif',
+    'nik' => '3372042605000026',
+  ),
+  44 => 
+  array (
+    'name' => 'Chef Alif Faturrahman',
+    'gender' => 'L',
+    'batch' => 'kuliner',
+    'nik' => '3372030806010035',
+  ),
+  45 => 
+  array (
+    'name' => 'Candra Gunawan',
+    'gender' => 'L',
+    'batch' => 'otomotif',
+    'nik' => '3372011708010027',
+  ),
+  46 => 
+  array (
+    'name' => 'Nabila Putri Cahyani',
+    'gender' => 'P',
+    'batch' => 'kuliner',
+    'nik' => '3372025909020036',
+  ),
+  47 => 
+  array (
+    'name' => 'Denis Setiawan',
+    'gender' => 'L',
+    'batch' => 'otomotif',
+    'nik' => '3372052410000028',
+  ),
+  48 => 
+  array (
+    'name' => 'Rizki Amanda Putri',
+    'gender' => 'P',
+    'batch' => 'kuliner',
+    'nik' => '3372046311010037',
+  ),
+  49 => 
+  array (
+    'name' => 'Faris Zulkarnain',
+    'gender' => 'L',
+    'batch' => 'otomotif',
+    'nik' => '3372030112010029',
+  ),
+  50 => 
+  array (
+    'name' => 'Taufik Hidayatullah',
+    'gender' => 'L',
+    'batch' => 'kuliner',
+    'nik' => '3372011401010038',
+  ),
+  51 => 
+  array (
+    'name' => 'Hafiz Ridwan',
+    'gender' => 'L',
+    'batch' => 'otomotif',
+    'nik' => '3372022002010030',
+  ),
+  52 => 
+  array (
+    'name' => 'Zahra Amelia Putri',
+    'gender' => 'P',
+    'batch' => 'kuliner',
+    'nik' => '3372054603020039',
+  ),
+  53 => 
+  array (
+    'name' => 'Indra Lesmana',
+    'gender' => 'L',
+    'batch' => 'otomotif',
+    'nik' => '3372040704000031',
+  ),
+  54 => 
+  array (
+    'name' => 'Baskara Mahesa',
+    'gender' => 'L',
+    'batch' => 'kuliner',
+    'nik' => '3372031805010040',
+  ),
+  55 => 
+  array (
+    'name' => 'Joko Susilo Utomo',
+    'gender' => 'L',
+    'batch' => 'otomotif',
+    'nik' => '3372012906010032',
+  ),
+  56 => 
+  array (
+    'name' => 'Clara Shinta Bella',
+    'gender' => 'P',
+    'batch' => 'kuliner',
+    'nik' => '3372026107020041',
+  ),
+  57 => 
+  array (
+    'name' => 'Kuncoro Jati',
+    'gender' => 'L',
+    'batch' => 'otomotif',
+    'nik' => '3372051208000033',
+  ),
+  58 => 
+  array (
+    'name' => 'Dharmawan Kusuma',
+    'gender' => 'L',
+    'batch' => 'kuliner',
+    'nik' => '3372042509010042',
+  ),
+  59 => 
+  array (
+    'name' => 'Lukman Hakim',
+    'gender' => 'L',
+    'batch' => 'otomotif',
+    'nik' => '3372030610010034',
+  ),
+  60 => 
+  array (
+    'name' => 'Erina Sofia Gudono',
+    'gender' => 'P',
+    'batch' => 'kuliner',
+    'nik' => '3372015511010043',
+  ),
+  61 => 
+  array (
+    'name' => 'Reza Pahlevi Syahputra',
+    'gender' => 'L',
+    'batch' => 'it',
+    'nik' => '3372021501010035',
+  ),
+  62 => 
+  array (
+    'name' => 'Anggita Ayu Safitri',
+    'gender' => 'P',
+    'batch' => 'bisnis',
+    'nik' => '3372056202020044',
+  ),
+  63 => 
+  array (
+    'name' => 'Bintang Pamungkas',
+    'gender' => 'L',
+    'batch' => 'it',
+    'nik' => '3372040303010036',
+  ),
+  64 => 
+  array (
+    'name' => 'Cindy Claudia',
+    'gender' => 'P',
+    'batch' => 'bisnis',
+    'nik' => '3372035804020045',
+  ),
+  65 => 
+  array (
+    'name' => 'Christian Ronaldo Sihite',
+    'gender' => 'L',
+    'batch' => 'it',
+    'nik' => '3372012005010037',
+  ),
+  66 => 
+  array (
+    'name' => 'Dian Sastrowardoyo',
+    'gender' => 'P',
+    'batch' => 'caregiver',
+    'nik' => '3372024906020046',
+  ),
+  67 => 
+  array (
+    'name' => 'Daffa Ibnu Sina',
+    'gender' => 'L',
+    'batch' => 'it',
+    'nik' => '3372051107010038',
+  ),
+  68 => 
+  array (
+    'name' => 'Eka Yuliana',
+    'gender' => 'P',
+    'batch' => 'caregiver',
+    'nik' => '3372046408010047',
+  ),
+  69 => 
+  array (
+    'name' => 'Fikri Haikal',
+    'gender' => 'L',
+    'batch' => 'bahasa_inggris_2',
+    'nik' => '3372032209000039',
+  ),
+  70 => 
+  array (
+    'name' => 'Gita Gutawa Putri',
+    'gender' => 'P',
+    'batch' => 'bahasa_inggris_2',
+    'nik' => '3372015310020048',
+  ),
+  71 => 
+  array (
+    'name' => 'IQBAL HAFIZ ILYASA',
+    'gender' => 'L',
+    'batch' => 'manufaktur',
+    'nik' => '3310161407080004',
+    'email' => 'iqbalhafiz1407@gmail.com',
+    'phone' => '089520332887',
+  ),
+  72 => 
+  array (
+    'name' => 'ISNAINI NUR SAFITRI',
+    'gender' => 'P',
+    'batch' => 'waiter',
+    'nik' => '3314115608970004',
+    'email' => 'isnans16@gmail.com',
+    'phone' => '085867668725',
+  ),
+  73 => 
+  array (
+    'name' => 'KARMONO',
+    'gender' => 'L',
+    'batch' => 'housekeeping',
+    'nik' => '1808030801970001',
+    'email' => 'karmono977@gmail.com',
+    'phone' => '08980729393',
+  ),
+  74 => 
+  array (
+    'name' => 'KHARIS CHOIRIL MUNA',
+    'gender' => 'L',
+    'batch' => 'housekeeping',
+    'nik' => '3324041204000001',
+    'email' => 'kharischoiril@gmail.com',
+    'phone' => '081227782167',
+  ),
+  75 => 
+  array (
+    'name' => 'KHOIRUNISAK LAILI Y',
+    'gender' => 'P',
+    'batch' => 'manufaktur',
+    'nik' => '3313054607010001',
+    'email' => 'khoirunisaklailiyuliasani@gmail.com',
+    'phone' => '087894964218',
+  ),
+  76 => 
+  array (
+    'name' => 'KHUSNALIBAH',
+    'gender' => 'P',
+    'batch' => 'waiter',
+    'nik' => '3375046707930003',
+    'email' => 'husn4husn4@gmail.com',
+    'phone' => '085876242905',
+  ),
+  77 => 
+  array (
+    'name' => 'Kurnia Sandy Pratama',
+    'gender' => 'L',
+    'batch' => 'manufaktur',
+    'nik' => '3372021611000040',
+  ),
+  78 => 
+  array (
+    'name' => 'Laila Majnun Lestari',
+    'gender' => 'P',
+    'batch' => 'waiter',
+    'nik' => '3372054712020049',
+  ),
+  79 => 
+  array (
+    'name' => 'Miftahul Huda',
+    'gender' => 'L',
+    'batch' => 'manufaktur',
+    'nik' => '3372040801010041',
+  ),
+  80 => 
+  array (
+    'name' => 'Nadya Zafira',
+    'gender' => 'P',
+    'batch' => 'waiter',
+    'nik' => '3372035102020050',
+  ),
+  81 => 
+  array (
+    'name' => 'Oki Setiawan',
+    'gender' => 'L',
+    'batch' => 'housekeeping',
+    'nik' => '3372011903010042',
+  ),
+  82 => 
+  array (
+    'name' => 'Priska Wulandari',
+    'gender' => 'P',
+    'batch' => 'waiter',
+    'nik' => '3372026304010051',
+  ),
+  83 => 
+  array (
+    'name' => 'Qomarudin Syarif',
+    'gender' => 'L',
+    'batch' => 'manufaktur',
+    'nik' => '3372050405000043',
+  ),
+  84 => 
+  array (
+    'name' => 'Rina Nosewati',
+    'gender' => 'P',
+    'batch' => 'waiter',
+    'nik' => '3372044806020052',
+  ),
+  85 => 
+  array (
+    'name' => 'Samsul Arifin',
+    'gender' => 'L',
+    'batch' => 'housekeeping',
+    'nik' => '3372032507010044',
+  ),
+  86 => 
+  array (
+    'name' => 'Taufiqurrahman',
+    'gender' => 'L',
+    'batch' => 'manufaktur',
+    'nik' => '3372011008010045',
+  ),
+  87 => 
+  array (
+    'name' => 'Umar Wirahadikusumah',
+    'gender' => 'L',
+    'batch' => 'housekeeping',
+    'nik' => '3372021709000046',
+  ),
+  88 => 
+  array (
+    'name' => 'Vina Panduwinata',
+    'gender' => 'P',
+    'batch' => 'waiter',
+    'nik' => '3372055910020053',
+  ),
+  89 => 
+  array (
+    'name' => 'Wawan Darmawan',
+    'gender' => 'L',
+    'batch' => 'manufaktur',
+    'nik' => '3372042811010047',
+  ),
+  90 => 
+  array (
+    'name' => 'Xaverius Yoga',
+    'gender' => 'L',
+    'batch' => 'housekeeping',
+    'nik' => '3372030912000048',
+  ),
+  91 => 
+  array (
+    'name' => 'Yohanes Bosco',
+    'gender' => 'L',
+    'batch' => 'manufaktur',
+    'nik' => '3372012301010049',
+  ),
+  92 => 
+  array (
+    'name' => 'Zainal Abidin',
+    'gender' => 'L',
+    'batch' => 'housekeeping',
+    'nik' => '3372020402010050',
+  ),
+  93 => 
+  array (
+    'name' => 'Arif Budiman',
+    'gender' => 'L',
+    'batch' => 'bahasa_inggris',
+    'nik' => '3372051503010051',
+  ),
+  94 => 
+  array (
+    'name' => 'Bella Saphira',
+    'gender' => 'P',
+    'batch' => 'waiter',
+    'nik' => '3372045204020054',
+  ),
+  95 => 
+  array (
+    'name' => 'Chandra Wijaya',
+    'gender' => 'L',
+    'batch' => 'bahasa_inggris',
+    'nik' => '3372031905000052',
+  ),
+  96 => 
+  array (
+    'name' => 'Devi Permatasari',
+    'gender' => 'P',
+    'batch' => 'waiter',
+    'nik' => '3372016406020055',
+  ),
+  97 => 
+  array (
+    'name' => 'Erick Thohirudin',
+    'gender' => 'L',
+    'batch' => 'bahasa_inggris',
+    'nik' => '3372020707010053',
+  ),
+  98 => 
+  array (
+    'name' => 'Febri Haryadi',
+    'gender' => 'L',
+    'batch' => 'housekeeping',
+    'nik' => '3372052108010054',
+  ),
+  99 => 
+  array (
+    'name' => 'Gita Savitri',
+    'gender' => 'P',
+    'batch' => 'bahasa_inggris',
+    'nik' => '3372044309020056',
+  ),
+  100 => 
+  array (
+    'name' => 'Hengky Kurniawan',
+    'gender' => 'L',
+    'batch' => 'housekeeping',
+    'nik' => '3372031410000055',
+  ),
+  101 => 
+  array (
+    'name' => 'Irfan Bachdim Putra',
+    'gender' => 'L',
+    'batch' => 'otomotif',
+    'nik' => '3372012711010056',
+  ),
+  102 => 
+  array (
+    'name' => 'Jessica Iskandarina',
+    'gender' => 'P',
+    'batch' => 'kuliner',
+    'nik' => '3372025612020057',
+  ),
+  103 => 
+  array (
+    'name' => 'Kurniawan Dwi Yulianto',
+    'gender' => 'L',
+    'batch' => 'otomotif',
+    'nik' => '3372050801010057',
+  ),
+  104 => 
+  array (
+    'name' => 'Luna Maya Sari',
+    'gender' => 'P',
+    'batch' => 'kuliner',
+    'nik' => '3372046202020058',
+  ),
+  105 => 
+  array (
+    'name' => 'Mario Teguh Santoso',
+    'gender' => 'L',
+    'batch' => 'otomotif',
+    'nik' => '3372032003000058',
+  ),
+  106 => 
+  array (
+    'name' => 'Najwa Shihabina',
+    'gender' => 'P',
+    'batch' => 'kuliner',
+    'nik' => '3372014504020059',
+  ),
+  107 => 
+  array (
+    'name' => 'Onky Alexander',
+    'gender' => 'L',
+    'batch' => 'otomotif',
+    'nik' => '3372021105010059',
+  ),
+  108 => 
+  array (
+    'name' => 'Prilly Latuconsina Dewi',
+    'gender' => 'P',
+    'batch' => 'kuliner',
+    'nik' => '3372055706020060',
+  ),
+  109 => 
+  array (
+    'name' => 'Quraish Syihabudin',
+    'gender' => 'L',
+    'batch' => 'otomotif',
+    'nik' => '3372043007000060',
+  ),
+  110 => 
+  array (
+    'name' => 'Raffi Ahmad Dahlan',
+    'gender' => 'L',
+    'batch' => 'kuliner',
+    'nik' => '3372031208010061',
+  ),
+  111 => 
+  array (
+    'name' => 'Sule Sulaeman',
+    'gender' => 'L',
+    'batch' => 'it',
+    'nik' => '3372012509010062',
+  ),
+  112 => 
+  array (
+    'name' => 'Tasya Kamila Putri',
+    'gender' => 'P',
+    'batch' => 'bisnis',
+    'nik' => '3372024810020061',
+  ),
+  113 => 
+  array (
+    'name' => 'Uya Kuya Dinata',
+    'gender' => 'L',
+    'batch' => 'it',
+    'nik' => '3372050911000063',
+  ),
+  114 => 
+  array (
+    'name' => 'Vanesha Prescilla',
+    'gender' => 'P',
+    'batch' => 'bisnis',
+    'nik' => '3372046112020062',
+  ),
+  115 => 
+  array (
+    'name' => 'Wendi Cagur Utama',
+    'gender' => 'L',
+    'batch' => 'bahasa_inggris_2',
+    'nik' => '3372032301010064',
+  ),
+  116 => 
+  array (
+    'name' => 'Yuki Kato Lestari',
+    'gender' => 'P',
+    'batch' => 'caregiver',
+    'nik' => '3372015402020063',
+  ),
+  117 => 
+  array (
+    'name' => 'Zaskia Adya Mecca',
+    'gender' => 'P',
+    'batch' => 'caregiver',
+    'nik' => '3372026703020064',
+  ),
+  118 => 
+  array (
+    'name' => 'Ari Lasso Handoko',
+    'gender' => 'L',
+    'batch' => 'bahasa_inggris_2',
+    'nik' => '3372051804010065',
+  ),
+  119 => 
+  array (
+    'name' => 'Bunga Citra Lestari',
+    'gender' => 'P',
+    'batch' => 'bahasa_inggris_2',
+    'nik' => '3372044905020065',
+  ),
+  120 => 
+  array (
+    'name' => 'Charly Van Houten',
+    'gender' => 'L',
+    'batch' => 'bahasa_inggris_2',
+    'nik' => '3372030206000066',
+  ),
+  121 => 
+  array (
+    'name' => 'Dorce Gamalama Putra',
+    'gender' => 'L',
+    'batch' => 'bahasa_inggris_2',
+    'nik' => '3372011307010067',
+  ),
+  122 => 
+  array (
+    'name' => 'Ebiet G Ade Saputra',
+    'gender' => 'L',
+    'batch' => 'bahasa_inggris_2',
+    'nik' => '3372022408010068',
+  ),
+  123 => 
+  array (
+    'name' => 'Fatin Shidqia Lubis',
+    'gender' => 'P',
+    'batch' => 'bahasa_inggris_2',
+    'nik' => '3372054509020066',
+  ),
+  124 => 
+  array (
+    'name' => 'Giring Ganesha Jaya',
+    'gender' => 'L',
+    'batch' => 'bahasa_inggris_2',
+    'nik' => '3372040610000069',
+  ),
+  125 => 
+  array (
+    'name' => 'Hedi Yunus Wibawa',
+    'gender' => 'L',
+    'batch' => 'bahasa_inggris_2',
+    'nik' => '3372031711010070',
+  ),
+  126 => 
+  array (
+    'name' => 'Iis Dahlia Sari',
+    'gender' => 'P',
+    'batch' => 'waiter',
+    'nik' => '3372016012020067',
+  ),
+  127 => 
+  array (
+    'name' => 'Judika Nalon Sihotang',
+    'gender' => 'L',
+    'batch' => 'manufaktur',
+    'nik' => '3372020101010071',
+  ),
+  128 => 
+  array (
+    'name' => 'Krisdayanti Trenggono',
+    'gender' => 'P',
+    'batch' => 'waiter',
+    'nik' => '3372055202020068',
+  ),
+  129 => 
+  array (
+    'name' => 'Lesti Kejora Melati',
+    'gender' => 'P',
+    'batch' => 'housekeeping',
+    'nik' => '3372044303020069',
+  ),
+  130 => 
+  array (
+    'name' => 'Melly Goeslaw Rahayu',
+    'gender' => 'P',
+    'batch' => 'waiter',
+    'nik' => '3372035504020070',
+  ),
+  131 => 
+  array (
+    'name' => 'Nazril Irham Ariel',
+    'gender' => 'L',
+    'batch' => 'manufaktur',
+    'nik' => '3372011605010072',
+  ),
+  132 => 
+  array (
+    'name' => 'Once Mekel Hendarto',
+    'gender' => 'L',
+    'batch' => 'manufaktur',
+    'nik' => '3372022706000073',
+  ),
+  133 => 
+  array (
+    'name' => 'Pasha Ungu Firmansyah',
+    'gender' => 'L',
+    'batch' => 'housekeeping',
+    'nik' => '3372050807010074',
+  ),
+  134 => 
+  array (
+    'name' => 'Raisa Andriana Dewi',
+    'gender' => 'P',
+    'batch' => 'waiter',
+    'nik' => '3372045908020071',
+  ),
+  135 => 
+  array (
+    'name' => 'Rossa Roslaina Handayani',
+    'gender' => 'P',
+    'batch' => 'housekeeping',
+    'nik' => '3372034209020072',
+  ),
+  136 => 
+  array (
+    'name' => 'Sammy Simorangkir',
+    'gender' => 'L',
+    'batch' => 'manufaktur',
+    'nik' => '3372011310010075',
+  ),
+  137 => 
+  array (
+    'name' => 'Titi DJ Dwijayati',
+    'gender' => 'P',
+    'batch' => 'waiter',
+    'nik' => '3372026411020073',
+  ),
+  138 => 
+  array (
+    'name' => 'Vidi Aldiano Pratama',
+    'gender' => 'L',
+    'batch' => 'housekeeping',
+    'nik' => '3372052512010076',
+  ),
+  139 => 
+  array (
+    'name' => 'Wali Band Syarif',
+    'gender' => 'L',
+    'batch' => 'manufaktur',
+    'nik' => '3372040601010077',
+  ),
+  140 => 
+  array (
+    'name' => 'Yovie Widianto Nugraha',
+    'gender' => 'L',
+    'batch' => 'housekeeping',
+    'nik' => '3372031702000078',
+  ),
+  141 => 
+  array (
+    'name' => 'Zian Zigaz Wardana',
+    'gender' => 'L',
+    'batch' => 'manufaktur',
+    'nik' => '3372012803010079',
+  ),
+  142 => 
+  array (
+    'name' => 'Afgan Syahreza Utama',
+    'gender' => 'L',
+    'batch' => 'housekeeping',
+    'nik' => '3372020904010080',
+  ),
+  143 => 
+  array (
+    'name' => 'Bams Samsons Perkasa',
+    'gender' => 'L',
+    'batch' => 'manufaktur',
+    'nik' => '3372051105000081',
+  ),
+  144 => 
+  array (
+    'name' => 'Cakra Khan Hidayat',
+    'gender' => 'L',
+    'batch' => 'housekeeping',
+    'nik' => '3372042206010082',
+  ),
+  145 => 
+  array (
+    'name' => 'Glenn Fredly Ramadhan',
+    'gender' => 'L',
+    'batch' => 'manufaktur',
+    'nik' => '3372030307010083',
+  ),
+  146 => 
+  array (
+    'name' => 'Kunto Aji Wibisono',
+    'gender' => 'L',
+    'batch' => 'waiter',
+    'nik' => '3372011408010084',
+  ),
+  147 => 
+  array (
+    'name' => 'Tulus Rusydi Pangestu',
+    'gender' => 'L',
+    'batch' => 'manufaktur',
+    'nik' => '3372022509000085',
+  ),
+);
+
+        $candidates = [];
+        foreach ($students as $idx => $student) {
+            $batchKey = $student['batch'];
+            $config = $batchConfigs[$batchKey];
+
+            $candidates[] = [
+                'external_id' => sprintf('INDO-CPMI-2026-%03d', $idx),
+                'nik' => $student['nik'],
+                'name' => $student['name'],
+                'gender' => $student['gender'],
+                'education' => 'D3',
+                'major' => $config['major'],
+                'expertise' => $config['expertise'],
+                'sector_name' => $config['sector_name'],
+                'batch_id' => $config['batch_id'],
+                'class_code' => $config['class_code'],
+                'batch_name' => $config['batch_name'],
+                'program_name' => $config['program_name'],
+                'target_jp' => $config['target_jp'],
+                'achieved_jp' => $config['target_jp'],
+                'skills' => $config['skills'],
+                'work_experiences' => [
+                    [
+                        'sector' => $config['sector_name'],
+                        'role' => $config['preferred_roles'][0],
+                        'durationYears' => 1.5,
+                        'companyName' => 'Mitra Industri Politeknik Indonusa Surakarta',
+                        'description' => 'Praktik kerja lapangan terstruktur dan pemagangan bersertifikasi standar industri luar negeri.',
+                    ],
+                ],
+                'certifications' => $config['certifications'],
+                'languages' => $config['languages'],
+                'preferred_countries' => $config['preferred_countries'],
+                'preferred_roles' => $config['preferred_roles'],
+                'readiness_status' => 'Ready for Placement',
+                'verification_status' => 'Verified',
+            ];
+        }
+
+        return $candidates;
+    }
 }
+
 

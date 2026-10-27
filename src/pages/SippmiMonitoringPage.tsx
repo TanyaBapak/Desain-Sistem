@@ -58,6 +58,10 @@ export function SippmiMonitoringPage({ monitoring }: SippmiMonitoringPageProps) 
   const [syncStartedAt, setSyncStartedAt] = React.useState<string | null>(null);
   const [selectedSubdomain, setSelectedSubdomain] = React.useState<string>(monitoring.candidateSource || "all");
   const { summary, classes = [], candidates = [], lastSync, tenants = [] } = monitoring;
+  const totalAllSubdomainCandidates = React.useMemo(
+    () => tenants.reduce((acc, t) => acc + (t.candidateCount || 0), 0),
+    [tenants]
+  );
 
   React.useEffect(() => setSelectedSubdomain(monitoring.candidateSource || "all"), [monitoring.candidateSource]);
 
@@ -500,7 +504,7 @@ export function SippmiMonitoringPage({ monitoring }: SippmiMonitoringPageProps) 
           >
             Semua Subdomain
             <span className="rounded-full bg-background/20 px-1.5 py-0.2 text-[10px] font-bold">
-              {monitoring.candidatePagination.total.toLocaleString("id-ID")}
+              {(selectedSubdomain === "all" ? monitoring.candidatePagination.total : totalAllSubdomainCandidates).toLocaleString("id-ID")}
             </span>
           </button>
           {tenants.map((t) => {
@@ -610,7 +614,7 @@ export function SippmiMonitoringPage({ monitoring }: SippmiMonitoringPageProps) 
               onChange={(event) => updateCandidatePage(1, Number(event.target.value))}
               className="rounded-md border border-border bg-background px-2 py-1.5 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
-              {[10, 25, 50, 100].map((size) => <option key={size} value={size}>{size}</option>)}
+              {[10, 25, 50, 100, 150, 250].map((size) => <option key={size} value={size}>{size}</option>)}
             </select>
             <Button
               variant="outline"
