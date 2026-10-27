@@ -1272,7 +1272,30 @@ class BusinessDataPresenter
             ->leftJoin('provinces', 'provinces.id', '=', 'institutions.province_id')
             ->leftJoin('districts', 'districts.id', '=', 'institutions.district_id')
             ->where('institutions.status', 'Aktif')
-            ->when($role === 'institution_admin', fn ($q) => $q->where('institutions.id', $user->institution_id ?? ''))
+            ->when($role === 'institution_admin', function ($q) use ($user) {
+                $scope = $this->resolveInstitutionScope($user);
+                $q->where(function ($qq) use ($scope, $user) {
+                    $hasCond = false;
+                    if (! empty($scope['ids'])) {
+                        $qq->whereIn('institutions.id', $scope['ids']);
+                        $hasCond = true;
+                    }
+                    if (! empty($scope['patterns'])) {
+                        foreach ($scope['patterns'] as $pat) {
+                            $like = '%'.str_replace('%', '', (string) $pat).'%';
+                            if ($hasCond) {
+                                $qq->orWhere('institutions.name', 'LIKE', $like);
+                            } else {
+                                $qq->where('institutions.name', 'LIKE', $like);
+                                $hasCond = true;
+                            }
+                        }
+                    }
+                    if (! $hasCond) {
+                        $qq->where('institutions.id', $user->institution_id ?? '');
+                    }
+                });
+            })
             ->when($this->bp3miScope->hasActiveAreaFilter($user), fn ($q) => $this->bp3miScope->applyToInstitutions($q, $user));
 
         return $query
@@ -1365,6 +1388,9 @@ class BusinessDataPresenter
                     'certifiedInstructorsCount' => $row->instructor_count === null ? null : (int) $row->instructor_count,
                     'facilities' => $facilitiesByInstitution->get($row->id, []),
                     'supportedSectors' => $this->decodeArray($row->supported_sectors),
+                    'supportedCountries' => is_array($metadata['supportedCountries'] ?? null)
+                        ? $metadata['supportedCountries']
+                        : [],
                     'operationalReadinessScore' => $row->readiness_score === null ? null : (int) $row->readiness_score,
                     'address' => $row->address,
                     'email' => $row->email,

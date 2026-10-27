@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { VocationalProvider, ProviderType } from '../../types';
 import { useAppStore } from '../../store/useAppStore';
-import { X, Building2, Save, Sparkles, ShieldCheck } from 'lucide-react';
+import { X, Building2, Save, ShieldCheck, Plus, Check } from 'lucide-react';
 
 interface ProviderFormModalProps {
   isOpen: boolean;
@@ -19,13 +19,25 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
   mode,
 }) => {
   const { businessOptions } = useAppStore();
+
   const defaultCountries = [
     { id: 'JP', name: 'Jepang' },
     { id: 'KR', name: 'Korea' },
     { id: 'MY', name: 'Malaysia' },
     { id: 'TR', name: 'Turki' },
+    { id: 'DE', name: 'Jerman' },
+    { id: 'TW', name: 'Taiwan' },
+    { id: 'SA', name: 'Arab Saudi' },
+    { id: 'AE', name: 'Uni Emirat Arab' },
+    { id: 'SG', name: 'Singapura' },
+    { id: 'AU', name: 'Australia' },
+    { id: 'NL', name: 'Belanda' },
+    { id: 'SK', name: 'Slovakia' },
+    { id: 'QA', name: 'Qatar' },
+    { id: 'KW', name: 'Kuwait' },
+    { id: 'PL', name: 'Polandia' },
+    { id: 'NZ', name: 'Selandia Baru' },
   ];
-  const countriesList = businessOptions.countries.length > 0 ? businessOptions.countries : defaultCountries;
 
   const defaultSectorNames = [
     'Caregiver',
@@ -37,12 +49,47 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
     'Teknologi Informasi',
     'Bisnis dan Manajemen',
     'Pertanian & Perkebunan',
+    'Tata Boga & Kuliner',
+    'Logistik & Pergudangan',
+    'Perikanan & Kelautan',
   ];
+
+  // Dynamic user-added lists
+  const [customCountries, setCustomCountries] = useState<string[]>([]);
+  const [customCountryInput, setCustomCountryInput] = useState('');
+  const [customSectors, setCustomSectors] = useState<string[]>([]);
+  const [customSectorInput, setCustomSectorInput] = useState('');
+
+  // Combine countries
+  const baseCountriesMap = new Map<string, { id: string; name: string }>();
+  defaultCountries.forEach((c) => baseCountriesMap.set(c.id, c));
+  businessOptions.countries.forEach((c) => {
+    baseCountriesMap.set(c.id, { id: c.id, name: c.name });
+  });
+  (initialData?.supportedCountries ?? []).forEach((c) => {
+    const found = defaultCountries.find(
+      (dc) => dc.id.toLowerCase() === c.toLowerCase() || dc.name.toLowerCase() === c.toLowerCase(),
+    );
+    if (found) {
+      baseCountriesMap.set(found.id, found);
+    } else if (c.trim()) {
+      baseCountriesMap.set(c, { id: c, name: c });
+    }
+  });
+  customCountries.forEach((c) => {
+    if (c.trim() && !baseCountriesMap.has(c)) {
+      baseCountriesMap.set(c, { id: c, name: c });
+    }
+  });
+  const countriesList = Array.from(baseCountriesMap.values()).sort((a, b) => a.name.localeCompare(b.name, 'id'));
+
+  // Combine sectors
   const sectorOptions = Array.from(
     new Set([
       ...defaultSectorNames,
       ...businessOptions.sectors.map((sector) => sector.name),
       ...(initialData?.supportedSectors ?? []),
+      ...customSectors,
     ]),
   ).sort((left, right) => left.localeCompare(right, 'id'));
 
@@ -50,7 +97,7 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
   const [providerType, setProviderType] = useState<ProviderType>('SMK');
   const [provinsi, setProvinsi] = useState('Jawa Barat');
   const [kabupatenKota, setKabupatenKota] = useState('Kabupaten Bogor');
-  const [accreditation, setAccreditation] = useState<VocationalProvider['accreditation']>('A');
+  const [accreditation, setAccreditation] = useState<string>('A');
   const [evokasiStatus, setEvokasiStatus] = useState<VocationalProvider['evokasiVerificationStatus']>('Proses Verifikasi');
   const [classCount, setClassCount] = useState<number | string>('');
   const [readyParticipantCount, setReadyParticipantCount] = useState<number | string>('');
@@ -85,16 +132,16 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
         setKabupatenKota(initialData.kabupatenKota || '');
       }
 
-      setAccreditation(initialData.accreditation);
+      setAccreditation(initialData.accreditation || 'Belum ada');
       setEvokasiStatus(initialData.evokasiVerificationStatus);
-      setClassCount(initialData.classCount ?? '');
-      setReadyParticipantCount(initialData.readyParticipantCount ?? '');
-      setCertifiedInstructorsCount(initialData.certifiedInstructorsCount ?? '');
-      setOperationalReadinessScore(initialData.operationalReadinessScore ?? '');
+      setClassCount(initialData.classCount ?? 0);
+      setReadyParticipantCount(initialData.readyParticipantCount ?? 0);
+      setCertifiedInstructorsCount(initialData.certifiedInstructorsCount ?? 0);
+      setOperationalReadinessScore(initialData.operationalReadinessScore ?? 0);
       setSupportedSectors(initialData.supportedSectors ?? []);
 
       const normalizedCountries = (initialData.supportedCountries ?? []).map((c) => {
-        const found = countriesList.find((cl) => cl.id === c || cl.name.toLowerCase() === c.toLowerCase());
+        const found = countriesList.find((cl) => cl.id.toLowerCase() === c.toLowerCase() || cl.name.toLowerCase() === c.toLowerCase());
         return found ? found.id : c;
       });
       setSupportedCountries(normalizedCountries);
@@ -113,10 +160,42 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
       setSupportedSectors([]);
       setSupportedCountries([]);
       setFacilitiesInput('');
+      setCustomCountries([]);
+      setCustomSectors([]);
     }
   }, [isOpen, initialData?.id, mode]);
 
   if (!isOpen) return null;
+
+  const handleAddCustomCountry = (e?: React.FormEvent) => {
+    e?.preventDefault();
+    const trimmed = customCountryInput.trim();
+    if (!trimmed) return;
+    const existing = countriesList.find(
+      (c) => c.name.toLowerCase() === trimmed.toLowerCase() || c.id.toLowerCase() === trimmed.toLowerCase(),
+    );
+    const countryKey = existing ? existing.id : trimmed;
+    if (!customCountries.includes(countryKey)) {
+      setCustomCountries((prev) => [...prev, countryKey]);
+    }
+    if (!supportedCountries.some((c) => c.toLowerCase() === countryKey.toLowerCase() || c.toLowerCase() === trimmed.toLowerCase())) {
+      setSupportedCountries((prev) => [...prev, countryKey]);
+    }
+    setCustomCountryInput('');
+  };
+
+  const handleAddCustomSector = (e?: React.FormEvent) => {
+    e?.preventDefault();
+    const trimmed = customSectorInput.trim();
+    if (!trimmed) return;
+    if (!customSectors.includes(trimmed)) {
+      setCustomSectors((prev) => [...prev, trimmed]);
+    }
+    if (!supportedSectors.includes(trimmed)) {
+      setSupportedSectors((prev) => [...prev, trimmed]);
+    }
+    setCustomSectorInput('');
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -128,7 +207,7 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
       .filter((s) => s.length > 0);
 
     const canonicalCountries = supportedCountries.map((c) => {
-      const found = countriesList.find((cl) => cl.id === c || cl.name.toLowerCase() === c.toLowerCase());
+      const found = countriesList.find((cl) => cl.id.toLowerCase() === c.toLowerCase() || cl.name.toLowerCase() === c.toLowerCase());
       return found ? found.id : c;
     });
 
@@ -147,6 +226,7 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
       supportedSectors,
       supportedCountries: canonicalCountries,
       facilities: facilitiesArray,
+      institutionStatus: initialData?.institutionStatus ?? 'Swasta',
     });
   };
 
@@ -174,8 +254,10 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
             </div>
           </div>
           <button
+            type="button"
             onClick={onClose}
             className="p-1.5 rounded-lg text-emerald-200 hover:text-white hover:bg-emerald-800 transition"
+            aria-label="Tutup formulir"
           >
             <X className="w-5 h-5" />
           </button>
@@ -194,7 +276,7 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
                 required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Contoh: SMKN 1 Cikarang Barat / Balai Pelatihan Vokasi dan Produktivitas (BPVP) Bekasi"
+                placeholder="Contoh: SMKN 1 Cikarang Barat / LPK Victoria Hotel School"
                 className="w-full text-xs p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-slate-50 focus:bg-white transition"
               />
             </div>
@@ -259,7 +341,7 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
                   required
                   value={kabupatenKota}
                   onChange={(e) => setKabupatenKota(e.target.value)}
-                  placeholder="Contoh: Kabupaten Bogor"
+                  placeholder="Contoh: Kota Surakarta"
                   className="w-full text-xs p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-slate-50 focus:bg-white transition"
                 />
               ) : (
@@ -288,10 +370,10 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
               </label>
               <select
                 value={accreditation}
-                onChange={(e) => setAccreditation(e.target.value as VocationalProvider['accreditation'])}
+                onChange={(e) => setAccreditation(e.target.value)}
                 className="w-full text-xs p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-slate-50"
               >
-                {!['A', 'Unggul', 'B', 'Baik Sekali', 'C', 'Baik', 'Belum Terakreditasi'].includes(accreditation) && accreditation && (
+                {!['A', 'Unggul', 'B', 'Baik Sekali', 'C', 'Baik', 'Belum Terakreditasi', 'Belum ada'].includes(accreditation) && accreditation && (
                   <option value={accreditation}>{accreditation}</option>
                 )}
                 <option value="A">Akreditasi A</option>
@@ -301,6 +383,7 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
                 <option value="C">Akreditasi C</option>
                 <option value="Baik">Baik</option>
                 <option value="Belum Terakreditasi">Belum Terakreditasi</option>
+                <option value="Belum ada">Belum ada</option>
               </select>
             </div>
 
@@ -391,14 +474,21 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
             </div>
           </div>
 
+          {/* Sektor & Negara Tujuan (Dinamis) */}
           <div className="grid gap-4 md:grid-cols-2">
+            {/* Sektor Vokasi */}
             <fieldset className="space-y-2">
-              <legend className="block text-xs font-bold text-slate-700">
-                Sektor vokasi yang didukung
-              </legend>
-              <div className="max-h-40 space-y-2 overflow-y-auto rounded-xl border border-border bg-background p-3">
+              <div className="flex items-center justify-between">
+                <legend className="block text-xs font-bold text-slate-700">
+                  Sektor vokasi yang didukung
+                </legend>
+                <span className="text-[11px] font-semibold text-emerald-700">
+                  {supportedSectors.length} dipilih
+                </span>
+              </div>
+              <div className="max-h-48 space-y-2 overflow-y-auto rounded-xl border border-border bg-background p-3 shadow-inner">
                 {sectorOptions.map((sector) => (
-                  <label key={sector} className="flex items-center gap-2 text-sm text-foreground">
+                  <label key={sector} className="flex items-center gap-2 text-xs text-foreground cursor-pointer hover:bg-slate-50 p-1 rounded-md transition">
                     <input
                       type="checkbox"
                       checked={supportedSectors.includes(sector)}
@@ -407,37 +497,102 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
                           toggleSelection(current, sector, event.target.checked),
                         )
                       }
-                      className="h-4 w-4 rounded border-input accent-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      className="h-4 w-4 rounded border-input accent-emerald-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     />
-                    {sector}
+                    <span className="font-medium text-slate-800">{sector}</span>
                   </label>
                 ))}
               </div>
+              {/* Tambah Sektor Baru Dinamis */}
+              <div className="flex items-center gap-1.5 pt-1">
+                <input
+                  type="text"
+                  value={customSectorInput}
+                  onChange={(e) => setCustomSectorInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleAddCustomSector();
+                    }
+                  }}
+                  placeholder="Ketik sektor baru..."
+                  className="flex-1 text-xs p-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-slate-50"
+                />
+                <button
+                  type="button"
+                  onClick={handleAddCustomSector}
+                  className="px-3 py-2 text-xs font-bold bg-slate-100 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 border border-slate-200 rounded-lg transition flex items-center gap-1 shrink-0"
+                  title="Tambah sektor baru"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Tambah</span>
+                </button>
+              </div>
             </fieldset>
+
+            {/* Negara Tujuan Penempatan */}
             <fieldset className="space-y-2">
-              <legend className="block text-xs font-bold text-slate-700">
-                Negara target
-              </legend>
-              <div className="max-h-40 space-y-2 overflow-y-auto rounded-xl border border-border bg-background p-3">
-                {countriesList.map((country) => (
-                  <label key={country.id} className="flex items-center gap-2 text-sm text-foreground">
-                    <input
-                      type="checkbox"
-                      checked={supportedCountries.includes(country.id) || supportedCountries.includes(country.name)}
-                      onChange={(event) =>
-                        setSupportedCountries((current) => {
-                          const isChecked = event.target.checked;
-                          const filtered = current.filter(
-                            (item) => item !== country.id && item !== country.name,
-                          );
-                          return isChecked ? [...filtered, country.id] : filtered;
-                        })
-                      }
-                      className="h-4 w-4 rounded border-input accent-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    />
-                    {country.name}
-                  </label>
-                ))}
+              <div className="flex items-center justify-between">
+                <legend className="block text-xs font-bold text-slate-700">
+                  Negara target penempatan
+                </legend>
+                <span className="text-[11px] font-semibold text-emerald-700">
+                  {supportedCountries.length} dipilih
+                </span>
+              </div>
+              <div className="max-h-48 space-y-2 overflow-y-auto rounded-xl border border-border bg-background p-3 shadow-inner">
+                {countriesList.map((country) => {
+                  const isChecked = supportedCountries.some(
+                    (c) => c.toLowerCase() === country.id.toLowerCase() || c.toLowerCase() === country.name.toLowerCase(),
+                  );
+                  return (
+                    <label key={country.id} className="flex items-center gap-2 text-xs text-foreground cursor-pointer hover:bg-slate-50 p-1 rounded-md transition">
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={(event) =>
+                          setSupportedCountries((current) => {
+                            const checked = event.target.checked;
+                            const filtered = current.filter(
+                              (item) => item.toLowerCase() !== country.id.toLowerCase() && item.toLowerCase() !== country.name.toLowerCase(),
+                            );
+                            return checked ? [...filtered, country.id] : filtered;
+                          })
+                        }
+                        className="h-4 w-4 rounded border-input accent-emerald-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      />
+                      <span className="font-medium text-slate-800">{country.name}</span>
+                      {country.id !== country.name && (
+                        <span className="text-[10px] text-slate-400 font-mono">({country.id})</span>
+                      )}
+                    </label>
+                  );
+                })}
+              </div>
+              {/* Tambah Negara Tujuan Baru Dinamis */}
+              <div className="flex items-center gap-1.5 pt-1">
+                <input
+                  type="text"
+                  value={customCountryInput}
+                  onChange={(e) => setCustomCountryInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleAddCustomCountry();
+                    }
+                  }}
+                  placeholder="Ketik negara target baru..."
+                  className="flex-1 text-xs p-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-slate-50"
+                />
+                <button
+                  type="button"
+                  onClick={handleAddCustomCountry}
+                  className="px-3 py-2 text-xs font-bold bg-slate-100 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 border border-slate-200 rounded-lg transition flex items-center gap-1 shrink-0"
+                  title="Tambah negara baru"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Tambah</span>
+                </button>
               </div>
             </fieldset>
           </div>

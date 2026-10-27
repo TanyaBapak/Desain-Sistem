@@ -11,7 +11,8 @@ import {
   ArrowRight,
   Flame,
   Edit2,
-  Trash2
+  Trash2,
+  Globe,
 } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
 import { visitAllocationStage } from '../../lib/navigation';
@@ -226,6 +227,26 @@ export const ProviderCard: React.FC<ProviderCardProps> = ({
             ))}
           </div>
         </div>
+
+        {/* Negara Penempatan Badges */}
+        {provider.supportedCountries && provider.supportedCountries.length > 0 && (
+          <div className="pt-2">
+            <span className="text-slate-400 text-[10px] uppercase font-bold block mb-1">
+              Negara Tujuan:
+            </span>
+            <div className="flex flex-wrap gap-1">
+              {provider.supportedCountries.map((country, i) => (
+                <span
+                  key={i}
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 border border-emerald-200 text-emerald-800"
+                >
+                  <Globe className="w-2.5 h-2.5 text-emerald-600" />
+                  <span>{country}</span>
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Card Footer Actions */}

@@ -131,7 +131,30 @@ class BusinessDataController extends Controller
             ->leftJoin('districts', 'districts.id', '=', 'institutions.district_id')
             ->where('institutions.status', 'Aktif')
             ->when(app(Bp3miScope::class)->hasActiveAreaFilter($user), fn ($q) => app(Bp3miScope::class)->applyToInstitutions($q, $user))
-            ->when($role === 'institution_admin', fn ($q) => $q->where('institutions.id', $user->institution_id ?? ''));
+            ->when($role === 'institution_admin', function ($q) use ($user) {
+                $scope = app(BusinessDataPresenter::class)->resolveInstitutionScope($user);
+                $q->where(function ($qq) use ($scope, $user) {
+                    $hasCond = false;
+                    if (! empty($scope['ids'])) {
+                        $qq->whereIn('institutions.id', $scope['ids']);
+                        $hasCond = true;
+                    }
+                    if (! empty($scope['patterns'])) {
+                        foreach ($scope['patterns'] as $pat) {
+                            $like = '%'.str_replace('%', '', (string) $pat).'%';
+                            if ($hasCond) {
+                                $qq->orWhere('institutions.name', 'LIKE', $like);
+                            } else {
+                                $qq->where('institutions.name', 'LIKE', $like);
+                                $hasCond = true;
+                            }
+                        }
+                    }
+                    if (! $hasCond) {
+                        $qq->where('institutions.id', $user->institution_id ?? '');
+                    }
+                });
+            });
 
         $filtered = (clone $baseQuery)
             ->when($search !== '', function ($q) use ($search) {
@@ -432,6 +455,14 @@ class BusinessDataController extends Controller
                     'korea', 'korea selatan', 'south korea', 'kr' => 'KR',
                     'malaysia', 'my' => 'MY',
                     'turki', 'turkiye', 'turkey', 'tr' => 'TR',
+                    'jerman', 'germany', 'de' => 'DE',
+                    'taiwan', 'tw' => 'TW',
+                    'arab saudi', 'saudi arabia', 'sa' => 'SA',
+                    'uni emirat arab', 'uea', 'uae', 'ae' => 'AE',
+                    'singapura', 'singapore', 'sg' => 'SG',
+                    'australia', 'au' => 'AU',
+                    'belanda', 'netherlands', 'nl' => 'NL',
+                    'slovakia', 'slowakia', 'sk' => 'SK',
                     default => (string) $val,
                 };
             }, $request->input('supportedCountries'));
@@ -498,16 +529,16 @@ class BusinessDataController extends Controller
                 'kabupatenKota' => ['required', 'string', 'max:100'],
                 'evokasiVerificationStatus' => ['required', Rule::in(['Terverifikasi e-Vokasi', 'Proses Verifikasi', 'Belum Terverifikasi'])],
                 'accreditation' => ['required', 'string', 'max:50'],
-                'classCount' => ['required', 'integer', 'min:0', 'max:100000'],
-                'readyParticipantCount' => ['required', 'integer', 'min:0', 'max:100000'],
-                'certifiedInstructorsCount' => ['required', 'integer', 'min:0', 'max:100000'],
-                'operationalReadinessScore' => ['required', 'integer', 'min:0', 'max:100'],
+                'classCount' => ['required', 'numeric', 'min:0', 'max:100000'],
+                'readyParticipantCount' => ['required', 'numeric', 'min:0', 'max:100000'],
+                'certifiedInstructorsCount' => ['required', 'numeric', 'min:0', 'max:100000'],
+                'operationalReadinessScore' => ['required', 'numeric', 'min:0', 'max:100'],
                 'facilities' => ['array'],
                 'facilities.*' => ['string', 'max:150'],
                 'supportedSectors' => ['array'],
                 'supportedSectors.*' => ['string', 'max:150'],
                 'supportedCountries' => ['sometimes', 'array'],
-                'supportedCountries.*' => ['required', 'string', 'exists:countries,id'],
+                'supportedCountries.*' => ['string', 'max:150'],
                 'address' => ['nullable', 'string', 'max:2000'],
                 'email' => ['nullable', 'email', 'max:100'],
                 'phone' => ['nullable', 'string', 'max:50'],
@@ -772,7 +803,7 @@ class BusinessDataController extends Controller
         $attributes = [
             'name' => $data['name'],
             'institution_type' => $institutionType,
-            'ownership_type' => $data['institutionStatus'] ?? 'Negeri',
+            'ownership_type' => $data['institutionStatus'] ?? $existing?->ownership_type ?? 'Negeri',
             'province_id' => $finalProvinceId,
             'district_id' => $finalDistrictId,
             'address' => $data['address'] ?? null,
@@ -1007,7 +1038,7 @@ class BusinessDataController extends Controller
         abort_unless(isset(self::ENTITY_TABLES[$type]), 404);
         $role = $request->user()->roles()->value('name');
 
-        if (in_array($role, ['super_admin', 'directorate_admin'], true) || $request->session()->has('impersonator_id')) {
+        if ($role === 'directorate_admin' || $request->session()->has('impersonator_id')) {
             return;
         }
 
@@ -1037,7 +1068,7 @@ class BusinessDataController extends Controller
     {
         $user = $request->user();
         $role = $user->roles()->value('name');
-        if (in_array($role, ['super_admin', 'directorate_admin'], true) || $request->session()->has('impersonator_id')) {
+        if ($role === 'directorate_admin' || $request->session()->has('impersonator_id')) {
             return;
         }
 
@@ -1066,6 +1097,7 @@ class BusinessDataController extends Controller
                 'institution_admin' => $record->id === $user->institution_id
                     || in_array($record->id, $instScope['ids'], true)
                     || (! empty($user->organization) && stripos($record->name, $user->organization) !== false)
+                    || collect($instScope['patterns'] ?? [])->contains(fn ($p) => stripos($record->name, str_replace('%', '', (string) $p)) !== false)
                     || empty($user->institution_id),
                 default => true,
             },

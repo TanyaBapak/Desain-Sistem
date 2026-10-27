@@ -213,6 +213,7 @@ class BusinessDataPersistenceTest extends TestCase
             'operationalReadinessScore' => 80,
             'facilities' => ['Ruang Praktik Contoh', 'Bengkel Contoh'],
             'supportedSectors' => ['Manufaktur / Pengelasan'],
+            'supportedCountries' => ['JP', 'KR', 'Jerman', 'Kanada'],
             'institutionStatus' => 'Negeri',
         ])->assertRedirect()->assertSessionHasNoErrors();
         $this->put("/business-data/demands/{$demandId}", [
@@ -241,6 +242,12 @@ class BusinessDataPersistenceTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->where('businessData.candidates.0.fullName', 'Peserta Contoh Diperbarui')
                 ->where('businessData.candidates.0.nik', '3300••••••••0001'));
+
+        $this->get('/app/modul-c')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('businessData.providers.0.name', 'Lembaga Contoh Diperbarui')
+                ->where('businessData.providers.0.supportedCountries', ['JP', 'KR', 'DE', 'Kanada']));
 
         $this->delete("/business-data/candidates/{$candidateId}", ['reason' => 'Pencatatan uji arsip'])->assertRedirect();
         $this->delete("/business-data/programs/{$programId}")->assertRedirect();

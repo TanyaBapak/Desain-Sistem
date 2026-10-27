@@ -269,6 +269,28 @@ export const ProviderDetailModal: React.FC<ProviderDetailModalProps> = ({
           </div>
         </div>
 
+        {/* Negara Tujuan Penempatan */}
+        <div>
+          <span className="text-xs font-bold text-slate-700 uppercase tracking-wider block mb-2">
+            Negara Tujuan Penempatan:
+          </span>
+          {provider.supportedCountries && provider.supportedCountries.length > 0 ? (
+            <div className="flex flex-wrap gap-2">
+              {provider.supportedCountries.map((country, idx) => (
+                <span
+                  key={idx}
+                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200 shadow-xs"
+                >
+                  <Globe className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>{country}</span>
+                </span>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-slate-500 italic">Belum ada negara tujuan penempatan yang ditentukan.</p>
+          )}
+        </div>
+
         {/* Fasilitas & Sarana Lab */}
         <div>
           <span className="text-xs font-bold text-slate-700 uppercase tracking-wider block mb-2">
