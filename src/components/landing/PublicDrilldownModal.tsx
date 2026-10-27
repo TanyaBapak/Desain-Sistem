@@ -26,8 +26,6 @@ import type {
 } from "@/types";
 import { PROGRAM_TRAINING_SECTORS } from "@/lib/constants/program-training-sectors";
 
-const NON_VOCATIONAL_INSTITUTION_TYPES = new Set(["LPK", "LKP", "BLKLN"]);
-
 export type PublicDrilldownType =
   | "peserta"
   | "program"
@@ -43,6 +41,7 @@ interface PublicDrilldownModalProps {
   scopeName: string;
   data: PublicCommandCenterData;
   initialSector?: string | null;
+  sectorOccupations: Record<string, string[]>;
 }
 
 export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
@@ -51,13 +50,18 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
   scopeName,
   data,
   initialSector = null,
+  sectorOccupations,
 }) => {
   const [selectedSector, setSelectedSector] = useState<string | null>(
     initialSector,
   );
+  const [selectedOccupation, setSelectedOccupation] = useState<string | null>(
+    null,
+  );
 
   useEffect(() => {
     setSelectedSector(initialSector);
+    setSelectedOccupation(null);
   }, [type, initialSector]);
 
   if (!type) return null;
@@ -68,32 +72,33 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
     data.previewDirectories?.demands ?? [];
   const nationalLpkList = data.nationalLpkByProvince ?? [];
   const institutionsList = data.institutionsByProvince ?? [];
-  const vocationalInstitutions = institutions.filter(
-    (institution) =>
-      !NON_VOCATIONAL_INSTITUTION_TYPES.has(
-        institution.type.trim().toLocaleUpperCase("id-ID"),
-      ),
-  );
   const sectors = PROGRAM_TRAINING_SECTORS.map((sector) => sector.name);
-  const filteredInstitutions = selectedSector
-    ? vocationalInstitutions.filter((institution) =>
-        institution.supportedSectors?.some(
-          (supportedSector) => {
-            const selected = PROGRAM_TRAINING_SECTORS.find(
-              (sector) => sector.name === selectedSector,
-            );
-            const normalizedSupportedSector = supportedSector
-              .trim()
-              .toLocaleLowerCase("id-ID");
-            return (
-              selected?.aliases.some(
+  const selectedSectorAliases =
+    PROGRAM_TRAINING_SECTORS.find((sector) => sector.name === selectedSector)
+      ?.aliases ?? [];
+  const filteredInstitutions =
+    selectedSector && selectedOccupation
+      ? institutions.filter((institution) => {
+          const supportsSelectedSector =
+            !institution.supportedSectors?.length ||
+            institution.supportedSectors.some((supportedSector) => {
+              const normalizedSupportedSector = supportedSector
+                .trim()
+                .toLocaleLowerCase("id-ID");
+              return selectedSectorAliases.some(
                 (alias) => alias === normalizedSupportedSector,
-              ) ?? false
-            );
-          },
-        ),
-      )
-    : [];
+              );
+            });
+          const supportsSelectedOccupation =
+            institution.supportedOccupations?.some(
+              (occupation) =>
+                occupation.trim().toLocaleLowerCase("id-ID") ===
+                selectedOccupation.trim().toLocaleLowerCase("id-ID"),
+            ) ?? false;
+
+          return supportsSelectedSector && supportsSelectedOccupation;
+        })
+      : [];
 
   const renderInstitutionList = (items: PublicPreviewInstitution[]) => (
     <div className="rounded-lg border border-border p-2">
@@ -179,14 +184,36 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
                 </div>
               </div>
             </div>
-            {renderInstitutionList(vocationalInstitutions)}
+            {renderInstitutionList(institutions)}
           </div>
         );
 
       case "program":
         return (
           <div className="space-y-4">
-            {selectedSector ? (
+            {selectedSector && selectedOccupation ? (
+              <>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSelectedOccupation(null)}
+                  className="-ml-2 w-fit"
+                >
+                  <ArrowLeft className="mr-2 h-4 w-4" aria-hidden="true" />
+                  Kembali ke daftar jabatan
+                </Button>
+                <div className="rounded-xl border border-border bg-muted/40 p-4">
+                  <h4 className="text-sm font-bold text-foreground">
+                    Lembaga vokasi untuk jabatan {selectedOccupation}
+                  </h4>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Sektor {selectedSector} · Lembaga yang mencantumkan jabatan ini.
+                  </p>
+                </div>
+                {renderInstitutionList(filteredInstitutions)}
+              </>
+            ) : selectedSector ? (
               <>
                 <Button
                   type="button"
@@ -200,13 +227,35 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
                 </Button>
                 <div className="rounded-xl border border-border bg-muted/40 p-4">
                   <h4 className="text-sm font-bold text-foreground">
-                    Daftar Lembaga Vokasi sektor {selectedSector}
+                    Jabatan sektor {selectedSector}
                   </h4>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Lembaga vokasi yang mendukung sektor target negara ini.
+                    Pilih jabatan untuk melihat lembaga vokasi yang mendukungnya.
                   </p>
                 </div>
-                {renderInstitutionList(filteredInstitutions)}
+                {(sectorOccupations[selectedSector] ?? []).length > 0 ? (
+                  <div className="space-y-2">
+                    {(sectorOccupations[selectedSector] ?? []).map((occupation) => (
+                      <button
+                        key={occupation}
+                        type="button"
+                        onClick={() => setSelectedOccupation(occupation)}
+                        className="flex w-full items-center gap-3 rounded-lg border border-border p-3 text-left hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      >
+                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+                          <Briefcase className="h-4 w-4" aria-hidden="true" />
+                        </span>
+                        <span className="min-w-0 flex-1 break-words text-sm font-semibold">
+                          {occupation}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="rounded-lg border border-dashed border-border p-5 text-center text-sm text-muted-foreground">
+                    Belum ada jabatan yang terdaftar pada sektor ini.
+                  </p>
+                )}
               </>
             ) : (
               <>
@@ -220,7 +269,7 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
                         Sektor Program Pelatihan dari Target Negara
                       </h4>
                       <p className="text-xs text-muted-foreground">
-                        Pilih sektor untuk melihat daftar lembaga vokasi yang sesuai.
+                        Pilih sektor untuk melihat jabatan, lalu lembaga vokasi.
                       </p>
                     </div>
                   </div>
@@ -264,7 +313,7 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
                 </div>
                 <div>
                   <h4 className="text-sm font-bold text-foreground">
-                    Sebaran LPK Terdaftar Nasional per Provinsi
+                    Sebaran Lembaga Terdaftar Nasional per Provinsi
                   </h4>
                   <p className="text-xs text-muted-foreground">
                     Cakupan 38 Provinsi di Seluruh Indonesia · {data.national.nationalLpkCount.toLocaleString("id-ID")} Lembaga
@@ -427,14 +476,17 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
       case "peserta":
         return "Direktori Lembaga Vokasi Mitra";
       case "program":
+        if (selectedSector && selectedOccupation) {
+          return `Lembaga Vokasi — ${selectedOccupation}`;
+        }
         return selectedSector
-          ? `Lembaga Vokasi — ${selectedSector}`
+          ? `Jabatan — ${selectedSector}`
           : "Sektor Pelatihan Target Negara";
       case "lembaga":
       case "sebaran_lembaga":
         return "Direktori Lembaga Vokasi Mitra";
       case "national_lpk":
-        return "Sebaran LPK Nasional";
+        return "Sebaran Lembaga Terdaftar Nasional";
       case "demand":
         return "Permintaan Kerja Luar Negeri";
       case "alokasi":

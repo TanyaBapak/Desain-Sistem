@@ -13,7 +13,7 @@ export const LANDING_KPI_TARGET_FIELDS = [
   { key: "readyForPlacement", label: "Siap penempatan" },
   { key: "activeTrainingPrograms", label: "Program pelatihan aktif" },
   { key: "activeVocationalInstitutions", label: "Lembaga vokasi aktif" },
-  { key: "nationalLpkCount", label: "LPK terdaftar nasional" },
+  { key: "nationalLpkCount", label: "Lembaga terdaftar nasional" },
   { key: "validatedDemandCount", label: "Permintaan tervalidasi" },
 ] as const;
 

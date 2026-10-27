@@ -221,9 +221,9 @@ export function ExecutiveDashboardBreakdowns({ data }: ExecutiveDashboardBreakdo
         <Card>
           <CardHeader className="flex flex-row items-start justify-between gap-2 pb-3">
             <div>
-              <CardTitle className="text-base">Sebaran LPK per provinsi</CardTitle>
+              <CardTitle className="text-base">Sebaran lembaga terdaftar per provinsi</CardTitle>
               <p className="text-sm text-muted-foreground mt-0.5">
-                {totalRegisteredActiveLpk.toLocaleString("id-ID")} LPK terdaftar dari {totalActiveLpk.toLocaleString("id-ID")} total LPK
+                {totalRegisteredActiveLpk.toLocaleString("id-ID")} lembaga terdaftar dari {totalActiveLpk.toLocaleString("id-ID")} total lembaga
               </p>
             </div>
             {(data?.nationalLpkByProvince?.length ?? 0) > 0 && (
@@ -272,7 +272,7 @@ export function ExecutiveDashboardBreakdowns({ data }: ExecutiveDashboardBreakdo
                   <div className="flex items-center gap-3">
                     <span className="flex items-center gap-1.5">
                       <span className="h-2 w-2 rounded-full bg-emerald-600 dark:bg-emerald-500 inline-block" />
-                      LPK Terdaftar
+                      Lembaga terdaftar
                     </span>
                     <span className="flex items-center gap-1.5">
                       <span className="h-2 w-2 rounded-full bg-primary/25 dark:bg-primary/30 inline-block" />
@@ -283,7 +283,7 @@ export function ExecutiveDashboardBreakdowns({ data }: ExecutiveDashboardBreakdo
                 </div>
               </div>
             ) : (
-              <EmptyBreakdown message="Sebaran LPK per provinsi akan tampil setelah data tersedia." />
+              <EmptyBreakdown message="Sebaran lembaga terdaftar per provinsi akan tampil setelah data tersedia." />
             )}
           </CardContent>
         </Card>
@@ -463,4 +463,3 @@ export function ProvinceRatioBar({
 function EmptyBreakdown({ message }: { message: string }) {
   return <p className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">{message}</p>;
 }
-

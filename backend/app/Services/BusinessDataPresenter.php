@@ -324,13 +324,33 @@ class BusinessDataPresenter
                     'institutions.accreditation',
                     'institutions.evokasi_status as evokasiStatus',
                     'institutions.supported_sectors as supportedSectors',
+                    'institutions.external_metadata as externalMetadata',
                     'institutions.total_active_students as totalActiveStudents',
                     'institutions.workshop_capacity as workshopCapacity',
                 ])
-                ->map(fn (object $row): array => [
-                    ...((array) $row),
-                    'supportedSectors' => $this->decodeArray($row->supportedSectors),
-                ])
+                ->map(function (object $row): array {
+                    $metadata = $this->decodeArray($row->externalMetadata);
+                    $supportedOccupations = [];
+                    foreach (['programs', 'offerings', 'sectorals'] as $key) {
+                        foreach (($metadata[$key] ?? []) as $offering) {
+                            if (! is_array($offering)) {
+                                continue;
+                            }
+                            $occupation = $offering['occupation']
+                                ?? $offering['position']
+                                ?? null;
+                            if (is_string($occupation) && trim($occupation) !== '') {
+                                $supportedOccupations[] = trim($occupation);
+                            }
+                        }
+                    }
+
+                    return [
+                        ...((array) $row),
+                        'supportedSectors' => $this->decodeArray($row->supportedSectors),
+                        'supportedOccupations' => array_values(array_unique($supportedOccupations)),
+                    ];
+                })
                 ->all();
 
             $progQuery = DB::table('training_programs')

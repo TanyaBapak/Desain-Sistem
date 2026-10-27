@@ -68,25 +68,23 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
   const vocationalCount = kpiSummary.metrics.find(
     (metric) => metric.key === "activeVocationalInstitutions",
   )?.value;
-  const sectorProgramCounts = Object.fromEntries(
+  const sectorOccupations = Object.fromEntries(
     PROGRAM_TRAINING_SECTORS.map((sector) => [
       sector.name,
-      new Set(
-        projection.placementTargets
-          .filter(
-            (target) =>
-              getProgramTrainingSectorName(
-                target.sectorName,
-                target.occupationName,
-              ) === sector.name,
-          )
-          .map((target) =>
-            [
-              sector.name,
-              target.occupationName.trim().toLocaleLowerCase("id-ID"),
-            ].join("|"),
-          ),
-      ).size,
+      Array.from(
+        new Set(
+          projection.placementTargets
+            .filter(
+              (target) =>
+                getProgramTrainingSectorName(
+                  target.sectorName,
+                  target.occupationName,
+                ) === sector.name,
+            )
+            .map((target) => target.occupationName.trim())
+            .filter(Boolean),
+        ),
+      ),
     ]),
   );
 
@@ -358,7 +356,7 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
       <PublicCommandCenterSection
         initialData={publicCommandCenter}
         programsCount={PROGRAM_TRAINING_SECTORS.length}
-        sectorProgramCounts={sectorProgramCounts}
+        sectorOccupations={sectorOccupations}
       />
 
       <LandingProjectionDashboard projection={projection} />

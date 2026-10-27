@@ -18,13 +18,13 @@ import {
 interface PublicCommandCenterSectionProps {
   initialData?: PublicCommandCenterData;
   programsCount: number;
-  sectorProgramCounts: Record<string, number>;
+  sectorOccupations: Record<string, string[]>;
 }
 
 export const PublicCommandCenterSection: React.FC<PublicCommandCenterSectionProps> = ({
   initialData,
   programsCount,
-  sectorProgramCounts,
+  sectorOccupations,
 }) => {
   const [activeDrilldown, setActiveDrilldown] = useState<PublicDrilldownType | null>(null);
   const [activeProgramSector, setActiveProgramSector] = useState<string | null>(null);
@@ -128,7 +128,7 @@ export const PublicCommandCenterSection: React.FC<PublicCommandCenterSectionProp
                     Program Pelatihan per Sektor
                   </CardTitle>
                   <CardDescription className="text-xs">
-                    Pilih sektor untuk melihat lembaga vokasi
+                    Pilih sektor untuk melihat jabatan dan lembaga vokasi
                   </CardDescription>
                 </div>
                 <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
@@ -146,11 +146,11 @@ export const PublicCommandCenterSection: React.FC<PublicCommandCenterSectionProp
                     setActiveDrilldown("program");
                   }}
                   className="flex w-full min-w-0 items-center justify-between gap-2 rounded-md px-2 py-1.5 text-left text-xs hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  aria-label={`Lihat ${sectorProgramCounts[sector.name] ?? 0} program sektor ${sector.name}`}
+                  aria-label={`Lihat ${sectorOccupations[sector.name]?.length ?? 0} jabatan sektor ${sector.name}`}
                 >
                   <span className="min-w-0 truncate font-medium">{sector.name}</span>
                   <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 font-semibold tabular-nums text-muted-foreground">
-                    {sectorProgramCounts[sector.name] ?? 0}
+                    {sectorOccupations[sector.name]?.length ?? 0}
                   </span>
                 </button>
               ))}
@@ -167,12 +167,12 @@ export const PublicCommandCenterSection: React.FC<PublicCommandCenterSectionProp
             onClick={() => setActiveDrilldown("lembaga")}
           />
 
-          {/* 4. LPK Terdaftar Nasional */}
+          {/* 4. Lembaga Terdaftar Nasional */}
           <CommandStatCard
-            label="LPK Terdaftar Nasional"
+            label="Lembaga Terdaftar Nasional"
             value={currentStats.registeredNationalLpkCount}
             badge="Terverifikasi"
-            desc="LPK terverifikasi di seluruh Indonesia"
+            desc="Lembaga terverifikasi di seluruh Indonesia"
             icon={Building2}
             onClick={() => setActiveDrilldown("national_lpk")}
           />
@@ -199,6 +199,7 @@ export const PublicCommandCenterSection: React.FC<PublicCommandCenterSectionProp
         scopeName={scopeLabel}
         data={synthesizedData}
         initialSector={activeProgramSector}
+        sectorOccupations={sectorOccupations}
       />
     </section>
   );

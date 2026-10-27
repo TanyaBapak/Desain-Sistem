@@ -189,7 +189,7 @@ export const DashboardDrilldownModal: React.FC<DashboardDrilldownModalProps> = (
                         : "text-muted-foreground hover:text-foreground"
                     )}
                   >
-                    LPK Terdaftar Nasional
+                    Lembaga Terdaftar Nasional
                   </button>
                 </div>
               )}
@@ -538,13 +538,13 @@ const LembagaDrilldown: React.FC<LembagaDrilldownProps> = ({
                     <MapPin className="h-4 w-4 text-primary" />
                     <span>
                       {isNational
-                        ? "Sebaran LPK per provinsi"
+                        ? "Sebaran lembaga terdaftar per provinsi"
                         : "Sebaran lembaga vokasi per provinsi"}
                     </span>
                   </h3>
                   <p className="text-xs text-muted-foreground mt-0.5">
                     {isNational
-                      ? `${provinceTotalRegistered.toLocaleString("id-ID")} terdaftar dari ${provinceTotalCount.toLocaleString("id-ID")} LPK di seluruh Indonesia (Pilih provinsi untuk menyaring)`
+                      ? `${provinceTotalRegistered.toLocaleString("id-ID")} terdaftar dari ${provinceTotalCount.toLocaleString("id-ID")} lembaga di seluruh Indonesia (Pilih provinsi untuk menyaring)`
                       : `${provinceTotalRegistered.toLocaleString("id-ID")} terdaftar dari ${provinceTotalCount.toLocaleString("id-ID")} lembaga di ${scopeName || "lingkup Anda"} (Pilih provinsi untuk menyaring)`}
                   </p>
                 </div>
@@ -1714,7 +1714,7 @@ function getRootTitle(type: DrilldownType): string {
     case "lembaga":
       return "Semua Lembaga Vokasi (LPK)";
     case "national_lpk":
-      return "LPK Terdaftar Nasional";
+      return "Lembaga Terdaftar Nasional";
     case "peserta":
       return "Semua Calon Peserta";
     case "program":

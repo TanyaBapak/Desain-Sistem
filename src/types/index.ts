@@ -657,6 +657,7 @@ export interface PublicPreviewInstitution {
   accreditation?: string;
   evokasiStatus?: string;
   supportedSectors?: string[];
+  supportedOccupations?: string[];
   totalActiveStudents?: number;
   workshopCapacity?: number;
 }

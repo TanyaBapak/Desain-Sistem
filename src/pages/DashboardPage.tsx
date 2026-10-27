@@ -230,7 +230,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           </div>
         </StatCard>
         <StatCard
-          label="LPK Terdaftar Nasional"
+          label="Lembaga Terdaftar Nasional"
           value={nationalLpkCount}
           badge="Seluruh RI"
           icon={Building2}
@@ -349,7 +349,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           <CardHeader className="flex flex-row items-center justify-between p-4 pb-2">
             <div>
               <CardTitle className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">
-                Sebaran LPK per Provinsi
+                Sebaran lembaga terdaftar per Provinsi
               </CardTitle>
               <CardDescription className="text-xs">
                 Cakupan Nasional (Seluruh RI)

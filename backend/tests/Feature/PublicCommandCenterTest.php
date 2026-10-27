@@ -30,6 +30,11 @@ class PublicCommandCenterTest extends TestCase
             'status' => 'Aktif',
             'evokasi_status' => 'Terverifikasi e-Vokasi',
             'supported_sectors' => json_encode(['Kesehatan']),
+            'external_metadata' => json_encode([
+                'sectorals' => [
+                    ['sectoral' => 'Kesehatan', 'position' => 'Perawat'],
+                ],
+            ]),
             'created_at' => now(),
             'updated_at' => now(),
         ]);
@@ -43,6 +48,7 @@ class PublicCommandCenterTest extends TestCase
                 ->where('publicCommandCenter.national.providersCount', 1)
                 ->where('publicCommandCenter.national.registeredProvidersCount', 1)
                 ->where('publicCommandCenter.previewDirectories.institutions.0.supportedSectors.0', 'Kesehatan')
+                ->where('publicCommandCenter.previewDirectories.institutions.0.supportedOccupations.0', 'Perawat')
                 ->has('publicCommandCenter.provinces', 38)
                 ->has('publicCommandCenter.byProvince')
                 ->has('publicCommandCenter.institutionsByProvince')
