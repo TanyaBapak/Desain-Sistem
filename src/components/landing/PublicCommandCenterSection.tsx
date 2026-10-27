@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/card";
 import { Building2, Globe2, GraduationCap, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { PROGRAM_TRAINING_SECTORS } from "@/lib/constants/program-training-sectors";
 import type { PublicCommandCenterData } from "@/types";
 import {
   PublicDrilldownModal,
@@ -17,13 +18,16 @@ import {
 interface PublicCommandCenterSectionProps {
   initialData?: PublicCommandCenterData;
   programsCount: number;
+  sectorProgramCounts: Record<string, number>;
 }
 
 export const PublicCommandCenterSection: React.FC<PublicCommandCenterSectionProps> = ({
   initialData,
   programsCount,
+  sectorProgramCounts,
 }) => {
   const [activeDrilldown, setActiveDrilldown] = useState<PublicDrilldownType | null>(null);
+  const [activeProgramSector, setActiveProgramSector] = useState<string | null>(null);
 
   const scopeLabel = "Nasional (Seluruh RI)";
 
@@ -40,20 +44,6 @@ export const PublicCommandCenterSection: React.FC<PublicCommandCenterSectionProp
       allocationsCount: initialData?.national?.allocationsCount ?? 2,
     };
   }, [initialData]);
-
-  const vokasiSebaran = useMemo(() => {
-    const total = currentStats.providersCount || 1;
-    const registered = currentStats.registeredProvidersCount;
-    const pct = Math.round((registered / total) * 100);
-    return { total, registered, pct };
-  }, [currentStats]);
-
-  const nationalLpkSebaran = useMemo(() => {
-    const total = currentStats.nationalLpkCount;
-    const registered = currentStats.registeredNationalLpkCount;
-    const pct = total > 0 ? Math.round((registered / total) * 100) : 0;
-    return { total, registered, pct };
-  }, [currentStats]);
 
   const synthesizedData: PublicCommandCenterData = useMemo(() => {
     const fallbackData: PublicCommandCenterData = {
@@ -111,7 +101,7 @@ export const PublicCommandCenterSection: React.FC<PublicCommandCenterSectionProp
 
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6 gap-4">
           {/* 1. Calon Peserta */}
           <CommandStatCard
             label="Calon Peserta"
@@ -130,55 +120,62 @@ export const PublicCommandCenterSection: React.FC<PublicCommandCenterSectionProp
             onClick={() => setActiveDrilldown("program")}
           />
 
-          {/* 3. Lembaga Vokasi (LPK) */}
+          <Card className="min-w-0">
+            <CardHeader className="p-4 pb-2">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <CardTitle className="text-sm font-semibold text-foreground">
+                    Program Pelatihan per Sektor
+                  </CardTitle>
+                  <CardDescription className="text-xs">
+                    Pilih sektor untuk melihat lembaga vokasi
+                  </CardDescription>
+                </div>
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <GraduationCap className="h-4 w-4" aria-hidden="true" />
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-1 px-3 pb-3 pt-1">
+              {PROGRAM_TRAINING_SECTORS.map((sector) => (
+                <button
+                  key={sector.name}
+                  type="button"
+                  onClick={() => {
+                    setActiveProgramSector(sector.name);
+                    setActiveDrilldown("program");
+                  }}
+                  className="flex w-full min-w-0 items-center justify-between gap-2 rounded-md px-2 py-1.5 text-left text-xs hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  aria-label={`Lihat ${sectorProgramCounts[sector.name] ?? 0} program sektor ${sector.name}`}
+                >
+                  <span className="min-w-0 truncate font-medium">{sector.name}</span>
+                  <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 font-semibold tabular-nums text-muted-foreground">
+                    {sectorProgramCounts[sector.name] ?? 0}
+                  </span>
+                </button>
+              ))}
+            </CardContent>
+          </Card>
+
+          {/* Lembaga Vokasi */}
           <CommandStatCard
             label="Lembaga Vokasi"
-            value={currentStats.providersCount}
-            badge={`${currentStats.registeredProvidersCount} Terdaftar`}
-            desc="Mitra penyelenggara"
+            value={currentStats.registeredProvidersCount}
+            badge="Terverifikasi"
+            desc="Lembaga terverifikasi e-Vokasi"
             icon={Building2}
             onClick={() => setActiveDrilldown("lembaga")}
-          >
-            <div className="mt-2 space-y-1">
-              <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-                <span className="truncate max-w-[120px]">{scopeLabel}</span>
-                <span className="tabular-nums font-medium text-emerald-600 dark:text-emerald-400">
-                  {currentStats.registeredProvidersCount} / {currentStats.providersCount} ({vokasiSebaran.pct}%)
-                </span>
-              </div>
-              <div className="h-1.5 overflow-hidden rounded-full bg-muted">
-                <div
-                  className="h-full rounded-full bg-emerald-600 dark:bg-emerald-500 transition-all"
-                  style={{ width: `${Math.max(vokasiSebaran.pct, 4)}%` }}
-                />
-              </div>
-            </div>
-          </CommandStatCard>
+          />
 
           {/* 4. LPK Terdaftar Nasional */}
           <CommandStatCard
             label="LPK Terdaftar Nasional"
-            value={currentStats.nationalLpkCount}
-            badge="Seluruh RI"
-            desc="Seluruh Indonesia"
+            value={currentStats.registeredNationalLpkCount}
+            badge="Terverifikasi"
+            desc="LPK terverifikasi di seluruh Indonesia"
             icon={Building2}
             onClick={() => setActiveDrilldown("national_lpk")}
-          >
-            <div className="mt-2 space-y-1">
-              <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-                <span>Nasional</span>
-                <span className="tabular-nums font-medium text-emerald-600 dark:text-emerald-400">
-                  {currentStats.registeredNationalLpkCount} / {currentStats.nationalLpkCount} ({nationalLpkSebaran.pct}%)
-                </span>
-              </div>
-              <div className="h-1.5 overflow-hidden rounded-full bg-muted">
-                <div
-                  className="h-full rounded-full bg-emerald-600 dark:bg-emerald-500 transition-all"
-                  style={{ width: `${Math.max(nationalLpkSebaran.pct, 4)}%` }}
-                />
-              </div>
-            </div>
-          </CommandStatCard>
+          />
 
           {/* 5. Demand Luar Negeri */}
           <CommandStatCard
@@ -195,9 +192,13 @@ export const PublicCommandCenterSection: React.FC<PublicCommandCenterSectionProp
       {/* Drilldown Modal for Public */}
       <PublicDrilldownModal
         type={activeDrilldown}
-        onClose={() => setActiveDrilldown(null)}
+        onClose={() => {
+          setActiveDrilldown(null);
+          setActiveProgramSector(null);
+        }}
         scopeName={scopeLabel}
         data={synthesizedData}
+        initialSector={activeProgramSector}
       />
     </section>
   );

@@ -24,38 +24,9 @@ import type {
   PublicPreviewInstitution,
   PublicPreviewDemand,
 } from "@/types";
+import { PROGRAM_TRAINING_SECTORS } from "@/lib/constants/program-training-sectors";
 
 const NON_VOCATIONAL_INSTITUTION_TYPES = new Set(["LPK", "LKP", "BLKLN"]);
-const PROGRAM_TRAINING_SECTORS = [
-  {
-    name: "Hospitality",
-    aliases: ["hospitality"],
-  },
-  {
-    name: "Manufactur",
-    aliases: ["manufactur", "manufaktur", "manufacturing"],
-  },
-  {
-    name: "Caregiver",
-    aliases: ["caregiver", "care giver", "care-giving"],
-  },
-  {
-    name: "Health",
-    aliases: ["health", "healthcare", "health care", "kesehatan"],
-  },
-  {
-    name: "Fisherman",
-    aliases: [
-      "fisherman",
-      "fisherman (agricultur)",
-      "fishery",
-      "agricultur",
-      "agriculture",
-      "perikanan",
-      "pertanian",
-    ],
-  },
-] as const;
 
 export type PublicDrilldownType =
   | "peserta"
@@ -71,6 +42,7 @@ interface PublicDrilldownModalProps {
   onClose: () => void;
   scopeName: string;
   data: PublicCommandCenterData;
+  initialSector?: string | null;
 }
 
 export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
@@ -78,12 +50,15 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
   onClose,
   scopeName,
   data,
+  initialSector = null,
 }) => {
-  const [selectedSector, setSelectedSector] = useState<string | null>(null);
+  const [selectedSector, setSelectedSector] = useState<string | null>(
+    initialSector,
+  );
 
   useEffect(() => {
-    setSelectedSector(null);
-  }, [type]);
+    setSelectedSector(initialSector);
+  }, [type, initialSector]);
 
   if (!type) return null;
 

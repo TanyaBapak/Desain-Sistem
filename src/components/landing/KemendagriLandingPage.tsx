@@ -4,6 +4,7 @@ import {
 } from '../../store/useAppStore';
 import { LandingProjectionDashboard, LandingProjectionData } from "@/components/landing/LandingProjectionDashboard";
 import { PublicCommandCenterSection } from "@/components/landing/PublicCommandCenterSection";
+import { getProgramTrainingSectorName, PROGRAM_TRAINING_SECTORS } from "@/lib/constants/program-training-sectors";
 import { UserRole, PublicCommandCenterData } from '../../types';
 import { LOGO_URL } from '@/lib/assets';
 import {
@@ -67,20 +68,27 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
   const vocationalCount = kpiSummary.metrics.find(
     (metric) => metric.key === "activeVocationalInstitutions",
   )?.value;
-  const visibleTargetProgramCount = new Set(
-    projection.placementTargets
-      .filter(
-        (target) =>
-          target.sectorName.trim() !== "" &&
-          target.occupationName.trim() !== "",
-      )
-      .map((target) =>
-        [
-          target.sectorName.trim().toLocaleLowerCase("id-ID"),
-          target.occupationName.trim().toLocaleLowerCase("id-ID"),
-        ].join("|"),
-      ),
-  ).size;
+  const sectorProgramCounts = Object.fromEntries(
+    PROGRAM_TRAINING_SECTORS.map((sector) => [
+      sector.name,
+      new Set(
+        projection.placementTargets
+          .filter(
+            (target) =>
+              getProgramTrainingSectorName(
+                target.sectorName,
+                target.occupationName,
+              ) === sector.name,
+          )
+          .map((target) =>
+            [
+              sector.name,
+              target.occupationName.trim().toLocaleLowerCase("id-ID"),
+            ].join("|"),
+          ),
+      ).size,
+    ]),
+  );
 
   const handleSelectRole = (roleId: UserRole) => {
     void roleId;
@@ -349,7 +357,8 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
       {/* 5. PUBLIC COMMAND CENTER DASHBOARD & SEBARAN WILAYAH */}
       <PublicCommandCenterSection
         initialData={publicCommandCenter}
-        programsCount={visibleTargetProgramCount}
+        programsCount={PROGRAM_TRAINING_SECTORS.length}
+        sectorProgramCounts={sectorProgramCounts}
       />
 
       <LandingProjectionDashboard projection={projection} />
