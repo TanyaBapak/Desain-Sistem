@@ -37,10 +37,14 @@ const PROGRAM_TRAINING_SECTORS = [
   },
   {
     name: "Caregiver",
-    aliases: ["caregiver", "care giver", "care-giving", "kesehatan"],
+    aliases: ["caregiver", "care giver", "care-giving"],
   },
   {
-    name: "Fisherman (Agricultur)",
+    name: "Health",
+    aliases: ["health", "healthcare", "health care", "kesehatan"],
+  },
+  {
+    name: "Fisherman",
     aliases: [
       "fisherman",
       "fisherman (agricultur)",
