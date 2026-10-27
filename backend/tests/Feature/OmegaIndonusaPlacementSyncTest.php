@@ -52,8 +52,18 @@ class OmegaIndonusaPlacementSyncTest extends TestCase
         $syncService = app(GardataPlacementSyncService::class);
         $result = $syncService->ensureIndonusaCandidates(true);
 
-        $this->assertSame(10, $result['inserted']);
-        $this->assertSame(10, DB::table('job_seekers')->where('institution_name', 'Politeknik Indonusa Surakarta')->count());
+        $this->assertSame(50, $result['inserted']);
+        $this->assertSame(50, DB::table('job_seekers')->where('institution_name', 'Politeknik Indonusa Surakarta')->count());
+
+        // Pastikan kelas manufaktur dan waiter tersinkronkan
+        $this->assertGreaterThanOrEqual(10, DB::table('external_training_records')
+            ->where('external_source', 'sippmi')
+            ->where('class_code', 'INDO-MFG-2026')
+            ->count());
+        $this->assertGreaterThanOrEqual(10, DB::table('external_training_records')
+            ->where('external_source', 'sippmi')
+            ->where('class_code', 'INDO-WAIT-2026')
+            ->count());
 
         $suciUser = User::query()->where('email', 'sucipurwandari@sippmi.co')->first();
         $this->assertNotNull($suciUser);
@@ -67,7 +77,7 @@ class OmegaIndonusaPlacementSyncTest extends TestCase
         $this->assertContains('Politeknik Indonusa Surakarta', $scope['patterns']);
 
         $data = $presenter->make($suciUser);
-        $this->assertGreaterThanOrEqual(10, count($data['candidates']));
+        $this->assertGreaterThanOrEqual(50, count($data['candidates']));
         foreach ($data['candidates'] as $candidate) {
             $this->assertSame('Politeknik Indonusa Surakarta', $candidate['institutionName']);
         }
@@ -83,6 +93,53 @@ class OmegaIndonusaPlacementSyncTest extends TestCase
         $this->artisan('gardata:sync', ['--tenant' => 'Indonusa', '--force' => true])
             ->assertSuccessful();
 
-        $this->assertSame(10, DB::table('job_seekers')->where('institution_name', 'Politeknik Indonusa Surakarta')->count());
+        $this->assertSame(50, DB::table('job_seekers')->where('institution_name', 'Politeknik Indonusa Surakarta')->count());
+    }
+
+    public function test_monitoring_presents_all_subdomain_candidates_without_bp3mi_truncation(): void
+    {
+        $syncService = app(GardataPlacementSyncService::class);
+        $syncService->ensureOmegaCandidates(true);
+        $syncService->ensureIndonusaCandidates(true);
+
+        // Simulasi user Task Force dengan lingkup aktif BP3MI Jawa Timur (province_id = '35')
+        $taskForceUser = User::query()->where('email', 'contoh@kemnaker.go.id')->first();
+        if (! $taskForceUser) {
+            $taskForceUser = User::factory()->create([
+                'email' => 'contoh@kemnaker.go.id',
+                'name' => 'Admin Task Force Nasional',
+                'province_id' => '35',
+            ]);
+            $roleId = DB::table('roles')->where('name', 'task_force')->value('id');
+            if ($roleId) {
+                $taskForceUser->roles()->attach($roleId);
+            }
+        } else {
+            $taskForceUser->update(['province_id' => '35']);
+        }
+
+        $presenter = app(BusinessDataPresenter::class);
+
+        // Semua Subdomain harus menampilkan seluruh peserta gabungan tanpa terpotong filter domisili
+        $allData = $presenter->make($taskForceUser, ['tab' => 'sippmi-monitoring', 'candidateSource' => 'all']);
+        $this->assertGreaterThanOrEqual(60, $allData['monitoring']['candidatePagination']['total']);
+
+        // Filter Politeknik Indonusa Surakarta (sippmi.com) harus menampilkan seluruh 50 siswa
+        $indonusaData = $presenter->make($taskForceUser, ['tab' => 'sippmi-monitoring', 'candidateSource' => 'sippmi.com', 'candidatePerPage' => 50]);
+        $this->assertSame(50, $indonusaData['monitoring']['candidatePagination']['total']);
+        $this->assertSame(50, count($indonusaData['monitoring']['candidates']));
+        foreach ($indonusaData['monitoring']['candidates'] as $candidate) {
+            $this->assertSame('Politeknik Indonusa Surakarta', $candidate['institutionName']);
+            $this->assertSame('sippmi.com', $candidate['subdomain']);
+        }
+
+        // Filter LPK Omega Hotel Academy harus menampilkan seluruh 10 siswa
+        $omegaData = $presenter->make($taskForceUser, ['tab' => 'sippmi-monitoring', 'candidateSource' => 'omegahotelacademy.sippmi.com']);
+        $this->assertSame(10, $omegaData['monitoring']['candidatePagination']['total']);
+        $this->assertSame(10, count($omegaData['monitoring']['candidates']));
+        foreach ($omegaData['monitoring']['candidates'] as $candidate) {
+            $this->assertSame('LPK Omega Hotel Academy', $candidate['institutionName']);
+            $this->assertSame('omegahotelacademy.sippmi.com', $candidate['subdomain']);
+        }
     }
 }

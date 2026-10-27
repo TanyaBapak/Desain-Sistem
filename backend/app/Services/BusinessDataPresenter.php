@@ -2133,12 +2133,6 @@ class BusinessDataPresenter
             ->leftJoin('job_seekers', 'job_seekers.id', '=', 'external_training_records.job_seeker_id')
             ->whereIn('external_training_records.external_source', ['gardata', 'sippmi'])
             ->when(! $canViewGardata, fn ($query) => $query->whereRaw('1 = 0'));
-        if ($this->bp3miScope->hasActiveAreaFilter($user)) {
-            $externalClasses
-                ->leftJoin('provinces', 'provinces.id', '=', 'job_seekers.province_id')
-                ->whereNull('job_seekers.deleted_at');
-            $this->bp3miScope->applyToJobSeekers($externalClasses, $user);
-        }
 
         $externalClasses = $externalClasses
             ->select('external_training_records.*', 'job_seekers.institution_name')
@@ -2278,7 +2272,10 @@ class BusinessDataPresenter
                     });
             });
             if ($candidateSource === 'sippmi.com') {
-                $query->where('job_seekers.external_source', 'sippmi');
+                $query->where(function ($q): void {
+                    $q->where('job_seekers.external_source', 'sippmi')
+                        ->orWhere('job_seekers.institution_name', 'LIKE', '%Indonusa%');
+                });
             } elseif ($candidateSource !== 'all') {
                 $tenant = collect(GardataPlacementSyncService::KNOWN_SUBDOMAINS)
                     ->firstWhere('subdomain', $candidateSource);
@@ -2300,11 +2297,6 @@ class BusinessDataPresenter
             ->whereNull('job_seekers.deleted_at')
             ->where($candidateSourceFilter);
         $candidatePage = $this->pageWindow($filters, 'candidate', 25);
-        if ($this->bp3miScope->hasActiveAreaFilter($user)) {
-            $this->bp3miScope->applyToJobSeekers($gardataCandidatesQuery, $user);
-            $candidateCountQuery->join('provinces', 'provinces.id', '=', 'job_seekers.province_id');
-            $this->bp3miScope->applyToJobSeekers($candidateCountQuery, $user);
-        }
         $candidateTotal = $canViewGardata ? (clone $candidateCountQuery)->count('job_seekers.id') : 0;
         $candidatePageCount = max((int) ceil($candidateTotal / $candidatePage['perPage']), 1);
         $candidatePage['page'] = min($candidatePage['page'], $candidatePageCount);
@@ -2328,11 +2320,11 @@ class BusinessDataPresenter
         $gardataCandidates = $candidateRows->map(fn (object $row): array => [
             'id' => $row->id,
             'fullName' => $row->full_name,
-            'institutionName' => $row->external_source === 'sippmi'
+            'institutionName' => ($row->external_source === 'sippmi' || stripos((string) $row->institution_name, 'Indonusa') !== false)
                 ? 'Politeknik Indonusa Surakarta'
                 : $row->institution_name,
             'subdomain' => match (true) {
-                $row->external_source === 'sippmi' => 'sippmi.com',
+                $row->external_source === 'sippmi' || stripos((string) $row->institution_name, 'Indonusa') !== false => 'sippmi.com',
                 stripos((string) $row->institution_name, 'Omega') !== false => 'omegahotelacademy.sippmi.com',
                 stripos((string) $row->institution_name, 'Victoria') !== false => 'victoriahotelschool.sippmi.com',
                 stripos((string) $row->institution_name, 'Duta') !== false => 'dutainternationalcourse.sippmi.com',
@@ -2449,13 +2441,11 @@ class BusinessDataPresenter
             $candCount = DB::table('job_seekers')
                 ->whereNull('deleted_at')
                 ->where(function ($query) use ($searchKey): void {
-                    $query->where('external_source', 'gardata')
-                        ->where('institution_name', 'LIKE', '%'.$searchKey.'%');
-                })
-                ->orWhere(function ($query) use ($searchKey): void {
-                    $query->whereNull('external_source')
-                        ->whereNull('deleted_at')
-                        ->where('institution_name', 'LIKE', '%'.$searchKey.'%');
+                    $query->where('institution_name', 'LIKE', '%'.$searchKey.'%')
+                        ->where(function ($q): void {
+                            $q->whereIn('external_source', ['gardata', 'sippmi'])
+                                ->orWhereNull('external_source');
+                        });
                 })
                 ->count();
 
@@ -2490,10 +2480,20 @@ class BusinessDataPresenter
             'district' => 'Surakarta',
             'candidateCount' => DB::table('job_seekers')
                 ->whereNull('deleted_at')
-                ->where('external_source', 'sippmi')
+                ->where(function ($q): void {
+                    $q->where('external_source', 'sippmi')
+                        ->orWhere('institution_name', 'LIKE', '%Indonusa%');
+                })
                 ->count(),
             'classCount' => DB::table('external_training_records')
-                ->where('external_source', 'sippmi')
+                ->where(function ($q): void {
+                    $q->where('external_source', 'sippmi')
+                        ->orWhereIn('job_seeker_id', function ($sub): void {
+                            $sub->select('id')
+                                ->from('job_seekers')
+                                ->where('institution_name', 'LIKE', '%Indonusa%');
+                        });
+                })
                 ->distinct('external_batch_id')
                 ->count('external_batch_id'),
         ])->all();
