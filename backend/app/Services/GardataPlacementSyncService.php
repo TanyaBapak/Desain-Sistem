@@ -1767,7 +1767,8 @@ class GardataPlacementSyncService
             $id = 'CAND-'.Str::upper(substr(hash('sha256', $cand['external_id']), 0, 10));
 
             $existing = DB::table('job_seekers')
-                ->where('external_id', $cand['external_id'])
+                ->where('id', $id)
+                ->orWhere('external_id', $cand['external_id'])
                 ->orWhere('nik', $cand['nik'])
                 ->first(['id', 'institution_id', 'institution_name']);
 
@@ -1792,24 +1793,29 @@ class GardataPlacementSyncService
                 'work_experiences' => json_encode($cand['work_experiences']),
                 'certifications' => json_encode($cand['certifications']),
                 'preferred_sectors' => json_encode(['Tourism, Travel, dan Hospitality']),
+                'deleted_at' => null,
                 'updated_at' => $now,
             ];
 
             if ($existing) {
-                if ($force || $existing->institution_name !== 'LPK Omega Hotel Academy' || $existing->institution_id !== $institutionId) {
-                    DB::table('job_seekers')->where('id', $existing->id)->update($attributes);
-                    $updated++;
-                }
-                $candidateId = $existing->id;
-            } else {
-                DB::table('job_seekers')->insert([
+                DB::table('job_seekers')->where('id', $existing->id)->update([
                     'id' => $id,
-                    'registration_number' => 'REG-'.Str::upper(Str::random(10)),
                     'nik' => $cand['nik'],
-                    'created_by' => 'Eko Priyono Prasetyo',
                     ...$attributes,
-                    'created_at' => $now,
                 ]);
+                $updated++;
+                $candidateId = $id;
+            } else {
+                DB::table('job_seekers')->updateOrInsert(
+                    ['id' => $id],
+                    [
+                        'registration_number' => 'REG-'.Str::upper(Str::random(10)),
+                        'nik' => $cand['nik'],
+                        'created_by' => 'Eko Priyono Prasetyo',
+                        ...$attributes,
+                        'created_at' => $now,
+                    ]
+                );
                 $inserted++;
                 $candidateId = $id;
             }
@@ -1941,7 +1947,8 @@ class GardataPlacementSyncService
             $id = 'CAND-'.Str::upper(substr(hash('sha256', $cand['external_id']), 0, 10));
 
             $existing = DB::table('job_seekers')
-                ->where('external_id', $cand['external_id'])
+                ->where('id', $id)
+                ->orWhere('external_id', $cand['external_id'])
                 ->orWhere('nik', $cand['nik'])
                 ->first(['id', 'institution_id', 'institution_name', 'external_source']);
 
@@ -1966,24 +1973,29 @@ class GardataPlacementSyncService
                 'work_experiences' => json_encode($cand['work_experiences']),
                 'certifications' => json_encode($cand['certifications']),
                 'preferred_sectors' => json_encode([$cand['sector_name']]),
+                'deleted_at' => null,
                 'updated_at' => $now,
             ];
 
             if ($existing) {
-                if ($force || $existing->institution_name !== 'Politeknik Indonusa Surakarta' || $existing->institution_id !== $institutionId || $existing->external_source !== 'sippmi') {
-                    DB::table('job_seekers')->where('id', $existing->id)->update($attributes);
-                    $updated++;
-                }
-                $candidateId = $existing->id;
-            } else {
-                DB::table('job_seekers')->insert([
+                DB::table('job_seekers')->where('id', $existing->id)->update([
                     'id' => $id,
-                    'registration_number' => 'SIPPMI-'.Str::upper(Str::random(10)),
                     'nik' => $cand['nik'],
-                    'created_by' => 'Ir. Suci Purwandari, M.M, Ph.D',
                     ...$attributes,
-                    'created_at' => $now,
                 ]);
+                $updated++;
+                $candidateId = $id;
+            } else {
+                DB::table('job_seekers')->updateOrInsert(
+                    ['id' => $id],
+                    [
+                        'registration_number' => 'SIPPMI-'.Str::upper(Str::random(10)),
+                        'nik' => $cand['nik'],
+                        'created_by' => 'Ir. Suci Purwandari, M.M, Ph.D',
+                        ...$attributes,
+                        'created_at' => $now,
+                    ]
+                );
                 $inserted++;
                 $candidateId = $id;
             }
