@@ -25,10 +25,10 @@ export const ProgramFormModal: React.FC<ProgramFormModalProps> = ({
   const [targetJobRole, setTargetJobRole] = useState('Welder SMAW / GMAW');
   const [targetCountry, setTargetCountry] = useState('Jepang');
   const [institutionId, setInstitutionId] = useState('');
-  const [durationJP, setDurationJP] = useState(0);
+  const [durationJP, setDurationJP] = useState<number | string>('');
   const [certificationTarget, setCertificationTarget] = useState('');
-  const [estimatedCostPerParticipant, setEstimatedCostPerParticipant] = useState(0);
-  const [quota, setQuota] = useState(1);
+  const [estimatedCostPerParticipant, setEstimatedCostPerParticipant] = useState<number | string>('');
+  const [quota, setQuota] = useState<number | string>('');
   const [enrolledCount, setEnrolledCount] = useState(0);
   const [scheduleStart, setScheduleStart] = useState('');
   const [scheduleEnd, setScheduleEnd] = useState('');
@@ -45,10 +45,10 @@ export const ProgramFormModal: React.FC<ProgramFormModalProps> = ({
       setTargetJobRole(initialData.targetJobRole);
       setTargetCountry(initialData.targetCountry);
       setInstitutionId(initialData.institutionId ?? businessOptions.institutions[0]?.id ?? '');
-      setDurationJP(initialData.durationJP);
+      setDurationJP(initialData.durationJP ?? '');
       setCertificationTarget(initialData.certificationTarget);
-      setEstimatedCostPerParticipant(initialData.estimatedCostPerParticipant);
-      setQuota(initialData.quota);
+      setEstimatedCostPerParticipant(initialData.estimatedCostPerParticipant ?? '');
+      setQuota(initialData.quota ?? '');
       setEnrolledCount(initialData.enrolledCount);
       setScheduleStart(initialData.scheduleStart || '');
       setScheduleEnd(initialData.scheduleEnd || '');
@@ -64,10 +64,10 @@ export const ProgramFormModal: React.FC<ProgramFormModalProps> = ({
       setTargetJobRole('Welder SMAW / GMAW');
       setTargetCountry('Jepang');
       setInstitutionId(businessOptions.institutions[0]?.id ?? '');
-      setDurationJP(0);
+      setDurationJP('');
       setCertificationTarget('');
-      setEstimatedCostPerParticipant(0);
-      setQuota(1);
+      setEstimatedCostPerParticipant('');
+      setQuota('');
       setEnrolledCount(0);
       setScheduleStart('');
       setScheduleEnd('');
@@ -93,10 +93,10 @@ export const ProgramFormModal: React.FC<ProgramFormModalProps> = ({
       targetJobRole,
       targetCountry,
       institutionId,
-      durationJP: Number(durationJP),
+      durationJP: durationJP === '' ? 0 : Number(durationJP),
       certificationTarget,
-      estimatedCostPerParticipant: Number(estimatedCostPerParticipant),
-      quota: Number(quota),
+      estimatedCostPerParticipant: estimatedCostPerParticipant === '' ? 0 : Number(estimatedCostPerParticipant),
+      quota: quota === '' ? 1 : Number(quota),
       enrolledCount: Number(enrolledCount),
       scheduleStart,
       scheduleEnd,
@@ -251,11 +251,12 @@ export const ProgramFormModal: React.FC<ProgramFormModalProps> = ({
               </label>
               <input
                 type="number"
-                min={20}
-                max={1200}
+                min={0}
+                step="any"
                 required
                 value={durationJP}
-                onChange={(e) => setDurationJP(Number(e.target.value))}
+                onChange={(e) => setDurationJP(e.target.value)}
+                placeholder="Contoh: 180"
                 className="w-full text-xs p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-slate-50"
               />
             </div>
@@ -281,10 +282,11 @@ export const ProgramFormModal: React.FC<ProgramFormModalProps> = ({
               <input
                 type="number"
                 min={0}
-                step={500000}
+                step="any"
                 required
                 value={estimatedCostPerParticipant}
-                onChange={(e) => setEstimatedCostPerParticipant(Number(e.target.value))}
+                onChange={(e) => setEstimatedCostPerParticipant(e.target.value)}
+                placeholder="Contoh: 13400000"
                 className="w-full text-xs p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-slate-50"
               />
             </div>
@@ -298,11 +300,12 @@ export const ProgramFormModal: React.FC<ProgramFormModalProps> = ({
               </label>
               <input
                 type="number"
-                min={5}
-                max={500}
+                min={0}
+                step="any"
                 required
                 value={quota}
-                onChange={(e) => setQuota(Number(e.target.value))}
+                onChange={(e) => setQuota(e.target.value)}
+                placeholder="Contoh: 30"
                 className="w-full text-xs p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-slate-50"
               />
             </div>

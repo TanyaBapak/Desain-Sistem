@@ -448,10 +448,10 @@ class BusinessDataController extends Controller
                 'targetJobRole' => ['required', 'string', 'max:150'],
                 'targetCountry' => ['required', 'string', 'max:100'],
                 'institutionId' => ['required', 'string', 'exists:institutions,id'],
-                'durationJP' => ['required', 'integer', 'min:1', 'max:10000'],
+                'durationJP' => ['required', 'integer', 'min:0', 'max:100000'],
                 'certificationTarget' => ['required', 'string', 'max:150'],
                 'estimatedCostPerParticipant' => ['required', 'numeric', 'min:0'],
-                'quota' => ['required', 'integer', 'min:1', 'max:100000'],
+                'quota' => ['required', 'integer', 'min:0', 'max:100000'],
                 'scheduleStart' => ['nullable', 'date'],
                 'scheduleEnd' => ['nullable', 'date', 'after_or_equal:scheduleStart'],
                 'curriculumOutline' => ['array'],
@@ -656,7 +656,7 @@ class BusinessDataController extends Controller
         ];
 
         if ($creating) {
-            $attributes += ['status' => 'Nonaktif', 'created_at' => now()];
+            $attributes += ['status' => 'Aktif', 'created_at' => now()];
             DB::table('training_programs')->insert(['id' => $id] + $attributes);
         } else {
             DB::table('training_programs')->where('id', $id)->update($attributes);
@@ -900,7 +900,7 @@ class BusinessDataController extends Controller
                 'updated_at' => $now,
             ]),
             'programs' => DB::table('training_programs')->where('id', $id)->update([
-                'status' => 'Nonaktif',
+                'status' => 'Aktif',
                 'updated_at' => $now,
             ]),
             'providers' => DB::table('institutions')->where('id', $id)->update([
