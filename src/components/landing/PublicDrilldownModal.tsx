@@ -331,10 +331,10 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
                 </div>
                 <div>
                   <h4 className="text-sm font-bold text-foreground">
-                    Lowongan Permintaan Kerja Luar Negeri (Demand)
+                    Permintaan Kerja Luar Negeri
                   </h4>
                   <p className="text-xs text-muted-foreground">
-                    Demand resmi tervalidasi dari mitra employer & program G to G / P to P
+                    Permintaan resmi yang tervalidasi dari mitra dan program G to G / P to P
                   </p>
                 </div>
               </div>
@@ -386,7 +386,7 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
                     Alokasi Penempatan Batch & Tracking
                   </h4>
                   <p className="text-xs text-muted-foreground">
-                    Proses alokasi batch pelatihan terverifikasi ke demand pemberi kerja luar negeri
+                    Proses alokasi batch pelatihan terverifikasi ke permintaan pemberi kerja luar negeri
                   </p>
                 </div>
               </div>
@@ -406,7 +406,7 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
                 </li>
                 <li className="flex items-start gap-2">
                   <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
-                  <span>Tahap 3: Analisis kesenjangan & smart matching kuota lembaga vs demand.</span>
+                  <span>Tahap 3: Analisis kesenjangan dan pencocokan kuota lembaga dengan permintaan.</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <Clock className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
@@ -436,7 +436,7 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
       case "national_lpk":
         return "Sebaran LPK Nasional";
       case "demand":
-        return "Lowongan Kerja Luar Negeri";
+        return "Permintaan Kerja Luar Negeri";
       case "alokasi":
         return "Status Alokasi Penempatan";
       default:

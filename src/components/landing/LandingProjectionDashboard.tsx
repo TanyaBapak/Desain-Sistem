@@ -86,8 +86,8 @@ export function LandingProjectionDashboard({ projection }: LandingProjectionDash
 
         <p className="text-xs text-muted-foreground">
           Proyeksi menunjukkan sisa target dari kuota yang tercatat, bukan perkiraan otomatis
-          keberangkatan. Capaian memakai demand berstatus disetujui berdasarkan tahun pembuatan
-          demand.
+          keberangkatan. Capaian memakai permintaan berstatus disetujui berdasarkan tahun
+          pembuatannya.
         </p>
       </div>
     </section>

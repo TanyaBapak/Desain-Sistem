@@ -177,9 +177,9 @@ export const PublicCommandCenterSection: React.FC<PublicCommandCenterSectionProp
             onClick={() => setActiveDrilldown("national_lpk")}
           />
 
-          {/* 5. Demand Luar Negeri */}
+          {/* 5. Permintaan Luar Negeri */}
           <CommandStatCard
-            label="Demand Luar Negeri"
+            label="Permintaan Luar Negeri"
             value={currentStats.demandsCount}
             desc="Lowongan kerja LN"
             icon={Globe2}

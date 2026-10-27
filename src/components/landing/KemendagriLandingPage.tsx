@@ -303,7 +303,7 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
                 INFORMASI PROGRAM
               </span>
               <h3 className="text-base font-bold text-white mt-0.5">
-                Suplai, Pelatihan, dan Demand
+                Suplai, Pelatihan, dan Permintaan
               </h3>
             </div>
 
@@ -340,7 +340,7 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
               </article>
 
               <article className="rounded-xl border border-slate-700/60 bg-slate-800/80 p-3">
-                <span className="block font-bold uppercase text-slate-400">Permintaan / Demand</span>
+                <span className="block font-bold uppercase text-slate-400">Permintaan</span>
                 <ul className="mt-2 flex flex-wrap gap-x-3 gap-y-1.5 text-slate-200">
                   {DEMAND_COUNTRIES.map((country) => (
                     <li key={country} className="before:mr-1.5 before:content-['•']">
