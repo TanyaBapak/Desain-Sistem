@@ -8,7 +8,6 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   ArrowLeft,
   GraduationCap,
@@ -89,7 +88,7 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
     : [];
 
   const renderInstitutionList = (items: PublicPreviewInstitution[]) => (
-    <ScrollArea className="h-72 rounded-lg border border-border p-2">
+    <div className="rounded-lg border border-border p-2">
       {items.length === 0 ? (
         <p className="p-5 text-center text-sm text-muted-foreground">
           Belum ada lembaga vokasi yang sesuai dengan pilihan ini.
@@ -104,9 +103,9 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
                 key={institution.id}
                 className="rounded-lg border border-border/80 bg-card p-3 space-y-1.5"
               >
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <h6 className="text-sm font-semibold text-foreground">
+                <div className="flex min-w-0 items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <h6 className="break-words text-sm font-semibold text-foreground">
                       {institution.name}
                     </h6>
                     <p className="mt-0.5 text-xs text-muted-foreground">
@@ -118,8 +117,8 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
                     variant={isVerified ? "default" : "outline"}
                     className={
                       isVerified
-                        ? "bg-emerald-600/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 text-xs"
-                        : "text-xs"
+                        ? "max-w-[45%] shrink-0 whitespace-normal break-words bg-emerald-600/10 text-right text-xs text-emerald-700 dark:text-emerald-400 border border-emerald-500/20"
+                        : "max-w-[45%] shrink-0 whitespace-normal break-words text-right text-xs"
                     }
                   >
                     {institution.evokasiStatus || "Terdaftar"}
@@ -146,7 +145,7 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
           })}
         </div>
       )}
-    </ScrollArea>
+    </div>
   );
 
   const renderContent = () => {
@@ -235,7 +234,9 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
                         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
                           <BriefcaseBusiness className="h-4 w-4" aria-hidden="true" />
                         </span>
-                        <span className="text-sm font-semibold">{sector}</span>
+                        <span className="min-w-0 flex-1 break-words text-sm font-semibold">
+                          {sector}
+                        </span>
                       </button>
                     ))}
                   </div>
@@ -264,7 +265,7 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
               </div>
             </div>
 
-            <ScrollArea className="h-72 rounded-lg border border-border">
+            <div className="rounded-lg border border-border">
               <div className="p-3 divide-y divide-border/60">
                 {(nationalLpkList.length > 0
                   ? nationalLpkList
@@ -308,7 +309,7 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
                   );
                 })}
               </div>
-            </ScrollArea>
+            </div>
           </div>
         );
 
@@ -331,7 +332,7 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
               </div>
             </div>
 
-            <ScrollArea className="h-72 rounded-lg border border-border p-2">
+            <div className="rounded-lg border border-border p-2">
               <div className="space-y-2.5">
                 {(demands.length > 0
                   ? demands
@@ -360,7 +361,7 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
                   </div>
                 ))}
               </div>
-            </ScrollArea>
+            </div>
           </div>
         );
 
@@ -437,7 +438,7 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
 
   return (
     <Dialog open={Boolean(type)} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-xl max-h-[85vh] overflow-y-auto p-6 gap-4">
+      <DialogContent className="flex w-[calc(100%-2rem)] max-w-xl max-h-[calc(100dvh-2rem)] flex-col gap-4 overflow-hidden p-4 sm:p-6">
         <DialogHeader className="space-y-1">
           <DialogTitle className="text-lg font-bold text-foreground">
             {getTitle()}
@@ -447,9 +448,11 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
           </DialogDescription>
         </DialogHeader>
 
-        {renderContent()}
+        <div className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain pr-1">
+          {renderContent()}
+        </div>
 
-        <div className="flex justify-end pt-2 border-t border-border">
+        <div className="flex shrink-0 justify-end border-t border-border pt-2">
           <Button type="button" variant="outline" size="sm" onClick={onClose}>
             Tutup
           </Button>
