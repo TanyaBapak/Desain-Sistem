@@ -22,6 +22,10 @@ class UserManagementController extends Controller
 
         $roleFilter = $request->query('role');
         $search = $request->query('search');
+        $requestedPerPage = filter_var($request->query('per_page', 50), FILTER_VALIDATE_INT);
+        $perPage = in_array($requestedPerPage, [15, 25, 50, 100], true)
+            ? $requestedPerPage
+            : 50;
 
         $query = User::query()
             ->with('roles:id,name,title');
@@ -42,7 +46,7 @@ class UserManagementController extends Controller
         }
 
         $users = $query->orderBy('name')
-            ->paginate(15)
+            ->paginate($perPage)
             ->withQueryString();
 
         $users->through(fn (User $user): array => [
@@ -66,6 +70,7 @@ class UserManagementController extends Controller
             'currentPage' => $users->currentPage(),
             'lastPage' => $users->lastPage(),
             'total' => $users->total(),
+            'perPage' => $users->perPage(),
             'selectedRole' => (string) ($roleFilter ?? ''),
             'search' => (string) ($search ?? ''),
             'roles' => rescue(fn () => Role::query()

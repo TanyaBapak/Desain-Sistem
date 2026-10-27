@@ -26,8 +26,13 @@ export function UserManagementPage({ adminUsers, currentUserId }: UserManagement
     setSearchKeyword(adminUsers.search ?? "");
   }, [adminUsers.selectedRole, adminUsers.search]);
 
-  function navigateWithFilters(page = 1, role = selectedRole, query = searchKeyword) {
-    const params: Record<string, string | number> = { page };
+  function navigateWithFilters(
+    page = 1,
+    role = selectedRole,
+    query = searchKeyword,
+    perPage = adminUsers?.perPage ?? 50,
+  ) {
+    const params: Record<string, string | number> = { page, per_page: perPage };
     if (role && role !== "all") {
       params.role = role;
     }
@@ -49,6 +54,10 @@ export function UserManagementPage({ adminUsers, currentUserId }: UserManagement
   function handleSearchSubmit(event: React.FormEvent) {
     event.preventDefault();
     navigateWithFilters(1, selectedRole, searchKeyword);
+  }
+
+  function handlePerPageChange(value: number) {
+    navigateWithFilters(1, selectedRole, searchKeyword, value);
   }
 
   function handleReset() {
@@ -100,6 +109,20 @@ export function UserManagementPage({ adminUsers, currentUserId }: UserManagement
                 </option>
               ))}
             </select>
+            <label className="flex items-center gap-2 text-sm text-muted-foreground">
+              <span>Tampilkan</span>
+              <select
+                aria-label="Jumlah user per halaman"
+                className="h-9 rounded-md border border-input bg-background px-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                value={adminUsers.perPage}
+                onChange={(event) => handlePerPageChange(Number(event.target.value))}
+              >
+                {[15, 25, 50, 100].map((pageSize) => (
+                  <option key={pageSize} value={pageSize}>{pageSize}</option>
+                ))}
+              </select>
+              <span>user</span>
+            </label>
             {(selectedRole || searchKeyword) && (
               <Button
                 type="button"
@@ -149,7 +172,14 @@ export function UserManagementPage({ adminUsers, currentUserId }: UserManagement
             </div>
           )}
           <div className="mt-4 flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">Halaman {adminUsers.currentPage} dari {adminUsers.lastPage}</span>
+            <span className="text-muted-foreground">
+              Menampilkan{" "}
+              {adminUsers.total === 0
+                ? 0
+                : (adminUsers.currentPage - 1) * adminUsers.perPage + 1}
+              –{Math.min(adminUsers.currentPage * adminUsers.perPage, adminUsers.total)} dari{" "}
+              {adminUsers.total} user · Halaman {adminUsers.currentPage} dari {adminUsers.lastPage}
+            </span>
             <div className="flex gap-2">
               <Button
                 variant="outline"
@@ -172,4 +202,3 @@ export function UserManagementPage({ adminUsers, currentUserId }: UserManagement
     </div>
   );
 }
-

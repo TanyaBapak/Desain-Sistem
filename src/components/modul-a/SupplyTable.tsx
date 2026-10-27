@@ -348,7 +348,18 @@ export const SupplyTable: React.FC = () => {
   ]);
 
   const pageCount = Math.max(1, Math.ceil(filteredCandidates.length / pageSize));
-  const visibleCandidates = filteredCandidates.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const activePage = Math.min(currentPage, pageCount);
+  const visibleCandidates = filteredCandidates.slice(
+    (activePage - 1) * pageSize,
+    activePage * pageSize,
+  );
+
+  useEffect(() => {
+    if (currentPage > pageCount) {
+      setCurrentPage(pageCount);
+    }
+  }, [currentPage, pageCount]);
+
   const filteredRegionalSummary = topCounts(filteredCandidates.map((candidate) => candidate.provinsi));
   const filteredSkillSummary = topCounts(filteredCandidates.flatMap((candidate) => candidate.skills));
   const filteredCountrySummary = topCounts(filteredCandidates.flatMap((candidate) => candidate.preferredCountry));
@@ -1152,7 +1163,7 @@ export const SupplyTable: React.FC = () => {
         <nav aria-label="Halaman daftar calon PMI" className="flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-slate-200 px-4 py-3 text-sm">
           <div className="flex flex-wrap items-center gap-2 text-slate-600">
             <span>
-              Halaman {currentPage} dari {pageCount} · {filteredCandidates.length} hasil
+              Halaman {activePage} dari {pageCount} · {filteredCandidates.length} hasil
             </span>
             <span className="text-slate-300 hidden sm:inline">|</span>
             <label className="flex items-center gap-1.5 text-xs text-slate-500">
@@ -1174,10 +1185,10 @@ export const SupplyTable: React.FC = () => {
             </label>
           </div>
           <div className="flex gap-2">
-            <button type="button" onClick={() => setCurrentPage((page) => Math.max(1, page - 1))} disabled={currentPage === 1} className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-xs hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50">
+            <button type="button" onClick={() => setCurrentPage((page) => Math.max(1, page - 1))} disabled={activePage <= 1} className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-xs hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50">
               Sebelumnya
             </button>
-            <button type="button" onClick={() => setCurrentPage((page) => Math.min(pageCount, page + 1))} disabled={currentPage === pageCount} className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-xs hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50">
+            <button type="button" onClick={() => setCurrentPage((page) => Math.min(pageCount, page + 1))} disabled={activePage >= pageCount} className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-xs hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50">
               Berikutnya
             </button>
           </div>

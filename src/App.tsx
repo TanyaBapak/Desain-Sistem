@@ -226,6 +226,7 @@ interface AppProps {
     currentPage: number;
     lastPage: number;
     total: number;
+    perPage: number;
     roles: { name: string; title: string }[];
     provinces: { id: string; name: string }[];
     districts: { id: string; province_id: string; name: string }[];

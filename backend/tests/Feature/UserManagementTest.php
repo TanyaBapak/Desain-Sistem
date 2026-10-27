@@ -34,7 +34,8 @@ class UserManagementTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->has('adminUsers.data')
-                ->where('adminUsers.total', 1));
+                ->where('adminUsers.total', 1)
+                ->where('adminUsers.perPage', 50));
 
         $this->post('/admin/users', [
             'name' => 'Petugas Daerah Contoh',
@@ -472,6 +473,29 @@ class UserManagementTest extends TestCase
                 ->where('adminUsers.total', 1)
                 ->where('adminUsers.search', 'Disnaker')
                 ->where('adminUsers.data.0.name', 'Operator Disnaker'));
+    }
+
+    public function test_super_admin_can_view_fifty_users_per_page_and_change_page_size(): void
+    {
+        $admin = $this->userWithRole('super_admin');
+        User::factory()->count(54)->create();
+        $this->actingAs($admin);
+
+        $this->get('/app/rbac')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('adminUsers.total', 55)
+                ->where('adminUsers.perPage', 50)
+                ->where('adminUsers.lastPage', 2)
+                ->has('adminUsers.data', 50));
+
+        $this->get('/app/rbac?per_page=15')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('adminUsers.total', 55)
+                ->where('adminUsers.perPage', 15)
+                ->where('adminUsers.lastPage', 4)
+                ->has('adminUsers.data', 15));
     }
 
     private function userWithRole(string $roleName, array $attributes = []): User

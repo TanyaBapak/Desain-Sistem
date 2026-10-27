@@ -19,6 +19,7 @@ export interface UserManagementData {
   currentPage: number;
   lastPage: number;
   total: number;
+  perPage: number;
   selectedRole?: string;
   search?: string;
   roles: { name: string; title: string }[];
