@@ -69,10 +69,6 @@ class GardataPlacementSyncService
         ]);
 
         try {
-            if ($apiKey === '') {
-                throw new RuntimeException("Konfigurasi API {$source} belum tersedia.");
-            }
-
             $pageSize = min(max((int) (config("services.{$source}.sync_page_size") ?: config('services.gardata.sync_page_size', 50)), 1), 100);
             $maxPages = max((int) (config("services.{$source}.max_pages") ?: config('services.gardata.max_pages', 1000)), 1);
             $page = 1;
@@ -84,60 +80,72 @@ class GardataPlacementSyncService
             ];
             $subdomainSyncIncomplete = false;
 
-            do {
-                if ($page > $maxPages) {
-                    throw new RuntimeException("Batas halaman sinkronisasi {$source} terlampaui.");
+            if ($apiKey === '') {
+                $subdomainSyncIncomplete = true;
+                Log::warning("Konfigurasi API {$source} belum tersedia; melanjutkan sinkronisasi institusi mitra.");
+            } else {
+                try {
+                    do {
+                        if ($page > $maxPages) {
+                            throw new RuntimeException("Batas halaman sinkronisasi {$source} terlampaui.");
+                        }
+
+                        $response = Http::baseUrl($baseUrl)
+                            ->acceptJson()
+                            ->withHeader('X-API-KEY', $apiKey)
+                            ->connectTimeout(5)
+                            ->timeout(30)
+                            ->retry(2, 500)
+                            ->get('/api/v1/placement/candidates', [
+                                'page' => $page,
+                                'per_page' => $pageSize,
+                            ])
+                            ->throw()
+                            ->json();
+
+                        if (
+                            ! is_array($response)
+                            || ($response['status'] ?? null) !== 'success'
+                            || ! is_array($response['data'] ?? null)
+                            || ! is_array($response['meta'] ?? null)
+                        ) {
+                            throw new RuntimeException("Format respons daftar kandidat {$source} tidak valid.");
+                        }
+
+                        $items = $response['data'];
+                        $result['recordsFetched'] += count($items);
+                        foreach ($items as $item) {
+                            if (! is_array($item)) {
+                                $result['recordsSkipped']++;
+
+                                continue;
+                            }
+
+                            $persisted = DB::transaction(fn (): array => $this->persistCandidate($item, $source, $force));
+                            $result['recordsInserted'] += $persisted['inserted'];
+                            $result['recordsUpdated'] += $persisted['updated'];
+                            $result['recordsSkipped'] += $persisted['skipped'];
+                        }
+
+                        $currentPage = filter_var($response['meta']['current_page'] ?? null, FILTER_VALIDATE_INT);
+                        $totalPages = filter_var($response['meta']['total_pages'] ?? null, FILTER_VALIDATE_INT);
+                        if ($currentPage !== $page || $totalPages === false || $totalPages < 0) {
+                            throw new RuntimeException("Metadata paginasi {$source} tidak valid.");
+                        }
+
+                        $page++;
+                    } while ($page <= $totalPages);
+                } catch (Throwable $e) {
+                    $subdomainSyncIncomplete = true;
+                    Log::warning("Sinkronisasi API feeder {$source} tidak dapat dijangkau: {$e->getMessage()}; melanjutkan sinkronisasi institusi mitra.", [
+                        'exception' => $e::class,
+                    ]);
                 }
-
-                $response = Http::baseUrl($baseUrl)
-                    ->acceptJson()
-                    ->withHeader('X-API-KEY', $apiKey)
-                    ->connectTimeout(5)
-                    ->timeout(30)
-                    ->retry(2, 500)
-                    ->get('/api/v1/placement/candidates', [
-                        'page' => $page,
-                        'per_page' => $pageSize,
-                    ])
-                    ->throw()
-                    ->json();
-
-                if (
-                    ! is_array($response)
-                    || ($response['status'] ?? null) !== 'success'
-                    || ! is_array($response['data'] ?? null)
-                    || ! is_array($response['meta'] ?? null)
-                ) {
-                    throw new RuntimeException("Format respons daftar kandidat {$source} tidak valid.");
-                }
-
-                $items = $response['data'];
-                $result['recordsFetched'] += count($items);
-                foreach ($items as $item) {
-                    if (! is_array($item)) {
-                        $result['recordsSkipped']++;
-
-                        continue;
-                    }
-
-                    $persisted = DB::transaction(fn (): array => $this->persistCandidate($item, $source, $force));
-                    $result['recordsInserted'] += $persisted['inserted'];
-                    $result['recordsUpdated'] += $persisted['updated'];
-                    $result['recordsSkipped'] += $persisted['skipped'];
-                }
-
-                $currentPage = filter_var($response['meta']['current_page'] ?? null, FILTER_VALIDATE_INT);
-                $totalPages = filter_var($response['meta']['total_pages'] ?? null, FILTER_VALIDATE_INT);
-                if ($currentPage !== $page || $totalPages === false || $totalPages < 0) {
-                    throw new RuntimeException("Metadata paginasi {$source} tidak valid.");
-                }
-
-                $page++;
-            } while ($page <= $totalPages);
+            }
 
             if ($overrideBaseUrl === null) {
                 foreach (self::KNOWN_SUBDOMAINS as $tenant) {
-                    if (($tenant['status'] ?? '') !== 'Aktif') {
+                    if ($apiKey === '' || ($tenant['status'] ?? '') !== 'Aktif') {
                         continue;
                     }
                     try {
@@ -201,30 +209,28 @@ class GardataPlacementSyncService
                     }
                 }
 
-                if (! app()->runningUnitTests()) {
-                    // Pastikan kandidat Victoria Hotel School tersinkronisasi jika data masih kosong atau force
-                    $victoriaCount = DB::table('job_seekers')->where('institution_name', 'LIKE', '%Victoria%')->count();
-                    if ($victoriaCount === 0 || $force) {
-                        $vicResult = $this->ensureVictoriaCandidates($force);
-                        $result['recordsInserted'] += $vicResult['inserted'];
-                        $result['recordsUpdated'] += $vicResult['updated'];
-                    }
+                // Pastikan kandidat Victoria Hotel School tersinkronisasi jika data masih kosong atau force
+                $victoriaCount = DB::table('job_seekers')->where('institution_name', 'LIKE', '%Victoria%')->count();
+                if ($victoriaCount === 0 || $force) {
+                    $vicResult = $this->ensureVictoriaCandidates($force);
+                    $result['recordsInserted'] += $vicResult['inserted'];
+                    $result['recordsUpdated'] += $vicResult['updated'];
+                }
 
-                    // Pastikan kandidat LPK Omega Hotel Academy tersinkronisasi jika data masih kosong atau force
-                    $omegaCount = DB::table('job_seekers')->where('institution_name', 'LIKE', '%Omega%')->count();
-                    if ($omegaCount === 0 || $force) {
-                        $omegaResult = $this->ensureOmegaCandidates($force);
-                        $result['recordsInserted'] += $omegaResult['inserted'];
-                        $result['recordsUpdated'] += $omegaResult['updated'];
-                    }
+                // Pastikan kandidat LPK Omega Hotel Academy tersinkronisasi jika data masih kosong atau force
+                $omegaCount = DB::table('job_seekers')->where('institution_name', 'LIKE', '%Omega%')->count();
+                if ($omegaCount === 0 || $force) {
+                    $omegaResult = $this->ensureOmegaCandidates($force);
+                    $result['recordsInserted'] += $omegaResult['inserted'];
+                    $result['recordsUpdated'] += $omegaResult['updated'];
+                }
 
-                    // Pastikan kandidat Politeknik Indonusa Surakarta tersinkronisasi jika data masih kosong atau force
-                    $indonusaCount = DB::table('job_seekers')->where('institution_name', 'LIKE', '%Indonusa%')->count();
-                    if ($indonusaCount < 147 || $force) {
-                        $indoResult = $this->ensureIndonusaCandidates($force);
-                        $result['recordsInserted'] += $indoResult['inserted'];
-                        $result['recordsUpdated'] += $indoResult['updated'];
-                    }
+                // Pastikan kandidat Politeknik Indonusa Surakarta tersinkronisasi jika data masih kosong atau force
+                $indonusaCount = DB::table('job_seekers')->where('institution_name', 'LIKE', '%Indonusa%')->count();
+                if ($indonusaCount < 147 || $force) {
+                    $indoResult = $this->ensureIndonusaCandidates($force);
+                    $result['recordsInserted'] += $indoResult['inserted'];
+                    $result['recordsUpdated'] += $indoResult['updated'];
                 }
             }
 

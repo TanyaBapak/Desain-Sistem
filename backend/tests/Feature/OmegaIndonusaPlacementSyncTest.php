@@ -101,6 +101,16 @@ class OmegaIndonusaPlacementSyncTest extends TestCase
         $this->assertSame(147, DB::table('job_seekers')->where('institution_name', 'Politeknik Indonusa Surakarta')->count());
     }
 
+    public function test_artisan_gardata_sync_general_force_gracefully_syncs_tenants_when_remote_api_fails(): void
+    {
+        config(['services.gardata.api_key' => '']);
+        $this->artisan('gardata:sync', ['--force' => true])
+            ->assertSuccessful();
+
+        $this->assertSame(147, DB::table('job_seekers')->where('institution_name', 'Politeknik Indonusa Surakarta')->count());
+        $this->assertSame(10, DB::table('job_seekers')->where('institution_name', 'LPK Omega Hotel Academy')->count());
+    }
+
     public function test_monitoring_presents_all_subdomain_candidates_without_bp3mi_truncation(): void
     {
         $syncService = app(GardataPlacementSyncService::class);
