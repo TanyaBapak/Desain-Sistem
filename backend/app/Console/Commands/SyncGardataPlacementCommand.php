@@ -20,12 +20,30 @@ class SyncGardataPlacementCommand extends Command
         $force = (bool) $this->option('force');
         $tenantOption = (string) $this->option('tenant');
 
-        if ($tenantOption !== '' && stripos($tenantOption, 'victoria') !== false) {
-            $this->line('Menyinkronkan khusus tenant Victoria Hotel School (Kota Surakarta)...');
-            $vResult = $syncService->ensureVictoriaCandidates(true);
-            $this->info("Sinkronisasi Victoria Hotel School selesai ({$vResult['inserted']} baru, {$vResult['updated']} diperbarui).");
+        if ($tenantOption !== '') {
+            if (stripos($tenantOption, 'victoria') !== false) {
+                $this->line('Menyinkronkan khusus tenant Victoria Hotel School (Kota Surakarta)...');
+                $vResult = $syncService->ensureVictoriaCandidates(true);
+                $this->info("Sinkronisasi Victoria Hotel School selesai ({$vResult['inserted']} baru, {$vResult['updated']} diperbarui).");
 
-            return self::SUCCESS;
+                return self::SUCCESS;
+            }
+
+            if (stripos($tenantOption, 'omega') !== false) {
+                $this->line('Menyinkronkan khusus tenant LPK Omega Hotel Academy (Kabupaten Cilacap)...');
+                $oResult = $syncService->ensureOmegaCandidates(true);
+                $this->info("Sinkronisasi LPK Omega Hotel Academy selesai ({$oResult['inserted']} baru, {$oResult['updated']} diperbarui).");
+
+                return self::SUCCESS;
+            }
+
+            if (stripos($tenantOption, 'indonusa') !== false || stripos($tenantOption, 'sippmi') !== false) {
+                $this->line('Menyinkronkan khusus tenant Politeknik Indonusa Surakarta (Kota Surakarta)...');
+                $iResult = $syncService->ensureIndonusaCandidates(true);
+                $this->info("Sinkronisasi Politeknik Indonusa Surakarta selesai ({$iResult['inserted']} baru, {$iResult['updated']} diperbarui).");
+
+                return self::SUCCESS;
+            }
         }
 
         if ($this->option('queue')) {

@@ -924,19 +924,24 @@ class BusinessDataPresenter
         $namePatterns = [];
         $isVictoria = false;
         $isOmega = false;
+        $isIndonusa = false;
         $isDuta = false;
 
         if (! empty($user->institution_id)) {
             $inst = DB::table('institutions')->where('id', $user->institution_id)->first();
             if ($inst) {
                 $namePatterns[] = $inst->name;
-                if (stripos($inst->name, 'victoria') !== false) {
+                $instLower = strtolower($inst->name . ' ' . $inst->id);
+                if (stripos($instLower, 'victoria') !== false || stripos($instLower, 'arief') !== false) {
                     $isVictoria = true;
                 }
-                if (stripos($inst->name, 'omega') !== false) {
+                if (stripos($instLower, 'omega') !== false || stripos($instLower, 'eko') !== false) {
                     $isOmega = true;
                 }
-                if (stripos($inst->name, 'duta') !== false) {
+                if (stripos($instLower, 'indonusa') !== false || stripos($instLower, 'suci') !== false || stripos($instLower, 'sippmi.co') !== false) {
+                    $isIndonusa = true;
+                }
+                if (stripos($instLower, 'duta') !== false) {
                     $isDuta = true;
                 }
             }
@@ -946,6 +951,7 @@ class BusinessDataPresenter
             $user->organization ?? '',
             $user->scope_name ?? '',
             $user->name ?? '',
+            $user->email ?? '',
         ];
         if (! empty($user->organization)) {
             $namePatterns[] = $user->organization;
@@ -958,11 +964,14 @@ class BusinessDataPresenter
             if ($attr === '') {
                 continue;
             }
-            if (stripos($attr, 'victoria') !== false) {
+            if (stripos($attr, 'victoria') !== false || stripos($attr, 'arief') !== false) {
                 $isVictoria = true;
             }
-            if (stripos($attr, 'omega') !== false) {
+            if (stripos($attr, 'omega') !== false || stripos($attr, 'eko priyono') !== false || stripos($attr, 'omegahotelacademy') !== false) {
                 $isOmega = true;
+            }
+            if (stripos($attr, 'indonusa') !== false || stripos($attr, 'suci') !== false || stripos($attr, 'purwandari') !== false || stripos($attr, 'sippmi.co') !== false) {
+                $isIndonusa = true;
             }
             if (stripos($attr, 'duta') !== false) {
                 $isDuta = true;
@@ -970,8 +979,13 @@ class BusinessDataPresenter
         }
 
         // Context check: If user's district is Surakarta (3372) and is institution admin
-        if (! $isVictoria && ! empty($user->district_id) && in_array((string) $user->district_id, ['3372', 'Kota Surakarta'], true)) {
-            $isVictoria = true;
+        if (! $isVictoria && ! $isIndonusa && ! empty($user->district_id) && in_array((string) $user->district_id, ['3372', 'Kota Surakarta'], true)) {
+            $userText = strtolower(($user->name ?? '') . ' ' . ($user->organization ?? '') . ' ' . ($user->email ?? ''));
+            if (str_contains($userText, 'suci') || str_contains($userText, 'indonusa') || str_contains($userText, 'politeknik')) {
+                $isIndonusa = true;
+            } else {
+                $isVictoria = true;
+            }
         }
 
         if ($isVictoria) {
@@ -982,7 +996,7 @@ class BusinessDataPresenter
                 })
                 ->pluck('id')
                 ->all();
-            $institutionIds = array_unique(array_merge($institutionIds, $victoriaInsts));
+            $institutionIds = array_unique(array_merge($institutionIds, $victoriaInsts, ['sippmi-victoria-hotel-school']));
             $namePatterns[] = 'Victoria';
             $namePatterns[] = 'VictoriaHotelSchool';
             $namePatterns[] = 'LPK Victoria Hotel School';
@@ -990,11 +1004,33 @@ class BusinessDataPresenter
 
         if ($isOmega) {
             $omegaInsts = DB::table('institutions')
-                ->where('name', 'LIKE', '%Omega%')
+                ->where(function ($q) {
+                    $q->where('name', 'LIKE', '%Omega%')
+                        ->orWhere('id', 'LIKE', '%omega%');
+                })
                 ->pluck('id')
                 ->all();
-            $institutionIds = array_unique(array_merge($institutionIds, $omegaInsts));
+            $institutionIds = array_unique(array_merge($institutionIds, $omegaInsts, ['sippmi-omega-hotel-academy']));
             $namePatterns[] = 'Omega';
+            $namePatterns[] = 'OmegaHotelAcademy';
+            $namePatterns[] = 'LPK Omega Hotel Academy';
+            $namePatterns[] = 'omegahotelacademy.sippmi.com';
+        }
+
+        if ($isIndonusa) {
+            $indonusaInsts = DB::table('institutions')
+                ->where(function ($q) {
+                    $q->where('name', 'LIKE', '%Indonusa%')
+                        ->orWhere('id', 'LIKE', '%indonusa%')
+                        ->orWhere('name', 'LIKE', '%Politeknik Indonusa%');
+                })
+                ->pluck('id')
+                ->all();
+            $institutionIds = array_unique(array_merge($institutionIds, $indonusaInsts, ['sippmi-politeknik-indonusa']));
+            $namePatterns[] = 'Indonusa';
+            $namePatterns[] = 'Politeknik Indonusa';
+            $namePatterns[] = 'Politeknik Indonusa Surakarta';
+            $namePatterns[] = 'sippmi.co';
         }
 
         if ($isDuta) {
@@ -1007,7 +1043,7 @@ class BusinessDataPresenter
         }
 
         foreach ($namePatterns as $p) {
-            $clean = trim(preg_replace('/^(lpk|lkp|smk|balai)\s+/i', '', $p));
+            $clean = trim(preg_replace('/^(lpk|lkp|smk|balai|politeknik)\s+/i', '', $p));
             if (strlen($clean) >= 4) {
                 $matched = DB::table('institutions')
                     ->where('name', 'LIKE', '%'.$clean.'%')
@@ -1021,6 +1057,8 @@ class BusinessDataPresenter
             'ids' => array_values(array_filter($institutionIds)),
             'patterns' => array_values(array_unique(array_filter($namePatterns))),
             'isVictoria' => $isVictoria,
+            'isOmega' => $isOmega,
+            'isIndonusa' => $isIndonusa,
         ];
     }
 

@@ -96,6 +96,20 @@ export const SupplyTable: React.FC = () => {
   const [viewMode, setViewMode] = useState<'full' | 'compact'>('compact');
   const [pageSize, setPageSize] = useState(100);
 
+  const connectedFeederName = useMemo(() => {
+    const userStr = `${currentUser?.name || ''} ${currentUser?.organization || ''} ${currentUser?.email || ''}`.toLowerCase();
+    if (userStr.includes('omega') || userStr.includes('eko')) {
+      return 'LPK Omega Hotel Academy';
+    }
+    if (userStr.includes('indonusa') || userStr.includes('suci') || userStr.includes('sippmi.co')) {
+      return 'Politeknik Indonusa Surakarta';
+    }
+    if (userStr.includes('victoria') || userStr.includes('arief')) {
+      return 'LPK Victoria Hotel School';
+    }
+    return currentUser?.organization || currentScope.name || 'Lembaga Vokasi';
+  }, [currentUser, currentScope]);
+
   // Dynamic filter options extracted from candidates
   const provinsiOptions = useMemo(() => {
     return Array.from(new Set(candidates.map((c) => c.provinsi))).filter(Boolean).sort();
@@ -401,7 +415,7 @@ export const SupplyTable: React.FC = () => {
               </span>
               {currentRole === 'vokasi' && (
                 <span className="rounded px-2 py-0.5 text-xs font-semibold text-emerald-200 bg-emerald-800/80 border border-emerald-500/40">
-                  Feeder Terhubung: LPK Victoria Hotel School
+                  Feeder Terhubung: {connectedFeederName}
                 </span>
               )}
             </div>
@@ -409,7 +423,7 @@ export const SupplyTable: React.FC = () => {
               {currentRole === 'disnaker'
                 ? 'Kewenangan Disnaker: Input, pemetaan, dan perbarui data calon PMI di wilayah binaan Anda.'
                 : currentRole === 'vokasi'
-                ? 'Kelola data siswa dan lulusan vokasi LPK Victoria Hotel School siap penempatan luar negeri, tersinkronisasi dengan Gardata.'
+                ? `Kelola data siswa dan lulusan vokasi ${connectedFeederName} siap penempatan luar negeri, tersinkronisasi dengan Gardata.`
                 : 'Pemetaan komprehensif data calon pekerja migran terintegrasi Dukcapil, Disnaker Daerah, dan feeder gardata.sippmi.com.'}
             </p>
           </div>
@@ -528,11 +542,27 @@ export const SupplyTable: React.FC = () => {
         <div className="flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
           <span className="text-slate-300">
-            Sumber Feeder Integrasi: <strong>Disnaker Daerah</strong>, <strong>SMK / Lembaga Vokasi</strong>, <strong>gardata.sippmi.com</strong>, dan <strong>victoriahotelschool.sippmi.com</strong>.
+            Sumber Feeder Integrasi: <strong>Disnaker Daerah</strong>, <strong>omegahotelacademy.sippmi.com</strong>, <strong>sippmi.co (Politeknik Indonusa)</strong>, <strong>victoriahotelschool.sippmi.com</strong>, dan <strong>gardata.sippmi.com</strong>.
           </span>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <span className="text-emerald-400 font-mono text-[11px]">API: Online</span>
+          <a
+            href="https://omegahotelacademy.sippmi.com"
+            target="_blank"
+            rel="noreferrer"
+            className="text-amber-400 hover:text-white font-semibold transition flex items-center gap-1 shrink-0"
+          >
+            <span>Feeder Omega ↗</span>
+          </a>
+          <a
+            href="https://sippmi.co"
+            target="_blank"
+            rel="noreferrer"
+            className="text-purple-400 hover:text-white font-semibold transition flex items-center gap-1 shrink-0"
+          >
+            <span>Feeder Indonusa ↗</span>
+          </a>
           <a
             href="https://victoriahotelschool.sippmi.com"
             target="_blank"
