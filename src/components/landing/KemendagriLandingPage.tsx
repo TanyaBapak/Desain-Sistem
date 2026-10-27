@@ -67,6 +67,20 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
   const vocationalCount = kpiSummary.metrics.find(
     (metric) => metric.key === "activeVocationalInstitutions",
   )?.value;
+  const visibleTargetProgramCount = new Set(
+    projection.placementTargets
+      .filter(
+        (target) =>
+          target.sectorName.trim() !== "" &&
+          target.occupationName.trim() !== "",
+      )
+      .map((target) =>
+        [
+          target.sectorName.trim().toLocaleLowerCase("id-ID"),
+          target.occupationName.trim().toLocaleLowerCase("id-ID"),
+        ].join("|"),
+      ),
+  ).size;
 
   const handleSelectRole = (roleId: UserRole) => {
     void roleId;
@@ -335,7 +349,7 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
       {/* 5. PUBLIC COMMAND CENTER DASHBOARD & SEBARAN WILAYAH */}
       <PublicCommandCenterSection
         initialData={publicCommandCenter}
-        targetSectors={projection.placementTargets.map((target) => target.sectorName)}
+        programsCount={visibleTargetProgramCount}
       />
 
       <LandingProjectionDashboard projection={projection} />

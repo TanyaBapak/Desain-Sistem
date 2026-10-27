@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -26,6 +26,32 @@ import type {
 } from "@/types";
 
 const NON_VOCATIONAL_INSTITUTION_TYPES = new Set(["LPK", "LKP", "BLKLN"]);
+const PROGRAM_TRAINING_SECTORS = [
+  {
+    name: "Hospitality",
+    aliases: ["hospitality"],
+  },
+  {
+    name: "Manufactur",
+    aliases: ["manufactur", "manufaktur", "manufacturing"],
+  },
+  {
+    name: "Caregiver",
+    aliases: ["caregiver", "care giver", "care-giving", "kesehatan"],
+  },
+  {
+    name: "Fisherman (Agricultur)",
+    aliases: [
+      "fisherman",
+      "fisherman (agricultur)",
+      "fishery",
+      "agricultur",
+      "agriculture",
+      "perikanan",
+      "pertanian",
+    ],
+  },
+] as const;
 
 export type PublicDrilldownType =
   | "peserta"
@@ -41,7 +67,6 @@ interface PublicDrilldownModalProps {
   onClose: () => void;
   scopeName: string;
   data: PublicCommandCenterData;
-  targetSectors: string[];
 }
 
 export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
@@ -49,22 +74,8 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
   onClose,
   scopeName,
   data,
-  targetSectors,
 }) => {
   const [selectedSector, setSelectedSector] = useState<string | null>(null);
-  const sectors = useMemo(() => {
-    const uniqueSectors = new Map<string, string>();
-    targetSectors.forEach((sector) => {
-      const name = sector.trim();
-      const normalizedName = name.toLocaleLowerCase("id-ID");
-      if (normalizedName && !uniqueSectors.has(normalizedName)) {
-        uniqueSectors.set(normalizedName, name);
-      }
-    });
-    return Array.from(uniqueSectors.values()).sort((left, right) =>
-      left.localeCompare(right, "id"),
-    );
-  }, [targetSectors]);
 
   useEffect(() => {
     setSelectedSector(null);
@@ -84,12 +95,23 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
         institution.type.trim().toLocaleUpperCase("id-ID"),
       ),
   );
+  const sectors = PROGRAM_TRAINING_SECTORS.map((sector) => sector.name);
   const filteredInstitutions = selectedSector
     ? vocationalInstitutions.filter((institution) =>
         institution.supportedSectors?.some(
-          (sector) =>
-            sector.trim().toLocaleLowerCase("id-ID") ===
-            selectedSector.toLocaleLowerCase("id-ID"),
+          (supportedSector) => {
+            const selected = PROGRAM_TRAINING_SECTORS.find(
+              (sector) => sector.name === selectedSector,
+            );
+            const normalizedSupportedSector = supportedSector
+              .trim()
+              .toLocaleLowerCase("id-ID");
+            return (
+              selected?.aliases.some(
+                (alias) => alias === normalizedSupportedSector,
+              ) ?? false
+            );
+          },
         ),
       )
     : [];

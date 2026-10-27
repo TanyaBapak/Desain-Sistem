@@ -16,12 +16,12 @@ import {
 
 interface PublicCommandCenterSectionProps {
   initialData?: PublicCommandCenterData;
-  targetSectors: string[];
+  programsCount: number;
 }
 
 export const PublicCommandCenterSection: React.FC<PublicCommandCenterSectionProps> = ({
   initialData,
-  targetSectors,
+  programsCount,
 }) => {
   const [activeDrilldown, setActiveDrilldown] = useState<PublicDrilldownType | null>(null);
 
@@ -124,8 +124,8 @@ export const PublicCommandCenterSection: React.FC<PublicCommandCenterSectionProp
           {/* 2. Program Pelatihan */}
           <CommandStatCard
             label="Program Pelatihan"
-            value={currentStats.programsCount}
-            desc="Sektor pelatihan pada target negara"
+            value={programsCount}
+            desc="Program pada negara tujuan yang ditampilkan"
             icon={GraduationCap}
             onClick={() => setActiveDrilldown("program")}
           />
@@ -198,7 +198,6 @@ export const PublicCommandCenterSection: React.FC<PublicCommandCenterSectionProp
         onClose={() => setActiveDrilldown(null)}
         scopeName={scopeLabel}
         data={synthesizedData}
-        targetSectors={targetSectors}
       />
     </section>
   );
