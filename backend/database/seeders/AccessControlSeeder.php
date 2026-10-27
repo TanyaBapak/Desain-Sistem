@@ -18,7 +18,7 @@ class AccessControlSeeder extends Seeder
             ['province_admin', 'Admin Disnaker Provinsi', 'Koordinator Ketenagakerjaan Provinsi', 'disnaker', 'modul-a'],
             ['district_admin', 'Admin Disnaker Kabupaten/Kota', 'Operator Data Wilayah Daerah', 'disnaker', 'modul-a'],
             ['bp3mi_admin', 'Admin BP3MI', 'Pelayanan & Pelindungan Kawasan BP3MI', 'matching', 'matching'],
-            ['institution_admin', 'Admin Lembaga Vokasi', 'Penyelenggara Pelatihan Vokasi', 'vokasi', 'modul-a'],
+            ['institution_admin', 'Admin Lembaga Vokasi', 'Penyelenggara Pelatihan Vokasi', 'vokasi', 'modul-c'],
             ['demand_admin', 'Admin Demand / Pemberi Kerja', 'Mitra Industri Luar Negeri', 'demand', 'modul-d'],
             ['verifier', 'Verifikator', 'Pemeriksa Keabsahan & Validasi', 'verifikator', 'approvals'],
             ['training_operator', 'Operator Pelatihan', 'Pengelola Presensi & Kelas Pelatihan', 'vokasi', 'modul-b'],

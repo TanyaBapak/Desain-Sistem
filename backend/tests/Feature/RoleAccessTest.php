@@ -9,6 +9,7 @@ use Database\Seeders\DemoDataSeeder;
 use Database\Seeders\ReferenceDataSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
@@ -193,6 +194,39 @@ class RoleAccessTest extends TestCase
         $this->actingAs($owner)
             ->put("/business-data/candidates/{$otherCandidate->id}", $payload)
             ->assertForbidden();
+    }
+
+    public function test_institution_admin_is_limited_to_institution_modules_and_lands_on_institution_profile(): void
+    {
+        $this->withoutVite();
+        $this->seed(\Database\Seeders\AccessControlSeeder::class);
+        $institutionAdmin = $this->userWithRole('institution_admin');
+
+        $this->assertSame(
+            'modul-c',
+            Role::query()->where('name', 'institution_admin')->value('default_tab'),
+        );
+
+        $institutionAdmin->forceFill(['password' => Hash::make('Local-password-123')])->save();
+        $this->post('/login', [
+            'identifier' => $institutionAdmin->email,
+            'password' => 'Local-password-123',
+        ])->assertRedirect('/app/modul-c');
+
+        $this->actingAs($institutionAdmin)
+            ->get('/app/modul-c')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('auth.user.accessibleTabs', ['modul-a', 'modul-b', 'modul-c'])
+                ->where('auth.user.defaultTab', 'modul-c'));
+
+        foreach (['modul-a', 'modul-b'] as $tab) {
+            $this->actingAs($institutionAdmin)->get("/app/{$tab}")->assertOk();
+        }
+
+        foreach (['modul-d', 'matching', 'approvals', 'rbac'] as $tab) {
+            $this->actingAs($institutionAdmin)->get("/app/{$tab}")->assertForbidden();
+        }
     }
 
     public function test_disnaker_cannot_submit_candidate_outside_its_province(): void
