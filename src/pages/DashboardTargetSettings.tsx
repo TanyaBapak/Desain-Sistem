@@ -124,12 +124,15 @@ export function DashboardTargetSettings({
     });
   }
 
-  function addPlacementTarget(target: PlacementTargetInput) {
+  function addPlacementTarget(targets: PlacementTargetInput[]) {
     form.setData("targets", {
       ...form.data.targets,
       placementTargets: [
         ...form.data.targets.placementTargets,
-        { ...target, key: `new-${crypto.randomUUID()}` },
+        ...targets.map((target) => ({
+          ...target,
+          key: `new-${crypto.randomUUID()}`,
+        })),
       ],
     });
   }

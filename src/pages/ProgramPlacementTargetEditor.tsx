@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { MultiSelectDropdown } from "@/components/shared/MultiSelectDropdown";
 
 export interface ProgramPlacementTarget {
   key: string;
@@ -18,7 +19,7 @@ interface ProgramPlacementTargetEditorProps {
   countries: { id: string; name: string }[];
   targets: ProgramPlacementTarget[];
   errors: Record<string, string>;
-  onAdd: (target: Omit<ProgramPlacementTarget, "key">) => void;
+  onAdd: (targets: Omit<ProgramPlacementTarget, "key">[]) => void;
   onChange: (key: string, field: "projectionPlacement" | "target", value: string) => void;
 }
 
@@ -31,32 +32,69 @@ export function ProgramPlacementTargetEditor({
   onAdd,
   onChange,
 }: ProgramPlacementTargetEditorProps) {
-  const [selectedSector, setSelectedSector] = useState(sectors[0] ?? "");
-  const availableOccupations = useMemo(
-    () => occupations
-      .filter((item) => item.sectorName === selectedSector)
-      .map((item) => item.occupationName),
-    [occupations, selectedSector],
+  const [selectedSectors, setSelectedSectors] = useState<string[]>(() =>
+    sectors[0] ? [sectors[0]] : [],
   );
-  const [selectedOccupation, setSelectedOccupation] = useState(availableOccupations[0] ?? "");
-  const [projectionPlacement, setProjectionPlacement] = useState("");
+  const availableOccupations = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          occupations
+            .filter((item) => selectedSectors.includes(item.sectorName))
+            .map((item) => item.occupationName),
+        ),
+      ),
+    [occupations, selectedSectors],
+  );
+  const [selectedOccupations, setSelectedOccupations] = useState<string[]>(() =>
+    availableOccupations[0] ? [availableOccupations[0]] : [],
+  );
+  const [selectedCountries, setSelectedCountries] = useState<string[]>([]);
   const [target, setTarget] = useState("");
 
-  function changeSector(value: string) {
-    setSelectedSector(value);
-    setSelectedOccupation(
-      occupations.find((item) => item.sectorName === value)?.occupationName ?? "",
+  const selectedPairs = selectedSectors.flatMap((sectorName) =>
+    selectedOccupations
+      .filter((occupationName) =>
+        occupations.some(
+          (item) =>
+            item.sectorName === sectorName &&
+            item.occupationName === occupationName,
+        ),
+      )
+      .map((occupationName) => ({ sectorName, occupationName })),
+  );
+
+  function changeSectors(nextSectors: string[]) {
+    setSelectedSectors(nextSectors);
+    const nextOccupations = Array.from(
+      new Set(
+        occupations
+          .filter((item) => nextSectors.includes(item.sectorName))
+          .map((item) => item.occupationName),
+      ),
     );
+    setSelectedOccupations((current) => {
+      const retained = current.filter((occupation) =>
+        nextOccupations.includes(occupation),
+      );
+      return retained.length > 0 ? retained : nextOccupations.slice(0, 1);
+    });
   }
 
   function addTarget() {
-    onAdd({
-      sectorName: selectedSector,
-      occupationName: selectedOccupation,
-      projectionPlacement: projectionPlacement.trim(),
-      target: target.trim(),
-    });
-    setProjectionPlacement("");
+    const projectionPlacement = selectedCountries
+      .map((countryId) => countries.find((country) => country.id === countryId)?.name)
+      .filter((country): country is string => Boolean(country))
+      .join(", ");
+    onAdd(
+      selectedPairs.map(({ sectorName, occupationName }) => ({
+        sectorName,
+        occupationName,
+        projectionPlacement,
+        target: target.trim(),
+      })),
+    );
+    setSelectedCountries([]);
     setTarget("");
   }
 
@@ -65,8 +103,8 @@ export function ProgramPlacementTargetEditor({
       <CardHeader className="px-0">
         <CardTitle className="text-base">Proyeksi program penempatan</CardTitle>
         <CardDescription>
-          Pilih sektor dan jabatan yang tersedia pada data lembaga vokasi, lalu tentukan negara
-          tujuan dan target tahunan.
+          Pilih beberapa sektor, jabatan, dan negara tujuan. Target berlaku untuk setiap kombinasi
+          sektor dan jabatan; target negara dibagi ke seluruh negara yang dipilih.
         </CardDescription>
         {errors["targets.placementTargets"] && (
           <p role="alert" className="text-xs text-destructive">
@@ -81,44 +119,34 @@ export function ProgramPlacementTargetEditor({
           </p>
         ) : (
           <>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-              <label className="space-y-1.5 text-sm font-medium">
-                <span>Sektor</span>
-                <select
-                  className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  value={selectedSector}
-                  onChange={(event) => changeSector(event.target.value)}
-                >
-                  {sectors.map((sector) => <option key={sector} value={sector}>{sector}</option>)}
-                </select>
-              </label>
-              <label className="space-y-1.5 text-sm font-medium">
-                <span>Jenis jabatan</span>
-                <select
-                  className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  value={selectedOccupation}
-                  onChange={(event) => setSelectedOccupation(event.target.value)}
-                >
-                  {availableOccupations.map((occupation) => (
-                    <option key={occupation} value={occupation}>{occupation}</option>
-                  ))}
-                </select>
-              </label>
-              <label className="space-y-1.5 text-sm font-medium">
-                <span>Negara tujuan</span>
-                <select
-                  className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  value={projectionPlacement}
-                  onChange={(event) => setProjectionPlacement(event.target.value)}
-                >
-                  <option value="">Pilih negara</option>
-                  {countries.map((country) => (
-                    <option key={country.id} value={country.name}>
-                      {country.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <MultiSelectDropdown
+                label="Sektor"
+                placeholder="Pilih sektor"
+                options={sectors.map((sector) => ({ value: sector, label: sector }))}
+                selectedValues={selectedSectors}
+                onChange={changeSectors}
+              />
+              <MultiSelectDropdown
+                label="Jenis jabatan"
+                placeholder="Pilih jabatan"
+                options={availableOccupations.map((occupation) => ({
+                  value: occupation,
+                  label: occupation,
+                }))}
+                selectedValues={selectedOccupations}
+                onChange={setSelectedOccupations}
+              />
+              <MultiSelectDropdown
+                label="Negara tujuan penempatan"
+                placeholder="Pilih negara"
+                options={countries.map((country) => ({
+                  value: country.id,
+                  label: country.name,
+                }))}
+                selectedValues={selectedCountries}
+                onChange={setSelectedCountries}
+              />
               <label className="space-y-1.5 text-sm font-medium">
                 <span>Target</span>
                 <Input
@@ -138,9 +166,8 @@ export function ProgramPlacementTargetEditor({
                 type="button"
                 variant="outline"
                 disabled={
-                  !selectedSector ||
-                  !selectedOccupation ||
-                  !projectionPlacement ||
+                  selectedPairs.length === 0 ||
+                  selectedCountries.length === 0 ||
                   target === "" ||
                   countries.length === 0
                 }
