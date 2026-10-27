@@ -23,20 +23,34 @@ class PublicCommandCenterTest extends TestCase
 
         $instId = 'inst-001';
         DB::table('institutions')->insert([
-            'id' => $instId,
-            'name' => 'LPK Vokasi Unggul Jawa Tengah',
-            'institution_type' => 'LPK',
-            'province_id' => $provinceId,
-            'status' => 'Aktif',
-            'evokasi_status' => 'Terverifikasi e-Vokasi',
-            'supported_sectors' => json_encode(['Kesehatan']),
-            'external_metadata' => json_encode([
-                'sectorals' => [
-                    ['sectoral' => 'Kesehatan', 'position' => 'Perawat'],
-                ],
-            ]),
-            'created_at' => now(),
-            'updated_at' => now(),
+            [
+                'id' => $instId,
+                'name' => 'LPK Vokasi Unggul Jawa Tengah',
+                'institution_type' => 'LPK',
+                'province_id' => $provinceId,
+                'status' => 'Aktif',
+                'evokasi_status' => 'Terverifikasi e-Vokasi',
+                'supported_sectors' => json_encode(['Kesehatan']),
+                'external_metadata' => json_encode([
+                    'sectorals' => [
+                        ['sectoral' => 'Kesehatan', 'position' => 'Perawat'],
+                    ],
+                ]),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'id' => 'inst-002',
+                'name' => 'Lembaga Belum Terverifikasi',
+                'institution_type' => 'LPK',
+                'province_id' => $provinceId,
+                'status' => 'Aktif',
+                'evokasi_status' => 'Belum Terverifikasi',
+                'supported_sectors' => null,
+                'external_metadata' => null,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
         ]);
 
         $this->get('/')
@@ -45,10 +59,12 @@ class PublicCommandCenterTest extends TestCase
                 ->component('App')
                 ->has('publicCommandCenter')
                 ->where('publicCommandCenter.selectedProvince', 'all')
-                ->where('publicCommandCenter.national.providersCount', 1)
+                ->where('publicCommandCenter.national.providersCount', 2)
                 ->where('publicCommandCenter.national.registeredProvidersCount', 1)
+                ->has('publicCommandCenter.previewDirectories.institutions', 1)
                 ->where('publicCommandCenter.previewDirectories.institutions.0.supportedSectors.0', 'Kesehatan')
                 ->where('publicCommandCenter.previewDirectories.institutions.0.supportedOccupations.0', 'Perawat')
+                ->where('publicCommandCenter.previewDirectories.institutions.0.evokasiStatus', 'Terverifikasi e-Vokasi')
                 ->has('publicCommandCenter.provinces', 38)
                 ->has('publicCommandCenter.byProvince')
                 ->has('publicCommandCenter.institutionsByProvince')

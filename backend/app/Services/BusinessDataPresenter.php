@@ -309,7 +309,8 @@ class BusinessDataPresenter
             $instQuery = DB::table('institutions')
                 ->leftJoin('provinces', 'provinces.id', '=', 'institutions.province_id')
                 ->leftJoin('districts', 'districts.id', '=', 'institutions.district_id')
-                ->where('institutions.status', 'Aktif');
+                ->where('institutions.status', 'Aktif')
+                ->where('institutions.evokasi_status', 'Terverifikasi e-Vokasi');
             if ($selectedProvince !== 'all') {
                 $instQuery->where('provinces.name', $selectedProvince);
             }

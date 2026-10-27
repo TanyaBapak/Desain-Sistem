@@ -68,6 +68,10 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
 
   const institutions: PublicPreviewInstitution[] =
     data.previewDirectories?.institutions ?? [];
+  const verifiedInstitutions = institutions.filter(
+    (institution) =>
+      institution.evokasiStatus === "Terverifikasi e-Vokasi",
+  );
   const demands: PublicPreviewDemand[] =
     data.previewDirectories?.demands ?? [];
   const nationalLpkList = data.nationalLpkByProvince ?? [];
@@ -78,7 +82,7 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
       ?.aliases ?? [];
   const filteredInstitutions =
     selectedSector && selectedOccupation
-      ? institutions.filter((institution) => {
+      ? verifiedInstitutions.filter((institution) => {
           const supportsSelectedSector =
             !institution.supportedSectors?.length ||
             institution.supportedSectors.some((supportedSector) => {
@@ -184,7 +188,7 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
                 </div>
               </div>
             </div>
-            {renderInstitutionList(institutions)}
+            {renderInstitutionList(verifiedInstitutions)}
           </div>
         );
 
