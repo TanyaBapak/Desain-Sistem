@@ -224,8 +224,8 @@ export function InstitutionRegistrationPage({
                 )}
               </fieldset>
               <fieldset className="space-y-2">
-                <legend className="text-sm font-medium">Negara tujuan penempatan</legend>
-                <p className="text-xs text-muted-foreground">Pilih negara yang menjadi tujuan program lembaga.</p>
+                <legend className="text-sm font-medium">Negara target</legend>
+                <p className="text-xs text-muted-foreground">Pilih negara target program lembaga.</p>
                 <div className="max-h-56 space-y-2 overflow-y-auto rounded-md border border-input p-3">
                   {countries.map((country) => (
                     <label key={country.id} className="flex items-center gap-2 text-sm">

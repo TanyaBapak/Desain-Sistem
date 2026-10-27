@@ -130,9 +130,9 @@ export function CountryProjectionCard({ projection }: CountryProjectionCardProps
     <>
       <Card className="shadow-sm">
         <CardHeader className="space-y-1.5 p-5">
-          <CardTitle className="text-lg">Negara tujuan penempatan</CardTitle>
+          <CardTitle className="text-lg">Negara target</CardTitle>
           <CardDescription>
-            Pilih negara untuk menelusuri target yang terdaftar per sektor dan jabatan.
+            Pilih negara target untuk menelusuri target yang terdaftar per sektor dan jabatan.
           </CardDescription>
           <div className="flex flex-wrap gap-x-4 gap-y-1 pt-2 text-xs text-muted-foreground">
             <span className="inline-flex items-center gap-1.5">
@@ -148,7 +148,7 @@ export function CountryProjectionCard({ projection }: CountryProjectionCardProps
         <CardContent className="p-5 pt-0">
           {countries.length === 0 ? (
             <p className="rounded-lg border border-dashed border-border p-5 text-center text-sm text-muted-foreground">
-              Daftar negara tujuan belum tersedia pada periode ini.
+              Daftar negara target belum tersedia pada periode ini.
             </p>
           ) : (
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

@@ -416,7 +416,7 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
             </fieldset>
             <fieldset className="space-y-2">
               <legend className="block text-xs font-bold text-slate-700">
-                Negara tujuan penempatan
+                Negara target
               </legend>
               <div className="max-h-40 space-y-2 overflow-y-auto rounded-xl border border-border bg-background p-3">
                 {countriesList.map((country) => (

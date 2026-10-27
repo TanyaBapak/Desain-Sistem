@@ -103,7 +103,7 @@ export function ProgramPlacementTargetEditor({
       <CardHeader className="px-0">
         <CardTitle className="text-base">Proyeksi program penempatan</CardTitle>
         <CardDescription>
-          Pilih beberapa sektor, jabatan, dan negara tujuan. Target berlaku untuk setiap kombinasi
+          Pilih beberapa sektor, jabatan, dan negara target. Target berlaku untuk setiap kombinasi
           sektor dan jabatan; target negara dibagi ke seluruh negara yang dipilih.
         </CardDescription>
         {errors["targets.placementTargets"] && (
@@ -138,7 +138,7 @@ export function ProgramPlacementTargetEditor({
                 onChange={setSelectedOccupations}
               />
               <MultiSelectDropdown
-                label="Negara tujuan penempatan"
+                label="Negara target"
                 placeholder="Pilih negara"
                 options={countries.map((country) => ({
                   value: country.id,
