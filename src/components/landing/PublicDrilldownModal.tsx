@@ -25,6 +25,8 @@ import type {
   PublicPreviewDemand,
 } from "@/types";
 
+const NON_VOCATIONAL_INSTITUTION_TYPES = new Set(["LPK", "LKP", "BLKLN"]);
+
 export type PublicDrilldownType =
   | "peserta"
   | "program"
@@ -76,9 +78,14 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
     data.previewDirectories?.demands ?? [];
   const nationalLpkList = data.nationalLpkByProvince ?? [];
   const institutionsList = data.institutionsByProvince ?? [];
+  const vocationalInstitutions = institutions.filter(
+    (institution) =>
+      !NON_VOCATIONAL_INSTITUTION_TYPES.has(
+        institution.type.trim().toLocaleUpperCase("id-ID"),
+      ),
+  );
   const filteredInstitutions = selectedSector
-    ? institutions.filter((institution) =>
-        institution.type.trim().toLocaleUpperCase("id-ID") === "LPK" &&
+    ? vocationalInstitutions.filter((institution) =>
         institution.supportedSectors?.some(
           (sector) =>
             sector.trim().toLocaleLowerCase("id-ID") ===
@@ -171,7 +178,7 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
                 </div>
               </div>
             </div>
-            {renderInstitutionList(institutions)}
+            {renderInstitutionList(vocationalInstitutions)}
           </div>
         );
 
@@ -192,10 +199,10 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
                 </Button>
                 <div className="rounded-xl border border-border bg-muted/40 p-4">
                   <h4 className="text-sm font-bold text-foreground">
-                    Daftar LPK sektor {selectedSector}
+                    Daftar Lembaga Vokasi sektor {selectedSector}
                   </h4>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    LPK yang mendukung sektor target negara ini.
+                    Lembaga vokasi yang mendukung sektor target negara ini.
                   </p>
                 </div>
                 {renderInstitutionList(filteredInstitutions)}
@@ -212,7 +219,7 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
                         Sektor Program Pelatihan dari Target Negara
                       </h4>
                       <p className="text-xs text-muted-foreground">
-                        Pilih sektor untuk melihat daftar LPK yang sesuai dengan sektor tersebut.
+                        Pilih sektor untuk melihat daftar lembaga vokasi yang sesuai.
                       </p>
                     </div>
                   </div>
@@ -420,7 +427,7 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
         return "Direktori Lembaga Vokasi Mitra";
       case "program":
         return selectedSector
-          ? `Daftar LPK — ${selectedSector}`
+          ? `Lembaga Vokasi — ${selectedSector}`
           : "Sektor Pelatihan Target Negara";
       case "lembaga":
       case "sebaran_lembaga":
