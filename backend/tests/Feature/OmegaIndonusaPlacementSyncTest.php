@@ -157,4 +157,31 @@ class OmegaIndonusaPlacementSyncTest extends TestCase
             $this->assertSame('omegahotelacademy.sippmi.com', $candidate['subdomain']);
         }
     }
+
+    public function test_auto_heal_populates_147_indonusa_candidates_on_page_load(): void
+    {
+        // Pastikan awalnya calon peserta Indonusa 0 di database
+        $this->assertSame(0, DB::table('job_seekers')->where('institution_name', 'LIKE', '%Indonusa%')->count());
+
+        $taskForceUser = User::query()->where('email', 'contoh@kemnaker.go.id')->first();
+        if (! $taskForceUser) {
+            $taskForceUser = User::factory()->create([
+                'email' => 'contoh@kemnaker.go.id',
+                'name' => 'Admin Task Force Nasional',
+            ]);
+            $roleId = DB::table('roles')->where('name', 'task_force')->value('id');
+            if ($roleId) {
+                $taskForceUser->roles()->attach($roleId);
+            }
+        }
+
+        $presenter = app(BusinessDataPresenter::class);
+        // Ketika halaman monitoring atau make dipanggil, auto heal berjalan otomatis
+        $data = $presenter->make($taskForceUser, ['tab' => 'sippmi-monitoring', 'candidateSource' => 'sippmi.com', 'candidatePerPage' => 150]);
+
+        $this->assertSame(147, DB::table('job_seekers')->where('institution_name', 'Politeknik Indonusa Surakarta')->count());
+        $this->assertSame(147, $data['monitoring']['candidatePagination']['total']);
+        $this->assertSame(147, count($data['monitoring']['candidates']));
+    }
 }
+

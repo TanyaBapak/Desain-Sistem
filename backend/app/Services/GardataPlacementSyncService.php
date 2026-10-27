@@ -1799,12 +1799,11 @@ class GardataPlacementSyncService
 
             if ($existing) {
                 DB::table('job_seekers')->where('id', $existing->id)->update([
-                    'id' => $id,
                     'nik' => $cand['nik'],
                     ...$attributes,
                 ]);
                 $updated++;
-                $candidateId = $id;
+                $candidateId = $existing->id;
             } else {
                 DB::table('job_seekers')->updateOrInsert(
                     ['id' => $id],
@@ -1889,7 +1888,8 @@ class GardataPlacementSyncService
             $q->where('name', 'LIKE', '%Suci%Purwandari%')
                 ->orWhere('name', 'LIKE', '%Suci%')
                 ->orWhere('email', 'LIKE', '%indonusa%')
-                ->orWhere('email', 'LIKE', '%sippmi%');
+                ->orWhere('email', 'LIKE', '%sippmi.co%')
+                ->orWhere('email', 'LIKE', '%sucipurwandari%');
         })->first();
 
         if ($suciUser) {
@@ -1979,12 +1979,11 @@ class GardataPlacementSyncService
 
             if ($existing) {
                 DB::table('job_seekers')->where('id', $existing->id)->update([
-                    'id' => $id,
                     'nik' => $cand['nik'],
                     ...$attributes,
                 ]);
                 $updated++;
-                $candidateId = $id;
+                $candidateId = $existing->id;
             } else {
                 DB::table('job_seekers')->updateOrInsert(
                     ['id' => $id],
@@ -2583,10 +2582,10 @@ class GardataPlacementSyncService
   ),
   3 => 
   array (
-    'name' => 'Rangga Aditya Kusuma',
-    'gender' => 'L',
+    'name' => 'Dwi Lestari Wulandari',
+    'gender' => 'P',
     'batch' => 'waiter',
-    'nik' => '3372012808010007',
+    'nik' => '3372036504020020',
   ),
   4 => 
   array (
@@ -2611,10 +2610,10 @@ class GardataPlacementSyncService
   ),
   7 => 
   array (
-    'name' => 'Dwi Lestari Wulandari',
-    'gender' => 'P',
+    'name' => 'Rangga Aditya Kusuma',
+    'gender' => 'L',
     'batch' => 'waiter',
-    'nik' => '3372036504020020',
+    'nik' => '3372012808010007',
   ),
   8 => 
   array (
