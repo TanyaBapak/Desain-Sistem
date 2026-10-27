@@ -333,7 +333,10 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
       </section>
 
       {/* 5. PUBLIC COMMAND CENTER DASHBOARD & SEBARAN WILAYAH */}
-      <PublicCommandCenterSection initialData={publicCommandCenter} />
+      <PublicCommandCenterSection
+        initialData={publicCommandCenter}
+        targetSectors={projection.placementTargets.map((target) => target.sectorName)}
+      />
 
       <LandingProjectionDashboard projection={projection} />
 

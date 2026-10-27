@@ -29,6 +29,7 @@ class PublicCommandCenterTest extends TestCase
             'province_id' => $provinceId,
             'status' => 'Aktif',
             'evokasi_status' => 'Terverifikasi e-Vokasi',
+            'supported_sectors' => json_encode(['Kesehatan']),
             'created_at' => now(),
             'updated_at' => now(),
         ]);
@@ -41,6 +42,7 @@ class PublicCommandCenterTest extends TestCase
                 ->where('publicCommandCenter.selectedProvince', 'all')
                 ->where('publicCommandCenter.national.providersCount', 1)
                 ->where('publicCommandCenter.national.registeredProvidersCount', 1)
+                ->where('publicCommandCenter.previewDirectories.institutions.0.supportedSectors.0', 'Kesehatan')
                 ->has('publicCommandCenter.provinces', 38)
                 ->has('publicCommandCenter.byProvince')
                 ->has('publicCommandCenter.institutionsByProvince')

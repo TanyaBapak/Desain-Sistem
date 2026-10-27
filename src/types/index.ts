@@ -656,6 +656,7 @@ export interface PublicPreviewInstitution {
   district?: string;
   accreditation?: string;
   evokasiStatus?: string;
+  supportedSectors?: string[];
   totalActiveStudents?: number;
   workshopCapacity?: number;
 }
@@ -695,4 +696,3 @@ export interface PublicCommandCenterData {
     candidateEducation?: { label: string; count: number }[];
   };
 }
-

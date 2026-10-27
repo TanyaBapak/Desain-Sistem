@@ -315,7 +315,6 @@ class BusinessDataPresenter
             }
             $sampleInstitutions = $instQuery
                 ->orderBy('institutions.name')
-                ->limit(10)
                 ->get([
                     'institutions.id',
                     'institutions.name',
@@ -324,10 +323,14 @@ class BusinessDataPresenter
                     'districts.name as district',
                     'institutions.accreditation',
                     'institutions.evokasi_status as evokasiStatus',
+                    'institutions.supported_sectors as supportedSectors',
                     'institutions.total_active_students as totalActiveStudents',
                     'institutions.workshop_capacity as workshopCapacity',
                 ])
-                ->map(fn (object $row): array => (array) $row)
+                ->map(fn (object $row): array => [
+                    ...((array) $row),
+                    'supportedSectors' => $this->decodeArray($row->supportedSectors),
+                ])
                 ->all();
 
             $progQuery = DB::table('training_programs')
