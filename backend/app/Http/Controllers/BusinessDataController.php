@@ -293,8 +293,30 @@ class BusinessDataController extends Controller
             ->leftJoin('provinces', 'provinces.id', '=', 'job_seekers.province_id')
             ->when(app(Bp3miScope::class)->hasActiveAreaFilter($user), fn ($query) => app(Bp3miScope::class)->applyToJobSeekers($query, $user))
             ->when($role === 'province_admin', fn ($query) => $query->where('job_seekers.province_id', $user->province_id))
-            ->when($role === 'district_admin', fn ($query) => $query->where('job_seekers.district_id', $user->district_id))
-            ->when($role === 'institution_admin', fn ($query) => $query->where('job_seekers.institution_id', $user->institution_id ?? ''));
+            ->when($role === 'institution_admin', function ($query) use ($user) {
+                $scope = app(BusinessDataPresenter::class)->resolveInstitutionScope($user);
+                $query->where(function ($q) use ($scope, $user) {
+                    $hasCondition = false;
+                    if (! empty($scope['ids'])) {
+                        $q->whereIn('job_seekers.institution_id', $scope['ids']);
+                        $hasCondition = true;
+                    }
+                    if (! empty($scope['patterns'])) {
+                        foreach ($scope['patterns'] as $pattern) {
+                            $likeStr = '%'.str_replace('%', '', $pattern).'%';
+                            if ($hasCondition) {
+                                $q->orWhere('job_seekers.institution_name', 'LIKE', $likeStr);
+                            } else {
+                                $q->where('job_seekers.institution_name', 'LIKE', $likeStr);
+                                $hasCondition = true;
+                            }
+                        }
+                    }
+                    if (! $hasCondition) {
+                        $q->where('job_seekers.institution_id', $user->institution_id ?? '');
+                    }
+                });
+            });
 
         $total = (clone $baseQuery)->count();
 

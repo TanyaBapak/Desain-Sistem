@@ -373,13 +373,13 @@ export const SupplyTable: React.FC = () => {
   const canVerifyCandidates = ['taskforce', 'verifikator'].includes(currentRole);
   const canMatchCandidates = ['taskforce', 'matching', 'verifikator'].includes(currentRole);
   const canArchiveCandidates = ['taskforce', 'superadmin'].includes(currentRole);
-  const canSyncGardata = ['taskforce', 'superadmin'].includes(currentRole);
+  const canSyncGardata = ['taskforce', 'superadmin', 'vokasi'].includes(currentRole);
 
   const syncGardata = () => {
     router.post('/integrations/gardata/sync', {}, {
       preserveScroll: true,
       onStart: () => setIsGardataSyncing(true),
-      onSuccess: () => toast.success('Sinkronisasi data calon PMI dari Gardata berhasil dijadwalkan.'),
+      onSuccess: () => toast.success('Sinkronisasi data calon PMI dari Gardata berhasil diproses.'),
       onError: () => toast.error('Sinkronisasi Gardata gagal. Periksa koneksi API.'),
       onFinish: () => setIsGardataSyncing(false),
     });
@@ -399,12 +399,17 @@ export const SupplyTable: React.FC = () => {
               <span className="rounded px-2 py-0.5 text-xs font-semibold text-blue-100 bg-blue-700/60">
                 Scope: {currentScope.name}
               </span>
+              {currentRole === 'vokasi' && (
+                <span className="rounded px-2 py-0.5 text-xs font-semibold text-emerald-200 bg-emerald-800/80 border border-emerald-500/40">
+                  Feeder Terhubung: LPK Victoria Hotel School
+                </span>
+              )}
             </div>
             <p className="mt-1 text-xs leading-relaxed text-blue-100">
               {currentRole === 'disnaker'
                 ? 'Kewenangan Disnaker: Input, pemetaan, dan perbarui data calon PMI di wilayah binaan Anda.'
                 : currentRole === 'vokasi'
-                ? 'Kelola data siswa dan lulusan vokasi yang siap mengikuti program SMK Go Global.'
+                ? 'Kelola data siswa dan lulusan vokasi LPK Victoria Hotel School siap penempatan luar negeri, tersinkronisasi dengan Gardata.'
                 : 'Pemetaan komprehensif data calon pekerja migran terintegrasi Dukcapil, Disnaker Daerah, dan feeder gardata.sippmi.com.'}
             </p>
           </div>
@@ -419,7 +424,7 @@ export const SupplyTable: React.FC = () => {
               className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-border bg-background px-3 py-2 text-sm font-semibold text-foreground shadow-xs transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
             >
               <RefreshCw className={`h-3.5 w-3.5 ${isGardataSyncing ? 'animate-spin' : ''}`} aria-hidden="true" />
-              <span>{isGardataSyncing ? 'Menjadwalkan…' : 'Sinkronisasi Gardata'}</span>
+              <span>{isGardataSyncing ? 'Menyinkronkan…' : 'Sinkronisasi Gardata'}</span>
             </button>
           )}
 
@@ -523,11 +528,19 @@ export const SupplyTable: React.FC = () => {
         <div className="flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
           <span className="text-slate-300">
-            Sumber Feeder Integrasi: <strong>Disnaker Daerah</strong>, <strong>SMK / Lembaga Vokasi</strong>, dan <strong>gardata.sippmi.com</strong> (Pelaporan Diklat Terpadu CPMI).
+            Sumber Feeder Integrasi: <strong>Disnaker Daerah</strong>, <strong>SMK / Lembaga Vokasi</strong>, <strong>gardata.sippmi.com</strong>, dan <strong>victoriahotelschool.sippmi.com</strong>.
           </span>
         </div>
         <div className="flex items-center gap-3">
           <span className="text-emerald-400 font-mono text-[11px]">API: Online</span>
+          <a
+            href="https://victoriahotelschool.sippmi.com"
+            target="_blank"
+            rel="noreferrer"
+            className="text-emerald-400 hover:text-white font-semibold transition flex items-center gap-1 shrink-0"
+          >
+            <span>Feeder Victoria ↗</span>
+          </a>
           <a
             href="https://gardata.sippmi.com"
             target="_blank"

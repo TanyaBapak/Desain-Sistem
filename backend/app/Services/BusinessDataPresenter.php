@@ -897,6 +897,105 @@ class BusinessDataPresenter
             ])->all();
     }
 
+    public function resolveInstitutionScope(User $user): array
+    {
+        $institutionIds = array_filter([(string) $user->institution_id]);
+        $namePatterns = [];
+        $isVictoria = false;
+        $isOmega = false;
+        $isDuta = false;
+
+        if (! empty($user->institution_id)) {
+            $inst = DB::table('institutions')->where('id', $user->institution_id)->first();
+            if ($inst) {
+                $namePatterns[] = $inst->name;
+                if (stripos($inst->name, 'victoria') !== false) {
+                    $isVictoria = true;
+                }
+                if (stripos($inst->name, 'omega') !== false) {
+                    $isOmega = true;
+                }
+                if (stripos($inst->name, 'duta') !== false) {
+                    $isDuta = true;
+                }
+            }
+        }
+
+        $userAttrs = [
+            $user->organization ?? '',
+            $user->scope_name ?? '',
+            $user->name ?? '',
+        ];
+        foreach ($userAttrs as $attr) {
+            if ($attr === '') {
+                continue;
+            }
+            if (stripos($attr, 'victoria') !== false) {
+                $isVictoria = true;
+            }
+            if (stripos($attr, 'omega') !== false) {
+                $isOmega = true;
+            }
+            if (stripos($attr, 'duta') !== false) {
+                $isDuta = true;
+            }
+        }
+
+        // Context check: If user's district is Surakarta (3372) and is institution admin
+        if (! $isVictoria && ! empty($user->district_id) && in_array((string) $user->district_id, ['3372', 'Kota Surakarta'], true)) {
+            $isVictoria = true;
+        }
+
+        if ($isVictoria) {
+            $victoriaInsts = DB::table('institutions')
+                ->where(function ($q) {
+                    $q->where('name', 'LIKE', '%Victoria%')
+                        ->orWhere('id', 'LIKE', '%victoria%');
+                })
+                ->pluck('id')
+                ->all();
+            $institutionIds = array_unique(array_merge($institutionIds, $victoriaInsts));
+            $namePatterns[] = 'Victoria';
+            $namePatterns[] = 'VictoriaHotelSchool';
+            $namePatterns[] = 'LPK Victoria Hotel School';
+        }
+
+        if ($isOmega) {
+            $omegaInsts = DB::table('institutions')
+                ->where('name', 'LIKE', '%Omega%')
+                ->pluck('id')
+                ->all();
+            $institutionIds = array_unique(array_merge($institutionIds, $omegaInsts));
+            $namePatterns[] = 'Omega';
+        }
+
+        if ($isDuta) {
+            $dutaInsts = DB::table('institutions')
+                ->where('name', 'LIKE', '%Duta%')
+                ->pluck('id')
+                ->all();
+            $institutionIds = array_unique(array_merge($institutionIds, $dutaInsts));
+            $namePatterns[] = 'Duta';
+        }
+
+        foreach ($namePatterns as $p) {
+            $clean = trim(preg_replace('/^(lpk|lkp|smk|balai)\s+/i', '', $p));
+            if (strlen($clean) >= 4) {
+                $matched = DB::table('institutions')
+                    ->where('name', 'LIKE', '%'.$clean.'%')
+                    ->pluck('id')
+                    ->all();
+                $institutionIds = array_unique(array_merge($institutionIds, $matched));
+            }
+        }
+
+        return [
+            'ids' => array_values(array_filter($institutionIds)),
+            'patterns' => array_values(array_unique(array_filter($namePatterns))),
+            'isVictoria' => $isVictoria,
+        ];
+    }
+
     private function candidates(?string $role, User $user): array
     {
         if (! in_array($role, ['super_admin', 'leadership', 'task_force', 'province_admin', 'district_admin', 'institution_admin', 'verifier'], true)) {
@@ -907,7 +1006,30 @@ class BusinessDataPresenter
             ->whereNull('deleted_at')
             ->when($role === 'province_admin', fn ($query) => $query->where('job_seekers.province_id', $user->province_id))
             ->when($role === 'district_admin', fn ($query) => $query->where('job_seekers.district_id', $user->district_id))
-            ->when($role === 'institution_admin', fn ($query) => $query->where('job_seekers.institution_id', $user->institution_id ?? ''))
+            ->when($role === 'institution_admin', function ($query) use ($user) {
+                $scope = $this->resolveInstitutionScope($user);
+                $query->where(function ($q) use ($scope, $user) {
+                    $hasCondition = false;
+                    if (! empty($scope['ids'])) {
+                        $q->whereIn('job_seekers.institution_id', $scope['ids']);
+                        $hasCondition = true;
+                    }
+                    if (! empty($scope['patterns'])) {
+                        foreach ($scope['patterns'] as $pattern) {
+                            $likeStr = '%'.str_replace('%', '', $pattern).'%';
+                            if ($hasCondition) {
+                                $q->orWhere('job_seekers.institution_name', 'LIKE', $likeStr);
+                            } else {
+                                $q->where('job_seekers.institution_name', 'LIKE', $likeStr);
+                                $hasCondition = true;
+                            }
+                        }
+                    }
+                    if (! $hasCondition) {
+                        $q->where('job_seekers.institution_id', $user->institution_id ?? '');
+                    }
+                });
+            })
             ->leftJoin('provinces', 'provinces.id', '=', 'job_seekers.province_id')
             ->leftJoin('districts', 'districts.id', '=', 'job_seekers.district_id')
             ->when($this->bp3miScope->hasActiveAreaFilter($user), fn ($query) => $this->bp3miScope->applyToJobSeekers($query, $user))
@@ -1001,7 +1123,30 @@ class BusinessDataPresenter
             ->where('training_programs.status', '!=', 'Nonaktif')
             ->when(
                 in_array($role, ['institution_admin', 'training_operator'], true),
-                fn ($q) => $q->where('training_programs.institution_id', $user->institution_id ?? ''),
+                function ($query) use ($user) {
+                    $scope = $this->resolveInstitutionScope($user);
+                    $query->where(function ($q) use ($scope, $user) {
+                        $hasCondition = false;
+                        if (! empty($scope['ids'])) {
+                            $q->whereIn('training_programs.institution_id', $scope['ids']);
+                            $hasCondition = true;
+                        }
+                        if (! empty($scope['patterns'])) {
+                            foreach ($scope['patterns'] as $pattern) {
+                                $likeStr = '%'.str_replace('%', '', $pattern).'%';
+                                if ($hasCondition) {
+                                    $q->orWhere('institutions.name', 'LIKE', $likeStr);
+                                } else {
+                                    $q->where('institutions.name', 'LIKE', $likeStr);
+                                    $hasCondition = true;
+                                }
+                            }
+                        }
+                        if (! $hasCondition) {
+                            $q->where('training_programs.institution_id', $user->institution_id ?? '');
+                        }
+                    });
+                },
             )
             ->when($this->bp3miScope->hasActiveAreaFilter($user), fn ($q) => $this->bp3miScope->applyToTrainingPrograms($q, $user));
 
