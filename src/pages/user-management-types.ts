@@ -82,4 +82,16 @@ export interface DashboardTargetManagementData {
     projectionPlacement: string;
     target: number;
   }[];
+  trainingSectors: {
+    id: string;
+    name: string;
+    aliases: string[];
+  }[];
+  trainingOccupations: {
+    id: string;
+    sectorId: string;
+    sectorName: string;
+    title: string;
+    aliases: string[];
+  }[];
 }

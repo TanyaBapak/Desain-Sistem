@@ -8,23 +8,21 @@ import {
 } from "@/components/ui/card";
 import { Building2, Globe2, GraduationCap, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { PROGRAM_TRAINING_SECTORS } from "@/lib/constants/program-training-sectors";
-import type { PublicCommandCenterData } from "@/types";
-import {
-  PublicDrilldownModal,
-  PublicDrilldownType,
-} from "@/components/landing/PublicDrilldownModal";
+import type { PublicCommandCenterData, TrainingSectorCatalogItem } from "@/types";
+import { PublicDrilldownModal, PublicDrilldownType } from "@/components/landing/PublicDrilldownModal";
 
 interface PublicCommandCenterSectionProps {
   initialData?: PublicCommandCenterData;
   programsCount: number;
   sectorOccupations: Record<string, string[]>;
+  trainingSectors: TrainingSectorCatalogItem[];
 }
 
 export const PublicCommandCenterSection: React.FC<PublicCommandCenterSectionProps> = ({
   initialData,
   programsCount,
   sectorOccupations,
+  trainingSectors,
 }) => {
   const [activeDrilldown, setActiveDrilldown] = useState<PublicDrilldownType | null>(null);
   const [activeProgramSector, setActiveProgramSector] = useState<string | null>(null);
@@ -137,7 +135,11 @@ export const PublicCommandCenterSection: React.FC<PublicCommandCenterSectionProp
               </div>
             </CardHeader>
             <CardContent className="space-y-1 px-3 pb-3 pt-1">
-              {PROGRAM_TRAINING_SECTORS.map((sector) => (
+              {trainingSectors.length === 0 ? (
+                <p className="px-2 py-3 text-xs text-muted-foreground">
+                  Data sektor pelatihan belum tersedia.
+                </p>
+              ) : trainingSectors.map((sector) => (
                 <button
                   key={sector.name}
                   type="button"
@@ -200,6 +202,7 @@ export const PublicCommandCenterSection: React.FC<PublicCommandCenterSectionProp
         data={synthesizedData}
         initialSector={activeProgramSector}
         sectorOccupations={sectorOccupations}
+        trainingSectors={trainingSectors}
       />
     </section>
   );

@@ -23,8 +23,8 @@ import type {
   PublicCommandCenterData,
   PublicPreviewInstitution,
   PublicPreviewDemand,
+  TrainingSectorCatalogItem,
 } from "@/types";
-import { PROGRAM_TRAINING_SECTORS } from "@/lib/constants/program-training-sectors";
 
 export type PublicDrilldownType =
   | "peserta"
@@ -42,6 +42,7 @@ interface PublicDrilldownModalProps {
   data: PublicCommandCenterData;
   initialSector?: string | null;
   sectorOccupations: Record<string, string[]>;
+  trainingSectors: TrainingSectorCatalogItem[];
 }
 
 export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
@@ -51,6 +52,7 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
   data,
   initialSector = null,
   sectorOccupations,
+  trainingSectors,
 }) => {
   const [selectedSector, setSelectedSector] = useState<string | null>(
     initialSector,
@@ -76,10 +78,20 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
     data.previewDirectories?.demands ?? [];
   const nationalLpkList = data.nationalLpkByProvince ?? [];
   const institutionsList = data.institutionsByProvince ?? [];
-  const sectors = PROGRAM_TRAINING_SECTORS.map((sector) => sector.name);
-  const selectedSectorAliases =
-    PROGRAM_TRAINING_SECTORS.find((sector) => sector.name === selectedSector)
-      ?.aliases ?? [];
+  const sectors = trainingSectors.map((sector) => sector.name);
+  const selectedSectorData = trainingSectors.find((sector) => sector.name === selectedSector);
+  const selectedSectorAliases = [
+    selectedSectorData?.name ?? "",
+    ...(selectedSectorData?.aliases ?? []),
+  ].map(normalizeCatalogValue);
+  const selectedOccupationData = selectedSectorData?.occupations.find((occupation) =>
+    [occupation.title, ...occupation.aliases]
+      .some((value) => normalizeCatalogValue(value) === normalizeCatalogValue(selectedOccupation ?? "")),
+  );
+  const selectedOccupationAliases = [
+    selectedOccupation ?? "",
+    ...(selectedOccupationData ? [selectedOccupationData.title, ...selectedOccupationData.aliases] : []),
+  ].map(normalizeCatalogValue);
   const filteredInstitutions =
     selectedSector && selectedOccupation
       ? verifiedInstitutions.filter((institution) => {
@@ -89,15 +101,11 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
               const normalizedSupportedSector = supportedSector
                 .trim()
                 .toLocaleLowerCase("id-ID");
-              return selectedSectorAliases.some(
-                (alias) => alias === normalizedSupportedSector,
-              );
+              return selectedSectorAliases.includes(normalizedSupportedSector);
             });
           const supportsSelectedOccupation =
             institution.supportedOccupations?.some(
-              (occupation) =>
-                occupation.trim().toLocaleLowerCase("id-ID") ===
-                selectedOccupation.trim().toLocaleLowerCase("id-ID"),
+              (occupation) => selectedOccupationAliases.includes(normalizeCatalogValue(occupation)),
             ) ?? false;
 
           return supportsSelectedSector && supportsSelectedOccupation;
@@ -474,6 +482,10 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
         return null;
     }
   };
+
+  function normalizeCatalogValue(value: string): string {
+    return value.trim().toLocaleLowerCase("id-ID");
+  }
 
   const getTitle = () => {
     switch (type) {

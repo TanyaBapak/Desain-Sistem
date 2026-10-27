@@ -82,16 +82,19 @@ class ReferenceDataSeeder extends Seeder
         }
 
         foreach ([
-            ['SECT-CARE', 'Kesehatan / Caregiver', 'Pelatihan perawatan lansia dan pasien', 'HeartPulse'],
-            ['SECT-WELD', 'Manufaktur / Pengelasan', 'Pengelasan dan fabrikasi logam', 'Hammer'],
-            ['SECT-AUTO', 'Otomotif & Alat Berat', 'Perawatan kendaraan dan alat berat', 'Cpu'],
-            ['SECT-HOSP', 'Hospitality & Pariwisata', 'Perhotelan dan layanan pariwisata', 'Hotel'],
-            ['SECT-AGRI', 'Pertanian Modern', 'Pertanian dan pengolahan hasil pangan', 'Wheat'],
-        ] as [$id, $name, $description, $icon]) {
+            ['SECT-CARE', 'Kesehatan / Caregiver', 'Pelatihan perawatan lansia dan pasien', 'HeartPulse', ['caregiver', 'care giver', 'care-giving', 'health', 'healthcare', 'health care', 'kesehatan']],
+            ['SECT-WELD', 'Manufaktur / Pengelasan', 'Pengelasan dan fabrikasi logam', 'Hammer', ['manufactur', 'manufaktur', 'manufacturing']],
+            ['SECT-AUTO', 'Otomotif & Alat Berat', 'Perawatan kendaraan dan alat berat', 'Cpu', []],
+            ['SECT-HOSP', 'Hospitality & Pariwisata', 'Perhotelan dan layanan pariwisata', 'Hotel', ['hospitality']],
+            ['SECT-AGRI', 'Pertanian Modern', 'Pertanian dan pengolahan hasil pangan', 'Wheat', ['fisherman', 'fisherman (agricultur)', 'fishery', 'agricultur', 'agriculture', 'perikanan', 'pertanian']],
+        ] as [$id, $name, $description, $icon, $aliases]) {
             DB::table('sectors')->updateOrInsert(
                 ['id' => $id],
                 ['name' => $name, 'description' => $description, 'icon' => $icon],
             );
+            DB::table('sectors')->where('id', $id)->whereNull('aliases')->update([
+                'aliases' => json_encode($aliases, JSON_THROW_ON_ERROR),
+            ]);
         }
 
         foreach ([
@@ -114,11 +117,11 @@ class ReferenceDataSeeder extends Seeder
         DB::table('countries')->whereNotIn('id', ['JP', 'KR', 'MY', 'TR'])->delete();
 
         foreach ([
-            ['OCC-KG-01', 'SECT-CARE', 'Caregiver / Kaigo', 'KG-SSW-01', 'Standar keperawatan dan bahasa Jepang'],
-            ['OCC-WL-01', 'SECT-WELD', 'Welder SMAW / GMAW', 'WL-JIS-01', 'Sertifikasi pengelasan tingkat lanjut'],
-            ['OCC-AT-01', 'SECT-AUTO', 'Teknisi Perawatan Otomotif', 'AT-GER-01', 'Standar teknisi otomotif'],
-            ['OCC-HS-01', 'SECT-HOSP', 'Staf Hotel dan Layanan Makanan', 'HS-TW-01', 'Standar perhotelan dan bahasa Mandarin'],
-        ] as [$id, $sectorId, $title, $code, $skillStandard]) {
+            ['OCC-KG-01', 'SECT-CARE', 'Caregiver / Kaigo', 'KG-SSW-01', 'Standar keperawatan dan bahasa Jepang', ['caregiver', 'caregiver (lvl pelaksana)', 'caregiver / kaigo', 'kaigo']],
+            ['OCC-WL-01', 'SECT-WELD', 'Welder SMAW / GMAW', 'WL-JIS-01', 'Sertifikasi pengelasan tingkat lanjut', []],
+            ['OCC-AT-01', 'SECT-AUTO', 'Teknisi Perawatan Otomotif', 'AT-GER-01', 'Standar teknisi otomotif', []],
+            ['OCC-HS-01', 'SECT-HOSP', 'Staf Hotel dan Layanan Makanan', 'HS-TW-01', 'Standar perhotelan dan bahasa Mandarin', []],
+        ] as [$id, $sectorId, $title, $code, $skillStandard, $aliases]) {
             DB::table('occupations')->updateOrInsert(
                 ['id' => $id],
                 [
@@ -128,6 +131,9 @@ class ReferenceDataSeeder extends Seeder
                     'skill_standard' => $skillStandard,
                 ],
             );
+            DB::table('occupations')->where('id', $id)->whereNull('aliases')->update([
+                'aliases' => json_encode($aliases, JSON_THROW_ON_ERROR),
+            ]);
         }
     }
 }

@@ -476,6 +476,33 @@ class BusinessDataPresenter
         ]);
     }
 
+    public function publicTrainingCatalog(): array
+    {
+        $sectors = DB::table('sectors')
+            ->orderBy('name')
+            ->get(['id', 'name', 'aliases']);
+        $occupations = DB::table('occupations')
+            ->orderBy('title')
+            ->get(['id', 'sector_id', 'title', 'aliases'])
+            ->groupBy('sector_id');
+
+        return [
+            'sectors' => $sectors->map(fn (object $sector): array => [
+                'id' => $sector->id,
+                'name' => $sector->name,
+                'aliases' => $this->decodeArray($sector->aliases),
+                'occupations' => ($occupations->get($sector->id) ?? collect())
+                    ->map(fn (object $occupation): array => [
+                        'id' => $occupation->id,
+                        'title' => $occupation->title,
+                        'aliases' => $this->decodeArray($occupation->aliases),
+                    ])
+                    ->values()
+                    ->all(),
+            ])->values()->all(),
+        ];
+    }
+
     /**
      * @return array{
      *     year: int|null,

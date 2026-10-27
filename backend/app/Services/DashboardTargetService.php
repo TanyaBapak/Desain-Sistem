@@ -699,6 +699,23 @@ class DashboardTargetService
         $sectors = [];
         $occupations = [];
 
+        foreach (DB::table('sectors')->orderBy('name')->get(['name']) as $sector) {
+            $sectors[trim((string) $sector->name)] = true;
+        }
+
+        foreach (DB::table('occupations')
+            ->join('sectors', 'sectors.id', '=', 'occupations.sector_id')
+            ->orderBy('sectors.name')
+            ->orderBy('occupations.title')
+            ->get(['sectors.name as sector_name', 'occupations.title']) as $occupation) {
+            $sectorName = trim((string) $occupation->sector_name);
+            $occupationName = trim((string) $occupation->title);
+            $occupations["{$sectorName}\0{$occupationName}"] = [
+                'sectorName' => $sectorName,
+                'occupationName' => $occupationName,
+            ];
+        }
+
         foreach (DB::table('institutions')
             ->whereNotNull('external_metadata')
             ->orWhereNotNull('supported_sectors')

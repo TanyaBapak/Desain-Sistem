@@ -105,6 +105,32 @@ class UserManagementController extends Controller
             'landingCountrySectorPerformance' => $dashboardTargets->allLandingCountrySectorPerformance(),
             'landingPlacementOptions' => $dashboardTargets->landingPlacementOptions(),
             'landingPlacementTargets' => $dashboardTargets->allLandingPlacementTargets(),
+            'trainingSectors' => DB::table('sectors')
+                ->orderBy('name')
+                ->get(['id', 'name', 'aliases'])
+                ->map(fn (object $sector): array => [
+                    'id' => $sector->id,
+                    'name' => $sector->name,
+                    'aliases' => json_decode($sector->aliases ?: '[]', true, 512, JSON_THROW_ON_ERROR),
+                ]),
+            'trainingOccupations' => DB::table('occupations')
+                ->join('sectors', 'sectors.id', '=', 'occupations.sector_id')
+                ->orderBy('sectors.name')
+                ->orderBy('occupations.title')
+                ->get([
+                    'occupations.id',
+                    'occupations.sector_id as sectorId',
+                    'occupations.title',
+                    'occupations.aliases',
+                    'sectors.name as sectorName',
+                ])
+                ->map(fn (object $occupation): array => [
+                    'id' => $occupation->id,
+                    'sectorId' => $occupation->sectorId,
+                    'sectorName' => $occupation->sectorName,
+                    'title' => $occupation->title,
+                    'aliases' => json_decode($occupation->aliases ?: '[]', true, 512, JSON_THROW_ON_ERROR),
+                ]),
         ];
     }
 

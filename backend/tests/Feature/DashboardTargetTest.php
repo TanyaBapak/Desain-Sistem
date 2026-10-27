@@ -348,7 +348,7 @@ class DashboardTargetTest extends TestCase
         $this->assertDatabaseCount('dashboard_targets', 0);
     }
 
-    public function test_target_job_options_are_distinct_from_institution_sector_and_job_metadata(): void
+    public function test_target_job_options_include_master_data_and_institution_metadata(): void
     {
         DB::table('institutions')->where('id', 'VOC-DEMO-001')->update([
             'supported_sectors' => json_encode(['Kesehatan', 'Hospitality'], JSON_THROW_ON_ERROR),
@@ -364,11 +364,18 @@ class DashboardTargetTest extends TestCase
         $this->actingAs($this->userWithRole('super_admin'))
             ->get('/app/targets')
             ->assertInertia(fn (Assert $page) => $page
-                ->where('adminTargets.landingPlacementOptions.sectors', ['Hospitality', 'Kesehatan'])
-                ->where('adminTargets.landingPlacementOptions.occupations', [
-                    ['sectorName' => 'Hospitality', 'occupationName' => 'Koki'],
-                    ['sectorName' => 'Kesehatan', 'occupationName' => 'Perawat'],
-                ]));
+                ->where('adminTargets.landingPlacementOptions.sectors', fn ($sectors): bool => collect($sectors)
+                    ->contains('Kesehatan / Caregiver')
+                    && collect($sectors)->contains('Hospitality & Pariwisata')
+                    && collect($sectors)->contains('Kesehatan')
+                    && collect($sectors)->contains('Hospitality'))
+                ->where('adminTargets.landingPlacementOptions.occupations', fn ($occupations): bool => collect($occupations)
+                    ->contains(['sectorName' => 'Hospitality', 'occupationName' => 'Koki'])
+                    && collect($occupations)->contains(['sectorName' => 'Kesehatan', 'occupationName' => 'Perawat'])
+                    && collect($occupations)->contains([
+                        'sectorName' => 'Kesehatan / Caregiver',
+                        'occupationName' => 'Caregiver / Kaigo',
+                    ])));
     }
 
     public function test_program_placement_target_seeder_does_not_overwrite_existing_manual_values(): void

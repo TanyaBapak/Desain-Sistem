@@ -682,6 +682,17 @@ export interface PublicPreviewDemand {
   deadline?: string;
 }
 
+export interface TrainingSectorCatalogItem {
+  id: string;
+  name: string;
+  aliases: string[];
+  occupations: {
+    id: string;
+    title: string;
+    aliases: string[];
+  }[];
+}
+
 export interface PublicCommandCenterData {
   selectedProvince: string;
   provinces: PublicProvinceItem[];

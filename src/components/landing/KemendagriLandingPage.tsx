@@ -4,8 +4,7 @@ import {
 } from '../../store/useAppStore';
 import { LandingProjectionDashboard, LandingProjectionData } from "@/components/landing/LandingProjectionDashboard";
 import { PublicCommandCenterSection } from "@/components/landing/PublicCommandCenterSection";
-import { getProgramTrainingSectorName, PROGRAM_TRAINING_SECTORS } from "@/lib/constants/program-training-sectors";
-import { UserRole, PublicCommandCenterData } from '../../types';
+import { UserRole, PublicCommandCenterData, TrainingSectorCatalogItem } from '../../types';
 import { LOGO_URL } from '@/lib/assets';
 import {
   ShieldCheck,
@@ -29,6 +28,7 @@ interface KemendagriLandingPageProps {
   };
   projection: LandingProjectionData;
   publicCommandCenter?: PublicCommandCenterData;
+  trainingSectors: TrainingSectorCatalogItem[];
 }
 
 const TRAINING_SECTORS = ["Hospitality", "Manufaktur", "Kesehatan", "Konstruksi"];
@@ -49,6 +49,7 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
   kpiSummary,
   projection,
   publicCommandCenter,
+  trainingSectors,
 }) => {
   const {
     openLoginPage,
@@ -68,25 +69,20 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
   const vocationalCount = kpiSummary.metrics.find(
     (metric) => metric.key === "activeVocationalInstitutions",
   )?.value;
-  const sectorOccupations = Object.fromEntries(
-    PROGRAM_TRAINING_SECTORS.map((sector) => [
-      sector.name,
-      Array.from(
-        new Set(
-          projection.placementTargets
-            .filter(
-              (target) =>
-                getProgramTrainingSectorName(
-                  target.sectorName,
-                  target.occupationName,
-                ) === sector.name,
-            )
-            .map((target) => target.occupationName.trim())
-            .filter(Boolean),
-        ),
-      ),
-    ]),
-  );
+  const sectorOccupations = Object.fromEntries(trainingSectors.map((sector) => {
+    const sectorNames = [sector.name, ...sector.aliases].map(normalizeCatalogValue);
+    const occupationNames = sector.occupations.flatMap((occupation) => [
+      occupation.title,
+      ...occupation.aliases,
+    ]).map(normalizeCatalogValue);
+    const targets = projection.placementTargets
+      .filter((target) => sectorNames.includes(normalizeCatalogValue(target.sectorName))
+        || occupationNames.includes(normalizeCatalogValue(target.occupationName)))
+      .map((target) => target.occupationName.trim())
+      .filter(Boolean);
+
+    return [sector.name, Array.from(new Set(targets))];
+  }));
 
   const handleSelectRole = (roleId: UserRole) => {
     void roleId;
@@ -334,8 +330,9 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
       {/* 5. PUBLIC COMMAND CENTER DASHBOARD & SEBARAN WILAYAH */}
       <PublicCommandCenterSection
         initialData={publicCommandCenter}
-        programsCount={PROGRAM_TRAINING_SECTORS.length}
+        programsCount={trainingSectors.length}
         sectorOccupations={sectorOccupations}
+        trainingSectors={trainingSectors}
       />
 
       <LandingProjectionDashboard projection={projection} />
@@ -406,3 +403,7 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
     </div>
   );
 };
+
+function normalizeCatalogValue(value: string): string {
+  return value.trim().toLocaleLowerCase("id-ID");
+}

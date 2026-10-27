@@ -13,6 +13,7 @@ use App\Http\Controllers\Kp2miVokasiSyncController;
 use App\Http\Controllers\MatchingRunController;
 use App\Http\Controllers\PlacementWorkflowController;
 use App\Http\Controllers\ProgramAllocationController;
+use App\Http\Controllers\TrainingReferenceDataController;
 use App\Http\Controllers\UserManagementController;
 use App\Http\Middleware\EnsureUserIsActive;
 use App\Models\User;
@@ -47,6 +48,7 @@ Route::get('/', function (Request $request, BusinessDataPresenter $businessDataP
         'showLogin' => false,
         'landingKpiSummary' => $businessDataPresenter->publicLandingKpiSummary(),
         'landingProjection' => $businessDataPresenter->publicLandingProjection($projectionYear),
+        'trainingCatalog' => $businessDataPresenter->publicTrainingCatalog(),
         'publicCommandCenter' => $businessDataPresenter->publicCommandCenterData($provinceFilter),
     ]);
 })->name('home');
@@ -66,6 +68,16 @@ Route::middleware(['auth', EnsureUserIsActive::class])->group(function () {
     Route::post('/admin/users', [UserManagementController::class, 'store'])->name('admin.users.store');
     Route::patch('/admin/dashboard-targets', [DashboardTargetController::class, 'update'])
         ->name('admin.dashboard-targets.update');
+    Route::post('/admin/training-sectors', [TrainingReferenceDataController::class, 'storeSector'])
+        ->name('admin.training-sectors.store');
+    Route::patch('/admin/training-sectors/{sectorId}', [TrainingReferenceDataController::class, 'updateSector'])
+        ->where('sectorId', '[A-Za-z0-9-]+')
+        ->name('admin.training-sectors.update');
+    Route::post('/admin/training-occupations', [TrainingReferenceDataController::class, 'storeOccupation'])
+        ->name('admin.training-occupations.store');
+    Route::patch('/admin/training-occupations/{occupationId}', [TrainingReferenceDataController::class, 'updateOccupation'])
+        ->where('occupationId', '[A-Za-z0-9-]+')
+        ->name('admin.training-occupations.update');
     Route::patch('/admin/users/{user}', [UserManagementController::class, 'update'])
         ->whereNumber('user')
         ->name('admin.users.update');

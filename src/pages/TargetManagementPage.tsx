@@ -1,4 +1,5 @@
 import { DashboardTargetSettings } from "@/pages/DashboardTargetSettings";
+import { TrainingReferenceDataManager } from "@/pages/TrainingReferenceDataManager";
 import type { DashboardTargetManagementData } from "@/pages/user-management-types";
 
 interface TargetManagementPageProps {
@@ -29,6 +30,10 @@ export function TargetManagementPage({ adminTargets }: TargetManagementPageProps
         targets={adminTargets.landingKpiTargets}
         placementOptions={adminTargets.landingPlacementOptions}
         placementTargets={adminTargets.landingPlacementTargets}
+      />
+      <TrainingReferenceDataManager
+        sectors={adminTargets.trainingSectors}
+        occupations={adminTargets.trainingOccupations}
       />
     </div>
   );
