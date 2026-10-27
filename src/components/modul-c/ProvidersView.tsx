@@ -522,6 +522,7 @@ export const ProvidersView: React.FC = () => {
             () => {
               setIsFormOpen(false);
               setProviderToEdit(null);
+              fetchProviders();
             },
           );
         }}

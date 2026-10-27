@@ -19,30 +19,54 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
   mode,
 }) => {
   const { businessOptions } = useAppStore();
+  const defaultCountries = [
+    { id: 'JP', name: 'Jepang' },
+    { id: 'KR', name: 'Korea' },
+    { id: 'MY', name: 'Malaysia' },
+    { id: 'TR', name: 'Turki' },
+  ];
+  const countriesList = businessOptions.countries.length > 0 ? businessOptions.countries : defaultCountries;
+
+  const defaultSectorNames = [
+    'Caregiver',
+    'Hospitality & Pariwisata',
+    'Kesehatan / Caregiver',
+    'Manufaktur / Pengelasan',
+    'Otomotif & Alat Berat',
+    'Konstruksi',
+    'Teknologi Informasi',
+    'Bisnis dan Manajemen',
+    'Pertanian & Perkebunan',
+  ];
+  const sectorOptions = Array.from(
+    new Set([
+      ...defaultSectorNames,
+      ...businessOptions.sectors.map((sector) => sector.name),
+      ...(initialData?.supportedSectors ?? []),
+    ]),
+  ).sort((left, right) => left.localeCompare(right, 'id'));
+
   const [name, setName] = useState('');
   const [providerType, setProviderType] = useState<ProviderType>('SMK');
   const [provinsi, setProvinsi] = useState('Jawa Barat');
   const [kabupatenKota, setKabupatenKota] = useState('Kabupaten Bogor');
   const [accreditation, setAccreditation] = useState<VocationalProvider['accreditation']>('A');
   const [evokasiStatus, setEvokasiStatus] = useState<VocationalProvider['evokasiVerificationStatus']>('Proses Verifikasi');
-  const [classCount, setClassCount] = useState(0);
-  const [readyParticipantCount, setReadyParticipantCount] = useState(0);
-  const [certifiedInstructorsCount, setCertifiedInstructorsCount] = useState(0);
-  const [operationalReadinessScore, setOperationalReadinessScore] = useState(0);
+  const [classCount, setClassCount] = useState<number | string>('');
+  const [readyParticipantCount, setReadyParticipantCount] = useState<number | string>('');
+  const [certifiedInstructorsCount, setCertifiedInstructorsCount] = useState<number | string>('');
+  const [operationalReadinessScore, setOperationalReadinessScore] = useState<number | string>('');
   const [supportedSectors, setSupportedSectors] = useState<string[]>([]);
   const [supportedCountries, setSupportedCountries] = useState<string[]>([]);
   const [facilitiesInput, setFacilitiesInput] = useState('');
-  const sectorOptions = Array.from(
-    new Set([
-      ...businessOptions.sectors.map((sector) => sector.name),
-      ...(initialData?.supportedSectors ?? []),
-    ]),
-  ).sort((left, right) => left.localeCompare(right, 'id'));
+
   const availableDistricts = businessOptions.districts.filter(
     (district) => businessOptions.provinces.find((province) => province.name === provinsi)?.id === district.province_id,
   );
 
   useEffect(() => {
+    if (!isOpen) return;
+
     if (initialData && mode === 'edit') {
       setName(initialData.name);
       setProviderType(initialData.providerType as ProviderType);
@@ -63,13 +87,18 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
 
       setAccreditation(initialData.accreditation);
       setEvokasiStatus(initialData.evokasiVerificationStatus);
-      setClassCount(initialData.classCount ?? 0);
-      setReadyParticipantCount(initialData.readyParticipantCount ?? 0);
-      setCertifiedInstructorsCount(initialData.certifiedInstructorsCount ?? 0);
-      setOperationalReadinessScore(initialData.operationalReadinessScore ?? 0);
-      setSupportedSectors(initialData.supportedSectors);
-      setSupportedCountries(initialData.supportedCountries ?? []);
-      setFacilitiesInput(initialData.facilities.join(', '));
+      setClassCount(initialData.classCount ?? '');
+      setReadyParticipantCount(initialData.readyParticipantCount ?? '');
+      setCertifiedInstructorsCount(initialData.certifiedInstructorsCount ?? '');
+      setOperationalReadinessScore(initialData.operationalReadinessScore ?? '');
+      setSupportedSectors(initialData.supportedSectors ?? []);
+
+      const normalizedCountries = (initialData.supportedCountries ?? []).map((c) => {
+        const found = countriesList.find((cl) => cl.id === c || cl.name.toLowerCase() === c.toLowerCase());
+        return found ? found.id : c;
+      });
+      setSupportedCountries(normalizedCountries);
+      setFacilitiesInput(initialData.facilities ? initialData.facilities.join(', ') : '');
     } else {
       setName('');
       setProviderType('SMK');
@@ -77,15 +106,15 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
       setKabupatenKota('Kabupaten Bogor');
       setAccreditation('A');
       setEvokasiStatus('Proses Verifikasi');
-      setClassCount(0);
-      setReadyParticipantCount(0);
-      setCertifiedInstructorsCount(0);
-      setOperationalReadinessScore(0);
+      setClassCount('');
+      setReadyParticipantCount('');
+      setCertifiedInstructorsCount('');
+      setOperationalReadinessScore('');
       setSupportedSectors([]);
       setSupportedCountries([]);
       setFacilitiesInput('');
     }
-  }, [initialData, mode, isOpen, businessOptions]);
+  }, [isOpen, initialData?.id, mode]);
 
   if (!isOpen) return null;
 
@@ -98,6 +127,11 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
       .map((s) => s.trim())
       .filter((s) => s.length > 0);
 
+    const canonicalCountries = supportedCountries.map((c) => {
+      const found = countriesList.find((cl) => cl.id === c || cl.name.toLowerCase() === c.toLowerCase());
+      return found ? found.id : c;
+    });
+
     onSubmit({
       name,
       providerType,
@@ -106,12 +140,12 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
       accreditation,
       evokasiVerificationStatus: evokasiStatus,
       capacityPerBatch: initialData?.capacityPerBatch ?? null,
-      classCount: Number(classCount),
-      readyParticipantCount: Number(readyParticipantCount),
-      certifiedInstructorsCount: Number(certifiedInstructorsCount),
-      operationalReadinessScore: Number(operationalReadinessScore),
+      classCount: classCount === '' ? 0 : Number(classCount),
+      readyParticipantCount: readyParticipantCount === '' ? 0 : Number(readyParticipantCount),
+      certifiedInstructorsCount: certifiedInstructorsCount === '' ? 0 : Number(certifiedInstructorsCount),
+      operationalReadinessScore: operationalReadinessScore === '' ? 0 : Number(operationalReadinessScore),
       supportedSectors,
-      supportedCountries,
+      supportedCountries: canonicalCountries,
       facilities: facilitiesArray,
     });
   };
@@ -174,10 +208,16 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
                 onChange={(e) => setProviderType(e.target.value as ProviderType)}
                 className="w-full text-xs p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-slate-50"
               >
+                {!['SMK', 'BLK', 'LPK', 'Perguruan Tinggi / Politeknik', 'LKP', 'Universitas', 'Politeknik'].includes(providerType) && providerType && (
+                  <option value={providerType}>{providerType}</option>
+                )}
                 <option value="SMK">SMK (Sekolah Menengah Kejuruan)</option>
                 <option value="BLK">BLK / BPVP (Balai Pelatihan Vokasi)</option>
                 <option value="LPK">LPK (Lembaga Pelatihan Kerja)</option>
+                <option value="LKP">LKP (Lembaga Kursus dan Pelatihan)</option>
                 <option value="Perguruan Tinggi / Politeknik">Perguruan Tinggi / Politeknik</option>
+                <option value="Politeknik">Politeknik</option>
+                <option value="Universitas">Universitas</option>
               </select>
             </div>
           </div>
@@ -251,10 +291,16 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
                 onChange={(e) => setAccreditation(e.target.value as VocationalProvider['accreditation'])}
                 className="w-full text-xs p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-slate-50"
               >
+                {!['A', 'Unggul', 'B', 'Baik Sekali', 'C', 'Baik', 'Belum Terakreditasi'].includes(accreditation) && accreditation && (
+                  <option value={accreditation}>{accreditation}</option>
+                )}
                 <option value="A">Akreditasi A</option>
                 <option value="Unggul">Unggul</option>
                 <option value="B">Akreditasi B</option>
                 <option value="Baik Sekali">Baik Sekali</option>
+                <option value="C">Akreditasi C</option>
+                <option value="Baik">Baik</option>
+                <option value="Belum Terakreditasi">Belum Terakreditasi</option>
               </select>
             </div>
 
@@ -281,9 +327,11 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
                 type="number"
                 min={0}
                 max={100}
+                step="any"
                 required
                 value={operationalReadinessScore}
-                onChange={(e) => setOperationalReadinessScore(Number(e.target.value))}
+                onChange={(e) => setOperationalReadinessScore(e.target.value)}
+                placeholder="0"
                 className="w-full text-xs p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-slate-50"
               />
             </div>
@@ -299,9 +347,11 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
                 type="number"
                 min={0}
                 max={100000}
+                step="any"
                 required
                 value={classCount}
-                onChange={(e) => setClassCount(Number(e.target.value))}
+                onChange={(e) => setClassCount(e.target.value)}
+                placeholder="0"
                 className="w-full text-xs p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-slate-50"
               />
             </div>
@@ -314,9 +364,11 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
                 type="number"
                 min={0}
                 max={100000}
+                step="any"
                 required
                 value={readyParticipantCount}
-                onChange={(e) => setReadyParticipantCount(Number(e.target.value))}
+                onChange={(e) => setReadyParticipantCount(e.target.value)}
+                placeholder="0"
                 className="w-full text-xs p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-slate-50"
               />
             </div>
@@ -329,9 +381,11 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
                 type="number"
                 min={0}
                 max={100000}
+                step="any"
                 required
                 value={certifiedInstructorsCount}
-                onChange={(e) => setCertifiedInstructorsCount(Number(e.target.value))}
+                onChange={(e) => setCertifiedInstructorsCount(e.target.value)}
+                placeholder="0"
                 className="w-full text-xs p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-slate-50"
               />
             </div>
@@ -365,15 +419,19 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
                 Negara tujuan penempatan
               </legend>
               <div className="max-h-40 space-y-2 overflow-y-auto rounded-xl border border-border bg-background p-3">
-                {businessOptions.countries.map((country) => (
+                {countriesList.map((country) => (
                   <label key={country.id} className="flex items-center gap-2 text-sm text-foreground">
                     <input
                       type="checkbox"
-                      checked={supportedCountries.includes(country.id)}
+                      checked={supportedCountries.includes(country.id) || supportedCountries.includes(country.name)}
                       onChange={(event) =>
-                        setSupportedCountries((current) =>
-                          toggleSelection(current, country.id, event.target.checked),
-                        )
+                        setSupportedCountries((current) => {
+                          const isChecked = event.target.checked;
+                          const filtered = current.filter(
+                            (item) => item !== country.id && item !== country.name,
+                          );
+                          return isChecked ? [...filtered, country.id] : filtered;
+                        })
                       }
                       className="h-4 w-4 rounded border-input accent-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     />

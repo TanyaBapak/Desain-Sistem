@@ -946,6 +946,13 @@ class BusinessDataPresenter
             $user->scope_name ?? '',
             $user->name ?? '',
         ];
+        if (! empty($user->organization)) {
+            $namePatterns[] = $user->organization;
+        }
+        if (! empty($user->email)) {
+            $emailInsts = DB::table('institutions')->where('email', $user->email)->pluck('id')->all();
+            $institutionIds = array_unique(array_merge($institutionIds, $emailInsts));
+        }
         foreach ($userAttrs as $attr) {
             if ($attr === '') {
                 continue;
