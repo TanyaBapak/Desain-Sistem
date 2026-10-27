@@ -210,27 +210,42 @@ class GardataPlacementSyncService
                 }
 
                 // Pastikan kandidat Victoria Hotel School tersinkronisasi jika data masih kosong atau force
-                $victoriaCount = DB::table('job_seekers')->where('institution_name', 'LIKE', '%Victoria%')->count();
-                if ($victoriaCount === 0 || $force) {
-                    $vicResult = $this->ensureVictoriaCandidates($force);
-                    $result['recordsInserted'] += $vicResult['inserted'];
-                    $result['recordsUpdated'] += $vicResult['updated'];
+                try {
+                    $victoriaCount = DB::table('job_seekers')->where('institution_name', 'LIKE', '%Victoria%')->count();
+                    if ($victoriaCount === 0 || $force) {
+                        $vicResult = $this->ensureVictoriaCandidates($force);
+                        $result['recordsInserted'] += $vicResult['inserted'];
+                        $result['recordsUpdated'] += $vicResult['updated'];
+                    }
+                } catch (Throwable $e) {
+                    $subdomainSyncIncomplete = true;
+                    Log::warning("Victoria Hotel School candidates sync warning: {$e->getMessage()}");
                 }
 
                 // Pastikan kandidat LPK Omega Hotel Academy tersinkronisasi jika data masih kosong atau force
-                $omegaCount = DB::table('job_seekers')->where('institution_name', 'LIKE', '%Omega%')->count();
-                if ($omegaCount === 0 || $force) {
-                    $omegaResult = $this->ensureOmegaCandidates($force);
-                    $result['recordsInserted'] += $omegaResult['inserted'];
-                    $result['recordsUpdated'] += $omegaResult['updated'];
+                try {
+                    $omegaCount = DB::table('job_seekers')->where('institution_name', 'LIKE', '%Omega%')->count();
+                    if ($omegaCount === 0 || $force) {
+                        $omegaResult = $this->ensureOmegaCandidates($force);
+                        $result['recordsInserted'] += $omegaResult['inserted'];
+                        $result['recordsUpdated'] += $omegaResult['updated'];
+                    }
+                } catch (Throwable $e) {
+                    $subdomainSyncIncomplete = true;
+                    Log::warning("LPK Omega Hotel Academy candidates sync warning: {$e->getMessage()}");
                 }
 
                 // Pastikan kandidat Politeknik Indonusa Surakarta tersinkronisasi jika data masih kosong atau force
-                $indonusaCount = DB::table('job_seekers')->where('institution_name', 'LIKE', '%Indonusa%')->count();
-                if ($indonusaCount < 147 || $force) {
-                    $indoResult = $this->ensureIndonusaCandidates($force);
-                    $result['recordsInserted'] += $indoResult['inserted'];
-                    $result['recordsUpdated'] += $indoResult['updated'];
+                try {
+                    $indonusaCount = DB::table('job_seekers')->where('institution_name', 'LIKE', '%Indonusa%')->count();
+                    if ($indonusaCount < 147 || $force) {
+                        $indoResult = $this->ensureIndonusaCandidates($force);
+                        $result['recordsInserted'] += $indoResult['inserted'];
+                        $result['recordsUpdated'] += $indoResult['updated'];
+                    }
+                } catch (Throwable $e) {
+                    $subdomainSyncIncomplete = true;
+                    Log::warning("Politeknik Indonusa Surakarta candidates sync warning: {$e->getMessage()}");
                 }
             }
 
@@ -1282,93 +1297,104 @@ class GardataPlacementSyncService
         $now = now();
 
         foreach ($candidates as $cand) {
-            $id = 'GD-'.Str::upper(substr(hash('sha256', $cand['external_id']), 0, 24));
-            $existing = DB::table('job_seekers')
-                ->where('external_source', 'gardata')
-                ->where('external_id', $cand['external_id'])
-                ->first();
+            try {
+                $id = 'GD-'.Str::upper(substr(hash('sha256', $cand['external_id']), 0, 24));
+                $existing = DB::table('job_seekers')
+                    ->where('nik', $cand['nik'])
+                    ->orWhere('id', $id)
+                    ->orWhere(fn ($q) => $q->where('external_source', 'gardata')->where('external_id', $cand['external_id']))
+                    ->first(['id', 'institution_id', 'institution_name']);
 
-            $attributes = [
-                'registration_number' => 'GDT-'.Str::upper(substr(hash('sha256', $cand['external_id']), 0, 32)),
-                'nik' => $cand['nik'],
-                'full_name' => $cand['name'],
-                'gender' => $cand['gender'],
-                'province_id' => '33',
-                'district_id' => '3372',
-                'education_level' => $cand['education'],
-                'institution_name' => 'LPK Victoria Hotel School',
-                'institution_id' => $institutionId,
-                'major' => $cand['major'],
-                'source_type' => 'Gardata',
-                'source_reference' => $cand['external_id'],
-                'external_source' => 'gardata',
-                'external_id' => $cand['external_id'],
-                'readiness_status' => $cand['readiness_status'],
-                'verification_status' => $cand['verification_status'],
-                'lifecycle_status' => 'APPROVED',
-                'preferred_countries' => json_encode($cand['preferred_countries']),
-                'preferred_job_roles' => json_encode($cand['preferred_roles']),
-                'work_experiences' => json_encode($cand['work_experiences']),
-                'certifications' => json_encode($cand['certifications']),
-                'preferred_sectors' => json_encode(['Tourism, Travel, dan Hospitality']),
-                'updated_at' => $now,
-            ];
-
-            if ($existing) {
-                if ($force || $existing->institution_name !== 'LPK Victoria Hotel School' || $existing->institution_id !== $institutionId) {
-                    DB::table('job_seekers')->where('id', $existing->id)->update($attributes);
-                    $updated++;
-                }
-                $candidateId = $existing->id;
-            } else {
-                DB::table('job_seekers')->insert([
-                    'id' => $id,
-                    ...$attributes,
-                    'created_at' => $now,
-                ]);
-                $inserted++;
-                $candidateId = $id;
-            }
-
-            // Sync skills
-            foreach ($cand['skills'] as $skill) {
-                DB::table('job_seeker_skills')->updateOrInsert(
-                    ['job_seeker_id' => $candidateId, 'skill_name' => $skill],
-                    ['certified' => true],
-                );
-            }
-
-            // Sync languages
-            foreach ($cand['languages'] as $lang) {
-                DB::table('job_seeker_languages')->updateOrInsert(
-                    ['job_seeker_id' => $candidateId, 'language' => $lang['language']],
-                    ['level' => $lang['level']],
-                );
-            }
-
-            // Sync training record
-            DB::table('external_training_records')->updateOrInsert(
-                [
+                $attributes = [
+                    'registration_number' => 'GDT-'.Str::upper(substr(hash('sha256', $cand['external_id']), 0, 32)),
+                    'nik' => $cand['nik'],
+                    'full_name' => $cand['name'],
+                    'gender' => $cand['gender'],
+                    'province_id' => '33',
+                    'district_id' => '3372',
+                    'education_level' => $cand['education'],
+                    'institution_name' => 'LPK Victoria Hotel School',
+                    'institution_id' => $institutionId,
+                    'major' => $cand['major'],
+                    'source_type' => 'Gardata',
+                    'source_reference' => $cand['external_id'],
                     'external_source' => 'gardata',
-                    'external_batch_id' => 'VHS-BATCH-2026-1',
-                    'job_seeker_id' => $candidateId,
-                ],
-                [
-                    'class_code' => 'VHS-CRUISE-2026',
-                    'batch_name' => $cand['batch_name'],
-                    'sector_name' => 'Hospitality & Cruise Ship',
-                    'program_name' => 'Pelatihan Terpadu Perhotelan dan Kapal Pesiar Internasional',
-                    'start_date' => '2026-01-10',
-                    'end_date' => '2026-06-30',
-                    'target_jp' => 400,
-                    'achieved_jp' => 400,
-                    'completion_percentage' => 100.0,
-                    'status' => 'GRADUATED',
-                    'verified_reports_count' => 12,
+                    'external_id' => $cand['external_id'],
+                    'readiness_status' => $cand['readiness_status'],
+                    'verification_status' => $cand['verification_status'],
+                    'lifecycle_status' => 'APPROVED',
+                    'preferred_countries' => json_encode($cand['preferred_countries']),
+                    'preferred_job_roles' => json_encode($cand['preferred_roles']),
+                    'work_experiences' => json_encode($cand['work_experiences']),
+                    'certifications' => json_encode($cand['certifications']),
+                    'preferred_sectors' => json_encode(['Tourism, Travel, dan Hospitality']),
+                    'deleted_at' => null,
                     'updated_at' => $now,
-                    'created_at' => $now,
-                ]
-            );
+                ];
+
+                if ($existing) {
+                    if ($force || $existing->institution_name !== 'LPK Victoria Hotel School' || $existing->institution_id !== $institutionId) {
+                        DB::table('job_seekers')->where('id', $existing->id)->update([
+                            'nik' => $cand['nik'],
+                            ...$attributes,
+                        ]);
+                        $updated++;
+                    }
+                    $candidateId = $existing->id;
+                } else {
+                    DB::table('job_seekers')->updateOrInsert(
+                        ['id' => $id],
+                        [
+                            ...$attributes,
+                            'created_at' => $now,
+                        ]
+                    );
+                    $inserted++;
+                    $candidateId = $id;
+                }
+
+                // Sync skills
+                foreach ($cand['skills'] as $skill) {
+                    DB::table('job_seeker_skills')->updateOrInsert(
+                        ['job_seeker_id' => $candidateId, 'skill_name' => $skill],
+                        ['certified' => true],
+                    );
+                }
+
+                // Sync languages
+                foreach ($cand['languages'] as $lang) {
+                    DB::table('job_seeker_languages')->updateOrInsert(
+                        ['job_seeker_id' => $candidateId, 'language' => $lang['language']],
+                        ['level' => $lang['level']],
+                    );
+                }
+
+                // Sync training record
+                DB::table('external_training_records')->updateOrInsert(
+                    [
+                        'external_source' => 'gardata',
+                        'external_batch_id' => 'VHS-BATCH-2026-1',
+                        'job_seeker_id' => $candidateId,
+                    ],
+                    [
+                        'class_code' => 'VHS-CRUISE-2026',
+                        'batch_name' => $cand['batch_name'],
+                        'sector_name' => 'Hospitality & Cruise Ship',
+                        'program_name' => 'Pelatihan Terpadu Perhotelan dan Kapal Pesiar Internasional',
+                        'start_date' => '2026-01-10',
+                        'end_date' => '2026-06-30',
+                        'target_jp' => 400,
+                        'achieved_jp' => 400,
+                        'completion_percentage' => 100.0,
+                        'status' => 'GRADUATED',
+                        'verified_reports_count' => 12,
+                        'updated_at' => $now,
+                        'created_at' => $now,
+                    ]
+                );
+            } catch (Throwable $e) {
+                Log::warning("Victoria Hotel School candidate {$cand['external_id']} sync warning: {$e->getMessage()}");
+            }
         }
 
         $this->invalidateBusinessDataCache();
@@ -1764,97 +1790,101 @@ class GardataPlacementSyncService
         $updated = 0;
 
         foreach ($candidates as $cand) {
-            $id = 'CAND-'.Str::upper(substr(hash('sha256', $cand['external_id']), 0, 10));
+            try {
+                $id = 'CAND-'.Str::upper(substr(hash('sha256', $cand['external_id']), 0, 10));
 
-            $existing = DB::table('job_seekers')
-                ->where('id', $id)
-                ->orWhere('external_id', $cand['external_id'])
-                ->orWhere('nik', $cand['nik'])
-                ->first(['id', 'institution_id', 'institution_name']);
+                $existing = DB::table('job_seekers')
+                    ->where('id', $id)
+                    ->orWhere('external_id', $cand['external_id'])
+                    ->orWhere('nik', $cand['nik'])
+                    ->first(['id', 'institution_id', 'institution_name']);
 
-            $attributes = [
-                'full_name' => $cand['name'],
-                'gender' => $cand['gender'],
-                'province_id' => '33',
-                'district_id' => '3301',
-                'education_level' => $cand['education'],
-                'institution_name' => 'LPK Omega Hotel Academy',
-                'institution_id' => $institutionId,
-                'major' => $cand['major'],
-                'source_type' => 'Gardata',
-                'source_reference' => $cand['external_id'],
-                'external_source' => 'gardata',
-                'external_id' => $cand['external_id'],
-                'readiness_status' => $cand['readiness_status'],
-                'verification_status' => $cand['verification_status'],
-                'lifecycle_status' => 'APPROVED',
-                'preferred_countries' => json_encode($cand['preferred_countries']),
-                'preferred_job_roles' => json_encode($cand['preferred_roles']),
-                'work_experiences' => json_encode($cand['work_experiences']),
-                'certifications' => json_encode($cand['certifications']),
-                'preferred_sectors' => json_encode(['Tourism, Travel, dan Hospitality']),
-                'deleted_at' => null,
-                'updated_at' => $now,
-            ];
+                $attributes = [
+                    'full_name' => $cand['name'],
+                    'gender' => $cand['gender'],
+                    'province_id' => '33',
+                    'district_id' => '3301',
+                    'education_level' => $cand['education'],
+                    'institution_name' => 'LPK Omega Hotel Academy',
+                    'institution_id' => $institutionId,
+                    'major' => $cand['major'],
+                    'source_type' => 'Gardata',
+                    'source_reference' => $cand['external_id'],
+                    'external_source' => 'gardata',
+                    'external_id' => $cand['external_id'],
+                    'readiness_status' => $cand['readiness_status'],
+                    'verification_status' => $cand['verification_status'],
+                    'lifecycle_status' => 'APPROVED',
+                    'preferred_countries' => json_encode($cand['preferred_countries']),
+                    'preferred_job_roles' => json_encode($cand['preferred_roles']),
+                    'work_experiences' => json_encode($cand['work_experiences']),
+                    'certifications' => json_encode($cand['certifications']),
+                    'preferred_sectors' => json_encode(['Tourism, Travel, dan Hospitality']),
+                    'deleted_at' => null,
+                    'updated_at' => $now,
+                ];
 
-            if ($existing) {
-                DB::table('job_seekers')->where('id', $existing->id)->update([
-                    'nik' => $cand['nik'],
-                    ...$attributes,
-                ]);
-                $updated++;
-                $candidateId = $existing->id;
-            } else {
-                DB::table('job_seekers')->updateOrInsert(
-                    ['id' => $id],
-                    [
-                        'registration_number' => 'REG-'.Str::upper(Str::random(10)),
+                if ($existing) {
+                    DB::table('job_seekers')->where('id', $existing->id)->update([
                         'nik' => $cand['nik'],
-                        'created_by' => 'Eko Priyono Prasetyo',
                         ...$attributes,
+                    ]);
+                    $updated++;
+                    $candidateId = $existing->id;
+                } else {
+                    DB::table('job_seekers')->updateOrInsert(
+                        ['id' => $id],
+                        [
+                            'registration_number' => 'REG-'.Str::upper(Str::random(10)),
+                            'nik' => $cand['nik'],
+                            'created_by' => 'Eko Priyono Prasetyo',
+                            ...$attributes,
+                            'created_at' => $now,
+                        ]
+                    );
+                    $inserted++;
+                    $candidateId = $id;
+                }
+
+                foreach ($cand['skills'] as $skill) {
+                    DB::table('job_seeker_skills')->updateOrInsert(
+                        ['job_seeker_id' => $candidateId, 'skill_name' => $skill],
+                        ['certified' => true],
+                    );
+                }
+
+                foreach ($cand['languages'] as $lang) {
+                    DB::table('job_seeker_languages')->updateOrInsert(
+                        ['job_seeker_id' => $candidateId, 'language' => $lang['language']],
+                        ['level' => $lang['level']],
+                    );
+                }
+
+                DB::table('external_training_records')->updateOrInsert(
+                    [
+                        'external_source' => 'gardata',
+                        'external_batch_id' => 'OMEGA-BATCH-2026-1',
+                        'job_seeker_id' => $candidateId,
+                    ],
+                    [
+                        'class_code' => 'OMEGA-CRUISE-2026',
+                        'batch_name' => $cand['batch_name'],
+                        'sector_name' => 'Hospitality & Cruise Ship',
+                        'program_name' => 'Pelatihan Terpadu Perhotelan dan Kapal Pesiar LPK Omega Hotel Academy',
+                        'start_date' => '2026-01-15',
+                        'end_date' => '2026-07-15',
+                        'target_jp' => 420,
+                        'achieved_jp' => 420,
+                        'completion_percentage' => 100.0,
+                        'status' => 'GRADUATED',
+                        'verified_reports_count' => 14,
+                        'updated_at' => $now,
                         'created_at' => $now,
                     ]
                 );
-                $inserted++;
-                $candidateId = $id;
+            } catch (Throwable $e) {
+                Log::warning("Omega candidate {$cand['external_id']} sync warning: {$e->getMessage()}");
             }
-
-            foreach ($cand['skills'] as $skill) {
-                DB::table('job_seeker_skills')->updateOrInsert(
-                    ['job_seeker_id' => $candidateId, 'skill_name' => $skill],
-                    ['certified' => true],
-                );
-            }
-
-            foreach ($cand['languages'] as $lang) {
-                DB::table('job_seeker_languages')->updateOrInsert(
-                    ['job_seeker_id' => $candidateId, 'language' => $lang['language']],
-                    ['level' => $lang['level']],
-                );
-            }
-
-            DB::table('external_training_records')->updateOrInsert(
-                [
-                    'external_source' => 'gardata',
-                    'external_batch_id' => 'OMEGA-BATCH-2026-1',
-                    'job_seeker_id' => $candidateId,
-                ],
-                [
-                    'class_code' => 'OMEGA-CRUISE-2026',
-                    'batch_name' => $cand['batch_name'],
-                    'sector_name' => 'Hospitality & Cruise Ship',
-                    'program_name' => 'Pelatihan Terpadu Perhotelan dan Kapal Pesiar LPK Omega Hotel Academy',
-                    'start_date' => '2026-01-15',
-                    'end_date' => '2026-07-15',
-                    'target_jp' => 420,
-                    'achieved_jp' => 420,
-                    'completion_percentage' => 100.0,
-                    'status' => 'GRADUATED',
-                    'verified_reports_count' => 14,
-                    'updated_at' => $now,
-                    'created_at' => $now,
-                ]
-            );
         }
 
         $this->invalidateBusinessDataCache();
@@ -1932,11 +1962,16 @@ class GardataPlacementSyncService
         $candidates = $this->getIndonusa147CandidatesList();
 
         if ($force) {
-            $validExternalIds = array_column($candidates, 'external_id');
-            DB::table('job_seekers')
-                ->where('external_source', 'sippmi')
-                ->whereNotIn('external_id', $validExternalIds)
-                ->delete();
+            try {
+                $validExternalIds = array_column($candidates, 'external_id');
+                DB::table('job_seekers')
+                    ->where('external_source', 'sippmi')
+                    ->whereNotIn('external_id', $validExternalIds)
+                    ->whereNull('deleted_at')
+                    ->update(['deleted_at' => now()]);
+            } catch (Throwable $e) {
+                Log::warning('Soft delete obsolete sippmi candidates warning: '.$e->getMessage());
+            }
         }
 
         $now = now();
@@ -1944,97 +1979,103 @@ class GardataPlacementSyncService
         $updated = 0;
 
         foreach ($candidates as $cand) {
-            $id = 'CAND-'.Str::upper(substr(hash('sha256', $cand['external_id']), 0, 10));
+            try {
+                $id = 'CAND-'.Str::upper(substr(hash('sha256', $cand['external_id']), 0, 10));
 
-            $existing = DB::table('job_seekers')
-                ->where('id', $id)
-                ->orWhere('external_id', $cand['external_id'])
-                ->orWhere('nik', $cand['nik'])
-                ->first(['id', 'institution_id', 'institution_name', 'external_source']);
+                $existing = DB::table('job_seekers')
+                    ->where('nik', $cand['nik'])
+                    ->first(['id', 'institution_id', 'institution_name', 'external_source'])
+                    ?? DB::table('job_seekers')
+                    ->where('id', $id)
+                    ->orWhere('external_id', $cand['external_id'])
+                    ->first(['id', 'institution_id', 'institution_name', 'external_source']);
 
-            $attributes = [
-                'full_name' => $cand['name'],
-                'gender' => $cand['gender'],
-                'province_id' => '33',
-                'district_id' => '3372',
-                'education_level' => $cand['education'],
-                'institution_name' => 'Politeknik Indonusa Surakarta',
-                'institution_id' => $institutionId,
-                'major' => $cand['major'],
-                'source_type' => 'Gardata',
-                'source_reference' => $cand['external_id'],
-                'external_source' => 'sippmi',
-                'external_id' => $cand['external_id'],
-                'readiness_status' => $cand['readiness_status'],
-                'verification_status' => $cand['verification_status'],
-                'lifecycle_status' => 'APPROVED',
-                'preferred_countries' => json_encode($cand['preferred_countries']),
-                'preferred_job_roles' => json_encode($cand['preferred_roles']),
-                'work_experiences' => json_encode($cand['work_experiences']),
-                'certifications' => json_encode($cand['certifications']),
-                'preferred_sectors' => json_encode([$cand['sector_name']]),
-                'deleted_at' => null,
-                'updated_at' => $now,
-            ];
+                $attributes = [
+                    'full_name' => $cand['name'],
+                    'gender' => $cand['gender'],
+                    'province_id' => '33',
+                    'district_id' => '3372',
+                    'education_level' => $cand['education'],
+                    'institution_name' => 'Politeknik Indonusa Surakarta',
+                    'institution_id' => $institutionId,
+                    'major' => $cand['major'],
+                    'source_type' => 'Gardata',
+                    'source_reference' => $cand['external_id'],
+                    'external_source' => 'sippmi',
+                    'external_id' => $cand['external_id'],
+                    'readiness_status' => $cand['readiness_status'],
+                    'verification_status' => $cand['verification_status'],
+                    'lifecycle_status' => 'APPROVED',
+                    'preferred_countries' => json_encode($cand['preferred_countries']),
+                    'preferred_job_roles' => json_encode($cand['preferred_roles']),
+                    'work_experiences' => json_encode($cand['work_experiences']),
+                    'certifications' => json_encode($cand['certifications']),
+                    'preferred_sectors' => json_encode([$cand['sector_name']]),
+                    'deleted_at' => null,
+                    'updated_at' => $now,
+                ];
 
-            if ($existing) {
-                DB::table('job_seekers')->where('id', $existing->id)->update([
-                    'nik' => $cand['nik'],
-                    ...$attributes,
-                ]);
-                $updated++;
-                $candidateId = $existing->id;
-            } else {
-                DB::table('job_seekers')->updateOrInsert(
-                    ['id' => $id],
-                    [
-                        'registration_number' => 'SIPPMI-'.Str::upper(Str::random(10)),
+                if ($existing) {
+                    DB::table('job_seekers')->where('id', $existing->id)->update([
                         'nik' => $cand['nik'],
-                        'created_by' => 'Ir. Suci Purwandari, M.M, Ph.D',
                         ...$attributes,
+                    ]);
+                    $updated++;
+                    $candidateId = $existing->id;
+                } else {
+                    DB::table('job_seekers')->updateOrInsert(
+                        ['id' => $id],
+                        [
+                            'registration_number' => 'SIPPMI-'.Str::upper(Str::random(10)),
+                            'nik' => $cand['nik'],
+                            'created_by' => 'Ir. Suci Purwandari, M.M, Ph.D',
+                            ...$attributes,
+                            'created_at' => $now,
+                        ]
+                    );
+                    $inserted++;
+                    $candidateId = $id;
+                }
+
+                foreach ($cand['skills'] as $skill) {
+                    DB::table('job_seeker_skills')->updateOrInsert(
+                        ['job_seeker_id' => $candidateId, 'skill_name' => $skill],
+                        ['certified' => true],
+                    );
+                }
+
+                foreach ($cand['languages'] as $lang) {
+                    DB::table('job_seeker_languages')->updateOrInsert(
+                        ['job_seeker_id' => $candidateId, 'language' => $lang['language']],
+                        ['level' => $lang['level']],
+                    );
+                }
+
+                DB::table('external_training_records')->updateOrInsert(
+                    [
+                        'external_source' => 'sippmi',
+                        'external_batch_id' => $cand['batch_id'],
+                        'job_seeker_id' => $candidateId,
+                    ],
+                    [
+                        'class_code' => $cand['class_code'],
+                        'batch_name' => $cand['batch_name'],
+                        'sector_name' => $cand['sector_name'],
+                        'program_name' => $cand['program_name'],
+                        'start_date' => '2026-01-05',
+                        'end_date' => '2026-07-20',
+                        'target_jp' => $cand['target_jp'],
+                        'achieved_jp' => $cand['achieved_jp'],
+                        'completion_percentage' => 100.0,
+                        'status' => 'GRADUATED',
+                        'verified_reports_count' => 16,
+                        'updated_at' => $now,
                         'created_at' => $now,
                     ]
                 );
-                $inserted++;
-                $candidateId = $id;
+            } catch (Throwable $e) {
+                Log::warning("Indonusa candidate {$cand['external_id']} sync warning: {$e->getMessage()}");
             }
-
-            foreach ($cand['skills'] as $skill) {
-                DB::table('job_seeker_skills')->updateOrInsert(
-                    ['job_seeker_id' => $candidateId, 'skill_name' => $skill],
-                    ['certified' => true],
-                );
-            }
-
-            foreach ($cand['languages'] as $lang) {
-                DB::table('job_seeker_languages')->updateOrInsert(
-                    ['job_seeker_id' => $candidateId, 'language' => $lang['language']],
-                    ['level' => $lang['level']],
-                );
-            }
-
-            DB::table('external_training_records')->updateOrInsert(
-                [
-                    'external_source' => 'sippmi',
-                    'external_batch_id' => $cand['batch_id'],
-                    'job_seeker_id' => $candidateId,
-                ],
-                [
-                    'class_code' => $cand['class_code'],
-                    'batch_name' => $cand['batch_name'],
-                    'sector_name' => $cand['sector_name'],
-                    'program_name' => $cand['program_name'],
-                    'start_date' => '2026-01-05',
-                    'end_date' => '2026-07-20',
-                    'target_jp' => $cand['target_jp'],
-                    'achieved_jp' => $cand['achieved_jp'],
-                    'completion_percentage' => 100.0,
-                    'status' => 'GRADUATED',
-                    'verified_reports_count' => 16,
-                    'updated_at' => $now,
-                    'created_at' => $now,
-                ]
-            );
         }
 
         $this->invalidateBusinessDataCache();

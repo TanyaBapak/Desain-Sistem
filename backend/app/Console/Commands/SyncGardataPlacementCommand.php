@@ -67,11 +67,12 @@ class SyncGardataPlacementCommand extends Command
                 ]
             );
 
-            $this->info('Sinkronisasi data Gardata selesai.');
+            $this->info('Sinkronisasi data Gardata & mitra LPK/Politeknik (Victoria, Omega, Indonusa) selesai.');
 
             return self::SUCCESS;
         } catch (Throwable $e) {
-            $this->error('Sinkronisasi Gardata gagal: ' . $e->getMessage());
+            $realError = $e->getPrevious() ? $e->getPrevious()->getMessage() : $e->getMessage();
+            $this->error('Sinkronisasi Gardata gagal: ' . $realError);
 
             return self::FAILURE;
         }
