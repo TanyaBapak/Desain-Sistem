@@ -180,27 +180,6 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
             </div>
           </div>
 
-          {/* Quick Action Button: Masuk SSO */}
-          <div className="flex items-center gap-2 sm:gap-3">
-            <a
-              href="/lembaga/daftar"
-              title="Pendaftaran lembaga SMK Go Internasional - AC"
-              className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2.5 text-xs font-bold text-primary transition hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:px-4"
-            >
-              <Building2 className="h-4 w-4 shrink-0" aria-hidden="true" />
-              <span className="hidden sm:inline">Daftar SMK Go Internasional - AC</span>
-              <span className="sm:hidden">Daftar Lembaga</span>
-            </a>
-            <button
-              onClick={() => openLoginPage()}
-              className="flex items-center gap-2 rounded-xl bg-blue-600 px-3 py-2.5 text-xs font-bold text-white shadow-md shadow-blue-600/20 transition hover:bg-blue-500 sm:px-5"
-              title="Masuk Sistem Terpadu (SSO)"
-            >
-              <Compass className="h-4 w-4 shrink-0" />
-              <span className="hidden sm:inline">Masuk Sistem Terpadu (SSO)</span>
-              <span className="sm:hidden">Masuk</span>
-            </button>
-          </div>
         </div>
 
         {/* Primary Navbar Menu (Ala Kemendagri) */}
