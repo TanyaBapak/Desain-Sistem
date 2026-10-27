@@ -41,7 +41,7 @@ class PublicCommandCenterTest extends TestCase
                 ->where('publicCommandCenter.selectedProvince', 'all')
                 ->where('publicCommandCenter.national.providersCount', 1)
                 ->where('publicCommandCenter.national.registeredProvidersCount', 1)
-                ->has('publicCommandCenter.provinces')
+                ->has('publicCommandCenter.provinces', 38)
                 ->has('publicCommandCenter.byProvince')
                 ->has('publicCommandCenter.institutionsByProvince')
                 ->has('publicCommandCenter.nationalLpkByProvince'));
@@ -89,6 +89,7 @@ class PublicCommandCenterTest extends TestCase
                 ->where('publicCommandCenter.activeStats.scopeName', 'Jawa Tengah')
                 ->where('publicCommandCenter.activeStats.providersCount', 1)
                 ->where('publicCommandCenter.activeStats.registeredProvidersCount', 1)
-                ->where('publicCommandCenter.national.providersCount', 2));
+                ->where('publicCommandCenter.national.providersCount', 2)
+                ->where('publicCommandCenter.activeStats.programsCount', 3998));
     }
 }

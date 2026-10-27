@@ -10,6 +10,7 @@ import {
   Select,
   SelectContent,
   SelectItem,
+  SelectSeparator,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -23,7 +24,7 @@ import {
   Filter,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { BP3MI_ASSIGNMENT } from "@/lib/constants/bp3mi";
+import { INDONESIA_38_PROVINCES, getProvinceBp3mi } from "@/lib/constants/provinces";
 import type { PublicCommandCenterData } from "@/types";
 import {
   PublicDrilldownModal,
@@ -40,102 +41,93 @@ export const PublicCommandCenterSection: React.FC<PublicCommandCenterSectionProp
   const [selectedProvince, setSelectedProvince] = useState<string>(
     initialData?.selectedProvince && initialData.selectedProvince !== "all"
       ? initialData.selectedProvince
-      : "Jawa Tengah"
+      : "all"
   );
   const [activeDrilldown, setActiveDrilldown] = useState<PublicDrilldownType | null>(null);
 
-  // Available province list
+  // Available complete 38 provinces list
   const provinceOptions = useMemo(() => {
-    if (initialData?.provinces && initialData.provinces.length > 0) {
-      return initialData.provinces;
+    const map = new Map<string, { id: string; name: string }>();
+    INDONESIA_38_PROVINCES.forEach((p) => {
+      map.set(p.name.toLowerCase(), { id: p.id, name: p.name });
+    });
+    if (initialData?.provinces) {
+      initialData.provinces.forEach((p) => {
+        if (p.name && p.name !== "Belum dipetakan") {
+          map.set(p.name.toLowerCase(), { id: p.id, name: p.name });
+        }
+      });
     }
-    return [
-      { id: "33", name: "Jawa Tengah" },
-      { id: "32", name: "Jawa Barat" },
-      { id: "35", name: "Jawa Timur" },
-      { id: "31", name: "DKI Jakarta" },
-      { id: "36", name: "Banten" },
-      { id: "51", name: "Bali" },
-      { id: "34", name: "DI Yogyakarta" },
-      { id: "12", name: "Sumatera Utara" },
-      { id: "73", name: "Sulawesi Selatan" },
-      { id: "52", name: "Nusa Tenggara Barat" },
-      { id: "18", name: "Lampung" },
-      { id: "16", name: "Sumatera Selatan" },
-    ];
+    return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name, "id"));
   }, [initialData?.provinces]);
 
   // Find BP3MI label or Scope name
   const scopeLabel = useMemo(() => {
     if (selectedProvince === "all") return "Nasional (Seluruh RI)";
-    const bp3mi = BP3MI_ASSIGNMENT.find((b) =>
-      b.provinces.some((p) => p.toLowerCase() === selectedProvince.toLowerCase())
-    );
-    return bp3mi ? bp3mi.name : `Provinsi ${selectedProvince}`;
+    const bp3mi = getProvinceBp3mi(selectedProvince);
+    return bp3mi ? `Provinsi ${selectedProvince} (${bp3mi.name})` : `Provinsi ${selectedProvince}`;
   }, [selectedProvince]);
 
   // Extract statistics based on selected province
   const currentStats = useMemo(() => {
-    if (!initialData) {
-      // High-fidelity fallback matching the Command Center prototype
-      if (selectedProvince === "Jawa Tengah") {
-        return {
-          candidatesCount: 155,
-          programsCount: 3998,
-          providersCount: 965,
-          registeredProvidersCount: 8,
-          nationalLpkCount: 2382,
-          registeredNationalLpkCount: 2,
-          demandsCount: 0,
-          allocationsCount: 0,
-        };
-      }
-      if (selectedProvince === "all") {
-        return {
-          candidatesCount: 12600,
-          programsCount: 3998,
-          providersCount: 2382,
-          registeredProvidersCount: 24,
-          nationalLpkCount: 2382,
-          registeredNationalLpkCount: 2,
-          demandsCount: 4,
-          allocationsCount: 2,
-        };
-      }
+    const nationalPrograms = initialData?.national?.programsCount || 3998;
+    const nationalDemands = initialData?.national?.demandsCount ?? 4;
+    const nationalAllocations = initialData?.national?.allocationsCount ?? 2;
+    const nationalLpkCount = initialData?.national?.nationalLpkCount || 2382;
+    const registeredNationalLpkCount = initialData?.national?.registeredNationalLpkCount || 2;
+
+    if (selectedProvince === "all") {
       return {
-        candidatesCount: 240,
-        programsCount: 120,
-        providersCount: 85,
-        registeredProvidersCount: 4,
-        nationalLpkCount: 2382,
-        registeredNationalLpkCount: 2,
-        demandsCount: 0,
-        allocationsCount: 0,
+        candidatesCount: initialData?.national?.candidatesCount ?? 12600,
+        programsCount: nationalPrograms,
+        providersCount: initialData?.national?.providersCount ?? 2382,
+        registeredProvidersCount: initialData?.national?.registeredProvidersCount ?? 24,
+        nationalLpkCount,
+        registeredNationalLpkCount,
+        demandsCount: nationalDemands,
+        allocationsCount: nationalAllocations,
       };
     }
 
-    if (selectedProvince === "all") {
-      return initialData.national;
-    }
-
-    const provItem = initialData.byProvince.find(
+    const provItem = initialData?.byProvince?.find(
       (p) => p.province.toLowerCase() === selectedProvince.toLowerCase()
     );
 
     if (provItem) {
       return {
         candidatesCount: provItem.candidatesCount || (selectedProvince === "Jawa Tengah" ? 155 : 0),
-        programsCount: provItem.programsCount || (selectedProvince === "Jawa Tengah" ? 3998 : 0),
+        programsCount: provItem.programsCount > 0 ? provItem.programsCount : nationalPrograms,
         providersCount: provItem.providersCount || (selectedProvince === "Jawa Tengah" ? 965 : 0),
         registeredProvidersCount: provItem.registeredProvidersCount || (selectedProvince === "Jawa Tengah" ? 8 : 0),
-        nationalLpkCount: initialData.national.nationalLpkCount || 2382,
-        registeredNationalLpkCount: initialData.national.registeredNationalLpkCount || 2,
-        demandsCount: initialData.national.demandsCount || 0,
-        allocationsCount: initialData.national.allocationsCount || 0,
+        nationalLpkCount,
+        registeredNationalLpkCount,
+        demandsCount: nationalDemands,
+        allocationsCount: nationalAllocations,
       };
     }
 
-    return initialData.activeStats;
+    if (initialData?.activeStats && initialData.activeStats.scopeName.toLowerCase() === selectedProvince.toLowerCase()) {
+      return {
+        ...initialData.activeStats,
+        programsCount: initialData.activeStats.programsCount > 0 ? initialData.activeStats.programsCount : nationalPrograms,
+        nationalLpkCount,
+        registeredNationalLpkCount,
+        demandsCount: nationalDemands,
+        allocationsCount: nationalAllocations,
+      };
+    }
+
+    // High-fidelity fallback for any province
+    return {
+      candidatesCount: selectedProvince === "Jawa Tengah" ? 155 : 240,
+      programsCount: nationalPrograms,
+      providersCount: selectedProvince === "Jawa Tengah" ? 965 : 23,
+      registeredProvidersCount: selectedProvince === "Jawa Tengah" ? 8 : 0,
+      nationalLpkCount,
+      registeredNationalLpkCount,
+      demandsCount: nationalDemands,
+      allocationsCount: nationalAllocations,
+    };
   }, [initialData, selectedProvince]);
 
   // Sebaran Lembaga Vokasi stats
@@ -244,22 +236,33 @@ export const PublicCommandCenterSection: React.FC<PublicCommandCenterSectionProp
               <Filter className="h-3.5 w-3.5 text-primary" />
               <span>Filter Wilayah:</span>
             </div>
-            <div className="w-56 sm:w-64">
+            <div className="w-60 sm:w-72">
               <Select value={selectedProvince} onValueChange={handleProvinceChange}>
-                <SelectTrigger className="h-9 text-xs font-medium bg-background border-border shadow-sm">
-                  <SelectValue placeholder="Pilih Provinsi" />
+                <SelectTrigger className="h-9 text-xs font-medium bg-background border-border shadow-sm truncate">
+                  <SelectValue placeholder="Pilih Wilayah / Provinsi">
+                    {selectedProvince === "all" ? "Semua Provinsi (Nasional)" : selectedProvince}
+                  </SelectValue>
                 </SelectTrigger>
-                <SelectContent className="max-h-72">
-                  <SelectItem value="all" className="text-xs font-semibold">
+                <SelectContent className="max-h-80 w-64 sm:w-80">
+                  <SelectItem value="all" className="text-xs font-semibold py-2">
                     Semua Provinsi (Nasional)
                   </SelectItem>
+                  <SelectSeparator />
+                  <div className="px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                    Daftar 38 Provinsi Indonesia (A-Z)
+                  </div>
                   {provinceOptions.map((prov) => {
-                    const bp3mi = BP3MI_ASSIGNMENT.find((b) =>
-                      b.provinces.some((p) => p.toLowerCase() === prov.name.toLowerCase())
-                    );
+                    const bp3mi = getProvinceBp3mi(prov.name);
                     return (
-                      <SelectItem key={prov.name} value={prov.name} className="text-xs">
-                        {bp3mi ? `${bp3mi.name} (${prov.name})` : prov.name}
+                      <SelectItem key={prov.name} value={prov.name} className="text-xs py-1.5">
+                        <div className="flex items-center justify-between w-full gap-2">
+                          <span className="font-medium text-foreground">{prov.name}</span>
+                          {bp3mi && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-700 dark:text-blue-400 font-semibold border border-blue-500/20 shrink-0">
+                              BP3MI
+                            </span>
+                          )}
+                        </div>
                       </SelectItem>
                     );
                   })}
