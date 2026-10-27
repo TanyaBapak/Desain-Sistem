@@ -14,6 +14,7 @@ import {
   UserRole,
   UserScope,
   VocationalProvider,
+  PublicCommandCenterData,
 } from "@/types";
 
 const KemendagriLandingPage = lazy(() =>
@@ -131,6 +132,7 @@ interface AppProps {
     }[];
   };
   landingProjection: LandingProjectionData;
+  publicCommandCenter?: PublicCommandCenterData;
   businessData?: {
     candidates: CandidateParticipant[];
     programs: TrainingProgram[];
@@ -242,6 +244,7 @@ export function App({
   registrationOptions,
   landingKpiSummary,
   landingProjection,
+  publicCommandCenter,
   auth,
   businessData,
   adminUsers,
@@ -352,7 +355,11 @@ export function App({
   if (!authenticatedUser) {
     return (
       <Suspense fallback={loading}>
-        <KemendagriLandingPage kpiSummary={landingKpiSummary} projection={landingProjection} />
+        <KemendagriLandingPage
+          kpiSummary={landingKpiSummary}
+          projection={landingProjection}
+          publicCommandCenter={publicCommandCenter}
+        />
       </Suspense>
     );
   }

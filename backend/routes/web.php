@@ -35,9 +35,11 @@ Route::get('/', function (Request $request, BusinessDataPresenter $businessDataP
 
     $filters = $request->validate([
         'projectionYear' => ['nullable', 'regex:/^(all|20\d{2}|21\d{2}|2200)$/'],
+        'province' => ['nullable', 'string', 'max:100'],
     ]);
     $projectionPeriod = $filters['projectionYear'] ?? 'all';
     $projectionYear = $projectionPeriod === 'all' ? null : (int) $projectionPeriod;
+    $provinceFilter = $filters['province'] ?? null;
 
     return Inertia::render('App', [
         'currentTab' => 'overview',
@@ -45,6 +47,7 @@ Route::get('/', function (Request $request, BusinessDataPresenter $businessDataP
         'showLogin' => false,
         'landingKpiSummary' => $businessDataPresenter->publicLandingKpiSummary(),
         'landingProjection' => $businessDataPresenter->publicLandingProjection($projectionYear),
+        'publicCommandCenter' => $businessDataPresenter->publicCommandCenterData($provinceFilter),
     ]);
 })->name('home');
 

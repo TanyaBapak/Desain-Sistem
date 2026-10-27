@@ -611,3 +611,88 @@ export interface DrillDownFilter {
   kabupatenKota: string;
   sektor: string;
 }
+
+// ==========================================
+// PUBLIC COMMAND CENTER (PORTAL PUBLIK)
+// ==========================================
+export interface PublicProvinceItem {
+  id: string;
+  name: string;
+}
+
+export interface PublicCommandCenterStats {
+  scopeName: string;
+  candidatesCount: number;
+  programsCount: number;
+  providersCount: number;
+  registeredProvidersCount: number;
+  nationalLpkCount: number;
+  registeredNationalLpkCount: number;
+  demandsCount: number;
+  allocationsCount: number;
+}
+
+export interface PublicProvinceStats {
+  province: string;
+  candidatesCount: number;
+  programsCount: number;
+  providersCount: number;
+  registeredProvidersCount: number;
+  lpkCount: number;
+  registeredLpkCount: number;
+}
+
+export interface PublicProvinceBreakdown {
+  province: string;
+  totalCount: number;
+  registeredCount: number;
+}
+
+export interface PublicPreviewInstitution {
+  id: string;
+  name: string;
+  type: string;
+  province?: string;
+  district?: string;
+  accreditation?: string;
+  evokasiStatus?: string;
+  totalActiveStudents?: number;
+  workshopCapacity?: number;
+}
+
+export interface PublicPreviewProgram {
+  id: string;
+  name: string;
+  programType?: string;
+  sector?: string;
+  totalHours?: number;
+  quota?: number;
+  certificationTarget?: string;
+}
+
+export interface PublicPreviewDemand {
+  id: string;
+  country?: string;
+  employerName?: string;
+  sector?: string;
+  occupation?: string;
+  quota?: number;
+  deadline?: string;
+}
+
+export interface PublicCommandCenterData {
+  selectedProvince: string;
+  provinces: PublicProvinceItem[];
+  national: PublicCommandCenterStats;
+  activeStats: PublicCommandCenterStats;
+  byProvince: PublicProvinceStats[];
+  institutionsByProvince: PublicProvinceBreakdown[];
+  nationalLpkByProvince: PublicProvinceBreakdown[];
+  previewDirectories?: {
+    institutions: PublicPreviewInstitution[];
+    programs: PublicPreviewProgram[];
+    demands: PublicPreviewDemand[];
+    candidateEducation?: { label: string; count: number }[];
+  };
+}
+

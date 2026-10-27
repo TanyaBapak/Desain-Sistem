@@ -3,7 +3,8 @@ import {
   useAppStore,
 } from '../../store/useAppStore';
 import { LandingProjectionDashboard, LandingProjectionData } from "@/components/landing/LandingProjectionDashboard";
-import { UserRole } from '../../types';
+import { PublicCommandCenterSection } from "@/components/landing/PublicCommandCenterSection";
+import { UserRole, PublicCommandCenterData } from '../../types';
 import { LOGO_URL } from '@/lib/assets';
 import {
   ShieldCheck,
@@ -26,6 +27,7 @@ interface KemendagriLandingPageProps {
     }[];
   };
   projection: LandingProjectionData;
+  publicCommandCenter?: PublicCommandCenterData;
 }
 
 const TRAINING_SECTORS = ["Hospitality", "Manufaktur", "Kesehatan", "Konstruksi"];
@@ -42,7 +44,11 @@ const WIB_DATE_TIME_FORMAT = new Intl.DateTimeFormat("id-ID", {
   timeZone: "Asia/Jakarta",
 });
 
-export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({ kpiSummary, projection }) => {
+export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
+  kpiSummary,
+  projection,
+  publicCommandCenter,
+}) => {
   const {
     openLoginPage,
     setViewMode,
@@ -188,6 +194,12 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({ kp
                 Beranda Utama
               </button>
               <a
+                href="#dashboard-command-center"
+                className="px-3.5 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition whitespace-nowrap"
+              >
+                Dashboard Command Center
+              </a>
+              <a
                 href="#proyeksi-penempatan"
                 className="px-3.5 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition whitespace-nowrap"
               >
@@ -319,6 +331,9 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({ kp
           </div>
         </div>
       </section>
+
+      {/* 5. PUBLIC COMMAND CENTER DASHBOARD & SEBARAN WILAYAH */}
+      <PublicCommandCenterSection initialData={publicCommandCenter} />
 
       <LandingProjectionDashboard projection={projection} />
 

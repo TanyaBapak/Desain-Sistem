@@ -78,6 +78,315 @@ class BusinessDataPresenter
 
     /**
      * @return array{
+     *     selectedProvince: string,
+     *     provinces: array<int, array{id: string, name: string}>,
+     *     national: array{
+     *         candidatesCount: int,
+     *         programsCount: int,
+     *         providersCount: int,
+     *         registeredProvidersCount: int,
+     *         nationalLpkCount: int,
+     *         registeredNationalLpkCount: int,
+     *         demandsCount: int,
+     *         allocationsCount: int
+     *     },
+     *     activeStats: array{
+     *         scopeName: string,
+     *         candidatesCount: int,
+     *         programsCount: int,
+     *         providersCount: int,
+     *         registeredProvidersCount: int,
+     *         nationalLpkCount: int,
+     *         registeredNationalLpkCount: int,
+     *         demandsCount: int,
+     *         allocationsCount: int
+     *     },
+     *     byProvince: array<int, array{
+     *         province: string,
+     *         candidatesCount: int,
+     *         programsCount: int,
+     *         providersCount: int,
+     *         registeredProvidersCount: int,
+     *         lpkCount: int,
+     *         registeredLpkCount: int
+     *     }>,
+     *     institutionsByProvince: array<int, array{province: string, totalCount: int, registeredCount: int}>,
+     *     nationalLpkByProvince: array<int, array{province: string, totalCount: int, registeredCount: int}>,
+     *     previewDirectories: array{
+     *         institutions: array<int, array<string, mixed>>,
+     *         programs: array<int, array<string, mixed>>,
+     *         demands: array<int, array<string, mixed>>,
+     *         candidateEducation: array<int, array{label: string, count: int}>
+     *     }
+     * }
+     */
+    public function publicCommandCenterData(?string $provinceFilter = null): array
+    {
+        return rescue(function () use ($provinceFilter): array {
+            $provincesList = DB::table('provinces')
+                ->orderBy('name')
+                ->get(['id', 'name'])
+                ->map(fn (object $p): array => [
+                    'id' => (string) $p->id,
+                    'name' => (string) $p->name,
+                ])
+                ->all();
+
+            $nationalLpkCount = $this->nationalLpkCount();
+            $nationalLpkByProvince = $this->nationalLpkByProvince();
+            $registeredNationalLpkCount = array_sum(array_column($nationalLpkByProvince, 'registeredCount'));
+
+            $nationalCandidates = (int) DB::table('job_seekers')->whereNull('deleted_at')->count();
+            $nationalPrograms = (int) DB::table('training_programs')->where('status', 'Aktif')->count();
+            $nationalProviders = (int) DB::table('institutions')->where('status', 'Aktif')->count();
+            $nationalRegisteredProviders = (int) DB::table('institutions')
+                ->where('status', 'Aktif')
+                ->where('evokasi_status', 'Terverifikasi e-Vokasi')
+                ->count();
+            $nationalDemands = (int) DB::table('job_demands')->where('verification_status', 'Approved')->count();
+            $nationalAllocations = (int) DB::table('program_allocations')->whereNull('deleted_at')->count();
+
+            // Candidates per province
+            $candidatesPerProv = DB::table('job_seekers')
+                ->leftJoin('provinces', 'provinces.id', '=', 'job_seekers.province_id')
+                ->whereNull('job_seekers.deleted_at')
+                ->selectRaw("COALESCE(provinces.name, 'Belum dipetakan') as province")
+                ->selectRaw('COUNT(*) as total_count')
+                ->groupBy(DB::raw("COALESCE(provinces.name, 'Belum dipetakan')"))
+                ->pluck('total_count', 'province')
+                ->all();
+
+            // Programs per province via training_classes & institutions
+            $programsPerProv = DB::table('training_classes')
+                ->leftJoin('institutions', 'institutions.id', '=', 'training_classes.institution_id')
+                ->leftJoin('provinces', 'provinces.id', '=', 'institutions.province_id')
+                ->selectRaw("COALESCE(provinces.name, 'Belum dipetakan') as province")
+                ->selectRaw('COUNT(DISTINCT training_classes.training_program_id) as total_count')
+                ->groupBy(DB::raw("COALESCE(provinces.name, 'Belum dipetakan')"))
+                ->pluck('total_count', 'province')
+                ->all();
+
+            // Institutions per province
+            $institutionsByProvince = DB::table('institutions')
+                ->leftJoin('provinces', 'provinces.id', '=', 'institutions.province_id')
+                ->where('institutions.status', 'Aktif')
+                ->selectRaw("COALESCE(provinces.name, 'Belum dipetakan') as province")
+                ->selectRaw('COUNT(*) as total_count')
+                ->selectRaw("SUM(CASE WHEN institutions.evokasi_status = 'Terverifikasi e-Vokasi' THEN 1 ELSE 0 END) as registered_count")
+                ->groupBy(DB::raw("COALESCE(provinces.name, 'Belum dipetakan')"))
+                ->orderByDesc('total_count')
+                ->get()
+                ->map(fn (object $row): array => [
+                    'province' => (string) $row->province,
+                    'totalCount' => (int) $row->total_count,
+                    'registeredCount' => (int) ($row->registered_count ?? 0),
+                ])
+                ->all();
+
+            // LPK per province
+            $lpkPerProvMap = [];
+            foreach ($nationalLpkByProvince as $item) {
+                $lpkPerProvMap[$item['province']] = $item;
+            }
+
+            // Map all provinces into byProvince stats
+            $knownProvinceNames = array_unique(array_merge(
+                array_column($provincesList, 'name'),
+                array_keys($candidatesPerProv),
+                array_keys($programsPerProv),
+                array_column($institutionsByProvince, 'province'),
+                array_column($nationalLpkByProvince, 'province')
+            ));
+            sort($knownProvinceNames);
+
+            $byProvince = [];
+            $instMap = [];
+            foreach ($institutionsByProvince as $item) {
+                $instMap[$item['province']] = $item;
+            }
+
+            foreach ($knownProvinceNames as $provName) {
+                $inst = $instMap[$provName] ?? ['totalCount' => 0, 'registeredCount' => 0];
+                $lpk = $lpkPerProvMap[$provName] ?? ['totalCount' => 0, 'registeredCount' => 0];
+                $byProvince[] = [
+                    'province' => $provName,
+                    'candidatesCount' => (int) ($candidatesPerProv[$provName] ?? 0),
+                    'programsCount' => (int) ($programsPerProv[$provName] ?? 0),
+                    'providersCount' => (int) $inst['totalCount'],
+                    'registeredProvidersCount' => (int) $inst['registeredCount'],
+                    'lpkCount' => (int) $lpk['totalCount'],
+                    'registeredLpkCount' => (int) $lpk['registeredCount'],
+                ];
+            }
+
+            $cleanProvince = trim((string) $provinceFilter);
+            if ($cleanProvince === '' || strcasecmp($cleanProvince, 'all') === 0 || strcasecmp($cleanProvince, 'Semua Provinsi') === 0) {
+                $selectedProvince = 'all';
+                $activeStats = [
+                    'scopeName' => 'Nasional (Seluruh RI)',
+                    'candidatesCount' => $nationalCandidates,
+                    'programsCount' => $nationalPrograms,
+                    'providersCount' => $nationalProviders,
+                    'registeredProvidersCount' => $nationalRegisteredProviders,
+                    'nationalLpkCount' => $nationalLpkCount,
+                    'registeredNationalLpkCount' => $registeredNationalLpkCount,
+                    'demandsCount' => $nationalDemands,
+                    'allocationsCount' => $nationalAllocations,
+                ];
+            } else {
+                $selectedProvince = $cleanProvince;
+                $matched = collect($byProvince)->first(fn ($item) => strcasecmp($item['province'], $cleanProvince) === 0);
+                $activeStats = [
+                    'scopeName' => $cleanProvince,
+                    'candidatesCount' => (int) ($matched['candidatesCount'] ?? ($candidatesPerProv[$cleanProvince] ?? 0)),
+                    'programsCount' => (int) ($matched['programsCount'] ?? ($programsPerProv[$cleanProvince] ?? 0)),
+                    'providersCount' => (int) ($matched['providersCount'] ?? 0),
+                    'registeredProvidersCount' => (int) ($matched['registeredProvidersCount'] ?? 0),
+                    'nationalLpkCount' => $nationalLpkCount,
+                    'registeredNationalLpkCount' => $registeredNationalLpkCount,
+                    'demandsCount' => $nationalDemands,
+                    'allocationsCount' => $nationalAllocations,
+                ];
+            }
+
+            // Preview directory lists (public safe, no PII)
+            $instQuery = DB::table('institutions')
+                ->leftJoin('provinces', 'provinces.id', '=', 'institutions.province_id')
+                ->leftJoin('districts', 'districts.id', '=', 'institutions.district_id')
+                ->where('institutions.status', 'Aktif');
+            if ($selectedProvince !== 'all') {
+                $instQuery->where('provinces.name', $selectedProvince);
+            }
+            $sampleInstitutions = $instQuery
+                ->orderBy('institutions.name')
+                ->limit(10)
+                ->get([
+                    'institutions.id',
+                    'institutions.name',
+                    'institutions.institution_type as type',
+                    'provinces.name as province',
+                    'districts.name as district',
+                    'institutions.accreditation',
+                    'institutions.evokasi_status as evokasiStatus',
+                    'institutions.total_active_students as totalActiveStudents',
+                    'institutions.workshop_capacity as workshopCapacity',
+                ])
+                ->map(fn (object $row): array => (array) $row)
+                ->all();
+
+            $progQuery = DB::table('training_programs')
+                ->leftJoin('sectors', 'sectors.id', '=', 'training_programs.sector_id')
+                ->where('training_programs.status', 'Aktif');
+            $samplePrograms = $progQuery
+                ->orderBy('training_programs.name')
+                ->limit(10)
+                ->get([
+                    'training_programs.id',
+                    'training_programs.name',
+                    'training_programs.program_type as programType',
+                    'sectors.name as sector',
+                    'training_programs.total_jp as totalHours',
+                    'training_programs.quota',
+                    'training_programs.certification_target as certificationTarget',
+                ])
+                ->map(fn (object $row): array => (array) $row)
+                ->all();
+
+            $sampleDemands = DB::table('job_demands')
+                ->leftJoin('employers', 'employers.id', '=', 'job_demands.employer_id')
+                ->leftJoin('countries', 'countries.id', '=', 'job_demands.country_id')
+                ->leftJoin('sectors', 'sectors.id', '=', 'job_demands.sector_id')
+                ->leftJoin('occupations', 'occupations.id', '=', 'job_demands.occupation_id')
+                ->where('job_demands.verification_status', 'Approved')
+                ->orderByDesc('job_demands.headcount')
+                ->limit(10)
+                ->get([
+                    'job_demands.id',
+                    'countries.name as country',
+                    'employers.name as employerName',
+                    'sectors.name as sector',
+                    'occupations.title as occupation',
+                    'job_demands.headcount as quota',
+                    'job_demands.deadline',
+                ])
+                ->map(fn (object $row): array => (array) $row)
+                ->all();
+
+            $candidateEducation = rescue(fn () => DB::table('job_seekers')
+                ->whereNull('deleted_at')
+                ->select('last_education as label')
+                ->selectRaw('COUNT(*) as count')
+                ->groupBy('last_education')
+                ->orderByDesc('count')
+                ->get()
+                ->map(fn (object $row): array => [
+                    'label' => (string) ($row->label ?: 'Lainnya'),
+                    'count' => (int) $row->count,
+                ])
+                ->all(), []);
+
+            return [
+                'selectedProvince' => $selectedProvince,
+                'provinces' => $provincesList,
+                'national' => [
+                    'candidatesCount' => $nationalCandidates,
+                    'programsCount' => $nationalPrograms,
+                    'providersCount' => $nationalProviders,
+                    'registeredProvidersCount' => $nationalRegisteredProviders,
+                    'nationalLpkCount' => $nationalLpkCount,
+                    'registeredNationalLpkCount' => $registeredNationalLpkCount,
+                    'demandsCount' => $nationalDemands,
+                    'allocationsCount' => $nationalAllocations,
+                ],
+                'activeStats' => $activeStats,
+                'byProvince' => $byProvince,
+                'institutionsByProvince' => $institutionsByProvince,
+                'nationalLpkByProvince' => $nationalLpkByProvince,
+                'previewDirectories' => [
+                    'institutions' => $sampleInstitutions,
+                    'programs' => $samplePrograms,
+                    'demands' => $sampleDemands,
+                    'candidateEducation' => $candidateEducation,
+                ],
+            ];
+        }, [
+            'selectedProvince' => 'all',
+            'provinces' => [],
+            'national' => [
+                'candidatesCount' => 0,
+                'programsCount' => 0,
+                'providersCount' => 0,
+                'registeredProvidersCount' => 0,
+                'nationalLpkCount' => 0,
+                'registeredNationalLpkCount' => 0,
+                'demandsCount' => 0,
+                'allocationsCount' => 0,
+            ],
+            'activeStats' => [
+                'scopeName' => 'Nasional (Seluruh RI)',
+                'candidatesCount' => 0,
+                'programsCount' => 0,
+                'providersCount' => 0,
+                'registeredProvidersCount' => 0,
+                'nationalLpkCount' => 0,
+                'registeredNationalLpkCount' => 0,
+                'demandsCount' => 0,
+                'allocationsCount' => 0,
+            ],
+            'byProvince' => [],
+            'institutionsByProvince' => [],
+            'nationalLpkByProvince' => [],
+            'previewDirectories' => [
+                'institutions' => [],
+                'programs' => [],
+                'demands' => [],
+                'candidateEducation' => [],
+            ],
+        ]);
+    }
+
+    /**
+     * @return array{
      *     year: int|null,
      *     periods: array<int, int>,
      *     countries: array<int, array{name: string, target: int, achieved: int, projected: int}>,
