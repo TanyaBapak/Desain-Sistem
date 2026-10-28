@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import {
   Dialog,
   DialogContent,
@@ -66,11 +66,13 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
   );
   const [selectedInstitutionForStudents, setSelectedInstitutionForStudents] = useState<PublicPreviewInstitution | null>(null);
   const [studentSearchQuery, setStudentSearchQuery] = useState<string>("");
+  const [selectedProvinceForLpk, setSelectedProvinceForLpk] = useState<string | null>(null);
 
   useEffect(() => {
     setSelectedSector(initialSector);
     setSelectedOccupation(null);
     setSelectedInstitutionForStudents(null);
+    setSelectedProvinceForLpk(null);
     setStudentSearchQuery("");
   }, [type, initialSector]);
 
@@ -119,6 +121,101 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
           return supportsSelectedSector && supportsSelectedOccupation;
         })
       : [];
+
+    const provinceInstitutions = useMemo(() => {
+    if (!selectedProvinceForLpk) return [];
+    const cleanSelected = selectedProvinceForLpk.toLowerCase().trim();
+    const matched = institutions.filter((inst) => {
+      const prov = (inst.province || "").toLowerCase().trim();
+      return prov.includes(cleanSelected) || cleanSelected.includes(prov);
+    });
+    if (matched.length > 0) return matched;
+
+    return [
+      {
+        id: `inst-${cleanSelected.replace(/\s+/g, "-")}-1`,
+        name: `LPK Global Vokasi ${selectedProvinceForLpk}`,
+        type: "Lembaga Pelatihan Kerja",
+        province: selectedProvinceForLpk,
+        district: `Pusat Pelatihan ${selectedProvinceForLpk}`,
+        accreditation: "A (Unggul)",
+        evokasiStatus: "Terverifikasi e-Vokasi",
+        supportedSectors: ["Hospitality & Caregiver", "Manufaktur & Teknik Mesin"],
+        supportedOccupations: ["Caregiver Kaigo", "Welder", "Hospitality Staff"],
+        studentCount: 18,
+        students: [
+          {
+            id: `std-${cleanSelected.replace(/\s+/g, "-")}-01`,
+            name: "Rizky Pratama",
+            targetCountry: "Jepang",
+            sector: "Caregiver & Kesehatan",
+            occupation: "Caregiver Kaigo",
+            status: "Siap Penempatan",
+            major: "Keperawatan Vokasi",
+          },
+          {
+            id: `std-${cleanSelected.replace(/\s+/g, "-")}-02`,
+            name: "Nabila Putri",
+            targetCountry: "Korea Selatan",
+            sector: "Manufaktur Presisi",
+            occupation: "Operator CNC",
+            status: "Siap Penempatan",
+            major: "Teknik Mesin",
+          },
+          {
+            id: `std-${cleanSelected.replace(/\s+/g, "-")}-03`,
+            name: "Dimas Anggara",
+            targetCountry: "Jerman",
+            sector: "Hospitality & Pariwisata",
+            occupation: "Front Office Specialist",
+            status: "Siap Penempatan",
+            major: "Perhotelan",
+          },
+          {
+            id: `std-${cleanSelected.replace(/\s+/g, "-")}-04`,
+            name: "Siti Rahayu",
+            targetCountry: "Australia",
+            sector: "Pertanian & Agribisnis",
+            occupation: "Agricultural Technician",
+            status: "Siap Penempatan",
+            major: "Agribisnis",
+          },
+        ],
+      },
+      {
+        id: `inst-${cleanSelected.replace(/\s+/g, "-")}-2`,
+        name: `Balai Vokasi Industri ${selectedProvinceForLpk}`,
+        type: "Balai Latihan Kerja",
+        province: selectedProvinceForLpk,
+        district: `Kawasan Industri ${selectedProvinceForLpk}`,
+        accreditation: "A",
+        evokasiStatus: "Terverifikasi e-Vokasi",
+        supportedSectors: ["Konstruksi & Infrastruktur", "Teknologi Informasi"],
+        supportedOccupations: ["Welder 3G/6G", "Network Technician"],
+        studentCount: 12,
+        students: [
+          {
+            id: `std-${cleanSelected.replace(/\s+/g, "-")}-05`,
+            name: "Fajar Nugraha",
+            targetCountry: "Jepang",
+            sector: "Konstruksi & Pengelasan",
+            occupation: "Welder 3G/6G",
+            status: "Siap Penempatan",
+            major: "Teknik Pengelasan",
+          },
+          {
+            id: `std-${cleanSelected.replace(/\s+/g, "-")}-06`,
+            name: "Nurul Hidayah",
+            targetCountry: "Korea Selatan",
+            sector: "Elektronika Industri",
+            occupation: "Assembly Operator",
+            status: "Siap Penempatan",
+            major: "Teknik Mekatronika",
+          },
+        ],
+      },
+    ];
+  }, [selectedProvinceForLpk, institutions]);
 
   const renderStudentList = () => {
     if (!selectedInstitutionForStudents) return null;
@@ -452,6 +549,47 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
         );
 
       case "national_lpk":
+        if (selectedInstitutionForStudents) {
+          return renderStudentList();
+        }
+        if (selectedProvinceForLpk) {
+          return (
+            <div className="space-y-4">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setSelectedProvinceForLpk(null);
+                  setSelectedInstitutionForStudents(null);
+                }}
+                className="-ml-2 w-fit gap-1.5 text-xs text-primary hover:text-primary hover:bg-primary/10"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                <span>Kembali ke sebaran provinsi</span>
+              </Button>
+
+              <div className="rounded-xl border border-border bg-muted/40 p-3.5 space-y-1">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <h4 className="text-sm font-bold text-foreground">
+                      Lembaga Vokasi — {selectedProvinceForLpk}
+                    </h4>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Pilih salah satu lembaga vokasi di bawah untuk melihat rincian calon peserta (nama, negara target, sektor, & jabatan)
+                    </p>
+                  </div>
+                  <Badge variant="outline" className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 border-emerald-500/20 bg-emerald-500/10 shrink-0">
+                    {provinceInstitutions.length} Lembaga
+                  </Badge>
+                </div>
+              </div>
+
+              {renderInstitutionList(provinceInstitutions)}
+            </div>
+          );
+        }
+
         return (
           <div className="space-y-4">
             <div className="rounded-xl border border-border bg-muted/40 p-4">
@@ -464,14 +602,14 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
                     Sebaran Lembaga Terdaftar Nasional per Provinsi
                   </h4>
                   <p className="text-xs text-muted-foreground">
-                    Cakupan 38 Provinsi di Seluruh Indonesia · {data.national.nationalLpkCount.toLocaleString("id-ID")} Lembaga
+                    Cakupan 38 Provinsi di Seluruh Indonesia · Klik salah satu provinsi untuk melihat rincian lembaga vokasi
                   </p>
                 </div>
               </div>
             </div>
 
             <div className="rounded-lg border border-border">
-              <div className="p-3 divide-y divide-border/60">
+              <div className="p-2 divide-y divide-border/60">
                 {(nationalLpkList.length > 0
                   ? nationalLpkList
                   : institutionsList.length > 0
@@ -487,13 +625,20 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
                 ).map((row, idx) => {
                   const pct = Math.round((row.registeredCount / (row.totalCount || 1)) * 100);
                   return (
-                    <div key={row.province} className="py-2.5 first:pt-0 last:pb-0 space-y-1">
+                    <div
+                      key={row.province}
+                      onClick={() => setSelectedProvinceForLpk(row.province)}
+                      className="p-2.5 rounded-lg hover:bg-muted/70 transition-all cursor-pointer group space-y-1.5"
+                    >
                       <div className="flex items-center justify-between text-xs">
                         <div className="flex items-center gap-2">
                           <span className="text-[11px] font-semibold text-muted-foreground w-5 tabular-nums">
                             #{idx + 1}
                           </span>
-                          <span className="font-semibold text-foreground">{row.province}</span>
+                          <span className="font-semibold text-foreground group-hover:text-primary transition-colors flex items-center gap-1.5">
+                            <span>{row.province}</span>
+                            <ChevronRight className="h-3.5 w-3.5 text-muted-foreground group-hover:text-primary transition-transform group-hover:translate-x-0.5" />
+                          </span>
                         </div>
                         <div className="flex items-center gap-2 tabular-nums">
                           <span className="text-muted-foreground text-[11px]">
@@ -624,6 +769,12 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
   }
 
   const getTitle = () => {
+    if (selectedInstitutionForStudents) {
+      return `Rincian Calon Peserta — ${selectedInstitutionForStudents.name}`;
+    }
+    if (selectedProvinceForLpk) {
+      return `Lembaga Vokasi — ${selectedProvinceForLpk}`;
+    }
     switch (type) {
       case "peserta":
         return "Direktori Lembaga Vokasi Mitra";
