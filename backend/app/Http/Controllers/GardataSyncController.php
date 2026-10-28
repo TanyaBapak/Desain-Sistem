@@ -18,7 +18,7 @@ class GardataSyncController extends Controller
         );
 
         try {
-            SyncGardataPlacementData::dispatch(true);
+            SyncGardataPlacementData::dispatchSync(true);
         } catch (Throwable $exception) {
             Log::error('Gardata synchronization dispatch failed.', [
                 'exception' => $exception::class,
@@ -26,10 +26,10 @@ class GardataSyncController extends Controller
             ]);
 
             return back()->withErrors([
-                'gardata_sync' => 'Sinkronisasi Gardata gagal dimulai. Periksa konfigurasi antrean.',
+                'gardata_sync' => 'Sinkronisasi Gardata gagal: ' . $exception->getMessage(),
             ]);
         }
 
-        return back()->with('success', 'Sinkronisasi data Gardata telah dijadwalkan.');
+        return back()->with('success', 'Sinkronisasi data Gardata berhasil diperbarui.');
     }
 }

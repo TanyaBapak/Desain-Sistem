@@ -51,7 +51,17 @@ class SyncAllDataCommand extends Command
         $this->line('3. Menyinkronkan Peran dan Hak Akses Pengguna...');
         try {
             Artisan::call('db:seed', ['--class' => AccessControlSeeder::class, '--force' => true]);
-            $this->info('   Peran dan hak akses terkonfigurasi.');
+            
+            // Pastikan akun Task Force memiliki cakupan Nasional agar dapat melihat seluruh data se-Indonesia
+            $tfRoleId = DB::table('roles')->where('name', 'task_force')->value('id');
+            if ($tfRoleId) {
+                $tfUserIds = DB::table('model_has_roles')->where('role_id', $tfRoleId)->pluck('model_id');
+                DB::table('users')->whereIn('id', $tfUserIds)->update([
+                    'scope_level' => 'national',
+                    'scope_name' => 'Nasional Terpadu',
+                ]);
+            }
+            $this->info('   Peran dan hak akses terkonfigurasi (Cakupan Task Force: Nasional).');
         } catch (Throwable $e) {
             $this->warn('   Catatan seeder akses: ' . $e->getMessage());
         }
@@ -159,3 +169,4 @@ class SyncAllDataCommand extends Command
         return self::SUCCESS;
     }
 }
+

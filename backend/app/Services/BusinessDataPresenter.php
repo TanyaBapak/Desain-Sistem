@@ -1044,6 +1044,42 @@ class BusinessDataPresenter
         } catch (\Throwable) {
             // Graceful fallback to avoid presentation disruptions
         }
+
+        try {
+            $victoriaCount = DB::table('job_seekers')
+                ->whereNull('deleted_at')
+                ->where('institution_name', 'LIKE', '%Victoria%')
+                ->count();
+            if ($victoriaCount === 0) {
+                app(GardataPlacementSyncService::class)->ensureVictoriaCandidates(false);
+            }
+        } catch (\Throwable) {
+            // Graceful fallback
+        }
+
+        try {
+            $demandCount = DB::table('job_demands')->count();
+            if ($demandCount === 0) {
+                \Illuminate\Support\Facades\Artisan::call('db:seed', ['--class' => \Database\Seeders\DemoDataSeeder::class, '--force' => true]);
+            }
+        } catch (\Throwable) {
+            // Graceful fallback
+        }
+
+        try {
+            $instCount = DB::table('institutions')->count();
+            if ($instCount <= 5) {
+                $csvFile = storage_path('app/reference/data_vokasi.csv');
+                if (! is_file($csvFile)) {
+                    $csvFile = storage_path('app/data_vokasi.csv');
+                }
+                if (is_file($csvFile)) {
+                    \Illuminate\Support\Facades\Artisan::call('institutions:import-vokasi', ['file' => $csvFile]);
+                }
+            }
+        } catch (\Throwable) {
+            // Graceful fallback
+        }
     }
 
     private function cacheKey(User $user, ?string $role, array $filters): string
@@ -1339,7 +1375,7 @@ class BusinessDataPresenter
                 'educationLevel' => $row->education_level,
                 'institutionName' => $row->institution_name,
                 'sourceType' => match ($row->source_type) {
-                    'SMK', 'BLK', 'LPK' => 'Lembaga Vokasi',
+                    'SMK', 'BLK', 'LPK', 'Lembaga Vokasi', 'lembaga_vokasi', 'vokasi' => 'Lembaga Vokasi',
                     'Mandiri' => 'SMK / Pendidikan Vokasi',
                     'Gardata', 'SIPPMI', 'sippmi' => 'Gardata / SIPPMI',
                     default => 'Disnaker Pemda',

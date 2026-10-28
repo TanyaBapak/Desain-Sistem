@@ -529,7 +529,7 @@ class BusinessDataController extends Controller
                 'educationLevel' => $row->education_level,
                 'institutionName' => $row->institution_name,
                 'sourceType' => match ($row->source_type) {
-                    'SMK', 'BLK', 'LPK' => 'Lembaga Vokasi',
+                    'SMK', 'BLK', 'LPK', 'Lembaga Vokasi', 'lembaga_vokasi', 'vokasi' => 'Lembaga Vokasi',
                     'Mandiri' => 'SMK / Pendidikan Vokasi',
                     'Gardata', 'SIPPMI', 'sippmi' => 'Gardata / SIPPMI',
                     default => 'Disnaker Pemda',

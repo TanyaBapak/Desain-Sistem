@@ -54,15 +54,15 @@ class Bp3miScope
         $requestedCode = $request->query('bp3mi_area');
 
         if ($requestedCode !== null) {
-            if ($isNationalScope && ! $isTaskForce && $requestedCode === 'all') {
+            if ($isNationalScope && $requestedCode === 'all') {
                 if ($request->hasSession()) {
-                    $request->session()->forget($sessionKey);
+                    $request->session()->put($sessionKey, 'all');
                 }
 
                 return null;
             }
             if (! is_string($requestedCode) || ! isset(self::BP3MI_ASSIGNMENT[$requestedCode])) {
-                return $request->hasSession() ? $request->session()->get($sessionKey, 'BP3MI-JABAR') : 'BP3MI-JABAR';
+                return $request->hasSession() ? $request->session()->get($sessionKey, null) : null;
             }
 
             if ($request->hasSession()) {
@@ -76,7 +76,11 @@ class Bp3miScope
             ? $request->session()->get($sessionKey)
             : null;
 
-        if ($isNationalScope && ! $isTaskForce) {
+        if ($activeCode === 'all') {
+            return null;
+        }
+
+        if ($isNationalScope) {
             return is_string($activeCode) && isset(self::BP3MI_ASSIGNMENT[$activeCode])
                 ? $activeCode
                 : null;

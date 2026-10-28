@@ -27,7 +27,7 @@ export const TopNav: React.FC<TopNavProps> = ({ currentTab, onOpenSidebar }) => 
   );
   const activeRoleObj = getRoleInfo(currentRole);
   const currentPage = NAV_ITEMS.find((item) => item.id === currentTab);
-  const isNationalAreaFilter = currentUser?.roleName !== "task_force" && currentUser?.scope.level === "national";
+  const isNationalAreaFilter = currentUser?.scope.level === "national";
   const canSelectBp3miArea = currentUser?.roleName === "task_force" || isNationalAreaFilter;
 
   const toggleTheme = () => {
@@ -82,7 +82,7 @@ export const TopNav: React.FC<TopNavProps> = ({ currentTab, onOpenSidebar }) => 
                   { preserveScroll: true, preserveState: false, replace: true },
                 )}
               >
-                {isNationalAreaFilter && <option value="all">Semua Nasional</option>}
+                {isNationalAreaFilter && <option value="all">Semua Nasional (Seluruh RI)</option>}
                 {currentUser.bp3miAssignments.map((assignment) => (
                   <option key={assignment.code} value={assignment.code}>{assignment.name}</option>
                 ))}
