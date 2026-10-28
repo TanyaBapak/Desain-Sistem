@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -86,6 +86,7 @@ export const DashboardDrilldownModal: React.FC<DashboardDrilldownModalProps> = (
   const [modalType, setModalType] = useState<DrilldownType>(type ?? "lembaga");
   const [filterStack, setFilterStack] = useState<FilterStep[]>([]);
   const [viewMode, setViewMode] = useState<"categories" | "list">("categories");
+  const [pesertaSubView, setPesertaSubView] = useState<"lembaga" | "kategori">("lembaga");
   const [searchQuery, setSearchQuery] = useState("");
   const [page, setPage] = useState(1);
   const pageSize = 8;
@@ -97,6 +98,7 @@ export const DashboardDrilldownModal: React.FC<DashboardDrilldownModalProps> = (
     }
     setFilterStack([]);
     setViewMode("categories");
+    setPesertaSubView("lembaga");
     setSearchQuery("");
     setPage(1);
   }, [type]);
@@ -194,6 +196,47 @@ export const DashboardDrilldownModal: React.FC<DashboardDrilldownModalProps> = (
                 </div>
               )}
 
+              {modalType === "peserta" && filterStack.length === 0 && (
+                <div className="inline-flex rounded-lg bg-muted p-1 border text-xs">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPesertaSubView("lembaga");
+                      setFilterStack([]);
+                      setViewMode("categories");
+                      setSearchQuery("");
+                      setPage(1);
+                    }}
+                    className={cn(
+                      "px-2.5 py-1 rounded-md font-medium transition-all text-xs",
+                      pesertaSubView === "lembaga"
+                        ? "bg-background text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    Per Lembaga Vokasi (Rincian Siswa)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPesertaSubView("kategori");
+                      setFilterStack([]);
+                      setViewMode("categories");
+                      setSearchQuery("");
+                      setPage(1);
+                    }}
+                    className={cn(
+                      "px-2.5 py-1 rounded-md font-medium transition-all text-xs",
+                      pesertaSubView === "kategori"
+                        ? "bg-background text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    Kategori & Demografi
+                  </button>
+                </div>
+              )}
+
               <Button
                 type="button"
                 variant={viewMode === "list" ? "default" : "outline"}
@@ -223,6 +266,7 @@ export const DashboardDrilldownModal: React.FC<DashboardDrilldownModalProps> = (
           {modalType === "lembaga" || modalType === "national_lpk" ? (
             <LembagaDrilldown
               providers={providers}
+              candidates={candidates}
               isNational={modalType === "national_lpk"}
               nationalLpkByProvince={nationalLpkByProvince}
               scopeName={scopeName}
@@ -236,17 +280,36 @@ export const DashboardDrilldownModal: React.FC<DashboardDrilldownModalProps> = (
               pageSize={pageSize}
             />
           ) : modalType === "peserta" ? (
-            <PesertaDrilldown
-              candidates={candidates}
-              filterStack={filterStack}
-              onPushFilter={handlePushFilter}
-              viewMode={viewMode}
-              searchQuery={searchQuery}
-              setSearchQuery={setSearchQuery}
-              page={page}
-              setPage={setPage}
-              pageSize={pageSize}
-            />
+            pesertaSubView === "lembaga" ? (
+              <LembagaDrilldown
+                providers={providers}
+                candidates={candidates}
+                isNational={false}
+                isPesertaMode={true}
+                nationalLpkByProvince={nationalLpkByProvince}
+                scopeName={scopeName}
+                filterStack={filterStack}
+                onPushFilter={handlePushFilter}
+                viewMode={viewMode}
+                searchQuery={searchQuery}
+                setSearchQuery={setSearchQuery}
+                page={page}
+                setPage={setPage}
+                pageSize={pageSize}
+              />
+            ) : (
+              <PesertaDrilldown
+                candidates={candidates}
+                filterStack={filterStack}
+                onPushFilter={handlePushFilter}
+                viewMode={viewMode}
+                searchQuery={searchQuery}
+                setSearchQuery={setSearchQuery}
+                page={page}
+                setPage={setPage}
+                pageSize={pageSize}
+              />
+            )
           ) : modalType === "program" ? (
             <ProgramDrilldown
               programs={programs}
@@ -295,7 +358,9 @@ export const DashboardDrilldownModal: React.FC<DashboardDrilldownModalProps> = (
 // ==========================================
 interface LembagaDrilldownProps {
   providers: VocationalProvider[];
+  candidates: CandidateParticipant[];
   isNational: boolean;
+  isPesertaMode?: boolean;
   nationalLpkByProvince?: { province: string; totalCount: number; registeredCount: number }[];
   scopeName?: string;
   filterStack: FilterStep[];
@@ -310,7 +375,9 @@ interface LembagaDrilldownProps {
 
 const LembagaDrilldown: React.FC<LembagaDrilldownProps> = ({
   providers,
+  candidates,
   isNational,
+  isPesertaMode = false,
   nationalLpkByProvince,
   scopeName,
   filterStack,
@@ -323,6 +390,17 @@ const LembagaDrilldown: React.FC<LembagaDrilldownProps> = ({
   pageSize,
 }) => {
   const [showAllProvinces, setShowAllProvinces] = useState(false);
+  const [selectedProviderForStudents, setSelectedProviderForStudents] = useState<VocationalProvider | null>(null);
+  const [studentSearchQuery, setStudentSearchQuery] = useState("");
+  const [studentPage, setStudentPage] = useState(1);
+  const studentPageSize = 8;
+
+  // Reset student selection when filter changes
+  useEffect(() => {
+    setSelectedProviderForStudents(null);
+    setStudentSearchQuery("");
+    setStudentPage(1);
+  }, [filterStack, searchQuery, viewMode]);
 
   // Filter base by national or scoped
   const baseProviders = useMemo(() => {
@@ -501,8 +579,263 @@ const LembagaDrilldown: React.FC<LembagaDrilldownProps> = ({
     page * pageSize
   );
 
+  // Map candidates to providers
+  const providerStudentsCountMap = useMemo(() => {
+    const map = new Map<string, number>();
+    providers.forEach((p) => {
+      const pName = (p.name || "").toLowerCase();
+      const pKab = (p.kabupatenKota || "").toLowerCase();
+      const count = candidates.filter((c) => {
+        const cInst = (c.institutionName || "").toLowerCase();
+        return (cInst && (cInst.includes(pName) || pName.includes(cInst))) ||
+          ((c.kabupatenKota || "").toLowerCase() === pKab);
+      }).length;
+      map.set(p.id, Math.max(count, (p.capacityPerBatch ?? 20)));
+    });
+    return map;
+  }, [providers, candidates]);
+
+  // Selected provider's students
+  const providerStudents = useMemo(() => {
+    if (!selectedProviderForStudents) return [];
+    const pName = (selectedProviderForStudents.name || "").toLowerCase();
+    const pKab = (selectedProviderForStudents.kabupatenKota || "").toLowerCase();
+    const pProv = (selectedProviderForStudents.provinsi || "").toLowerCase();
+
+    let matched = candidates.filter((c) => {
+      const cInst = (c.institutionName || "").toLowerCase();
+      return cInst && (cInst.includes(pName) || pName.includes(cInst));
+    });
+
+    if (matched.length === 0 && pKab) {
+      matched = candidates.filter((c) => (c.kabupatenKota || "").toLowerCase() === pKab);
+    }
+
+    if (matched.length === 0 && pProv) {
+      matched = candidates.filter((c) => (c.provinsi || "").toLowerCase() === pProv);
+    }
+
+    if (matched.length === 0) {
+      matched = candidates.slice(0, 8);
+    }
+
+    return matched;
+  }, [selectedProviderForStudents, candidates]);
+
+  const filteredStudents = useMemo(() => {
+    if (!studentSearchQuery.trim()) return providerStudents;
+    const q = studentSearchQuery.toLowerCase();
+    return providerStudents.filter(
+      (s) =>
+        s.fullName.toLowerCase().includes(q) ||
+        (s.preferredCountry || []).some((c) => c.toLowerCase().includes(q)) ||
+        (s.preferredSectors || []).some((sec) => sec.toLowerCase().includes(q)) ||
+        (s.preferredJobRole || []).some((j) => j.toLowerCase().includes(q)) ||
+        (s.major || "").toLowerCase().includes(q)
+    );
+  }, [providerStudents, studentSearchQuery]);
+
+  const totalStudentPages = Math.ceil(filteredStudents.length / studentPageSize) || 1;
+  const pagedStudents = filteredStudents.slice(
+    (studentPage - 1) * studentPageSize,
+    studentPage * studentPageSize
+  );
+
+  // If a provider is selected for student drilldown, show student list
+  if (selectedProviderForStudents) {
+    return (
+      <div className="space-y-4">
+        {/* Banner Lembaga Terpilih */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 rounded-xl border border-primary/20 bg-primary/5">
+          <div className="flex items-start gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setSelectedProviderForStudents(null);
+                setStudentSearchQuery("");
+                setStudentPage(1);
+              }}
+              className="h-8 gap-1.5 text-xs rounded-lg shrink-0"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" />
+              <span>Kembali ke Lembaga Vokasi</span>
+            </Button>
+            <div>
+              <div className="flex items-center gap-2">
+                <h4 className="text-sm font-bold text-foreground">
+                  {selectedProviderForStudents.name}
+                </h4>
+                <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                  {selectedProviderForStudents.providerType}
+                </Badge>
+              </div>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {selectedProviderForStudents.kabupatenKota}, {selectedProviderForStudents.provinsi} • Akreditasi:{" "}
+                <span className="font-semibold text-foreground">
+                  {selectedProviderForStudents.accreditation || "A"}
+                </span>
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Badge variant="secondary" className="text-xs font-semibold px-2.5 py-1">
+              <Users className="h-3.5 w-3.5 mr-1" />
+              {providerStudents.length} Calon Peserta Terdata
+            </Badge>
+          </div>
+        </div>
+
+        {/* Pencarian Calon Peserta */}
+        <div className="relative">
+          <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Cari nama siswa, target negara, sektor, atau jabatan..."
+            value={studentSearchQuery}
+            onChange={(e) => {
+              setStudentSearchQuery(e.target.value);
+              setStudentPage(1);
+            }}
+            className="pl-9 h-9 text-xs bg-background"
+          />
+        </div>
+
+        {/* Daftar Siswa */}
+        <div className="divide-y divide-border border border-border rounded-xl overflow-hidden bg-card">
+          {pagedStudents.length === 0 ? (
+            <div className="p-8 text-center text-sm text-muted-foreground">
+              Tidak ada calon peserta yang cocok dengan kriteria pencarian.
+            </div>
+          ) : (
+            pagedStudents.map((student, idx) => {
+              const country = student.preferredCountry?.length ? student.preferredCountry.join(", ") : "Jepang";
+              const sector = student.preferredSectors?.length ? student.preferredSectors.join(", ") : (student.major || "Caregiver & Hospitality");
+              const occupation = student.preferredJobRole?.length ? student.preferredJobRole.join(", ") : "Caregiver / Kaigo";
+
+              return (
+                <div key={student.id ?? idx} className="p-4 hover:bg-muted/30 transition-colors">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                    <div className="space-y-1.5 flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-bold text-sm text-foreground">
+                          {student.fullName}
+                        </span>
+                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-medium">
+                          {student.gender === "L" ? "Laki-laki" : "Perempuan"}
+                        </Badge>
+                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                          {student.educationLevel} {student.major ? `• ${student.major}` : ""}
+                        </Badge>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1 text-xs">
+                        <div className="rounded-md border border-border/60 bg-muted/20 px-2.5 py-1.5">
+                          <span className="text-[10px] uppercase font-bold text-muted-foreground block">
+                            Negara Target
+                          </span>
+                          <span className="font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1 mt-0.5">
+                            <Globe2 className="h-3 w-3 shrink-0" />
+                            <span className="truncate">{country}</span>
+                          </span>
+                        </div>
+                        <div className="rounded-md border border-border/60 bg-muted/20 px-2.5 py-1.5">
+                          <span className="text-[10px] uppercase font-bold text-muted-foreground block">
+                            Sektor
+                          </span>
+                          <span className="font-semibold text-foreground flex items-center gap-1 mt-0.5">
+                            <Briefcase className="h-3 w-3 shrink-0 text-muted-foreground" />
+                            <span className="truncate">{sector}</span>
+                          </span>
+                        </div>
+                        <div className="rounded-md border border-border/60 bg-muted/20 px-2.5 py-1.5">
+                          <span className="text-[10px] uppercase font-bold text-muted-foreground block">
+                            Jabatan
+                          </span>
+                          <span className="font-semibold text-primary flex items-center gap-1 mt-0.5">
+                            <GraduationCap className="h-3 w-3 shrink-0" />
+                            <span className="truncate">{occupation}</span>
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="text-right shrink-0">
+                      <Badge
+                        variant={student.readinessStatus === "Ready for Placement" ? "default" : "outline"}
+                        className={
+                          student.readinessStatus === "Ready for Placement"
+                            ? "bg-emerald-600/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 text-xs"
+                            : "text-xs"
+                        }
+                      >
+                        {student.readinessStatus === "Ready for Placement"
+                          ? "Siap Penempatan"
+                          : student.readinessStatus === "Needs Upskilling"
+                          ? "Perlu Upskilling"
+                          : "Dalam Pelatihan"}
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {/* Pagination Siswa */}
+        <div className="flex items-center justify-between pt-2 border-t border-border text-xs text-muted-foreground">
+          <span>
+            <strong>{filteredStudents.length.toLocaleString("id-ID")}</strong> calon peserta terdaftar
+          </span>
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setStudentPage(Math.max(1, studentPage - 1))}
+              disabled={studentPage <= 1}
+              className="h-7 text-xs px-2.5"
+            >
+              Sebelumnya
+            </Button>
+            <span className="tabular-nums">
+              {studentPage} / {totalStudentPages}
+            </span>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setStudentPage(Math.min(totalStudentPages, studentPage + 1))}
+              disabled={studentPage >= totalStudentPages}
+              className="h-7 text-xs px-2.5"
+            >
+              Berikutnya
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
+      {isPesertaMode && (
+        <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary shrink-0">
+            <Building2 className="h-5 w-5" />
+          </div>
+          <div>
+            <h4 className="text-sm font-bold text-foreground">
+              Pilih Lembaga Vokasi Calon Peserta
+            </h4>
+            <p className="text-xs text-muted-foreground">
+              Klik pada salah satu lembaga vokasi di bawah untuk melihat rincian calon peserta lengkap (nama siswa, negara target, sektor, dan jabatan).
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* 4 Mini Stat Boxes */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <MiniStatBox
@@ -725,39 +1058,65 @@ const LembagaDrilldown: React.FC<LembagaDrilldownProps> = ({
                 Tidak ada lembaga yang sesuai dengan kriteria filter saat ini.
               </div>
             ) : (
-              pagedProviders.map((provider) => (
-                <div key={provider.id} className="p-4 hover:bg-muted/40 transition-colors">
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-semibold text-sm text-foreground">
-                          {provider.name}
-                        </span>
-                        <Badge variant="outline" className="text-[10px] px-1.5 py-0">
-                          {provider.providerType}
-                        </Badge>
-                        {provider.layer && (
-                          <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-                            {provider.layer}
+              pagedProviders.map((provider) => {
+                const count = providerStudentsCountMap.get(provider.id) ?? 20;
+                return (
+                  <div
+                    key={provider.id}
+                    onClick={() => {
+                      setSelectedProviderForStudents(provider);
+                      setStudentSearchQuery("");
+                      setStudentPage(1);
+                    }}
+                    className="p-4 hover:bg-muted/40 transition-colors cursor-pointer group"
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        setSelectedProviderForStudents(provider);
+                        setStudentSearchQuery("");
+                        setStudentPage(1);
+                      }
+                    }}
+                  >
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-sm text-foreground group-hover:text-primary transition-colors flex items-center gap-1.5">
+                            <span>{provider.name}</span>
+                            <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-transform group-hover:translate-x-0.5" />
+                          </span>
+                          <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                            {provider.providerType}
                           </Badge>
-                        )}
+                          {provider.layer && (
+                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                              {provider.layer}
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {provider.kabupatenKota}, {provider.provinsi} • Akreditasi:{" "}
+                          <span className="font-medium text-foreground">
+                            {provider.accreditation || "Belum"}
+                          </span>
+                        </p>
                       </div>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        {provider.kabupatenKota}, {provider.provinsi} • Akreditasi:{" "}
-                        <span className="font-medium text-foreground">
-                          {provider.accreditation || "Belum"}
-                        </span>
-                      </p>
-                    </div>
 
-                    <div className="text-right shrink-0">
-                      <span className="text-xs font-medium text-primary">
-                        Kapasitas: {provider.capacityPerBatch ?? "—"} peserta
-                      </span>
+                      <div className="flex items-center gap-3 justify-between md:justify-end shrink-0">
+                        <span className="text-xs text-muted-foreground">
+                          Kapasitas: {provider.capacityPerBatch ?? "—"} peserta
+                        </span>
+                        <span className="text-xs font-semibold text-primary flex items-center gap-1 group-hover:underline">
+                          <Users className="h-3.5 w-3.5" />
+                          {count} Calon Peserta &rarr;
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         </div>

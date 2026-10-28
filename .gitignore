@@ -4,7 +4,7 @@ node_modules/
 # Production build
 dist/
 dist-ssr/
-/public/build/
+# /public/build/
 # /backend/public/build/
 /public/hot
 
