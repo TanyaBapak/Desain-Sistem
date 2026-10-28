@@ -2325,10 +2325,7 @@ class BusinessDataPresenter
                     $targetJp = $programJp ? (int) $programJp : 200;
                 }
 
-                // JP sedang berjalan tidak boleh melebihi total JP program
-                if ($maxAchieved > $targetJp) {
-                    $targetJp = $maxAchieved;
-                }
+                // JP sedang berjalan tidak boleh melebihi target total JP program
                 $achievedJp = min($targetJp, $maxAchieved);
 
                 $participants = $records->map(function ($rec): array {
@@ -2343,7 +2340,7 @@ class BusinessDataPresenter
                         'gender' => $rec->gender ?? 'L',
                         'major' => $rec->major ?? '-',
                         'readinessStatus' => $rec->readiness_status ?? 'Ready for Placement',
-                        'achievedJp' => (int) $rec->achieved_jp,
+                        'achievedJp' => min($targetJp, (int) $rec->achieved_jp),
                         'targetJp' => (int) $rec->target_jp,
                         'status' => $rec->status ?? 'ENROLLED',
                     ];

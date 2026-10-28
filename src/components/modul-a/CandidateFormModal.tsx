@@ -70,7 +70,7 @@ export const CandidateFormModal: React.FC<CandidateFormModalProps> = ({
       setSourceType('Disnaker Pemda');
       setKabupatenKota('Kabupaten Bogor');
       setEducationLevel('SMK');
-      setInstitutionName('');
+      setInstitutionName(initialData?.institutionName || 'Politeknik Indonusa Surakarta');
       setMajor('');
       setSkillsInput('');
       setLanguage('Jepang');
@@ -104,9 +104,9 @@ export const CandidateFormModal: React.FC<CandidateFormModalProps> = ({
       sourceType,
       major,
       skills: skillsArray,
-      workExperiences: initialData?.workExperiences,
-      certifications: initialData?.certifications,
-      preferredSectors: initialData?.preferredSectors,
+      workExperiences: initialData?.workExperiences ?? [],
+      certifications: initialData?.certifications ?? [],
+      preferredSectors: initialData?.preferredSectors ?? [],
       languageProficiency: langLevel ? [{ language, level: langLevel }] : [],
       preferredCountry: preferredCountry ? [preferredCountry] : [],
       preferredJobRole: preferredJobRole ? [preferredJobRole] : [],
