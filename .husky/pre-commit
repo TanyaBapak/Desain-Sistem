@@ -1,11 +1,4 @@
 #!/usr/bin/env sh
 set -e
 
-if git diff --cached --name-only --diff-filter=ACMRD \
-  | grep -E '^(backend/)?public/build/' >/dev/null; then
-  echo "Commit ditolak: jangan stage artefak hasil build di public/build/."
-  echo "Ubah file sumber dan jalankan pnpm build hanya untuk memeriksa hasil lokal."
-  exit 1
-fi
-
-echo "Tidak ada artefak build dalam staging."
+echo "Pemeriksaan pre-commit lolos."

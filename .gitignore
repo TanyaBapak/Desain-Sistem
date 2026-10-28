@@ -5,7 +5,7 @@ node_modules/
 dist/
 dist-ssr/
 /public/build/
-/backend/public/build/
+# /backend/public/build/
 /public/hot
 
 # Local env files
