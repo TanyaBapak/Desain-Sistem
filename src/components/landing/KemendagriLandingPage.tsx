@@ -69,6 +69,12 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
   const vocationalCount = kpiSummary.metrics.find(
     (metric) => metric.key === "activeVocationalInstitutions",
   )?.value;
+  const candidateCount =
+    kpiSummary.metrics.find((metric) => metric.key === "registeredJobSeekers")?.value ??
+    publicCommandCenter?.national?.candidatesCount ??
+    563;
+  const supplyTarget = 12600;
+  const formattedTarget = supplyTarget.toLocaleString("id-ID");
   const sectorOccupations = Object.fromEntries(trainingSectors.map((sector) => {
     const sectorNames = [sector.name, ...sector.aliases].map(normalizeCatalogValue);
     const occupationNames = sector.occupations.flatMap((occupation) => [
@@ -282,8 +288,26 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
 
             <div className="space-y-3 text-xs">
               <article className="rounded-xl border border-slate-700/60 bg-slate-800/80 p-3">
-                <span className="block font-bold uppercase text-slate-400">Suplai tersedia</span>
-                <p className="mt-1 text-2xl font-extrabold tabular-nums text-white">12.600</p>
+                <div className="flex items-center justify-between">
+                  <span className="block font-bold uppercase text-slate-400">Calon Peserta / Suplai Tersedia</span>
+                  <span className="text-[11px] font-semibold text-emerald-400 tabular-nums">
+                    {Math.round(((candidateCount || 0) / supplyTarget) * 100)}%
+                  </span>
+                </div>
+                <p className="mt-1 text-2xl font-extrabold tabular-nums text-white">
+                  <span className="text-emerald-400 font-extrabold">
+                    {(candidateCount || 0).toLocaleString("id-ID")}
+                  </span>
+                  <span className="text-slate-300 font-medium text-lg"> / {formattedTarget}</span>
+                </p>
+                <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-700/80">
+                  <div
+                    className="h-full rounded-full bg-emerald-500 transition-all duration-500"
+                    style={{
+                      width: `${Math.min(100, Math.max(2, Math.round(((candidateCount || 0) / supplyTarget) * 100))) }%`,
+                    }}
+                  />
+                </div>
               </article>
 
               <article className="rounded-xl border border-slate-700/60 bg-slate-800/80 p-3">
