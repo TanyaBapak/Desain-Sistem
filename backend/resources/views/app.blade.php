@@ -70,9 +70,9 @@
             @vite('resources/js/app.tsx')
         @elseif($entryJs)
             @if($entryCss)
-                <link rel="stylesheet" href="{{ asset('build/' . $entryCss) }}?v={{ $version }}">
+                <link rel="stylesheet" href="/build/{{ $entryCss }}?v={{ $version }}">
             @endif
-            <script type="module" src="{{ asset('build/' . $entryJs) }}?v={{ $version }}"></script>
+            <script type="module" src="/build/{{ $entryJs }}?v={{ $version }}"></script>
         @else
             @viteReactRefresh
             @vite('resources/js/app.tsx')

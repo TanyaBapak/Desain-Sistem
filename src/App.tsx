@@ -265,7 +265,7 @@ export function App({
     setSelectedProgramId,
     setSelectedProviderId,
   } = useAppStore();
-  const authenticatedUser = auth.user;
+  const authenticatedUser = auth?.user ?? null;
   const activeTab = isRoot && authenticatedUser ? authenticatedUser.defaultTab : currentTab;
 
   useLayoutEffect(() => {
