@@ -654,7 +654,9 @@ class GardataPlacementSyncService
             foreach ($provinces as [$id, $name]) {
                 DB::table('provinces')->updateOrInsert(['id' => $id], ['name' => $name]);
             }
+        }
 
+        if (DB::table('districts')->count() < 100) {
             $wilayahFile = storage_path('app/reference/wilayah.json');
             if (is_file($wilayahFile) && is_readable($wilayahFile)) {
                 $data = json_decode((string) file_get_contents($wilayahFile), true);
@@ -664,6 +666,11 @@ class GardataPlacementSyncService
                     }
                 }
             }
+
+            DB::table('districts')->updateOrInsert(
+                ['id' => '3372'],
+                ['province_id' => '33', 'name' => 'Kota Surakarta', 'type' => 'Kota']
+            );
         }
     }
 

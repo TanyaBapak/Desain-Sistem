@@ -397,6 +397,73 @@ class BusinessDataPersistenceTest extends TestCase
         ]);
     }
 
+    public function test_bulk_candidate_import_for_institution_admin_and_flexible_region_resolution(): void
+    {
+        $this->seed(ReferenceDataSeeder::class);
+        $institutionUser = $this->userWithRole('institution_admin', [
+            'name' => 'Ir. Suci Purwandari, M.M, Ph.D',
+            'email' => 'sucipurwandari@sippmi.co',
+            'organization' => 'Politeknik Indonusa Surakarta',
+            'province_id' => '33',
+            'district_id' => '3372',
+        ]);
+        $this->actingAs($institutionUser);
+
+        // Upload candidates with varied region naming ('Solo', 'Kota Surakarta', 'Jateng')
+        $response = $this->post('/business-data/candidates/import', [
+            'candidates' => [
+                [
+                    'nik' => '3372010101010099',
+                    'fullName' => 'Peserta Indonusa Surakarta',
+                    'gender' => 'Laki-laki',
+                    'provinsi' => 'Jateng',
+                    'kabupatenKota' => 'Solo',
+                    'educationLevel' => 'D3',
+                    'institutionName' => 'Politeknik Indonusa Surakarta',
+                    'sourceType' => 'Lembaga Vokasi',
+                    'major' => 'Perhotelan',
+                    'skills' => ['Hospitality', 'English'],
+                    'languageProficiency' => [['language' => 'Inggris', 'level' => 'Fluent']],
+                    'preferredCountry' => ['Australia'],
+                    'preferredJobRole' => ['Front Desk'],
+                    'readinessStatus' => 'Siap Penempatan',
+                ],
+                [
+                    'nik' => '3372010101010100',
+                    'fullName' => 'Peserta Indonusa Sukoharjo',
+                    'gender' => 'Perempuan',
+                    'provinsi' => 'Jawa Tengah',
+                    'kabupatenKota' => 'Kabupaten Sukoharjo',
+                    'educationLevel' => 'Diploma 3',
+                    'institutionName' => 'Politeknik Indonusa Surakarta',
+                    'sourceType' => 'Lembaga Vokasi',
+                    'major' => 'Manajemen Informatika',
+                    'skills' => ['Software Testing'],
+                    'languageProficiency' => ['Jepang'],
+                    'preferredCountry' => ['Jepang'],
+                    'preferredJobRole' => ['IT Support'],
+                    'readinessStatus' => 'Needs Upskilling',
+                ],
+            ],
+        ]);
+
+        $response->assertRedirect()->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('job_seekers', [
+            'nik' => '3372010101010099',
+            'full_name' => 'Peserta Indonusa Surakarta',
+            'gender' => 'L',
+            'province_id' => '33',
+            'district_id' => '3372',
+        ]);
+        $this->assertDatabaseHas('job_seekers', [
+            'nik' => '3372010101010100',
+            'full_name' => 'Peserta Indonusa Sukoharjo',
+            'gender' => 'P',
+            'province_id' => '33',
+        ]);
+    }
+
     private function userWithRole(string $roleName, array $attributes = []): User
     {
         $user = User::factory()->create($attributes);

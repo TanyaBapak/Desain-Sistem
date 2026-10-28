@@ -70,9 +70,14 @@ class ReferenceDataSeeder extends Seeder
                 ['3273', '32', 'Kota Bandung', 'Kota'],
                 ['3275', '32', 'Kota Bekasi', 'Kota'],
                 ['3301', '33', 'Kabupaten Cilacap', 'Kabupaten'],
+                ['3372', '33', 'Kota Surakarta', 'Kota'],
+                ['3311', '33', 'Kabupaten Sukoharjo', 'Kabupaten'],
+                ['3313', '33', 'Kabupaten Karanganyar', 'Kabupaten'],
+                ['3374', '33', 'Kota Semarang', 'Kota'],
                 ['3578', '35', 'Kota Surabaya', 'Kota'],
                 ['3507', '35', 'Kabupaten Malang', 'Kabupaten'],
                 ['3171', '31', 'Kota Jakarta Pusat', 'Kota'],
+                ['3471', '34', 'Kota Yogyakarta', 'Kota'],
             ] as [$id, $provinceId, $name, $type]) {
                 DB::table('districts')->updateOrInsert(
                     ['id' => $id],
