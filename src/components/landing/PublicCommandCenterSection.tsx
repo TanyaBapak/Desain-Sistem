@@ -192,7 +192,8 @@ export const PublicCommandCenterSection: React.FC<PublicCommandCenterSectionProp
       </div>
 
       {/* Drilldown Modal for Public */}
-      <PublicDrilldownModal
+      {activeDrilldown && (
+        <PublicDrilldownModal
         type={activeDrilldown}
         onClose={() => {
           setActiveDrilldown(null);
@@ -204,6 +205,7 @@ export const PublicCommandCenterSection: React.FC<PublicCommandCenterSectionProp
         sectorOccupations={sectorOccupations}
         trainingSectors={trainingSectors}
       />
+      )}
     </section>
   );
 };

@@ -45,6 +45,10 @@ const WIB_DATE_TIME_FORMAT = new Intl.DateTimeFormat("id-ID", {
   timeZone: "Asia/Jakarta",
 });
 
+function normalizeCatalogValue(value: string): string {
+  return value.trim().toLocaleLowerCase("id-ID");
+}
+
 export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
   kpiSummary,
   projection,
@@ -427,7 +431,3 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
     </div>
   );
 };
-
-function normalizeCatalogValue(value: string): string {
-  return value.trim().toLocaleLowerCase("id-ID");
-}

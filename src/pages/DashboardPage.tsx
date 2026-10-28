@@ -397,7 +397,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         </Card>
       </div>
 
-      <DashboardDrilldownModal
+      {activeDrilldown && (
+        <DashboardDrilldownModal
         type={activeDrilldown}
         onClose={() => setActiveDrilldown(null)}
         scopeName={currentScope?.name ?? "Lingkup Anda"}
@@ -409,6 +410,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         demands={demands}
         allocations={allocations}
       />
+      )}
 
       <ExecutiveDashboardBreakdowns data={dashboardBreakdowns} />
       <InstitutionDirectory

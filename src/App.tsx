@@ -1,6 +1,8 @@
 import React, { lazy, Suspense, useEffect, useLayoutEffect } from "react";
 import { useAppStore } from "@/store/useAppStore";
 import { AdminLayout } from "@/components/layout/AdminLayout";
+import { KemendagriLandingPage } from "@/components/landing/KemendagriLandingPage";
+import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 import type { ExecutiveDashboardBreakdownsData } from "@/components/reports/ExecutiveDashboardBreakdowns";
 import type { DashboardTargetManagementData } from "@/pages/user-management-types";
 import {
@@ -19,11 +21,7 @@ import {
   AuditLogEntry,
 } from "@/types";
 
-const KemendagriLandingPage = lazy(() =>
-  import("@/components/landing/KemendagriLandingPage").then((module) => ({
-    default: module.KemendagriLandingPage,
-  })),
-);
+// KemendagriLandingPage imported statically above
 interface LandingProjectionData {
   year: number | null;
   periods: number[];
@@ -240,7 +238,7 @@ interface AppProps {
   adminTargets?: DashboardTargetManagementData;
 }
 
-export function App({
+function AppContent({
   currentTab,
   isRoot,
   showLogin,
@@ -360,14 +358,12 @@ export function App({
 
   if (!authenticatedUser) {
     return (
-      <Suspense fallback={loading}>
-        <KemendagriLandingPage
-          kpiSummary={landingKpiSummary}
-          projection={landingProjection}
-          trainingSectors={trainingCatalog?.sectors ?? []}
-          publicCommandCenter={publicCommandCenter}
-        />
-      </Suspense>
+      <KemendagriLandingPage
+        kpiSummary={landingKpiSummary}
+        projection={landingProjection}
+        trainingSectors={trainingCatalog?.sectors ?? []}
+        publicCommandCenter={publicCommandCenter}
+      />
     );
   }
 
@@ -545,6 +541,14 @@ export function App({
     >
       <Suspense fallback={loading}>{page}</Suspense>
     </AdminLayout>
+  );
+}
+
+export function App(props: AppProps) {
+  return (
+    <ErrorBoundary>
+      <AppContent {...props} />
+    </ErrorBoundary>
   );
 }
 
