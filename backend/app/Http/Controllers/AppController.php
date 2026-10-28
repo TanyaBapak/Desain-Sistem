@@ -47,12 +47,14 @@ class AppController extends Controller
 
         abort_unless($request->user()?->canAccessTab($tab), 403);
 
-        $bp3miScope->activeCodeForUser($request->user());
-        $props = [
-            'currentTab' => $tab,
-            'isRoot' => false,
-            'showLogin' => false,
-            'businessData' => $businessDataPresenter->make(
+        try {
+            $bp3miScope->activeCodeForUser($request->user());
+        } catch (\Throwable $e) {
+            \Log::warning('AppController bp3miScope warning: ' . $e->getMessage());
+        }
+
+        try {
+            $businessData = $businessDataPresenter->make(
                 $request->user(),
                 $request->only([
                     'candidatePage',
@@ -66,15 +68,55 @@ class AppController extends Controller
                     'approvalType',
                     'approvalSearch',
                 ]),
-            ),
+            );
+        } catch (\Throwable $e) {
+            \Log::error('AppController businessData error: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+            ]);
+            $businessData = [];
+        }
+
+        $props = [
+            'currentTab' => $tab,
+            'isRoot' => false,
+            'showLogin' => false,
+            'businessData' => $businessData,
         ];
 
         if ($tab === 'rbac' && $request->user()->roles()->where('name', 'super_admin')->exists()) {
-            $props['adminUsers'] = $userManagementController->indexData($request, $dashboardTargetService);
+            try {
+                $props['adminUsers'] = $userManagementController->indexData($request, $dashboardTargetService);
+            } catch (\Throwable $e) {
+                \Log::error('AppController rbac error: ' . $e->getMessage(), [
+                    'trace' => $e->getTraceAsString(),
+                ]);
+                $props['adminUsers'] = [
+                    'data' => [],
+                    'currentPage' => 1,
+                    'lastPage' => 1,
+                    'total' => 0,
+                    'perPage' => 50,
+                    'selectedRole' => '',
+                    'search' => '',
+                    'roles' => [],
+                    'filterRoles' => [],
+                    'provinces' => [],
+                    'districts' => [],
+                    'institutions' => [],
+                    'employers' => [],
+                ];
+            }
         }
 
         if ($tab === 'targets' && $request->user()->roles()->where('name', 'super_admin')->exists()) {
-            $props['adminTargets'] = $userManagementController->targetData($request, $dashboardTargetService);
+            try {
+                $props['adminTargets'] = $userManagementController->targetData($request, $dashboardTargetService);
+            } catch (\Throwable $e) {
+                \Log::error('AppController targets error: ' . $e->getMessage(), [
+                    'trace' => $e->getTraceAsString(),
+                ]);
+                $props['adminTargets'] = [];
+            }
         }
 
         return Inertia::render('App', $props);

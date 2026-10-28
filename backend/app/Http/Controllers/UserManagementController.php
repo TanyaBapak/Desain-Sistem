@@ -28,7 +28,7 @@ class UserManagementController extends Controller
             : 50;
 
         $query = User::query()
-            ->with('roles:id,name,title');
+            ->with('roles');
 
         if ($roleFilter && $roleFilter !== 'all') {
             $query->whereHas('roles', function ($q) use ($roleFilter): void {
@@ -57,8 +57,8 @@ class UserManagementController extends Controller
             'status' => $user->status,
             'scopeName' => $user->scope_name,
             'scopeLevel' => $user->scope_level,
-            'roleName' => $user->roles->first()?->name ?? '',
-            'roleTitle' => $user->roles->first()?->title ?? 'Tanpa peran',
+            'roleName' => $user->roles?->first()?->name ?? '',
+            'roleTitle' => $user->roles?->first()?->title ?? 'Tanpa peran',
             'provinceId' => $user->province_id,
             'districtId' => $user->district_id,
             'institutionId' => $user->institution_id,

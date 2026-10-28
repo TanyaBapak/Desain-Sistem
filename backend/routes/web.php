@@ -62,6 +62,19 @@ Route::post('/lembaga/daftar', [InstitutionRegistrationController::class, 'store
 Route::post('/integrations/gardata/webhook', GardataWebhookController::class)->name('integrations.gardata.webhook');
 Route::post('/integrations/sippmi/webhook', GardataWebhookController::class)->name('integrations.sippmi.webhook');
 
+Route::get('/debug-log', function () {
+    $logPath = storage_path('logs/laravel.log');
+    if (! file_exists($logPath)) {
+        return response("Tidak ada file laravel.log di {$logPath}", 200, ['Content-Type' => 'text/plain; charset=utf-8']);
+    }
+
+    $content = file_get_contents($logPath);
+    $lines = explode("\n", $content);
+    $lastLines = array_slice($lines, -150);
+
+    return response(implode("\n", $lastLines), 200, ['Content-Type' => 'text/plain; charset=utf-8']);
+});
+
 Route::middleware(['auth', EnsureUserIsActive::class])->group(function () {
     Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
     Route::match(['get', 'post'], '/impersonation/stop', [UserManagementController::class, 'stopImpersonating'])->name('impersonation.stop');
