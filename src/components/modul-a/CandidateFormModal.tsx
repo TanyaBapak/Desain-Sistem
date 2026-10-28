@@ -37,8 +37,10 @@ export const CandidateFormModal: React.FC<CandidateFormModalProps> = ({
   const [preferredJobRole, setPreferredJobRole] = useState('');
   const [readinessStatus, setReadinessStatus] = useState<CandidateParticipant['readinessStatus']>('Needs Upskilling');
   const [verificationStatus, setVerificationStatus] = useState<CandidateParticipant['verificationStatus']>('Pending Verification');
-  const availableDistricts = businessOptions.districts.filter(
-    (district) => businessOptions.provinces.find((province) => province.name === provinsi)?.id === district.province_id,
+  const provincesList = Array.isArray(businessOptions?.provinces) ? businessOptions.provinces : [];
+  const districtsList = Array.isArray(businessOptions?.districts) ? businessOptions.districts : [];
+  const availableDistricts = districtsList.filter(
+    (district) => provincesList.find((province) => province.name === provinsi)?.id === district.province_id,
   );
 
   useEffect(() => {
@@ -247,8 +249,8 @@ export const CandidateFormModal: React.FC<CandidateFormModalProps> = ({
                 value={provinsi}
                 onChange={(e) => {
                   setProvinsi(e.target.value);
-                  const provinceId = businessOptions.provinces.find((province) => province.name === e.target.value)?.id;
-                  const firstDistrict = businessOptions.districts.find((district) => district.province_id === provinceId);
+                  const provinceId = (Array.isArray(businessOptions?.provinces) ? businessOptions.provinces : []).find((province) => province.name === e.target.value)?.id;
+                  const firstDistrict = (Array.isArray(businessOptions?.districts) ? businessOptions.districts : []).find((district) => district.province_id === provinceId);
                   setKabupatenKota(firstDistrict?.name ?? '');
                 }}
                 className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"

@@ -108,8 +108,10 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
   const [supportedCountries, setSupportedCountries] = useState<string[]>([]);
   const [facilitiesInput, setFacilitiesInput] = useState('');
 
-  const availableDistricts = businessOptions.districts.filter(
-    (district) => businessOptions.provinces.find((province) => province.name === provinsi)?.id === district.province_id,
+  const provincesList = Array.isArray(businessOptions?.provinces) ? businessOptions.provinces : [];
+  const districtsList = Array.isArray(businessOptions?.districts) ? businessOptions.districts : [];
+  const availableDistricts = districtsList.filter(
+    (district) => provincesList.find((province) => province.name === provinsi)?.id === district.province_id,
   );
 
   useEffect(() => {
@@ -123,8 +125,8 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
       const prov = initialData.provinsi || 'Jawa Barat';
       setProvinsi(prov);
 
-      const targetProvinceId = businessOptions.provinces.find((p) => p.name === prov)?.id;
-      const validDistricts = businessOptions.districts.filter((d) => d.province_id === targetProvinceId);
+      const targetProvinceId = (Array.isArray(businessOptions?.provinces) ? businessOptions.provinces : []).find((p) => p.name === prov)?.id;
+      const validDistricts = (Array.isArray(businessOptions?.districts) ? businessOptions.districts : []).filter((d) => d.province_id === targetProvinceId);
 
       if (initialData.kabupatenKota && initialData.kabupatenKota !== 'Belum diketahui') {
         setKabupatenKota(initialData.kabupatenKota);
@@ -333,8 +335,8 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
                 onChange={(e) => {
                   const newProv = e.target.value;
                   setProvinsi(newProv);
-                  const provinceId = businessOptions.provinces.find((p) => p.name === newProv)?.id;
-                  const firstDistrict = businessOptions.districts.find((d) => d.province_id === provinceId);
+                  const provinceId = (Array.isArray(businessOptions?.provinces) ? businessOptions.provinces : []).find((p) => p.name === newProv)?.id;
+                  const firstDistrict = (Array.isArray(businessOptions?.districts) ? businessOptions.districts : []).find((d) => d.province_id === provinceId);
                   setKabupatenKota(firstDistrict?.name ?? '');
                 }}
                 className="w-full text-xs p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-slate-50"
