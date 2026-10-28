@@ -2,6 +2,8 @@ import React, { lazy, Suspense, useEffect, useLayoutEffect } from "react";
 import { useAppStore } from "@/store/useAppStore";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { KemendagriLandingPage } from "@/components/landing/KemendagriLandingPage";
+import { UnifiedLoginPage } from "@/components/auth/UnifiedLoginPage";
+import { InstitutionRegistrationPage } from "@/pages/InstitutionRegistrationPage";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 import type { ExecutiveDashboardBreakdownsData } from "@/components/reports/ExecutiveDashboardBreakdowns";
 import type { DashboardTargetManagementData } from "@/pages/user-management-types";
@@ -35,16 +37,7 @@ interface LandingProjectionData {
     target: number;
   }[];
 }
-const UnifiedLoginPage = lazy(() =>
-  import("@/components/auth/UnifiedLoginPage").then((module) => ({
-    default: module.UnifiedLoginPage,
-  })),
-);
-const InstitutionRegistrationPage = lazy(() =>
-  import("@/pages/InstitutionRegistrationPage").then((module) => ({
-    default: module.InstitutionRegistrationPage,
-  })),
-);
+// Auth and registration pages imported statically above
 const DashboardPage = lazy(() =>
   import("@/pages/DashboardPage").then((module) => ({
     default: module.DashboardPage,
@@ -336,23 +329,17 @@ function AppContent({
   );
 
   if (showLogin && !authenticatedUser) {
-    return (
-      <Suspense fallback={loading}>
-        <UnifiedLoginPage status={registrationStatus} />
-      </Suspense>
-    );
+    return <UnifiedLoginPage status={registrationStatus} />;
   }
 
   if (showInstitutionRegistration && !authenticatedUser && registrationOptions) {
     return (
-      <Suspense fallback={loading}>
-        <InstitutionRegistrationPage
-          provinces={registrationOptions.provinces}
-          districts={registrationOptions.districts}
-          sectors={registrationOptions.sectors}
-          countries={registrationOptions.countries}
-        />
-      </Suspense>
+      <InstitutionRegistrationPage
+        provinces={registrationOptions.provinces}
+        districts={registrationOptions.districts}
+        sectors={registrationOptions.sectors}
+        countries={registrationOptions.countries}
+      />
     );
   }
 
