@@ -2,6 +2,7 @@ import React from "react";
 import { createInertiaApp } from "@inertiajs/react";
 import { createRoot } from "react-dom/client";
 import App from "../backend/resources/js/Pages/App";
+import { ErrorBoundary } from "./components/shared/ErrorBoundary";
 import './index.css';
 
 const storedTheme = window.localStorage.getItem("p2mi-theme");
@@ -22,7 +23,9 @@ void createInertiaApp({
   setup({ el, App: InertiaPage, props }) {
     createRoot(el).render(
       <React.StrictMode>
-        <InertiaPage {...props} />
+        <ErrorBoundary>
+          <InertiaPage {...props} />
+        </ErrorBoundary>
       </React.StrictMode>,
     );
   },

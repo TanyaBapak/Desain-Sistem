@@ -94,13 +94,13 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
     selectedSectorData?.name ?? "",
     ...(selectedSectorData?.aliases ?? []),
   ].map(normalizeCatalogValue);
-  const selectedOccupationData = selectedSectorData?.occupations.find((occupation) =>
-    [occupation.title, ...occupation.aliases]
+  const selectedOccupationData = selectedSectorData?.occupations?.find((occupation) =>
+    [occupation.title, ...(occupation.aliases ?? [])]
       .some((value) => normalizeCatalogValue(value) === normalizeCatalogValue(selectedOccupation ?? "")),
   );
   const selectedOccupationAliases = [
     selectedOccupation ?? "",
-    ...(selectedOccupationData ? [selectedOccupationData.title, ...selectedOccupationData.aliases] : []),
+    ...(selectedOccupationData ? [selectedOccupationData.title, ...(selectedOccupationData.aliases ?? [])] : []),
   ].map(normalizeCatalogValue);
   const filteredInstitutions =
     selectedSector && selectedOccupation
