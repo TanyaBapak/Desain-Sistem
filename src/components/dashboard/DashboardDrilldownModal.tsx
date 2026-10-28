@@ -107,20 +107,26 @@ export const DashboardDrilldownModal: React.FC<DashboardDrilldownModalProps> = (
 
   const handlePushFilter = (step: FilterStep) => {
     setFilterStack((prev) => [...prev, step]);
+    setViewMode("list");
     setPage(1);
     setSearchQuery("");
   };
 
   const handlePopFilter = () => {
-    setFilterStack((prev) => prev.slice(0, -1));
+    setFilterStack((prev) => {
+      const next = prev.slice(0, -1);
+      if (next.length === 0) {
+        setViewMode("categories");
+      }
+      return next;
+    });
     setPage(1);
     setSearchQuery("");
   };
 
   return (
     <Dialog open={Boolean(type)} onOpenChange={(open) => !open && onClose()}>
-      {Boolean(type) && (
-        <DialogContent className="max-w-4xl w-[95vw] max-h-[90vh] flex flex-col p-0 gap-0 overflow-hidden rounded-2xl border bg-card text-card-foreground shadow-2xl">
+      <DialogContent className="max-w-4xl w-[95vw] max-h-[90vh] flex flex-col p-0 gap-0 overflow-hidden rounded-2xl border bg-card text-card-foreground shadow-2xl">
         {/* Modal Header */}
         <DialogHeader className="p-5 md:p-6 pb-4 border-b border-border bg-muted/20">
           <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
@@ -348,7 +354,6 @@ export const DashboardDrilldownModal: React.FC<DashboardDrilldownModalProps> = (
           )}
         </div>
       </DialogContent>
-      )}
     </Dialog>
   );
 };

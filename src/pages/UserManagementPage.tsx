@@ -14,17 +14,17 @@ interface UserManagementPageProps {
 }
 
 export function UserManagementPage({ adminUsers, currentUserId }: UserManagementPageProps) {
+  const [selectedRole, setSelectedRole] = useState(adminUsers?.selectedRole ?? "");
+  const [searchKeyword, setSearchKeyword] = useState(adminUsers?.search ?? "");
+
+  useEffect(() => {
+    setSelectedRole(adminUsers?.selectedRole ?? "");
+    setSearchKeyword(adminUsers?.search ?? "");
+  }, [adminUsers?.selectedRole, adminUsers?.search]);
+
   if (!adminUsers) {
     return <p role="alert" className="text-sm text-destructive">Data pengguna tidak dapat dimuat. Muat ulang halaman atau hubungi administrator.</p>;
   }
-
-  const [selectedRole, setSelectedRole] = useState(adminUsers.selectedRole ?? "");
-  const [searchKeyword, setSearchKeyword] = useState(adminUsers.search ?? "");
-
-  useEffect(() => {
-    setSelectedRole(adminUsers.selectedRole ?? "");
-    setSearchKeyword(adminUsers.search ?? "");
-  }, [adminUsers.selectedRole, adminUsers.search]);
 
   function navigateWithFilters(
     page = 1,

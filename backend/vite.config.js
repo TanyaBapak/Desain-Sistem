@@ -18,8 +18,10 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(projectDirectory, "src"),
+      "react": path.resolve(projectDirectory, "node_modules/react"),
+      "react-dom": path.resolve(projectDirectory, "node_modules/react-dom"),
     },
-    dedupe: ["react", "react-dom"],
+    dedupe: ["react", "react-dom", "@inertiajs/react"],
   },
   server: {
     port: 3000,

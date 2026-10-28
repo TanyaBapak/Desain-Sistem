@@ -5,7 +5,7 @@ import App from "../backend/resources/js/Pages/App";
 import { ErrorBoundary } from "./components/shared/ErrorBoundary";
 import './index.css';
 
-// Universal DOM safety patch for browser extensions, Google Translate, Cloudflare beacon, and Radix portals
+// Safe guard for external scripts/extensions (Google Translate, Cloudflare beacon) mutating DOM nodes
 if (typeof Node === "function" && Node.prototype) {
   const originalRemoveChild = Node.prototype.removeChild;
   Node.prototype.removeChild = function <T extends Node>(child: T): T {
@@ -16,17 +16,6 @@ if (typeof Node === "function" && Node.prototype) {
       return child;
     }
     return originalRemoveChild.call(this, child) as T;
-  };
-
-  const originalInsertBefore = Node.prototype.insertBefore;
-  Node.prototype.insertBefore = function <T extends Node>(newNode: T, referenceNode: Node | null): T {
-    if (referenceNode && referenceNode.parentNode !== this) {
-      if (typeof console !== "undefined" && console.warn) {
-        console.warn("Node.insertBefore safely bypassed: referenceNode is not a child of this node.", referenceNode);
-      }
-      return newNode;
-    }
-    return originalInsertBefore.call(this, newNode, referenceNode) as T;
   };
 }
 

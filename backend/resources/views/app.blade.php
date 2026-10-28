@@ -1,9 +1,10 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="id" translate="no" class="notranslate">
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
+        <meta name="google" content="notranslate">
         @php
             $faviconUrl = asset('favicon.ico');
             if (file_exists(public_path('build/assets/logo-Do86rduN.png'))) {

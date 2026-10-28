@@ -799,28 +799,26 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
 
   return (
     <Dialog open={Boolean(type)} onOpenChange={(open) => !open && onClose()}>
-      {Boolean(type) && (
-        <DialogContent className="flex w-[calc(100%-2rem)] max-w-2xl max-h-[calc(100dvh-2rem)] flex-col gap-4 overflow-hidden p-4 sm:p-6">
-          <DialogHeader className="space-y-1">
-            <DialogTitle className="text-lg font-bold text-foreground">
-              {getTitle()}
-            </DialogTitle>
-            <DialogDescription className="text-xs text-muted-foreground">
-              Data statistik Command Center Task Force SMK Go Global
-            </DialogDescription>
-          </DialogHeader>
+      <DialogContent className="flex w-[calc(100%-2rem)] max-w-2xl max-h-[calc(100dvh-2rem)] flex-col gap-4 overflow-hidden p-4 sm:p-6">
+        <DialogHeader className="space-y-1">
+          <DialogTitle className="text-lg font-bold text-foreground">
+            {getTitle()}
+          </DialogTitle>
+          <DialogDescription className="text-xs text-muted-foreground">
+            Data statistik Command Center Task Force SMK Go Global
+          </DialogDescription>
+        </DialogHeader>
 
-          <div className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain pr-1">
-            {renderContent()}
-          </div>
+        <div className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain pr-1">
+          {renderContent()}
+        </div>
 
-          <div className="flex shrink-0 justify-end border-t border-border pt-2">
-            <Button type="button" variant="outline" size="sm" onClick={onClose}>
-              Tutup
-            </Button>
-          </div>
-        </DialogContent>
-      )}
+        <div className="flex shrink-0 justify-end border-t border-border pt-2">
+          <Button type="button" variant="outline" size="sm" onClick={onClose}>
+            Tutup
+          </Button>
+        </div>
+      </DialogContent>
     </Dialog>
   );
 };
