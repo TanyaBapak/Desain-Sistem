@@ -64,7 +64,7 @@ export function UserEditDialog({ user, roles, provinces, districts, institutions
   const asksDistrict = form.data.role === "district_admin";
   const asksInstitution = form.data.role === "institution_admin" || form.data.role === "training_operator";
   const asksEmployer = form.data.role === "demand_admin";
-  const visibleDistricts = districts.filter((district) => district.province_id === form.data.provinceId);
+  const visibleDistricts = (districts ?? []).filter((district) => district.province_id === form.data.provinceId);
 
   function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -108,14 +108,14 @@ export function UserEditDialog({ user, roles, provinces, districts, institutions
           </Field>
           <Field label="Peran" error={form.errors.role}>
             <select className={selectClass} value={form.data.role} onChange={(event) => changeRole(event.target.value)} required>
-              {roles.map((role) => <option key={role.name} value={role.name}>{role.title}</option>)}
+              {(roles ?? []).map((role) => <option key={role.name} value={role.name}>{role.title}</option>)}
             </select>
           </Field>
           {asksProvince && (
             <Field label="Provinsi" error={form.errors.provinceId}>
               <select className={selectClass} value={form.data.provinceId} onChange={(event) => { form.setData("provinceId", event.target.value); form.setData("districtId", ""); }} required>
                 <option value="">Pilih provinsi</option>
-                {provinces.map((province) => <option key={province.id} value={province.id}>{province.name}</option>)}
+                {(provinces ?? []).map((province) => <option key={province.id} value={province.id}>{province.name}</option>)}
               </select>
             </Field>
           )}
@@ -131,7 +131,7 @@ export function UserEditDialog({ user, roles, provinces, districts, institutions
             <Field label="Lembaga" error={form.errors.institutionId}>
               <select className={selectClass} value={form.data.institutionId} onChange={(event) => form.setData("institutionId", event.target.value)} required>
                 <option value="">Pilih lembaga</option>
-                {institutions.map((institution) => <option key={institution.id} value={institution.id}>{institution.name}</option>)}
+                {(institutions ?? []).map((institution) => <option key={institution.id} value={institution.id}>{institution.name}</option>)}
               </select>
             </Field>
           )}
@@ -139,7 +139,7 @@ export function UserEditDialog({ user, roles, provinces, districts, institutions
             <Field label="Pemberi kerja" error={form.errors.employerId}>
               <select className={selectClass} value={form.data.employerId} onChange={(event) => form.setData("employerId", event.target.value)} required>
                 <option value="">Pilih pemberi kerja</option>
-                {employers.map((employer) => <option key={employer.id} value={employer.id}>{employer.name}</option>)}
+                {(employers ?? []).map((employer) => <option key={employer.id} value={employer.id}>{employer.name}</option>)}
               </select>
             </Field>
           )}

@@ -26,11 +26,11 @@ export function ManagedUserRow({ user, currentUserId, data }: { user: ManagedUse
             <>
               <UserEditDialog
                 user={user}
-                roles={data.roles}
-                provinces={data.provinces}
-                districts={data.districts}
-                institutions={data.institutions}
-                employers={data.employers}
+                roles={data?.roles ?? []}
+                provinces={data?.provinces ?? []}
+                districts={data?.districts ?? []}
+                institutions={data?.institutions ?? []}
+                employers={data?.employers ?? []}
               />
               <UserScopeDialog user={user} data={data} />
               <Button type="button" variant="outline" size="sm" disabled={user.status !== "Aktif"} onClick={() => router.post(`/admin/users/${user.id}/impersonate`)}>

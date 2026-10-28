@@ -70,7 +70,7 @@ export function UserManagementPage({ adminUsers, currentUserId }: UserManagement
     });
   }
 
-  const roleOptions = adminUsers.filterRoles ?? adminUsers.roles;
+  const roleOptions = adminUsers?.filterRoles ?? adminUsers?.roles ?? [];
 
   return (
     <div className="space-y-6">

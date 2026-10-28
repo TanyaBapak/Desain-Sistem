@@ -11,7 +11,7 @@ export function UserCreateForm({ data }: { data: UserManagementData }) {
     username: "",
     email: "",
     password: "",
-    role: data.roles[0]?.name ?? "",
+    role: (data?.roles ?? [])[0]?.name ?? "",
     scopeName: "",
     provinceId: "",
     districtId: "",
@@ -19,13 +19,13 @@ export function UserCreateForm({ data }: { data: UserManagementData }) {
     employerId: "",
   });
 
-  const selectedRole = data.roles.find((role) => role.name === form.data.role)?.name;
+  const selectedRole = (data?.roles ?? []).find((role) => role.name === form.data.role)?.name;
   const asksProvince = selectedRole === "province_admin" || selectedRole === "district_admin";
   const asksBp3mi = selectedRole === "task_force";
   const asksDistrict = selectedRole === "district_admin";
   const asksInstitution = selectedRole === "institution_admin" || selectedRole === "training_operator";
   const asksEmployer = selectedRole === "demand_admin";
-  const visibleDistricts = data.districts.filter((district) => district.province_id === form.data.provinceId);
+  const visibleDistricts = (data?.districts ?? []).filter((district) => district.province_id === form.data.provinceId);
 
   function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -59,14 +59,14 @@ export function UserCreateForm({ data }: { data: UserManagementData }) {
             <select className={selectClass} value={form.data.role} onChange={(event) => {
               form.setData("role", event.target.value);
             }} required>
-              {data.roles.map((role) => <option key={role.name} value={role.name}>{role.title}</option>)}
+              {(data?.roles ?? []).map((role) => <option key={role.name} value={role.name}>{role.title}</option>)}
             </select>
           </Field>
           {asksProvince && (
             <Field label="Provinsi" error={form.errors.provinceId}>
               <select className={selectClass} value={form.data.provinceId} onChange={(event) => { form.setData("provinceId", event.target.value); form.setData("districtId", ""); }} required>
                 <option value="">Pilih provinsi</option>
-                {data.provinces.map((province) => <option key={province.id} value={province.id}>{province.name}</option>)}
+                {(data?.provinces ?? []).map((province) => <option key={province.id} value={province.id}>{province.name}</option>)}
               </select>
             </Field>
           )}
@@ -82,7 +82,7 @@ export function UserCreateForm({ data }: { data: UserManagementData }) {
             <Field label="Lembaga" error={form.errors.institutionId}>
               <select className={selectClass} value={form.data.institutionId} onChange={(event) => form.setData("institutionId", event.target.value)} required>
                 <option value="">Pilih lembaga</option>
-                {data.institutions.map((institution) => <option key={institution.id} value={institution.id}>{institution.name}</option>)}
+                {(data?.institutions ?? []).map((institution) => <option key={institution.id} value={institution.id}>{institution.name}</option>)}
               </select>
             </Field>
           )}
@@ -90,7 +90,7 @@ export function UserCreateForm({ data }: { data: UserManagementData }) {
             <Field label="Pemberi kerja" error={form.errors.employerId}>
               <select className={selectClass} value={form.data.employerId} onChange={(event) => form.setData("employerId", event.target.value)} required>
                 <option value="">Pilih pemberi kerja</option>
-                {data.employers.map((employer) => <option key={employer.id} value={employer.id}>{employer.name}</option>)}
+                {(data?.employers ?? []).map((employer) => <option key={employer.id} value={employer.id}>{employer.name}</option>)}
               </select>
             </Field>
           )}

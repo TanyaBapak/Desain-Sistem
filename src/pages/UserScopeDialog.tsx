@@ -20,7 +20,7 @@ export function UserScopeDialog({ user, data }: UserScopeDialogProps) {
   const isProvinceAdmin = user.roleName === "province_admin";
   const isDistrictAdmin = user.roleName === "district_admin";
   const isTaskForce = user.roleName === "task_force";
-  const visibleDistricts = data.districts.filter((district) => district.province_id === form.data.provinceId);
+  const visibleDistricts = (data?.districts ?? []).filter((district) => district.province_id === form.data.provinceId);
 
   useEffect(() => {
     if (!open) {
@@ -99,7 +99,7 @@ export function UserScopeDialog({ user, data }: UserScopeDialogProps) {
                   required
                 >
                   <option value="">Pilih provinsi</option>
-                  {data.provinces.map((province) => (
+                  {(data?.provinces ?? []).map((province) => (
                     <option key={province.id} value={province.id}>{province.name}</option>
                   ))}
                 </select>

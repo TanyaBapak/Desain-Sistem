@@ -20,7 +20,7 @@ export function InstitutionRegistrationPage({
 }: InstitutionRegistrationPageProps) {
   const [provinceId, setProvinceId] = useState(provinces[0]?.id ?? "");
   const availableDistricts = useMemo(
-    () => districts.filter((district) => district.province_id === provinceId),
+    () => (districts ?? []).filter((district) => district.province_id === provinceId),
     [districts, provinceId],
   );
   const { data, setData, post, processing, errors } = useForm({
