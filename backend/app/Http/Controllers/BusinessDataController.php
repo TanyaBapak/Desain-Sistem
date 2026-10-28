@@ -563,7 +563,13 @@ class BusinessDataController extends Controller
     {
         abort_unless(isset(self::ENTITY_TABLES[$type]), 404);
         if ($type === 'candidates' && $id && preg_match('/[•*]/u', (string) $request->input('nik'))) {
-            $request->merge(['nik' => DB::table('job_seekers')->where('id', $id)->value('nik')]);
+            $existingNik = DB::table('job_seekers')->where('id', $id)->value('nik');
+            if (! $existingNik && $request->filled('fullName')) {
+                $existingNik = DB::table('job_seekers')->where('full_name', $request->input('fullName'))->value('nik');
+            }
+            if ($existingNik) {
+                $request->merge(['nik' => $existingNik]);
+            }
         }
         if ($type === 'providers' && $request->has('supportedCountries') && is_array($request->input('supportedCountries'))) {
             $mappedCountries = array_map(function ($val) {

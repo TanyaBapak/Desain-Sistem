@@ -8,6 +8,7 @@ import {
   Clock,
   CloudDownload,
   ExternalLink,
+  Eye,
   Globe,
   RefreshCw,
   Users,
@@ -29,9 +30,17 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useAppStore } from "@/store/useAppStore";
 import {
   MonitoringData,
+  MonitoringClassData,
   MonitoringCandidateData,
 } from "@/types";
 import { parseServerDate } from "@/lib/utils";
@@ -57,6 +66,7 @@ export function SippmiMonitoringPage({ monitoring }: SippmiMonitoringPageProps) 
   const [syncQueued, setSyncQueued] = React.useState(false);
   const [syncStartedAt, setSyncStartedAt] = React.useState<string | null>(null);
   const [selectedSubdomain, setSelectedSubdomain] = React.useState<string>(monitoring.candidateSource || "all");
+  const [selectedClassForDetail, setSelectedClassForDetail] = React.useState<MonitoringClassData | null>(null);
   const { summary, classes = [], candidates = [], lastSync, tenants = [] } = monitoring;
   const totalAllSubdomainCandidates = React.useMemo(
     () => tenants.reduce((acc, t) => acc + (t.candidateCount || 0), 0),
@@ -273,7 +283,7 @@ export function SippmiMonitoringPage({ monitoring }: SippmiMonitoringPageProps) 
               <TableBody>
                 {tenants.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="h-24 text-center text-sm text-muted-foreground">
+                    <TableCell colSpan={8} className="h-24 text-center text-sm text-muted-foreground">
                       Belum ada tenant yang dikonfigurasi untuk sinkronisasi.
                     </TableCell>
                   </TableRow>
@@ -381,12 +391,13 @@ export function SippmiMonitoringPage({ monitoring }: SippmiMonitoringPageProps) 
                   <TableHead>Jam pelajaran</TableHead>
                   <TableHead>Peserta</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Aksi</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {classes.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="h-24 text-center text-sm text-muted-foreground">
+                    <TableCell colSpan={8} className="h-24 text-center text-sm text-muted-foreground">
                       Belum ada data kelas. Data Gardata akan tampil setelah sinkronisasi berhasil.
                     </TableCell>
                   </TableRow>
@@ -400,12 +411,68 @@ export function SippmiMonitoringPage({ monitoring }: SippmiMonitoringPageProps) 
                         {formatDate(trainingClass.startDate)} – {formatDate(trainingClass.endDate)}
                       </TableCell>
                       <TableCell className="tabular-nums">
-                        {trainingClass.achievedJp === null
-                          ? "Belum tercatat"
-                          : `${trainingClass.achievedJp.toLocaleString("id-ID")} / ${trainingClass.targetJp.toLocaleString("id-ID")}`}
+                        <div className="space-y-1 min-w-[130px]">
+                          <div className="flex items-center justify-between text-xs font-semibold">
+                            <span>
+                              {(trainingClass.achievedJp ?? 0).toLocaleString("id-ID")}
+                              {" / "}
+                              {trainingClass.targetJp.toLocaleString("id-ID")} JP
+                            </span>
+                            <span className="text-[10px] text-muted-foreground font-medium">
+                              {Math.min(
+                                100,
+                                Math.round(
+                                  ((trainingClass.achievedJp ?? 0) / (trainingClass.targetJp || 1)) * 100
+                                )
+                              )}
+                              %
+                            </span>
+                          </div>
+                          <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                            <div
+                              className="h-full rounded-full bg-primary transition-all duration-300"
+                              style={{
+                                width: `${Math.min(
+                                  100,
+                                  Math.max(
+                                    0,
+                                    Math.round(
+                                      ((trainingClass.achievedJp ?? 0) / (trainingClass.targetJp || 1)) * 100
+                                    )
+                                  )
+                                )}%`,
+                              }}
+                            />
+                          </div>
+                        </div>
                       </TableCell>
-                      <TableCell className="tabular-nums">{trainingClass.participantCount.toLocaleString("id-ID")}</TableCell>
+                      <TableCell className="tabular-nums">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setSelectedClassForDetail(trainingClass)}
+                          className="h-8 gap-1.5 px-2 font-semibold text-primary hover:bg-primary/10 hover:text-primary transition-colors"
+                          title="Klik untuk melihat peserta kelas ini"
+                        >
+                          <Users className="h-3.5 w-3.5 text-primary shrink-0" />
+                          <span>{trainingClass.participantCount.toLocaleString("id-ID")}</span>
+                        </Button>
+                      </TableCell>
                       <TableCell><Badge variant="secondary">{trainingClass.status}</Badge></TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setSelectedClassForDetail(trainingClass)}
+                          className="h-8 gap-1 text-xs"
+                          title="Lihat rincian peserta kelas pelatihan ini"
+                        >
+                          <Eye className="h-3.5 w-3.5" />
+                          <span className="hidden sm:inline">Rincian</span>
+                        </Button>
+                      </TableCell>
                     </TableRow>
                   ))
                 )}
@@ -453,6 +520,126 @@ export function SippmiMonitoringPage({ monitoring }: SippmiMonitoringPageProps) 
           </div>
         </div>
       </Card>
+
+      {/* Dialog Detail Peserta Kelas Pelatihan */}
+      <Dialog
+        open={Boolean(selectedClassForDetail)}
+        onOpenChange={(open) => !open && setSelectedClassForDetail(null)}
+      >
+        <DialogContent className="max-w-3xl w-[95vw] max-h-[90vh] flex flex-col p-0 gap-0 overflow-hidden rounded-2xl border bg-card text-card-foreground shadow-2xl">
+          <DialogHeader className="p-5 md:p-6 pb-4 border-b border-border bg-muted/20">
+            <div className="flex flex-col gap-1">
+              <span className="text-[11px] font-bold tracking-wider text-primary uppercase">
+                Kelas Pelatihan • {selectedClassForDetail?.source}
+              </span>
+              <DialogTitle className="text-lg md:text-xl font-bold text-foreground">
+                {selectedClassForDetail?.name || selectedClassForDetail?.sector}
+              </DialogTitle>
+              <DialogDescription className="text-xs text-muted-foreground">
+                Kode Kelas: <span className="font-mono font-semibold text-foreground">{selectedClassForDetail?.classCode}</span>
+                {selectedClassForDetail?.startDate && (
+                  <> • Periode: {formatDate(selectedClassForDetail.startDate)} – {formatDate(selectedClassForDetail.endDate)}</>
+                )}
+              </DialogDescription>
+            </div>
+
+            {/* Status & Jam Pelajaran Banner */}
+            <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 rounded-xl bg-background border border-border">
+              <div className="space-y-1">
+                <span className="text-xs text-muted-foreground">Jam Pelajaran (Sedang Berjalan / Total JP)</span>
+                <div className="flex items-center justify-between text-sm font-bold tabular-nums">
+                  <span className="text-primary">
+                    {(selectedClassForDetail?.achievedJp ?? 0).toLocaleString("id-ID")} / {(selectedClassForDetail?.targetJp ?? 0).toLocaleString("id-ID")} JP
+                  </span>
+                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+                    {Math.min(
+                      100,
+                      Math.round(
+                        ((selectedClassForDetail?.achievedJp ?? 0) /
+                          (selectedClassForDetail?.targetJp || 1)) *
+                          100
+                      )
+                    )}%
+                  </span>
+                </div>
+                <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-primary"
+                    style={{
+                      width: `${Math.min(
+                        100,
+                        Math.round(
+                          ((selectedClassForDetail?.achievedJp ?? 0) /
+                            (selectedClassForDetail?.targetJp || 1)) *
+                            100
+                        )
+                      )}%`,
+                    }}
+                  />
+                </div>
+              </div>
+              <div className="flex flex-col justify-center space-y-1">
+                <span className="text-xs text-muted-foreground">Total Peserta Terdaftar</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-lg font-bold text-foreground tabular-nums">
+                    {selectedClassForDetail?.participantCount ?? 0} Peserta
+                  </span>
+                  <Badge variant="secondary">{selectedClassForDetail?.status}</Badge>
+                </div>
+              </div>
+            </div>
+          </DialogHeader>
+
+          <div className="flex-1 overflow-y-auto p-5 md:p-6 space-y-4">
+            <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
+              <Users className="h-4 w-4 text-primary" />
+              Daftar Peserta di Kelas Ini ({selectedClassForDetail?.participants?.length ?? selectedClassForDetail?.participantCount ?? 0} Orang)
+            </h4>
+
+            {selectedClassForDetail?.participants && selectedClassForDetail.participants.length > 0 ? (
+              <div className="rounded-xl border border-border overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/40">
+                      <TableHead className="w-12 text-center">No</TableHead>
+                      <TableHead>Nama Peserta</TableHead>
+                      <TableHead>NIK</TableHead>
+                      <TableHead>Jurusan / Keahlian</TableHead>
+                      <TableHead>Capaian JP</TableHead>
+                      <TableHead>Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {selectedClassForDetail.participants.map((p, idx) => (
+                      <TableRow key={p.id || idx}>
+                        <TableCell className="text-center font-mono text-xs text-muted-foreground">{idx + 1}</TableCell>
+                        <TableCell className="font-medium text-foreground">
+                          {p.fullName}
+                          <span className="ml-1 text-[11px] text-muted-foreground">({p.gender === 'P' ? 'P' : 'L'})</span>
+                        </TableCell>
+                        <TableCell className="font-mono text-xs text-muted-foreground">{p.nik}</TableCell>
+                        <TableCell className="text-sm">{p.major || "-"}</TableCell>
+                        <TableCell className="tabular-nums text-sm font-medium">
+                          {p.achievedJp !== null && p.achievedJp !== undefined ? `${p.achievedJp} JP` : `${selectedClassForDetail.achievedJp ?? 0} JP`}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="text-[11px] font-normal">
+                            {p.status || "ENROLLED"}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            ) : (
+              <div className="p-8 text-center rounded-xl border border-dashed border-border bg-muted/20 text-muted-foreground text-sm">
+                Rincian individual peserta untuk kelas ini belum terhubung secara langsung, tercatat kuota/agregat {selectedClassForDetail?.participantCount} peserta pada sistem eksternal.
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Card id="tabel-peserta-subdomain" className="scroll-mt-6">
         <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">

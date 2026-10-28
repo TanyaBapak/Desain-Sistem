@@ -62,7 +62,7 @@ class Bp3miScope
                 return null;
             }
             if (! is_string($requestedCode) || ! isset(self::BP3MI_ASSIGNMENT[$requestedCode])) {
-                abort(422, 'Area BP3MI yang dipilih tidak valid.');
+                return $request->hasSession() ? $request->session()->get($sessionKey, 'BP3MI-JABAR') : 'BP3MI-JABAR';
             }
 
             if ($request->hasSession()) {

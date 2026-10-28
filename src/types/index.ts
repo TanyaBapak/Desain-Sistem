@@ -425,6 +425,18 @@ export interface DataApprovalRequest {
   externalLinks?: { label: string; url: string }[];
 }
 
+export interface MonitoringClassParticipant {
+  id: string;
+  fullName: string;
+  nik: string;
+  gender?: string;
+  major?: string;
+  readinessStatus?: string;
+  achievedJp?: number | null;
+  targetJp?: number;
+  status?: string;
+}
+
 export interface MonitoringClassData {
   id: string;
   source: string;
@@ -439,6 +451,7 @@ export interface MonitoringClassData {
   targetJp: number;
   achievedJp: number | null;
   participantCount: number;
+  participants?: MonitoringClassParticipant[];
   verifiedReportsCount: number;
   averageAttendance: number | null;
   averageAssessmentScore: number | null;
@@ -486,6 +499,7 @@ export interface MonitoringData {
     externalBatchId: string;
     name: string;
     participantCount: number;
+  participants?: MonitoringClassParticipant[];
     status: string;
   }[];
   candidates: MonitoringCandidateData[];

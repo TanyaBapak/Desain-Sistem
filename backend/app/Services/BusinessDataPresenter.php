@@ -2218,33 +2218,80 @@ class BusinessDataPresenter
             ->when(! $canViewGardata, fn ($query) => $query->whereRaw('1 = 0'));
 
         $externalClasses = $externalClasses
-            ->select('external_training_records.*', 'job_seekers.institution_name')
+            ->select([
+                'external_training_records.*',
+                'job_seekers.institution_name',
+                'job_seekers.full_name',
+                'job_seekers.nik',
+                'job_seekers.major',
+                'job_seekers.gender',
+                'job_seekers.readiness_status',
+            ])
             ->orderByDesc('external_training_records.updated_at')
             ->get()
             ->groupBy(fn (object $record): string => $record->external_source.'|'.$record->external_batch_id.'|'.$record->institution_name)
-            ->map(fn ($records): array => [
-                'id' => 'external-'.$records->first()->external_source.'-'.$records->first()->external_batch_id.'-'.substr(hash('sha256', (string) $records->first()->institution_name), 0, 8),
-                'externalSource' => $records->first()->external_source,
-                'externalBatchId' => $records->first()->external_batch_id,
-                'source' => $records->first()->external_source === 'sippmi'
-                    ? 'SIPPMI · '.GardataPlacementSyncService::SIPPMI_INSTITUTION_NAME
-                    : 'Gardata · '.($records->first()->institution_name ?: 'Multitenant'),
-                'institutionName' => $records->first()->external_source === 'sippmi'
-                    ? GardataPlacementSyncService::SIPPMI_INSTITUTION_NAME
-                    : $records->first()->institution_name,
-                'classCode' => $records->first()->class_code ?? $records->first()->external_batch_id,
-                'name' => $records->first()->batch_name,
-                'sector' => $records->first()->sector_name ?? $records->first()->program_name ?? 'Belum dipetakan',
-                'startDate' => $records->first()->start_date,
-                'endDate' => $records->first()->end_date,
-                'targetJp' => (int) $records->max('target_jp'),
-                'achievedJp' => (int) $records->sum('achieved_jp'),
-                'participantCount' => $records->count(),
-                'verifiedReportsCount' => (int) $records->sum('verified_reports_count'),
-                'averageAttendance' => null,
-                'averageAssessmentScore' => null,
-                'status' => $records->pluck('status')->unique()->implode(', '),
-            ])->values();
+            ->map(function ($records): array {
+                $first = $records->first();
+                $targetJp = max(0, (int) $records->max('target_jp'));
+                $maxAchieved = max(0, (int) $records->max('achieved_jp'));
+
+                // Jika targetJp belum terisi, coba ambil total_jp dari katalog program pelatihan atau default 200
+                if ($targetJp === 0) {
+                    $programJp = DB::table('training_programs')
+                        ->where('name', 'LIKE', '%'.($first->program_name ?? $first->sector_name ?? '').'%')
+                        ->value('total_jp');
+                    $targetJp = $programJp ? (int) $programJp : 200;
+                }
+
+                // JP sedang berjalan tidak boleh melebihi total JP program
+                if ($maxAchieved > $targetJp) {
+                    $targetJp = $maxAchieved;
+                }
+                $achievedJp = min($targetJp, $maxAchieved);
+
+                $participants = $records->map(function ($rec): array {
+                    $nikMasked = $rec->nik
+                        ? substr($rec->nik, 0, 6).'******'.substr($rec->nik, -4)
+                        : '-';
+
+                    return [
+                        'id' => (string) $rec->job_seeker_id,
+                        'fullName' => $rec->full_name ?? 'Peserta Pelatihan',
+                        'nik' => $nikMasked,
+                        'gender' => $rec->gender ?? 'L',
+                        'major' => $rec->major ?? '-',
+                        'readinessStatus' => $rec->readiness_status ?? 'Ready for Placement',
+                        'achievedJp' => (int) $rec->achieved_jp,
+                        'targetJp' => (int) $rec->target_jp,
+                        'status' => $rec->status ?? 'ENROLLED',
+                    ];
+                })->values()->all();
+
+                return [
+                    'id' => 'external-'.$first->external_source.'-'.$first->external_batch_id.'-'.substr(hash('sha256', (string) $first->institution_name), 0, 8),
+                    'externalSource' => $first->external_source,
+                    'externalBatchId' => $first->external_batch_id,
+                    'source' => $first->external_source === 'sippmi'
+                        ? 'SIPPMI · '.GardataPlacementSyncService::SIPPMI_INSTITUTION_NAME
+                        : 'Gardata · '.($first->institution_name ?: 'Multitenant'),
+                    'institutionName' => $first->external_source === 'sippmi'
+                        ? GardataPlacementSyncService::SIPPMI_INSTITUTION_NAME
+                        : $first->institution_name,
+                    'classCode' => $first->class_code ?? $first->external_batch_id,
+                    'name' => $first->batch_name,
+                    'sector' => $first->sector_name ?? $first->program_name ?? 'Belum dipetakan',
+                    'startDate' => $first->start_date,
+                    'endDate' => $first->end_date,
+                    'targetJp' => $targetJp,
+                    'achievedJp' => $achievedJp,
+                    'participantCount' => $records->count(),
+                    'participants' => $participants,
+                    'verifiedReportsCount' => (int) $records->sum('verified_reports_count'),
+                    'averageAttendance' => null,
+                    'averageAssessmentScore' => null,
+                    'status' => $records->pluck('status')->unique()->implode(', '),
+                ];
+            })->values();
         $gardataBatches = $externalClasses
             ->where('externalSource', 'gardata')
             ->map(fn (array $trainingClass): array => [
@@ -2255,6 +2302,21 @@ class BusinessDataPresenter
             ])
             ->values()
             ->all();
+
+        $localEnrollments = DB::table('training_enrollments')
+            ->join('job_seekers', 'job_seekers.id', '=', 'training_enrollments.job_seeker_id')
+            ->select([
+                'training_enrollments.training_class_id',
+                'job_seekers.id as job_seeker_id',
+                'job_seekers.full_name',
+                'job_seekers.nik',
+                'job_seekers.gender',
+                'job_seekers.major',
+                'job_seekers.readiness_status',
+                'training_enrollments.status as enrollment_status',
+            ])
+            ->get()
+            ->groupBy('training_class_id');
 
         $localClasses = DB::table('training_classes')
             ->join('training_programs', 'training_programs.id', '=', 'training_classes.training_program_id')
@@ -2300,23 +2362,70 @@ class BusinessDataPresenter
             )
             ->orderByDesc('training_classes.start_date')
             ->get()
-            ->map(fn (object $row): array => [
-                'id' => 'internal-'.$row->id,
-                'source' => 'SMK Go Global',
-                'classCode' => $row->id,
-                'gardataBatchId' => $row->gardata_batch_id,
-                'name' => $row->class_name,
-                'sector' => $row->program_name,
-                'startDate' => $row->start_date,
-                'endDate' => $row->end_date,
-                'targetJp' => (int) $row->total_jp,
-                'achievedJp' => null,
-                'participantCount' => (int) $row->participant_count,
-                'verifiedReportsCount' => 0,
-                'averageAttendance' => null,
-                'averageAssessmentScore' => null,
-                'status' => $row->status,
-            ]);
+            ->map(function (object $row) use ($localEnrollments): array {
+                $targetJp = max(1, (int) $row->total_jp);
+                $enrollments = $localEnrollments->get($row->id, collect());
+
+                $achievedJp = 0;
+                $upperStatus = strtoupper((string) $row->status);
+                if (in_array($upperStatus, ['COMPLETED', 'SELESAI', 'PASSED'], true)) {
+                    $achievedJp = $targetJp;
+                } elseif (in_array($upperStatus, ['IN_PROGRESS', 'BERJALAN', 'ACTIVE'], true)) {
+                    if ($row->start_date && $row->end_date) {
+                        $start = Carbon::parse($row->start_date);
+                        $end = Carbon::parse($row->end_date);
+                        $now = now();
+                        if ($now->greaterThanOrEqualTo($end)) {
+                            $achievedJp = $targetJp;
+                        } elseif ($now->greaterThanOrEqualTo($start)) {
+                            $totalDays = max(1, $start->diffInDays($end));
+                            $elapsedDays = max(0, $start->diffInDays($now));
+                            $achievedJp = min($targetJp, (int) round(($targetJp * $elapsedDays) / $totalDays));
+                        } else {
+                            $achievedJp = 0;
+                        }
+                    } else {
+                        $achievedJp = (int) round($targetJp * 0.5);
+                    }
+                }
+
+                $participants = $enrollments->map(function ($e) use ($achievedJp, $targetJp, $row): array {
+                    $nikMasked = $e->nik
+                        ? substr($e->nik, 0, 6).'******'.substr($e->nik, -4)
+                        : '-';
+
+                    return [
+                        'id' => (string) $e->job_seeker_id,
+                        'fullName' => $e->full_name,
+                        'nik' => $nikMasked,
+                        'gender' => $e->gender ?? 'L',
+                        'major' => $e->major ?? '-',
+                        'readinessStatus' => $e->readiness_status ?? 'Ready for Placement',
+                        'achievedJp' => $achievedJp,
+                        'targetJp' => $targetJp,
+                        'status' => $e->enrollment_status ?? $row->status,
+                    ];
+                })->values()->all();
+
+                return [
+                    'id' => 'internal-'.$row->id,
+                    'source' => 'SMK Go Global',
+                    'classCode' => $row->id,
+                    'gardataBatchId' => $row->gardata_batch_id,
+                    'name' => $row->class_name,
+                    'sector' => $row->program_name,
+                    'startDate' => $row->start_date,
+                    'endDate' => $row->end_date,
+                    'targetJp' => $targetJp,
+                    'achievedJp' => $achievedJp,
+                    'participantCount' => $enrollments->count() ?: (int) $row->participant_count,
+                    'participants' => $participants,
+                    'verifiedReportsCount' => 0,
+                    'averageAttendance' => null,
+                    'averageAssessmentScore' => null,
+                    'status' => $row->status,
+                ];
+            });
 
         $allClasses = $localClasses->concat($externalClasses)->values();
         $classPage = $this->pageWindow($filters, 'class', 25);
