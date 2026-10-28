@@ -73,7 +73,13 @@ class User extends Authenticatable
 
     public function canAccessTab(string $tab): bool
     {
-        return in_array($tab, self::accessibleTabsForRole($this->roles->first()?->name), true);
+        $roleName = $this->roles->first()?->name
+            ?? \Illuminate\Support\Facades\DB::table('model_has_roles')
+                ->join('roles', 'roles.id', '=', 'model_has_roles.role_id')
+                ->where('model_has_roles.model_id', $this->id)
+                ->value('roles.name');
+
+        return in_array($tab, self::accessibleTabsForRole($roleName), true);
     }
 
     /**

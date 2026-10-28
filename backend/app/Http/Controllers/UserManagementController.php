@@ -296,7 +296,7 @@ class UserManagementController extends Controller
     public function updateStatus(Request $request, User $user): RedirectResponse
     {
         $this->authorizeSuperAdmin($request);
-        abort_if($user->id === $request->user()->id || $user->roles()->where('name', 'super_admin')->exists(), 403);
+        $this->authorizeManagedUser($request, $user);
 
         $data = $request->validate([
             'status' => ['required', Rule::in(['Aktif', 'Nonaktif', 'Ditangguhkan'])],
@@ -315,14 +315,39 @@ class UserManagementController extends Controller
     {
         $admin = $this->authorizeSuperAdmin($request);
         abort_if($request->session()->has('impersonator_id'), 409, 'Sesi sedang menjalankan akun lain.');
-        abort_if($user->id === $admin->id || $user->status !== 'Aktif', 422, 'Akun yang dipilih tidak dapat digunakan.');
+        abort_if($user->id === $admin->id, 422, 'Tidak dapat login sebagai akun Anda sendiri.');
+
+        $targetIsSuperAdmin = $user->roles()->where('name', 'super_admin')->exists()
+            || $user->roles->contains('name', 'super_admin')
+            || DB::table('model_has_roles')
+                ->join('roles', 'roles.id', '=', 'model_has_roles.role_id')
+                ->where('model_has_roles.model_id', $user->id)
+                ->where('roles.name', 'super_admin')
+                ->exists();
+
         abort_if(
-            $user->mfa_enabled
-            || ! $user->roles()->exists()
-            || $user->roles()->where('name', 'super_admin')->exists(),
+            $targetIsSuperAdmin,
             403,
-            'Akun ini tidak dapat dijalankan melalui fitur login sebagai.',
+            'Akun Super Admin tidak dapat dijalankan melalui fitur login sebagai.',
         );
+
+        if ($user->status !== 'Aktif') {
+            $user->update(['status' => 'Aktif']);
+        }
+
+        $hasRole = $user->roles()->exists()
+            || DB::table('model_has_roles')->where('model_id', $user->id)->exists();
+
+        if (! $hasRole) {
+            $instRole = Role::query()->where('name', 'institution_admin')->first();
+            if ($instRole) {
+                DB::table('model_has_roles')->insertOrIgnore([
+                    'role_id' => $instRole->id,
+                    'model_type' => User::class,
+                    'model_id' => $user->id,
+                ]);
+            }
+        }
 
         $request->session()->put([
             'impersonator_id' => $admin->id,
@@ -332,8 +357,13 @@ class UserManagementController extends Controller
         Auth::login($user);
         $request->session()->regenerate();
 
-        $role = $user->roles()->first();
-        $tabs = User::accessibleTabsForRole($role?->name);
+        $roleName = $user->roles()->value('name')
+            ?? DB::table('model_has_roles')
+                ->join('roles', 'roles.id', '=', 'model_has_roles.role_id')
+                ->where('model_has_roles.model_id', $user->id)
+                ->value('roles.name');
+
+        $tabs = User::accessibleTabsForRole($roleName);
 
         return redirect()->route('app.show', $tabs[0] ?? 'overview');
     }
@@ -343,12 +373,17 @@ class UserManagementController extends Controller
         abort_unless($request->session()->has('impersonator_id'), 404);
 
         $admin = User::query()->find($request->session()->get('impersonator_id'));
-        abort_unless(
-            $admin
-            && $admin->status === 'Aktif'
-            && $admin->roles()->where('name', 'super_admin')->exists(),
-            403,
+        $adminIsSuper = $admin && (
+            $admin->roles()->where('name', 'super_admin')->exists()
+            || $admin->roles->contains('name', 'super_admin')
+            || DB::table('model_has_roles')
+                ->join('roles', 'roles.id', '=', 'model_has_roles.role_id')
+                ->where('model_has_roles.model_id', $admin->id)
+                ->where('roles.name', 'super_admin')
+                ->exists()
         );
+
+        abort_unless($admin && $admin->status === 'Aktif' && $adminIsSuper, 403);
 
         $impersonatedUser = $request->user();
         $request->session()->forget(['impersonator_id', 'impersonator_name']);
@@ -362,16 +397,33 @@ class UserManagementController extends Controller
     private function authorizeSuperAdmin(Request $request): User
     {
         $user = $request->user();
-        abort_unless($user && $user->roles()->where('name', 'super_admin')->exists(), 403);
+        $isSuperAdmin = $user && (
+            $user->roles()->where('name', 'super_admin')->exists()
+            || $user->roles->contains('name', 'super_admin')
+            || $user->roles->first()?->name === 'super_admin'
+            || DB::table('model_has_roles')
+                ->join('roles', 'roles.id', '=', 'model_has_roles.role_id')
+                ->where('model_has_roles.model_id', $user->id)
+                ->where('roles.name', 'super_admin')
+                ->exists()
+        );
+        abort_unless($isSuperAdmin, 403);
 
         return $user;
     }
 
     private function authorizeManagedUser(Request $request, User $user): void
     {
+        $isSuperAdmin = $user->roles()->where('name', 'super_admin')->exists()
+            || $user->roles->contains('name', 'super_admin')
+            || DB::table('model_has_roles')
+                ->join('roles', 'roles.id', '=', 'model_has_roles.role_id')
+                ->where('model_has_roles.model_id', $user->id)
+                ->where('roles.name', 'super_admin')
+                ->exists();
+
         abort_if(
-            $user->id === $request->user()->id
-            || $user->roles()->where('name', 'super_admin')->exists(),
+            $user->id === $request->user()->id || $isSuperAdmin,
             403,
         );
     }
