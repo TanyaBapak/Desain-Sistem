@@ -103,8 +103,6 @@ export const DashboardDrilldownModal: React.FC<DashboardDrilldownModalProps> = (
     setPage(1);
   }, [type]);
 
-  if (!type) return null;
-
   const currentStep = filterStack[filterStack.length - 1];
 
   const handlePushFilter = (step: FilterStep) => {
@@ -121,7 +119,8 @@ export const DashboardDrilldownModal: React.FC<DashboardDrilldownModalProps> = (
 
   return (
     <Dialog open={Boolean(type)} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-4xl w-[95vw] max-h-[90vh] flex flex-col p-0 gap-0 overflow-hidden rounded-2xl border bg-card text-card-foreground shadow-2xl">
+      {Boolean(type) && (
+        <DialogContent className="max-w-4xl w-[95vw] max-h-[90vh] flex flex-col p-0 gap-0 overflow-hidden rounded-2xl border bg-card text-card-foreground shadow-2xl">
         {/* Modal Header */}
         <DialogHeader className="p-5 md:p-6 pb-4 border-b border-border bg-muted/20">
           <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
@@ -349,6 +348,7 @@ export const DashboardDrilldownModal: React.FC<DashboardDrilldownModalProps> = (
           )}
         </div>
       </DialogContent>
+      )}
     </Dialog>
   );
 };

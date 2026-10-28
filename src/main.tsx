@@ -5,6 +5,31 @@ import App from "../backend/resources/js/Pages/App";
 import { ErrorBoundary } from "./components/shared/ErrorBoundary";
 import './index.css';
 
+// Universal DOM safety patch for browser extensions, Google Translate, Cloudflare beacon, and Radix portals
+if (typeof Node === "function" && Node.prototype) {
+  const originalRemoveChild = Node.prototype.removeChild;
+  Node.prototype.removeChild = function <T extends Node>(child: T): T {
+    if (child.parentNode !== this) {
+      if (typeof console !== "undefined" && console.warn) {
+        console.warn("Node.removeChild safely bypassed: child is not a child of this node.", child);
+      }
+      return child;
+    }
+    return originalRemoveChild.call(this, child) as T;
+  };
+
+  const originalInsertBefore = Node.prototype.insertBefore;
+  Node.prototype.insertBefore = function <T extends Node>(newNode: T, referenceNode: Node | null): T {
+    if (referenceNode && referenceNode.parentNode !== this) {
+      if (typeof console !== "undefined" && console.warn) {
+        console.warn("Node.insertBefore safely bypassed: referenceNode is not a child of this node.", referenceNode);
+      }
+      return newNode;
+    }
+    return originalInsertBefore.call(this, newNode, referenceNode) as T;
+  };
+}
+
 const storedTheme = window.localStorage.getItem("p2mi-theme");
 const prefersDarkTheme = window.matchMedia("(prefers-color-scheme: dark)").matches;
 document.documentElement.classList.toggle(
@@ -22,11 +47,9 @@ void createInertiaApp({
   },
   setup({ el, App: InertiaPage, props }) {
     createRoot(el).render(
-      <React.StrictMode>
-        <ErrorBoundary>
-          <InertiaPage {...props} />
-        </ErrorBoundary>
-      </React.StrictMode>,
+      <ErrorBoundary>
+        <InertiaPage {...props} />
+      </ErrorBoundary>,
     );
   },
 });
