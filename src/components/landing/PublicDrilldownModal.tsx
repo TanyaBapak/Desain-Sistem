@@ -49,6 +49,10 @@ interface PublicDrilldownModalProps {
   trainingSectors: TrainingSectorCatalogItem[];
 }
 
+function normalizeCatalogValue(value: string): string {
+  return value.trim().toLocaleLowerCase("id-ID");
+}
+
 export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
   type,
   onClose,
@@ -761,10 +765,6 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
         return null;
     }
   };
-
-  function normalizeCatalogValue(value: string): string {
-    return value.trim().toLocaleLowerCase("id-ID");
-  }
 
   const getTitle = () => {
     if (selectedInstitutionForStudents) {
