@@ -43,6 +43,7 @@ export const ProvidersView: React.FC = () => {
     setFilterProviderSector,
     filterInstitutionStatus,
     setFilterInstitutionStatus,
+    updateProvider,
   } = useAppStore();
 
   const bp3miInfo = getBp3miByCode(currentUser?.bp3miCode);
@@ -52,6 +53,34 @@ export const ProvidersView: React.FC = () => {
   const [formMode, setFormMode] = useState<'create' | 'edit'>('create');
   const [providerToEdit, setProviderToEdit] = useState<VocationalProvider | null>(null);
   const [deletingProvider, setDeletingProvider] = useState<VocationalProvider | null>(null);
+
+  const handleStatusChange = (provider: VocationalProvider, newStatus: 'Negeri' | 'Swasta') => {
+    // Optimistic update
+    setProvidersList((prev) =>
+      prev.map((p) => (p.id === provider.id ? { ...p, institutionStatus: newStatus } : p))
+    );
+    updateProvider(provider.id, { institutionStatus: newStatus });
+
+    saveBusinessData(
+      'providers',
+      {
+        ...provider,
+        classCount: provider.classCount ?? 0,
+        readyParticipantCount: provider.readyParticipantCount ?? 0,
+        certifiedInstructorsCount: provider.certifiedInstructorsCount ?? 0,
+        operationalReadinessScore: provider.operationalReadinessScore ?? 0,
+        facilities: provider.facilities ?? [],
+        supportedSectors: provider.supportedSectors ?? [],
+        supportedCountries: provider.supportedCountries ?? [],
+        institutionStatus: newStatus,
+      },
+      provider.id,
+      () => {
+        toast.success(`Status ${provider.name} berhasil diubah menjadi ${newStatus}.`);
+        fetchProviders();
+      },
+    );
+  };
 
   // KP2MI Live Sync State
   const [isSyncing, setIsSyncing] = useState(false);
@@ -400,6 +429,7 @@ export const ProvidersView: React.FC = () => {
                 setIsFormOpen(true);
               }}
               onDeleteProvider={(p) => setDeletingProvider(p)}
+              onStatusChange={handleStatusChange}
             />
           ))}
         </div>

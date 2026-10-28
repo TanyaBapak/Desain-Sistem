@@ -22,6 +22,7 @@ interface ProviderCardProps {
   onViewDetail: (provider: VocationalProvider) => void;
   onEditProvider?: (provider: VocationalProvider) => void;
   onDeleteProvider?: (provider: VocationalProvider) => void;
+  onStatusChange?: (provider: VocationalProvider, newStatus: 'Negeri' | 'Swasta') => void;
 }
 
 export const ProviderCard: React.FC<ProviderCardProps> = ({
@@ -29,6 +30,7 @@ export const ProviderCard: React.FC<ProviderCardProps> = ({
   onViewDetail,
   onEditProvider,
   onDeleteProvider,
+  onStatusChange,
 }) => {
   const {
     currentRole,
@@ -46,6 +48,9 @@ export const ProviderCard: React.FC<ProviderCardProps> = ({
     visitAllocationStage({ programId: selectedProgramId ?? undefined, providerId: provider.id });
   };
 
+  const currentStatus = provider.institutionStatus === 'Negeri' ? 'Negeri' : 'Swasta';
+  const nextStatus = currentStatus === 'Negeri' ? 'Swasta' : 'Negeri';
+
   return (
     <div
       className={`bg-white rounded-2xl border transition-all duration-200 flex flex-col justify-between overflow-hidden shadow-xs hover:shadow-md ${
@@ -61,13 +66,30 @@ export const ProviderCard: React.FC<ProviderCardProps> = ({
             <span className="text-[11px] font-bold text-slate-700 bg-slate-100 px-2.5 py-0.5 rounded-md">
               {provider.providerType}
             </span>
-            {provider.institutionStatus && (
+            {onStatusChange ? (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onStatusChange(provider, nextStatus);
+                }}
+                className={`text-[10px] font-semibold px-2 py-0.5 rounded-md transition-all duration-150 cursor-pointer hover:scale-105 active:scale-95 flex items-center gap-1 group ${
+                  currentStatus === 'Negeri'
+                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100'
+                    : 'bg-slate-100 text-slate-600 border border-slate-200 hover:bg-slate-200 hover:text-slate-800'
+                }`}
+                title={`Status: ${currentStatus}. Klik untuk mengubah menjadi ${nextStatus}`}
+              >
+                <span>{currentStatus}</span>
+                <span className="text-[9px] opacity-40 group-hover:opacity-100 transition-opacity">⇄</span>
+              </button>
+            ) : (
               <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-md ${
-                provider.institutionStatus === 'Negeri'
+                currentStatus === 'Negeri'
                   ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                   : 'bg-slate-100 text-slate-600 border border-slate-200'
               }`}>
-                {provider.institutionStatus}
+                {currentStatus}
               </span>
             )}
             {provider.source === 'kp2mi-api' && (

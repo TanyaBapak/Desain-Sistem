@@ -74,11 +74,13 @@ export const ProviderDetailModal: React.FC<ProviderDetailModalProps> = ({
               <span className="text-xs font-bold text-slate-700 bg-slate-200 px-2.5 py-0.5 rounded-md">
                 Jenis: {provider.providerType}
               </span>
-              {provider.institutionStatus && (
-                <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200">
-                  Status: {provider.institutionStatus}
-                </span>
-              )}
+              <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-md ${
+                (provider.institutionStatus || 'Swasta') === 'Negeri'
+                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                  : 'bg-slate-100 text-slate-600 border border-slate-200'
+              }`}>
+                Status: {provider.institutionStatus || 'Swasta'}
+              </span>
             </div>
 
             <div className="flex items-center gap-2">

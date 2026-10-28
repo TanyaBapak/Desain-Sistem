@@ -276,7 +276,7 @@ class BusinessDataController extends Controller
                 'email' => $row->email,
                 'phone' => $row->phone,
                 'leaderName' => $row->head_name,
-                'institutionStatus' => $metadata['sourceStatus'] ?? $row->ownership_type,
+                'institutionStatus' => $row->ownership_type ?: ($metadata['sourceStatus'] ?? 'Swasta'),
                 'slug' => $row->external_id,
                 'logo' => $metadata['logo'] ?? null,
                 'website' => $metadata['website'] ?? null,
@@ -781,6 +781,9 @@ class BusinessDataController extends Controller
         }
         if (array_key_exists('supportedCountries', $data)) {
             $metadata['supportedCountries'] = array_values(array_unique($data['supportedCountries']));
+        }
+        if (! empty($data['institutionStatus'])) {
+            $metadata['sourceStatus'] = $data['institutionStatus'];
         }
 
         $institutionType = match ($data['providerType']) {

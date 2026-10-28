@@ -1465,7 +1465,7 @@ class BusinessDataPresenter
                     'email' => $row->email,
                     'phone' => $row->phone,
                     'leaderName' => $row->head_name,
-                    'institutionStatus' => $metadata['sourceStatus'] ?? $row->ownership_type,
+                    'institutionStatus' => $row->ownership_type ?: ($metadata['sourceStatus'] ?? 'Swasta'),
                     'slug' => $row->external_id,
                     'logo' => $metadata['logo'] ?? null,
                     'website' => $metadata['website'] ?? null,

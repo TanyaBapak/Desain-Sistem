@@ -95,6 +95,7 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
 
   const [name, setName] = useState('');
   const [providerType, setProviderType] = useState<ProviderType>('SMK');
+  const [institutionStatus, setInstitutionStatus] = useState<'Negeri' | 'Swasta'>('Swasta');
   const [provinsi, setProvinsi] = useState('Jawa Barat');
   const [kabupatenKota, setKabupatenKota] = useState('Kabupaten Bogor');
   const [accreditation, setAccreditation] = useState<string>('A');
@@ -117,6 +118,7 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
     if (initialData && mode === 'edit') {
       setName(initialData.name);
       setProviderType(initialData.providerType as ProviderType);
+      setInstitutionStatus(initialData.institutionStatus === 'Negeri' ? 'Negeri' : 'Swasta');
 
       const prov = initialData.provinsi || 'Jawa Barat';
       setProvinsi(prov);
@@ -149,6 +151,7 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
     } else {
       setName('');
       setProviderType('SMK');
+      setInstitutionStatus('Swasta');
       setProvinsi('Jawa Barat');
       setKabupatenKota('Kabupaten Bogor');
       setAccreditation('A');
@@ -226,7 +229,7 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
       supportedSectors,
       supportedCountries: canonicalCountries,
       facilities: facilitiesArray,
-      institutionStatus: initialData?.institutionStatus ?? 'Swasta',
+      institutionStatus,
     });
   };
 
@@ -265,9 +268,9 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
 
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="p-6 max-h-[75vh] overflow-y-auto space-y-5">
-          {/* Nama Lembaga & Tipe */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="md:col-span-2">
+          {/* Nama Lembaga, Bentuk Lembaga & Status Kepemilikan */}
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+            <div className="md:col-span-6">
               <label className="block text-xs font-bold text-slate-700 mb-1">
                 Nama Resmi Lembaga / Satuan Vokasi <span className="text-rose-500">*</span>
               </label>
@@ -281,7 +284,7 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
               />
             </div>
 
-            <div>
+            <div className="md:col-span-3">
               <label className="block text-xs font-bold text-slate-700 mb-1">
                 Bentuk Lembaga <span className="text-rose-500">*</span>
               </label>
@@ -300,6 +303,20 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
                 <option value="Perguruan Tinggi / Politeknik">Perguruan Tinggi / Politeknik</option>
                 <option value="Politeknik">Politeknik</option>
                 <option value="Universitas">Universitas</option>
+              </select>
+            </div>
+
+            <div className="md:col-span-3">
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                Status Kepemilikan <span className="text-rose-500">*</span>
+              </label>
+              <select
+                value={institutionStatus}
+                onChange={(e) => setInstitutionStatus(e.target.value as 'Negeri' | 'Swasta')}
+                className="w-full text-xs p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-slate-50 font-medium"
+              >
+                <option value="Swasta">Swasta</option>
+                <option value="Negeri">Negeri (Pemerintah)</option>
               </select>
             </div>
           </div>
