@@ -1,9 +1,22 @@
-import React, { lazy, Suspense, useEffect, useLayoutEffect } from "react";
+import React, { useEffect, useLayoutEffect } from "react";
 import { useAppStore } from "@/store/useAppStore";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { KemendagriLandingPage } from "@/components/landing/KemendagriLandingPage";
 import { UnifiedLoginPage } from "@/components/auth/UnifiedLoginPage";
 import { InstitutionRegistrationPage } from "@/pages/InstitutionRegistrationPage";
+import { DashboardPage } from "@/pages/DashboardPage";
+import { RoleManagementPage } from "@/pages/RoleManagementPage";
+import { UserManagementPage } from "@/pages/UserManagementPage";
+import { TargetManagementPage } from "@/pages/TargetManagementPage";
+import { SippmiMonitoringPage } from "@/pages/SippmiMonitoringPage";
+import { SupplyTable } from "@/components/modul-a/SupplyTable";
+import { TrainingProgramsView } from "@/components/modul-b/TrainingProgramsView";
+import { ProvidersView } from "@/components/modul-c/ProvidersView";
+import { GlobalDemandsView } from "@/components/modul-d/GlobalDemandsView";
+import { MatchingEngineView } from "@/components/matching/MatchingEngineView";
+import { ApprovalWorkflowView } from "@/components/approvals/ApprovalWorkflowView";
+import { AuditLogView } from "@/components/audit/AuditLogView";
+import { ReportsView } from "@/components/reports/ReportsView";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 import type { ExecutiveDashboardBreakdownsData } from "@/components/reports/ExecutiveDashboardBreakdowns";
 import type { DashboardTargetManagementData } from "@/pages/user-management-types";
@@ -37,72 +50,7 @@ interface LandingProjectionData {
     target: number;
   }[];
 }
-// Auth and registration pages imported statically above
-const DashboardPage = lazy(() =>
-  import("@/pages/DashboardPage").then((module) => ({
-    default: module.DashboardPage,
-  })),
-);
-const RoleManagementPage = lazy(() =>
-  import("@/pages/RoleManagementPage").then((module) => ({
-    default: module.RoleManagementPage,
-  })),
-);
-const UserManagementPage = lazy(() =>
-  import("@/pages/UserManagementPage").then((module) => ({
-    default: module.UserManagementPage,
-  })),
-);
-const TargetManagementPage = lazy(() =>
-  import("@/pages/TargetManagementPage").then((module) => ({
-    default: module.TargetManagementPage,
-  })),
-);
-const SippmiMonitoringPage = lazy(() =>
-  import("@/pages/SippmiMonitoringPage").then((module) => ({
-    default: module.SippmiMonitoringPage,
-  })),
-);
-const SupplyTable = lazy(() =>
-  import("@/components/modul-a/SupplyTable").then((module) => ({
-    default: module.SupplyTable,
-  })),
-);
-const TrainingProgramsView = lazy(() =>
-  import("@/components/modul-b/TrainingProgramsView").then((module) => ({
-    default: module.TrainingProgramsView,
-  })),
-);
-const ProvidersView = lazy(() =>
-  import("@/components/modul-c/ProvidersView").then((module) => ({
-    default: module.ProvidersView,
-  })),
-);
-const GlobalDemandsView = lazy(() =>
-  import("@/components/modul-d/GlobalDemandsView").then((module) => ({
-    default: module.GlobalDemandsView,
-  })),
-);
-const MatchingEngineView = lazy(() =>
-  import("@/components/matching/MatchingEngineView").then((module) => ({
-    default: module.MatchingEngineView,
-  })),
-);
-const ApprovalWorkflowView = lazy(() =>
-  import("@/components/approvals/ApprovalWorkflowView").then((module) => ({
-    default: module.ApprovalWorkflowView,
-  })),
-);
-const AuditLogView = lazy(() =>
-  import("@/components/audit/AuditLogView").then((module) => ({
-    default: module.AuditLogView,
-  })),
-);
-const ReportsView = lazy(() =>
-  import("@/components/reports/ReportsView").then((module) => ({
-    default: module.ReportsView,
-  })),
-);
+// All page components imported statically above
 
 interface AppProps {
   currentTab: string;
@@ -526,7 +474,7 @@ function AppContent({
       accessibleTabs={authenticatedUser.accessibleTabs}
       impersonationAdminName={auth.impersonation?.adminName ?? null}
     >
-      <Suspense fallback={loading}>{page}</Suspense>
+      {page}
     </AdminLayout>
   );
 }
