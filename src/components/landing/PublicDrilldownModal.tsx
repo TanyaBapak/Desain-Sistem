@@ -18,7 +18,11 @@ import {
   Clock,
   Briefcase,
   BriefcaseBusiness,
+  Users,
+  Search,
+  ChevronRight,
 } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import type {
   PublicCommandCenterData,
   PublicPreviewInstitution,
@@ -60,10 +64,14 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
   const [selectedOccupation, setSelectedOccupation] = useState<string | null>(
     null,
   );
+  const [selectedInstitutionForStudents, setSelectedInstitutionForStudents] = useState<PublicPreviewInstitution | null>(null);
+  const [studentSearchQuery, setStudentSearchQuery] = useState<string>("");
 
   useEffect(() => {
     setSelectedSector(initialSector);
     setSelectedOccupation(null);
+    setSelectedInstitutionForStudents(null);
+    setStudentSearchQuery("");
   }, [type, initialSector]);
 
   if (!type) return null;
@@ -112,6 +120,126 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
         })
       : [];
 
+  const renderStudentList = () => {
+    if (!selectedInstitutionForStudents) return null;
+    const students = selectedInstitutionForStudents.students ?? [];
+    const q = studentSearchQuery.trim().toLowerCase();
+    const filtered = q
+      ? students.filter(
+          (s) =>
+            s.name.toLowerCase().includes(q) ||
+            s.targetCountry.toLowerCase().includes(q) ||
+            s.sector.toLowerCase().includes(q) ||
+            s.occupation.toLowerCase().includes(q)
+        )
+      : students;
+
+    return (
+      <div className="space-y-3">
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={() => {
+            setSelectedInstitutionForStudents(null);
+            setStudentSearchQuery("");
+          }}
+          className="-ml-2 w-fit gap-1.5 text-xs text-primary hover:text-primary hover:bg-primary/10"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          <span>Kembali ke daftar lembaga vokasi</span>
+        </Button>
+
+        <div className="rounded-xl border border-border bg-muted/40 p-3.5 space-y-1">
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <h4 className="text-sm font-bold text-foreground">
+                {selectedInstitutionForStudents.name}
+              </h4>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {selectedInstitutionForStudents.district ? `${selectedInstitutionForStudents.district}, ` : ""}
+                {selectedInstitutionForStudents.province || scopeName} • {selectedInstitutionForStudents.type}
+              </p>
+            </div>
+            <Badge variant="outline" className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 border-emerald-500/20 bg-emerald-500/10 shrink-0">
+              {students.length} Calon Peserta
+            </Badge>
+          </div>
+        </div>
+
+        {/* Search Bar */}
+        <div className="relative">
+          <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+          <Input
+            placeholder="Cari nama siswa, target negara, sektor, atau jabatan..."
+            value={studentSearchQuery}
+            onChange={(e) => setStudentSearchQuery(e.target.value)}
+            className="pl-8 h-8 text-xs bg-background"
+          />
+        </div>
+
+        {/* Student Cards */}
+        <div className="space-y-2 max-h-[50vh] overflow-y-auto pr-1">
+          {filtered.length === 0 ? (
+            <div className="p-6 text-center text-xs text-muted-foreground rounded-lg border border-dashed border-border">
+              Tidak ada data calon peserta yang cocok dengan pencarian.
+            </div>
+          ) : (
+            filtered.map((s, idx) => (
+              <div
+                key={s.id || idx}
+                className="rounded-lg border border-border/80 bg-card p-3 space-y-2 hover:border-primary/40 transition-colors shadow-xs"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-bold shrink-0">
+                      {s.name.charAt(0)}
+                    </div>
+                    <div>
+                      <h5 className="text-sm font-bold text-foreground leading-tight">
+                        {s.name}
+                      </h5>
+                      <span className="text-[10px] text-muted-foreground font-mono">
+                        ID: {s.id}
+                      </span>
+                    </div>
+                  </div>
+                  <Badge variant="secondary" className="text-[10px] px-2 py-0.5 shrink-0">
+                    {s.status || "Siap Penempatan"}
+                  </Badge>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 pt-1.5 border-t border-border/40 text-xs">
+                  <div className="bg-muted/30 rounded p-1.5">
+                    <span className="text-[10px] text-muted-foreground block font-medium">Tujuan Negara Target:</span>
+                    <span className="font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1 mt-0.5">
+                      <Globe2 className="h-3 w-3 shrink-0" />
+                      <span className="truncate">{s.targetCountry}</span>
+                    </span>
+                  </div>
+                  <div className="bg-muted/30 rounded p-1.5">
+                    <span className="text-[10px] text-muted-foreground block font-medium">Sektor:</span>
+                    <span className="font-semibold text-foreground flex items-center gap-1 mt-0.5">
+                      <Briefcase className="h-3 w-3 shrink-0 text-muted-foreground" />
+                      <span className="truncate">{s.sector}</span>
+                    </span>
+                  </div>
+                  <div className="bg-muted/30 rounded p-1.5">
+                    <span className="text-[10px] text-muted-foreground block font-medium">Jabatan:</span>
+                    <span className="font-semibold text-primary flex items-center gap-1 mt-0.5">
+                      <GraduationCap className="h-3 w-3 shrink-0" />
+                      <span className="truncate">{s.occupation}</span>
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    );
+  };
+
   const renderInstitutionList = (items: PublicPreviewInstitution[]) => (
     <div className="rounded-lg border border-border p-2">
       {items.length === 0 ? (
@@ -123,15 +251,21 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
           {items.map((institution) => {
             const isVerified =
               institution.evokasiStatus === "Terverifikasi e-Vokasi";
+            const studentCount = institution.students?.length ?? institution.studentCount ?? 0;
             return (
               <div
                 key={institution.id}
-                className="rounded-lg border border-border/80 bg-card p-3 space-y-1.5"
+                onClick={() => {
+                  setSelectedInstitutionForStudents(institution);
+                  setStudentSearchQuery("");
+                }}
+                className="rounded-lg border border-border/80 bg-card p-3 space-y-2 hover:border-primary/60 hover:shadow-md cursor-pointer transition-all group"
               >
                 <div className="flex min-w-0 items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
-                    <h6 className="break-words text-sm font-semibold text-foreground">
-                      {institution.name}
+                    <h6 className="break-words text-sm font-semibold text-foreground group-hover:text-primary transition-colors flex items-center gap-1.5">
+                      <span>{institution.name}</span>
+                      <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-transform group-hover:translate-x-0.5" />
                     </h6>
                     <p className="mt-0.5 text-xs text-muted-foreground">
                       {institution.district ? `${institution.district}, ` : ""}
@@ -149,21 +283,21 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
                     {institution.evokasiStatus || "Terdaftar"}
                   </Badge>
                 </div>
-                <div className="flex flex-wrap gap-x-4 gap-y-1 border-t border-border/40 pt-1 text-xs text-muted-foreground">
-                  <span>
-                    Jenis: <strong>{institution.type}</strong>
+                <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-t border-border/40 pt-1.5 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-3">
+                    <span>
+                      Jenis: <strong>{institution.type}</strong>
+                    </span>
+                    {institution.accreditation && (
+                      <span>
+                        Akreditasi: <strong>{institution.accreditation}</strong>
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-primary font-semibold text-xs flex items-center gap-1 group-hover:underline">
+                    <Users className="h-3.5 w-3.5" />
+                    {studentCount} Calon Peserta &rarr;
                   </span>
-                  {institution.accreditation && (
-                    <span>
-                      Akreditasi: <strong>{institution.accreditation}</strong>
-                    </span>
-                  )}
-                  {institution.totalActiveStudents !== undefined && (
-                    <span>
-                      Kapasitas:{" "}
-                      <strong>{institution.totalActiveStudents} peserta</strong>
-                    </span>
-                  )}
                 </div>
               </div>
             );
@@ -178,6 +312,9 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
       case "peserta":
       case "lembaga":
       case "sebaran_lembaga":
+        if (selectedInstitutionForStudents) {
+          return renderStudentList();
+        }
         return (
           <div className="space-y-4">
             <div className="rounded-xl border border-border bg-muted/40 p-4">
@@ -187,11 +324,10 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
                 </div>
                 <div>
                   <h4 className="text-sm font-bold text-foreground">
-                    Lembaga Vokasi Mitra — {scopeName}
+                    {type === "peserta" ? "Pilih Lembaga Vokasi Calon Peserta" : "Lembaga Vokasi Mitra"} — {scopeName}
                   </h4>
                   <p className="text-xs text-muted-foreground">
-                    {data.activeStats.registeredProvidersCount} dari{" "}
-                    {data.activeStats.providersCount} lembaga telah terverifikasi
+                    Klik pada nama lembaga untuk melihat rincian calon peserta (nama, target negara, sektor, & jabatan)
                   </p>
                 </div>
               </div>
@@ -514,7 +650,7 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
 
   return (
     <Dialog open={Boolean(type)} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="flex w-[calc(100%-2rem)] max-w-xl max-h-[calc(100dvh-2rem)] flex-col gap-4 overflow-hidden p-4 sm:p-6">
+      <DialogContent className="flex w-[calc(100%-2rem)] max-w-2xl max-h-[calc(100dvh-2rem)] flex-col gap-4 overflow-hidden p-4 sm:p-6">
         <DialogHeader className="space-y-1">
           <DialogTitle className="text-lg font-bold text-foreground">
             {getTitle()}

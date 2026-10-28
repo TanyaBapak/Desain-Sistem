@@ -106,7 +106,7 @@ export const PublicCommandCenterSection: React.FC<PublicCommandCenterSectionProp
             value={currentStats.candidatesCount}
             desc="Seluruh peserta pada cakupan nasional"
             icon={Users}
-            onClick={() => setActiveDrilldown("lembaga")}
+            onClick={() => setActiveDrilldown("peserta")}
           />
 
           {/* 2. Program Pelatihan */}

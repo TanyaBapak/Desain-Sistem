@@ -662,6 +662,16 @@ export interface PublicProvinceBreakdown {
   registeredCount: number;
 }
 
+export interface PublicPreviewStudent {
+  id: string;
+  name: string;
+  targetCountry: string;
+  sector: string;
+  occupation: string;
+  status?: string;
+  major?: string;
+}
+
 export interface PublicPreviewInstitution {
   id: string;
   name: string;
@@ -674,6 +684,8 @@ export interface PublicPreviewInstitution {
   supportedOccupations?: string[];
   totalActiveStudents?: number;
   workshopCapacity?: number;
+  students?: PublicPreviewStudent[];
+  studentCount?: number;
 }
 
 export interface PublicPreviewProgram {
