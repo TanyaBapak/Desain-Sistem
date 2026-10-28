@@ -868,6 +868,7 @@ class BusinessDataPresenter
                 'approvalCounts' => $this->approvalCounts($role, $user, $filters),
                 'approvalFilters' => $this->approvalFilters($filters),
                 'monitoring' => $this->monitoring($role, $user, $filters),
+                'auditLogs' => $this->auditLogs($role, $user),
                 'options' => [
                     'provinces' => DB::table('provinces')->orderBy('name')->get(['id', 'name']),
                     'districts' => DB::table('districts')->orderBy('name')->get(['id', 'province_id', 'name']),
@@ -884,6 +885,39 @@ class BusinessDataPresenter
                 ],
             ];
         });
+    }
+
+    public function auditLogs(?string $role, User $user): array
+    {
+        return rescue(function () use ($role, $user): array {
+            $query = DB::table('audit_logs')
+                ->orderByDesc('created_at');
+
+            if ($role === 'institution_admin' && $user->institution_id) {
+                $query->where(function ($q) use ($user) {
+                    $q->where('user_id', $user->id)
+                        ->orWhere('entity_id', $user->institution_id);
+                });
+            }
+
+            return $query->limit(200)->get()->map(function (object $row): array {
+                return [
+                    'id' => (string) $row->id,
+                    'timestamp' => $row->created_at ? date('Y-m-d H:i:s \W\I\B', strtotime($row->created_at)) : '',
+                    'actorName' => (string) ($row->actor_name ?? 'Sistem'),
+                    'actorRole' => (string) ($row->actor_role ?? 'Pengguna'),
+                    'scope' => (string) ($row->scope ?? 'Nasional'),
+                    'actionType' => (string) $row->action_type,
+                    'entity' => (string) $row->entity,
+                    'entityId' => (string) $row->entity_id,
+                    'fieldChanged' => $row->field_changed,
+                    'oldValue' => $row->old_value,
+                    'newValue' => $row->new_value,
+                    'justificationReason' => (string) ($row->justification_reason ?? ''),
+                    'ipAddress' => (string) ($row->ip_address ?? '127.0.0.1'),
+                ];
+            })->all();
+        }, []);
     }
 
     public function forget(User $user): void

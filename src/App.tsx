@@ -16,6 +16,7 @@ import {
   VocationalProvider,
   PublicCommandCenterData,
   TrainingSectorCatalogItem,
+  AuditLogEntry,
 } from "@/types";
 
 const KemendagriLandingPage = lazy(() =>
@@ -180,6 +181,7 @@ interface AppProps {
       perPage: number;
     };
     monitoring: MonitoringData;
+    auditLogs?: AuditLogEntry[];
     options: {
       provinces: { id: string; name: string }[];
       districts: { id: string; province_id: string; name: string }[];
@@ -451,7 +453,7 @@ export function App({
       );
       break;
     case "audit":
-      page = <AuditLogView />;
+      page = <AuditLogView initialLogs={businessData?.auditLogs} />;
       break;
     case "reports":
       page = (

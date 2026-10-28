@@ -685,7 +685,31 @@ class BusinessDataController extends Controller
             ]);
         }
 
-        $this->writeAudit($request, 'candidates', $id, $creating ? 'INPUT_DATA' : 'UPDATE_DATA', 'Data pencari kerja disimpan.');
+        $fieldChanged = null;
+        $oldValue = null;
+        $newValue = null;
+        $reason = $creating ? 'Pendaftaran data calon peserta baru.' : 'Pembaruan profil data calon peserta.';
+
+        if (! $creating && $existing) {
+            if ($existing->status !== $data['status']) {
+                $fieldChanged = 'Status Peserta';
+                $oldValue = $existing->status;
+                $newValue = $data['status'];
+                $reason = "Perubahan status tahapan peserta dari {$oldValue} menjadi {$newValue}.";
+            } elseif ($existing->full_name !== $data['fullName']) {
+                $fieldChanged = 'Nama Lengkap';
+                $oldValue = $existing->full_name;
+                $newValue = $data['fullName'];
+                $reason = "Perubahan nama lengkap peserta menjadi {$newValue}.";
+            } else {
+                $fieldChanged = 'Biodata / Kualifikasi';
+                $oldValue = $existing->full_name;
+                $newValue = $data['fullName'];
+                $reason = 'Pemutakhiran profil, kesiapan paspor, sertifikasi, atau data kontak peserta.';
+            }
+        }
+
+        $this->writeAudit($request, 'candidates', $id, $creating ? 'INPUT_DATA' : 'UPDATE_DATA', $reason, $fieldChanged, $oldValue, $newValue);
     }
 
     private function saveProgram(Request $request, array $data, string $id, bool $creating): void
@@ -727,7 +751,31 @@ class BusinessDataController extends Controller
             DB::table('training_programs')->where('id', $id)->update($attributes);
         }
 
-        $this->writeAudit($request, 'programs', $id, $creating ? 'INPUT_DATA' : 'UPDATE_DATA', 'Program pelatihan disimpan.');
+        $fieldChanged = null;
+        $oldValue = null;
+        $newValue = null;
+        $reason = $creating ? 'Pendaftaran program pelatihan vokasi baru.' : 'Pembaruan kurikulum & kuota program pelatihan.';
+
+        if (! $creating && $existing) {
+            if ($existing->name !== $data['title']) {
+                $fieldChanged = 'Judul Program';
+                $oldValue = $existing->name;
+                $newValue = $data['title'];
+                $reason = "Perubahan nama program pelatihan menjadi {$newValue}.";
+            } elseif ($existing->quota !== (int) $data['quota']) {
+                $fieldChanged = 'Alokasi Kuota';
+                $oldValue = "{$existing->quota} Peserta";
+                $newValue = "{$data['quota']} Peserta";
+                $reason = 'Penyesuaian kuota alokasi peserta program pelatihan.';
+            } else {
+                $fieldChanged = 'Kurikulum & Biaya';
+                $oldValue = "{$existing->total_jp} JP";
+                $newValue = "{$data['durationJP']} JP";
+                $reason = 'Pembaruan silabus durasi jam pelajaran atau estimasi biaya.';
+            }
+        }
+
+        $this->writeAudit($request, 'programs', $id, $creating ? 'INPUT_DATA' : 'UPDATE_DATA', $reason, $fieldChanged, $oldValue, $newValue);
     }
 
     private function saveProvider(Request $request, array $data, string $id, bool $creating): void
@@ -848,7 +896,37 @@ class BusinessDataController extends Controller
             ]);
         }
 
-        $this->writeAudit($request, 'providers', $id, $creating ? 'INPUT_DATA' : 'UPDATE_DATA', 'Data lembaga vokasi disimpan.');
+        $fieldChanged = null;
+        $oldValue = null;
+        $newValue = null;
+        $reason = $creating ? 'Pendaftaran lembaga vokasi baru.' : 'Pembaruan data lembaga vokasi.';
+
+        if (! $creating && $existing) {
+            $newStatus = $data['institutionStatus'] ?? $existing->ownership_type;
+            if ($newStatus !== $existing->ownership_type) {
+                $fieldChanged = 'Status Kepemilikan (Negeri/Swasta)';
+                $oldValue = $existing->ownership_type;
+                $newValue = $newStatus;
+                $reason = "Perubahan status kepemilikan lembaga dari {$oldValue} menjadi {$newValue}.";
+            } elseif ($existing->name !== $data['name']) {
+                $fieldChanged = 'Nama Lembaga';
+                $oldValue = $existing->name;
+                $newValue = $data['name'];
+                $reason = "Perubahan nama lembaga menjadi {$newValue}.";
+            } elseif ($existing->accreditation !== $data['accreditation']) {
+                $fieldChanged = 'Akreditasi';
+                $oldValue = $existing->accreditation;
+                $newValue = $data['accreditation'];
+                $reason = "Perubahan status akreditasi dari {$oldValue} menjadi {$newValue}.";
+            } else {
+                $fieldChanged = 'Sarana & Prasarana';
+                $oldValue = "Kelas: {$existing->class_count}, Instruktur: {$existing->instructor_count}";
+                $newValue = "Kelas: {$data['classCount']}, Instruktur: {$data['certifiedInstructorsCount']}";
+                $reason = 'Pembaruan data sarana & fasilitas lembaga vokasi.';
+            }
+        }
+
+        $this->writeAudit($request, 'providers', $id, $creating ? 'INPUT_DATA' : 'UPDATE_DATA', $reason, $fieldChanged, $oldValue, $newValue);
     }
 
     private function saveDemand(Request $request, array $data, string $id, bool $creating): void
@@ -907,6 +985,8 @@ class BusinessDataController extends Controller
             'updated_at' => now(),
         ];
 
+        $existing = $creating ? null : DB::table('job_demands')->where('id', $id)->first();
+
         if ($creating) {
             $attributes += [
                 'placement_track' => 'P to P',
@@ -918,7 +998,26 @@ class BusinessDataController extends Controller
             DB::table('job_demands')->where('id', $id)->update($attributes);
         }
 
-        $this->writeAudit($request, 'demands', $id, $creating ? 'INPUT_DATA' : 'UPDATE_DATA', 'Permintaan tenaga kerja disimpan.');
+        $fieldChanged = null;
+        $oldValue = null;
+        $newValue = null;
+        $reason = $creating ? 'Pendaftaran permintaan demand pekerja luar negeri baru.' : 'Pembaruan kuota dan kualifikasi demand.';
+
+        if (! $creating && $existing) {
+            if ($existing->headcount !== (int) $data['requiredQuota']) {
+                $fieldChanged = 'Kuota Kebutuhan';
+                $oldValue = "{$existing->headcount} Pekerja";
+                $newValue = "{$data['requiredQuota']} Pekerja";
+                $reason = 'Penyesuaian kuota kebutuhan tenaga kerja luar negeri.';
+            } else {
+                $fieldChanged = 'Persyaratan Jabatan';
+                $oldValue = $existing->job_description ?? $data['jobTitle'];
+                $newValue = $data['jobTitle'];
+                $reason = 'Pembaruan kualifikasi dan persyaratan lowongan demand luar negeri.';
+            }
+        }
+
+        $this->writeAudit($request, 'demands', $id, $creating ? 'INPUT_DATA' : 'UPDATE_DATA', $reason, $fieldChanged, $oldValue, $newValue);
     }
 
     private function createApprovalRequest(Request $request, string $type, string $id): void
@@ -1113,19 +1212,85 @@ class BusinessDataController extends Controller
         abort_unless($allowed, 403);
     }
 
-    private function writeAudit(Request $request, string $type, string $id, string $action, string $reason): void
+    public function auditLogs(Request $request): JsonResponse
     {
+        $search = trim($request->input('search', ''));
+        $action = trim($request->input('action', 'ALL'));
+
+        $query = DB::table('audit_logs')
+            ->orderByDesc('created_at');
+
+        if ($action !== 'ALL' && ! empty($action)) {
+            $query->where('action_type', $action);
+        }
+
+        if (! empty($search)) {
+            $query->where(function ($q) use ($search) {
+                $q->where('actor_name', 'like', "%{$search}%")
+                    ->orWhere('actor_role', 'like', "%{$search}%")
+                    ->orWhere('entity', 'like', "%{$search}%")
+                    ->orWhere('entity_id', 'like', "%{$search}%")
+                    ->orWhere('justification_reason', 'like', "%{$search}%")
+                    ->orWhere('field_changed', 'like', "%{$search}%");
+            });
+        }
+
+        $logs = $query->limit(200)->get()->map(function (object $row): array {
+            return [
+                'id' => (string) $row->id,
+                'timestamp' => $row->created_at ? date('Y-m-d H:i:s \W\I\B', strtotime($row->created_at)) : '',
+                'actorName' => (string) ($row->actor_name ?? 'Sistem'),
+                'actorRole' => (string) ($row->actor_role ?? 'Pengguna'),
+                'scope' => (string) ($row->scope ?? 'Nasional'),
+                'actionType' => (string) $row->action_type,
+                'entity' => (string) $row->entity,
+                'entityId' => (string) $row->entity_id,
+                'fieldChanged' => $row->field_changed,
+                'oldValue' => $row->old_value,
+                'newValue' => $row->new_value,
+                'justificationReason' => (string) ($row->justification_reason ?? ''),
+                'ipAddress' => (string) ($row->ip_address ?? '127.0.0.1'),
+            ];
+        })->all();
+
+        return response()->json([
+            'data' => $logs,
+            'total' => count($logs),
+        ]);
+    }
+
+    private function writeAudit(
+        Request $request,
+        string $type,
+        string $id,
+        string $action,
+        string $reason,
+        ?string $fieldChanged = null,
+        ?string $oldValue = null,
+        ?string $newValue = null
+    ): void {
         $user = $request->user();
         $role = $user->roles()->first();
+        $entityName = match ($type) {
+            'candidates', 'calon_peserta' => 'Data Calon Peserta',
+            'programs', 'program_pelatihan' => 'Program Pelatihan',
+            'providers', 'lembaga_vokasi' => 'Data Lembaga Vokasi',
+            'demands', 'demand_luar_negeri' => 'Permintaan Tenaga Kerja',
+            default => $type,
+        };
+
         DB::table('audit_logs')->insert([
             'id' => 'LOG-'.Str::upper(Str::random(12)),
             'user_id' => $user->id,
             'actor_name' => $user->name,
             'actor_role' => $role?->title ?? 'Pengguna',
-            'scope' => $user->scope_name,
+            'scope' => $user->scope_name ?? 'Nasional',
             'action_type' => $action,
-            'entity' => $type,
+            'entity' => $entityName,
             'entity_id' => $id,
+            'field_changed' => $fieldChanged,
+            'old_value' => $oldValue,
+            'new_value' => $newValue,
             'justification_reason' => $reason,
             'ip_address' => $request->ip() ?? '127.0.0.1',
             'created_at' => now(),

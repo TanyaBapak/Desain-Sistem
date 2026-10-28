@@ -61,6 +61,7 @@ export interface AppState {
     demands: GlobalDemand[];
     approvalRequests?: DataApprovalRequest[];
     allocations?: ProgramAllocationDecision[];
+    auditLogs?: AuditLogEntry[];
     options: {
       provinces: { id: string; name: string }[];
       districts: { id: string; province_id: string; name: string }[];
@@ -83,6 +84,7 @@ export interface AppState {
   // Approvals & Audit Trail
   approvalRequests: DataApprovalRequest[];
   auditLogs: AuditLogEntry[];
+  setAuditLogs: (logs: AuditLogEntry[]) => void;
 
   // Workflow Stages & Selection State
   activeStage: number; // 1, 2, 3, 4, 5, 6
@@ -259,6 +261,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       demands,
       approvalRequests: data.approvalRequests ?? [],
       allocations: data.allocations ?? [],
+      auditLogs: Array.isArray(data.auditLogs) && data.auditLogs.length > 0 ? data.auditLogs : state.auditLogs,
       businessOptions: data.options,
       businessDataLoaded: true,
       selectedCandidateIds: state.selectedCandidateIds.filter((id) => candidates.some((candidate) => candidate.id === id)),
@@ -270,6 +273,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   allocations: [],
   approvalRequests: mockApprovals,
   auditLogs: mockAuditLogs,
+  setAuditLogs: (logs) => set({ auditLogs: logs }),
 
   activeStage: 1,
   selectedDemandId: null,
@@ -628,6 +632,33 @@ export const useAppStore = create<AppState>((set, get) => ({
     const now = new Date();
     const timeStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')} WIB`;
 
+    let fieldChanged = 'Biodata / Kualifikasi';
+    let oldValue: string | undefined = existing.fullName;
+    let newValue: string | undefined = updated.fullName;
+    let reason = 'Pemutakhiran profil, kesiapan paspor, sertifikasi, atau data kontak peserta.';
+
+    if (updates.verificationStatus && updates.verificationStatus !== existing.verificationStatus) {
+      fieldChanged = 'Status Verifikasi';
+      oldValue = existing.verificationStatus;
+      newValue = updates.verificationStatus;
+      reason = `Perubahan status verifikasi dokumen peserta menjadi ${updates.verificationStatus}.`;
+    } else if (updates.lifecycleStatus && updates.lifecycleStatus !== existing.lifecycleStatus) {
+      fieldChanged = 'Status Tahapan';
+      oldValue = existing.lifecycleStatus;
+      newValue = updates.lifecycleStatus;
+      reason = `Perubahan status tahapan peserta dari ${existing.lifecycleStatus} menjadi ${updates.lifecycleStatus}.`;
+    } else if (updates.fullName && updates.fullName !== existing.fullName) {
+      fieldChanged = 'Nama Lengkap';
+      oldValue = existing.fullName;
+      newValue = updates.fullName;
+      reason = `Perubahan nama lengkap peserta menjadi ${updates.fullName}.`;
+    } else if (updates.readinessStatus && updates.readinessStatus !== existing.readinessStatus) {
+      fieldChanged = 'Status Kesiapan';
+      oldValue = existing.readinessStatus;
+      newValue = updates.readinessStatus;
+      reason = `Perubahan status kesiapan penempatan peserta menjadi ${updates.readinessStatus}.`;
+    }
+
     const auditEntry: AuditLogEntry = {
       id: `LOG-${Date.now()}`,
       timestamp: timeStr,
@@ -637,10 +668,10 @@ export const useAppStore = create<AppState>((set, get) => ({
       actionType: 'UPDATE_DATA',
       entity: 'Data Calon Peserta',
       entityId: id,
-      fieldChanged: 'biodata / kualifikasi',
-      oldValue: existing.fullName,
-      newValue: updated.fullName,
-      justificationReason: `Pemutakhiran profil, kesiapan paspor, sertifikasi, atau data kontak peserta.`,
+      fieldChanged,
+      oldValue,
+      newValue,
+      justificationReason: reason,
       ipAddress: get().currentUser?.ipAddress || '10.24.120.88',
     };
 
@@ -723,6 +754,28 @@ export const useAppStore = create<AppState>((set, get) => ({
     const now = new Date();
     const timeStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')} WIB`;
 
+    let fieldChanged = 'Kurikulum & Biaya';
+    let oldValue: string | undefined = `${existing.title} (${existing.durationJP} JP)`;
+    let newValue: string | undefined = `${updated.title} (${updated.durationJP} JP)`;
+    let reason = 'Pembaruan kurikulum, silabus, atau estimasi biaya program.';
+
+    if (updates.title && updates.title !== existing.title) {
+      fieldChanged = 'Nama Program';
+      oldValue = existing.title;
+      newValue = updates.title;
+      reason = `Perubahan nama program pelatihan menjadi ${updates.title}.`;
+    } else if (updates.quota !== undefined && updates.quota !== existing.quota) {
+      fieldChanged = 'Alokasi Kuota';
+      oldValue = `${existing.quota} Peserta`;
+      newValue = `${updates.quota} Peserta`;
+      reason = 'Penyesuaian kuota alokasi peserta program pelatihan.';
+    } else if (updates.durationJP !== undefined && updates.durationJP !== existing.durationJP) {
+      fieldChanged = 'Durasi Jam Pelajaran';
+      oldValue = `${existing.durationJP} JP`;
+      newValue = `${updates.durationJP} JP`;
+      reason = 'Penyesuaian durasi jam pelajaran (JP) program pelatihan.';
+    }
+
     const auditEntry: AuditLogEntry = {
       id: `LOG-${Date.now()}`,
       timestamp: timeStr,
@@ -732,10 +785,10 @@ export const useAppStore = create<AppState>((set, get) => ({
       actionType: 'UPDATE_DATA',
       entity: 'Program Pelatihan',
       entityId: id,
-      fieldChanged: 'kurikulum / kuota / biaya',
-      oldValue: existing.title,
-      newValue: updated.title,
-      justificationReason: `Perubahan alokasi kuota, durasi jam pelajaran, atau penyesuaian kurikulum program.`,
+      fieldChanged,
+      oldValue,
+      newValue,
+      justificationReason: reason,
       ipAddress: get().currentUser?.ipAddress || '10.24.120.88',
     };
 
@@ -817,6 +870,41 @@ export const useAppStore = create<AppState>((set, get) => ({
     const now = new Date();
     const timeStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')} WIB`;
 
+    let fieldChanged = 'Profil Lembaga';
+    let oldValue: string | undefined = existing.name;
+    let newValue: string | undefined = updated.name;
+    let reason = 'Pembaruan informasi data lembaga vokasi mitra penyelenggara pelatihan.';
+
+    if (updates.institutionStatus && updates.institutionStatus !== existing.institutionStatus) {
+      fieldChanged = 'Status Kepemilikan (Negeri/Swasta)';
+      oldValue = existing.institutionStatus || 'Negeri';
+      newValue = updates.institutionStatus;
+      reason = `Perubahan status kepemilikan lembaga dari ${existing.institutionStatus || 'Negeri'} menjadi ${updates.institutionStatus}.`;
+    } else if (updates.name && updates.name !== existing.name) {
+      fieldChanged = 'Nama Lembaga';
+      oldValue = existing.name;
+      newValue = updates.name;
+      reason = `Perubahan nama lembaga menjadi ${updates.name}.`;
+    } else if (updates.accreditation && updates.accreditation !== existing.accreditation) {
+      fieldChanged = 'Akreditasi';
+      oldValue = existing.accreditation;
+      newValue = updates.accreditation;
+      reason = `Perubahan status akreditasi dari ${existing.accreditation} menjadi ${updates.accreditation}.`;
+    } else if (updates.operationalReadinessScore !== undefined && updates.operationalReadinessScore !== existing.operationalReadinessScore) {
+      fieldChanged = 'Skor Kesiapan Operasional';
+      oldValue = `${existing.operationalReadinessScore}%`;
+      newValue = `${updates.operationalReadinessScore}%`;
+      reason = 'Pembaruan skor kesiapan operasional lembaga vokasi.';
+    } else if (
+      (updates.certifiedInstructorsCount !== undefined && updates.certifiedInstructorsCount !== existing.certifiedInstructorsCount) ||
+      (updates.classCount !== undefined && updates.classCount !== existing.classCount)
+    ) {
+      fieldChanged = 'Sarana & Prasarana';
+      oldValue = `Kelas: ${existing.classCount}, Instruktur: ${existing.certifiedInstructorsCount}`;
+      newValue = `Kelas: ${updates.classCount ?? existing.classCount}, Instruktur: ${updates.certifiedInstructorsCount ?? existing.certifiedInstructorsCount}`;
+      reason = 'Pembaruan data bengkel praktikum, sertifikasi e-Vokasi, atau jumlah instruktur.';
+    }
+
     const auditEntry: AuditLogEntry = {
       id: `LOG-${Date.now()}`,
       timestamp: timeStr,
@@ -826,10 +914,10 @@ export const useAppStore = create<AppState>((set, get) => ({
       actionType: 'UPDATE_DATA',
       entity: 'Data Lembaga Vokasi',
       entityId: id,
-      fieldChanged: 'fasilitas / akreditasi / kapasitas',
-      oldValue: existing.name,
-      newValue: updated.name,
-      justificationReason: `Pembaruan data bengkel praktikum, sertifikasi e-Vokasi, atau jumlah instruktur.`,
+      fieldChanged,
+      oldValue,
+      newValue,
+      justificationReason: reason,
       ipAddress: get().currentUser?.ipAddress || '10.24.120.88',
     };
 
@@ -911,6 +999,23 @@ export const useAppStore = create<AppState>((set, get) => ({
     const now = new Date();
     const timeStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')} WIB`;
 
+    let fieldChanged = 'Persyaratan & Kualifikasi';
+    let oldValue: string | undefined = `${existing.jobTitle} (${existing.requiredQuota} Pekerja)`;
+    let newValue: string | undefined = `${updated.jobTitle} (${updated.requiredQuota} Pekerja)`;
+    let reason = 'Penyesuaian standar gaji, kualifikasi, atau batas waktu pemenuhan demand.';
+
+    if (updates.requiredQuota !== undefined && updates.requiredQuota !== existing.requiredQuota) {
+      fieldChanged = 'Kuota Kebutuhan';
+      oldValue = `${existing.requiredQuota} Pekerja`;
+      newValue = `${updates.requiredQuota} Pekerja`;
+      reason = 'Penyesuaian kuota kebutuhan tenaga kerja luar negeri.';
+    } else if (updates.jobTitle && updates.jobTitle !== existing.jobTitle) {
+      fieldChanged = 'Jabatan / Pekerjaan';
+      oldValue = existing.jobTitle;
+      newValue = updates.jobTitle;
+      reason = `Perubahan judul jabatan lowongan luar negeri menjadi ${updates.jobTitle}.`;
+    }
+
     const auditEntry: AuditLogEntry = {
       id: `LOG-${Date.now()}`,
       timestamp: timeStr,
@@ -920,10 +1025,10 @@ export const useAppStore = create<AppState>((set, get) => ({
       actionType: 'UPDATE_DATA',
       entity: 'Demand Tenaga Kerja LN',
       entityId: id,
-      fieldChanged: 'kuota / persyaratan / batas waktu',
-      oldValue: `${existing.jobTitle} (${existing.requiredQuota})`,
-      newValue: `${updated.jobTitle} (${updated.requiredQuota})`,
-      justificationReason: `Penyesuaian kuota kebutuhan pekerja migran, standar gaji, atau perpanjangan tenggat waktu rekrutmen.`,
+      fieldChanged,
+      oldValue,
+      newValue,
+      justificationReason: reason,
       ipAddress: get().currentUser?.ipAddress || '10.24.120.88',
     };
 
