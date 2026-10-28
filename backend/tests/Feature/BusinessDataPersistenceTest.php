@@ -344,6 +344,59 @@ class BusinessDataPersistenceTest extends TestCase
         $this->assertSame(['TR'], $updatedProviderMetadata['supportedCountries']);
     }
 
+    public function test_bulk_candidate_import_saves_candidates_and_creates_audit_log(): void
+    {
+        $this->seed(ReferenceDataSeeder::class);
+        $admin = $this->userWithRole('task_force');
+        $this->actingAs($admin);
+
+        $this->post('/business-data/candidates/import', [
+            'candidates' => [
+                [
+                    'nik' => '3300000000000091',
+                    'fullName' => 'Peserta Contoh Impor Satu',
+                    'gender' => 'L',
+                    'provinsi' => 'Jawa Barat',
+                    'kabupatenKota' => 'Kabupaten Bogor',
+                    'educationLevel' => 'D3',
+                    'institutionName' => 'Politeknik Contoh',
+                    'sourceType' => 'Lembaga Vokasi',
+                    'major' => 'Perhotelan',
+                    'skills' => ['Hospitality', 'Front Office'],
+                    'languageProficiency' => [['language' => 'Inggris', 'level' => 'Fluent']],
+                    'preferredCountry' => ['Australia'],
+                    'preferredJobRole' => ['Guest Service Agent'],
+                    'readinessStatus' => 'Ready for Placement',
+                ],
+                [
+                    'nik' => '3300000000000092',
+                    'fullName' => 'Peserta Contoh Impor Dua',
+                    'gender' => 'P',
+                    'provinsi' => 'Jawa Barat',
+                    'kabupatenKota' => 'Kabupaten Bogor',
+                    'educationLevel' => 'SMK',
+                    'institutionName' => 'SMK Contoh',
+                    'sourceType' => 'Lembaga Vokasi',
+                    'major' => 'Tata Boga',
+                    'skills' => ['Culinary'],
+                    'languageProficiency' => [['language' => 'Jepang', 'level' => 'N4']],
+                    'preferredCountry' => ['Jepang'],
+                    'preferredJobRole' => ['Commis Chef'],
+                    'readinessStatus' => 'Needs Upskilling',
+                ],
+            ],
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('job_seekers', [
+            'nik' => '3300000000000091',
+            'full_name' => 'Peserta Contoh Impor Satu',
+        ]);
+        $this->assertDatabaseHas('job_seekers', [
+            'nik' => '3300000000000092',
+            'full_name' => 'Peserta Contoh Impor Dua',
+        ]);
+    }
+
     private function userWithRole(string $roleName, array $attributes = []): User
     {
         $user = User::factory()->create($attributes);

@@ -21,6 +21,7 @@ import {
   RotateCcw,
   Sparkles,
   Download,
+  Upload,
   LayoutList,
   List,
 } from 'lucide-react';
@@ -32,6 +33,7 @@ import { Badge } from '../ui/Badge';
 import { StatCard } from '@/components/shared/StatCard';
 import { CandidateDetailModal } from './CandidateDetailModal';
 import { CandidateFormModal } from './CandidateFormModal';
+import { CandidateImportModal } from './CandidateImportModal';
 import { DeleteConfirmModal } from '../ui/DeleteConfirmModal';
 import { archiveBusinessData, saveBusinessData } from '../../lib/business-data';
 import { downloadCandidateTemplate, downloadCandidateTemplateXlsx, exportCandidatesCsv, exportCandidatesXlsx } from '../../lib/candidate-export';
@@ -84,6 +86,7 @@ export const SupplyTable: React.FC = () => {
 
   const [activeCandidate, setActiveCandidate] = useState<CandidateParticipant | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isImportOpen, setIsImportOpen] = useState(false);
   const [formMode, setFormMode] = useState<'create' | 'edit'>('create');
   const [candidateToEdit, setCandidateToEdit] = useState<CandidateParticipant | null>(null);
   const [deletingCandidate, setDeletingCandidate] = useState<CandidateParticipant | null>(null);
@@ -454,17 +457,27 @@ export const SupplyTable: React.FC = () => {
           )}
 
           {canManageCandidates && (
-            <button
-              onClick={() => {
-                setCandidateToEdit(null);
-                setFormMode('create');
-                setIsFormOpen(true);
-              }}
-              className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-xs transition hover:bg-blue-500 sm:w-auto"
-            >
-              <UserPlus className="w-3.5 h-3.5" />
-              <span>+ Tambah Calon PMI</span>
-            </button>
+            <>
+              <button
+                type="button"
+                onClick={() => setIsImportOpen(true)}
+                className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white shadow-xs transition hover:bg-emerald-500 sm:w-auto"
+              >
+                <Upload className="h-3.5 w-3.5" aria-hidden="true" />
+                <span>Unggah Excel / CSV</span>
+              </button>
+              <button
+                onClick={() => {
+                  setCandidateToEdit(null);
+                  setFormMode('create');
+                  setIsFormOpen(true);
+                }}
+                className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-xs transition hover:bg-blue-500 sm:w-auto"
+              >
+                <UserPlus className="w-3.5 h-3.5" />
+                <span>+ Tambah Calon PMI</span>
+              </button>
+            </>
           )}
 
           {canVerifyCandidates && (
@@ -853,6 +866,15 @@ export const SupplyTable: React.FC = () => {
             Menampilkan <strong>{filteredCandidates.length}</strong> dari {candidates.length} Calon PMI
           </span>
           <div className="flex flex-wrap gap-2">
+            {canManageCandidates && (
+              <button
+                type="button"
+                onClick={() => setIsImportOpen(true)}
+                className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white shadow-xs transition hover:bg-blue-700"
+              >
+                <Upload className="h-3.5 w-3.5" aria-hidden="true" /> Unggah Data (.XLSX / CSV)
+              </button>
+            )}
             <button type="button" onClick={() => exportCandidatesXlsx(filteredCandidates)} className="flex items-center gap-1 rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-100">
               <Download className="h-3.5 w-3.5" aria-hidden="true" /> Unduh Hasil Filter (.XLSX)
             </button>
@@ -1126,7 +1148,7 @@ export const SupplyTable: React.FC = () => {
                             <span>Detail</span>
                           </button>
 
-                          {canArchiveCandidates && (
+                          {canManageCandidates && (
                             <button
                               onClick={() => {
                                 setCandidateToEdit(candidate);
@@ -1223,6 +1245,16 @@ export const SupplyTable: React.FC = () => {
             },
           );
         }}
+      />
+
+      {/* Candidate Import Modal (.XLSX / .CSV) */}
+      <CandidateImportModal
+        isOpen={isImportOpen}
+        onClose={() => setIsImportOpen(false)}
+        defaultInstitutionName={connectedFeederName}
+        defaultProvinsi={candidates[0]?.provinsi || 'Jawa Tengah'}
+        defaultKabupatenKota={candidates[0]?.kabupatenKota || 'Kota Surakarta'}
+        defaultSourceType={currentRole === 'disnaker' ? 'Disnaker Pemda' : 'Lembaga Vokasi'}
       />
 
       {/* Delete Confirmation Modal */}

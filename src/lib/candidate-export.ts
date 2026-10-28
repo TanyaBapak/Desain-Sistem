@@ -161,3 +161,248 @@ export function downloadCandidateTemplateXlsx(): void {
   XLSX.utils.book_append_sheet(workbook, worksheet, 'Template Calon PMI');
   XLSX.writeFile(workbook, 'template-pengumpulan-calon-pmi.xlsx');
 }
+
+export type CandidateImportPayload = Omit<CandidateParticipant, 'id'>;
+
+export interface CandidateImportRowError {
+  rowNumber: number;
+  fullName: string;
+  reason: string;
+}
+
+export interface CandidateImportParseResult {
+  validRows: CandidateImportPayload[];
+  errors: CandidateImportRowError[];
+  duplicateCount: number;
+}
+
+function normalizeHeaderKey(header: string): string {
+  return header.toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+function getCellString(row: Record<string, unknown>, aliases: string[]): string {
+  const normalizedMap = new Map<string, unknown>();
+  Object.entries(row).forEach(([key, value]) => {
+    normalizedMap.set(normalizeHeaderKey(key), value);
+  });
+
+  for (const alias of aliases) {
+    const val = normalizedMap.get(normalizeHeaderKey(alias));
+    if (val !== undefined && val !== null && String(val).trim() !== '') {
+      return String(val).trim().replace(/^'+/, '');
+    }
+  }
+  return '';
+}
+
+function splitList(raw: string): string[] {
+  if (!raw) return [];
+  return raw
+    .split(/[,;|]/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function normalizeEducationLevel(raw: string): CandidateParticipant['educationLevel'] {
+  const upper = raw.toUpperCase().trim();
+  if (upper.includes('SMK') || upper.includes('SMA') || upper.includes('STM')) return 'SMK';
+  if (upper.includes('D3') || upper.includes('D-3') || upper.includes('DIPLOMA')) return 'D3';
+  if (upper.includes('S1') || upper.includes('S-1') || upper.includes('D4') || upper.includes('SARJANA')) return 'S1';
+  return 'SMK';
+}
+
+function normalizeLanguageName(raw: string): 'Jepang' | 'Jerman' | 'Inggris' | 'Mandarin' | 'Korea' {
+  const lower = raw.toLowerCase();
+  if (lower.includes('jepang') || lower.includes('japan') || lower.includes('jlpt')) return 'Jepang';
+  if (lower.includes('jerman') || lower.includes('german')) return 'Jerman';
+  if (lower.includes('korea') || lower.includes('eps') || lower.includes('topik')) return 'Korea';
+  if (lower.includes('mandarin') || lower.includes('china') || lower.includes('chinese') || lower.includes('hsk')) return 'Mandarin';
+  return 'Inggris';
+}
+
+function normalizeReadinessStatus(raw: string): CandidateParticipant['readinessStatus'] {
+  const lower = raw.toLowerCase();
+  if (lower.includes('ready') || lower.includes('siap')) return 'Ready for Placement';
+  if (lower.includes('reskilling') || lower.includes('ulang')) return 'Needs Reskilling';
+  return 'Needs Upskilling';
+}
+
+function generateDeterministicNik(seedIndex: number): string {
+  const suffix = String(Date.now() % 100000000).padStart(8, '0');
+  const seq = String(seedIndex + 1).padStart(4, '0');
+  return `3300${suffix}${seq}`;
+}
+
+export async function parseCandidateSpreadsheet(
+  file: File,
+  defaults?: {
+    provinsi?: string;
+    kabupatenKota?: string;
+    institutionName?: string;
+    sourceType?: CandidateParticipant['sourceType'];
+  },
+): Promise<CandidateImportParseResult> {
+  const arrayBuffer = await file.arrayBuffer();
+  let workbook: XLSX.WorkBook;
+
+  if (file.name.toLowerCase().endsWith('.csv')) {
+    const text = new TextDecoder('utf-8').decode(arrayBuffer).replace(/^\uFEFF/, '').replace(/^sep=;\r?\n/i, '');
+    workbook = XLSX.read(text, { type: 'string', raw: false });
+  } else {
+    workbook = XLSX.read(arrayBuffer, { type: 'array' });
+  }
+
+  const firstSheetName = workbook.SheetNames[0];
+  if (!firstSheetName) {
+    return { validRows: [], errors: [{ rowNumber: 1, fullName: '-', reason: 'Lembar kerja (sheet) kosong.' }], duplicateCount: 0 };
+  }
+
+  const worksheet = workbook.Sheets[firstSheetName];
+  const rawRows = XLSX.utils.sheet_to_json<Record<string, unknown>>(worksheet, { defval: '' });
+
+  const validRows: CandidateImportPayload[] = [];
+  const errors: CandidateImportRowError[] = [];
+  const seenNiks = new Set<string>();
+  let duplicateCount = 0;
+
+  rawRows.forEach((row, index) => {
+    const rowNumber = index + 2;
+    const fullName = getCellString(row, ['Nama lengkap', 'Nama Lengkap', 'Nama', 'Full Name', 'full_name']);
+    const rawNik = getCellString(row, ['NIK (opsional)', 'NIK', 'No KTP', 'Nomor Induk Kependudukan']);
+    const provinsi = getCellString(row, ['Provinsi', 'Provinsi Asal', 'Provinsi Domisili']) || defaults?.provinsi || 'Jawa Tengah';
+    const kabupatenKota =
+      getCellString(row, ['Kabupaten/Kota', 'Kabupaten / Kota', 'Kab/Kota', 'Kota', 'Kabupaten']) ||
+      defaults?.kabupatenKota ||
+      'Kota Surakarta';
+    const eduRaw = getCellString(row, ['Jenjang pendidikan (SMK/D3/S1)', 'Jenjang pendidikan', 'Pendidikan', 'Education']);
+    const major = getCellString(row, ['Jurusan', 'Program Studi', 'Kompetensi Keahlian', 'Prodi']) || 'Umum';
+    const institutionName =
+      getCellString(row, ['Nama Sekolah/Politeknik', 'Asal Sekolah', 'Sekolah', 'Lembaga Vokasi', 'Institusi']) ||
+      defaults?.institutionName ||
+      'Lembaga Vokasi';
+
+    // Skip completely empty rows
+    const hasAnyValue = Object.values(row).some((val) => String(val ?? '').trim() !== '');
+    if (!hasAnyValue) {
+      return;
+    }
+
+    if (!fullName) {
+      errors.push({
+        rowNumber,
+        fullName: '(Tanpa Nama)',
+        reason: 'Kolom "Nama lengkap" wajib diisi.',
+      });
+      return;
+    }
+
+    const digitsOnlyNik = rawNik.replace(/\D/g, '');
+    let finalNik = digitsOnlyNik;
+    if (digitsOnlyNik.length > 0 && digitsOnlyNik.length !== 16) {
+      errors.push({
+        rowNumber,
+        fullName,
+        reason: `NIK "${rawNik}" harus terdiri dari 16 digit angka (atau kosongkan bila belum ada).`,
+      });
+      return;
+    }
+    if (!finalNik) {
+      finalNik = generateDeterministicNik(index);
+    }
+
+    if (seenNiks.has(finalNik)) {
+      duplicateCount += 1;
+      errors.push({
+        rowNumber,
+        fullName,
+        reason: `Duplikat NIK (${finalNik}) ditemukan di dalam berkas yang sama.`,
+      });
+      return;
+    }
+    seenNiks.add(finalNik);
+
+    const genderRaw = getCellString(row, ['Jenis Kelamin', 'Gender', 'L/P', 'JK']).toUpperCase();
+    const gender: 'L' | 'P' = genderRaw.startsWith('P') || genderRaw.startsWith('W') || genderRaw === 'F' ? 'P' : 'L';
+
+    const skills = splitList(
+      getCellString(row, ['Keterampilan/Kompetensi (pisahkan koma)', 'Keterampilan', 'Kompetensi', 'Skills']),
+    );
+
+    const expField = getCellString(row, ['Bidang pengalaman kerja', 'Bidang Pengalaman', 'Pengalaman Kerja']);
+    const expYearsRaw = getCellString(row, ['Lama pengalaman (tahun, angka)', 'Lama pengalaman (tahun)', 'Lama Pengalaman']);
+    const expCompany = getCellString(row, ['Nama perusahaan (opsional)', 'Nama Perusahaan', 'Perusahaan']);
+    const expYears = parseFloat(expYearsRaw.replace(',', '.'));
+
+    const workExperiences: CandidateParticipant['workExperiences'] = [];
+    if (expField || (!Number.isNaN(expYears) && expYears > 0)) {
+      const parts = expField.split('-').map((p) => p.trim());
+      workExperiences.push({
+        sector: parts[0] || 'Hospitality & Pariwisata',
+        role: parts[1] || parts[0] || 'Staf Operasional',
+        durationYears: !Number.isNaN(expYears) && expYears >= 0 ? expYears : 1,
+        companyName: expCompany || undefined,
+      });
+    }
+
+    const certRaw = getCellString(row, ['Sertifikasi kompetensi (nama & penerbit)', 'Sertifikasi Kompetensi', 'Sertifikasi']);
+    const certifications: CandidateParticipant['certifications'] = splitList(certRaw).map((item) => {
+      const match = item.match(/^(.+?)\s*\((.+?)\)$/);
+      return {
+        name: match ? match[1].trim() : item,
+        issuer: match ? match[2].trim() : 'LSP / Lembaga Sertifikasi',
+      };
+    });
+
+    const langNames = splitList(getCellString(row, ['Bahasa asing', 'Bahasa Asing', 'Bahasa']));
+    const langLevels = splitList(
+      getCellString(row, [
+        'Level bahasa (mis. JLPT N4/A2/TOEIC/Basic)',
+        'Level bahasa (JLPT N4/A2/TOEIC/Basic)',
+        'Level Bahasa',
+        'Level',
+      ]),
+    );
+    const languageProficiency: CandidateParticipant['languageProficiency'] =
+      langNames.length > 0
+        ? langNames.map((lang, idx) => ({
+            language: normalizeLanguageName(lang),
+            level: langLevels[idx] || langLevels[0] || 'Basic',
+          }))
+        : [{ language: 'Inggris', level: 'Basic' }];
+
+    const preferredCountry = splitList(
+      getCellString(row, ['Negara tujuan yang diminati (pisahkan koma)', 'Negara Tujuan', 'Negara']),
+    );
+    const preferredSectors = splitList(
+      getCellString(row, ['Sektor pilihan (pisahkan koma)', 'Sektor Pilihan', 'Sektor']),
+    );
+    const preferredJobRole = splitList(
+      getCellString(row, ['Jabatan yang dipilih (pisahkan koma)', 'Jabatan Pilihan', 'Jabatan']),
+    );
+    const readinessRaw = getCellString(row, ['Status kesiapan', 'Status Kesiapan', 'Kesiapan']);
+
+    validRows.push({
+      nik: finalNik,
+      fullName,
+      gender,
+      provinsi,
+      kabupatenKota,
+      educationLevel: normalizeEducationLevel(eduRaw),
+      institutionName,
+      sourceType: defaults?.sourceType || 'Lembaga Vokasi',
+      major,
+      skills: skills.length > 0 ? skills : [major],
+      workExperiences,
+      certifications,
+      preferredSectors: preferredSectors.length > 0 ? preferredSectors : ['Hospitality'],
+      languageProficiency,
+      preferredCountry: preferredCountry.length > 0 ? preferredCountry : ['Jepang'],
+      preferredJobRole: preferredJobRole.length > 0 ? preferredJobRole : ['Staf Umum'],
+      readinessStatus: readinessRaw ? normalizeReadinessStatus(readinessRaw) : 'Ready for Placement',
+      verificationStatus: 'Pending Verification',
+      lifecycleStatus: 'SUBMITTED',
+    });
+  });
+
+  return { validRows, errors, duplicateCount };
+}

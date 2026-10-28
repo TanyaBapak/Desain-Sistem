@@ -120,6 +120,8 @@ Route::middleware(['auth', EnsureUserIsActive::class])->group(function () {
         ->name('allocations.destroy');
     Route::get('/business-data/candidates', [BusinessDataController::class, 'candidates'])
         ->name('business-data.candidates.index');
+    Route::post('/business-data/candidates/import', [BusinessDataController::class, 'importCandidates'])
+        ->name('business-data.candidates.import');
     Route::get('/business-data/audit-logs', [BusinessDataController::class, 'auditLogs'])
         ->name('business-data.audit-logs.index');
     Route::get('/business-data/providers', [BusinessDataController::class, 'providers'])

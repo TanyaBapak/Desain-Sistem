@@ -48,6 +48,124 @@ class BusinessDataController extends Controller
         return back()->with('success', 'Data berhasil disimpan ke database.');
     }
 
+    public function importCandidates(Request $request): RedirectResponse
+    {
+        $this->authorizeWrite($request, 'candidates', 'create');
+        $validated = $request->validate([
+            'candidates' => ['required', 'array', 'min:1', 'max:500'],
+            'candidates.*.nik' => ['nullable', 'string', 'max:32'],
+            'candidates.*.fullName' => ['required', 'string', 'max:150'],
+            'candidates.*.gender' => ['nullable', Rule::in(['L', 'P'])],
+            'candidates.*.provinsi' => ['nullable', 'string', 'max:100'],
+            'candidates.*.kabupatenKota' => ['nullable', 'string', 'max:100'],
+            'candidates.*.educationLevel' => ['nullable', Rule::in(['SMK', 'D3', 'S1', 'Lainnya'])],
+            'candidates.*.institutionName' => ['nullable', 'string', 'max:255'],
+            'candidates.*.sourceType' => ['nullable', 'string', 'max:100'],
+            'candidates.*.major' => ['nullable', 'string', 'max:150'],
+            'candidates.*.skills' => ['nullable', 'array'],
+            'candidates.*.skills.*' => ['string', 'max:100'],
+            'candidates.*.workExperiences' => ['nullable', 'array'],
+            'candidates.*.certifications' => ['nullable', 'array'],
+            'candidates.*.preferredSectors' => ['nullable', 'array'],
+            'candidates.*.languageProficiency' => ['nullable', 'array'],
+            'candidates.*.preferredCountry' => ['nullable', 'array'],
+            'candidates.*.preferredJobRole' => ['nullable', 'array'],
+            'candidates.*.readinessStatus' => ['nullable', Rule::in(['Ready for Placement', 'Needs Upskilling', 'Needs Reskilling'])],
+        ]);
+
+        $importedCount = 0;
+
+        DB::transaction(function () use ($request, $validated, &$importedCount): void {
+            $user = $request->user();
+            $role = $user->roles()->value('name');
+            $institution = $role === 'institution_admin' ? $this->resolveUserInstitution($user) : null;
+
+            foreach ($validated['candidates'] as $idx => $item) {
+                $rawNik = preg_replace('/\D/', '', (string) ($item['nik'] ?? ''));
+                $nik = strlen($rawNik) === 16
+                    ? $rawNik
+                    : '3300'.str_pad((string) ((time() + $idx) % 100000000), 8, '0', STR_PAD_LEFT).str_pad((string) ($idx + 1), 4, '0', STR_PAD_LEFT);
+
+                $existing = DB::table('job_seekers')->where('nik', $nik)->first();
+                $creating = ! $existing;
+                $id = $existing ? $existing->id : Str::upper('CAND-'.Str::random(10));
+
+                $provinsiName = trim((string) ($item['provinsi'] ?? ''));
+                $provinceId = null;
+                if ($provinsiName !== '') {
+                    $provinceId = DB::table('provinces')
+                        ->where('name', $provinsiName)
+                        ->orWhereRaw('LOWER(name) = ?', [mb_strtolower($provinsiName)])
+                        ->value('id');
+                }
+                if (! $provinceId) {
+                    $provinceId = $institution?->province_id
+                        ?? $user->province_id
+                        ?? DB::table('provinces')->where('name', 'Jawa Tengah')->value('id')
+                        ?? DB::table('provinces')->value('id');
+                }
+
+                $kabName = trim((string) ($item['kabupatenKota'] ?? ''));
+                $district = null;
+                if ($kabName !== '' && $provinceId) {
+                    $baseKab = trim(preg_replace('/^(kabupaten|kab\.?|kota(?:\s+adm\.?|\s+administrasi)?)\s+/ui', '', $kabName));
+                    $district = DB::table('districts')
+                        ->where('province_id', $provinceId)
+                        ->where(function ($q) use ($kabName, $baseKab) {
+                            $q->where('name', $kabName)
+                                ->orWhereRaw('LOWER(name) = ?', [mb_strtolower($kabName)]);
+                            if ($baseKab !== '') {
+                                $q->orWhereRaw('LOWER(name) LIKE ?', ['%'.mb_strtolower($baseKab).'%']);
+                            }
+                        })
+                        ->first();
+                }
+                if (! $district && $provinceId) {
+                    $district = ($institution?->district_id
+                        ? DB::table('districts')->where('id', $institution->district_id)->first()
+                        : null)
+                        ?? ($user->district_id
+                            ? DB::table('districts')->where('id', $user->district_id)->first()
+                            : null)
+                        ?? DB::table('districts')->where('province_id', $provinceId)->first();
+                }
+
+                $provinceNameResolved = DB::table('provinces')->where('id', $provinceId)->value('name') ?? 'Jawa Tengah';
+                $districtNameResolved = $district?->name ?? 'Kota Surakarta';
+
+                $candidateData = [
+                    'nik' => $nik,
+                    'fullName' => $item['fullName'],
+                    'gender' => $item['gender'] ?? 'L',
+                    'provinsi' => $provinceNameResolved,
+                    'kabupatenKota' => $districtNameResolved,
+                    'educationLevel' => $item['educationLevel'] ?? 'SMK',
+                    'institutionName' => $institution?->name ?? ($item['institutionName'] ?: 'Lembaga Vokasi'),
+                    'sourceType' => $item['sourceType'] ?? ($role === 'institution_admin' ? 'Lembaga Vokasi' : 'Disnaker Pemda'),
+                    'major' => $item['major'] ?: 'Umum',
+                    'skills' => $item['skills'] ?? [],
+                    'workExperiences' => $item['workExperiences'] ?? [],
+                    'certifications' => $item['certifications'] ?? [],
+                    'preferredSectors' => $item['preferredSectors'] ?? [],
+                    'languageProficiency' => $item['languageProficiency'] ?? [],
+                    'preferredCountry' => $item['preferredCountry'] ?? [],
+                    'preferredJobRole' => $item['preferredJobRole'] ?? [],
+                    'readinessStatus' => $item['readinessStatus'] ?? 'Ready for Placement',
+                    'verificationStatus' => 'Pending Verification',
+                    'lifecycleStatus' => 'SUBMITTED',
+                ];
+
+                $this->saveCandidate($request, $candidateData, $id, $creating);
+                $this->createApprovalRequest($request, 'candidates', $id);
+                $importedCount++;
+            }
+        });
+
+        app(BusinessDataPresenter::class)->forget($request->user());
+
+        return back()->with('success', "{$importedCount} data calon PMI berhasil diunggah dan disimpan.");
+    }
+
     public function update(Request $request, string $type, string $id): RedirectResponse
     {
         $this->authorizeWrite($request, $type, 'update');
@@ -611,21 +729,20 @@ class BusinessDataController extends Controller
         if ($role === 'task_force' && ! app(Bp3miScope::class)->allowsProvinceId($user, $provinceId)) {
             abort(403);
         }
-        if ($role === 'institution_admin' && ! $user->institution_id) {
-            abort(403);
+        if ($role === 'institution_admin') {
+            $institution = $this->resolveUserInstitution($user);
+            abort_if(! $institution && ! $request->session()->has('impersonator_id'), 403);
+        } else {
+            $institution = null;
         }
-
-        $institution = $role === 'institution_admin'
-            ? DB::table('institutions')->where('id', $user->institution_id)->first()
-            : null;
-        abort_if($role === 'institution_admin' && ! $institution, 403);
+        $existing = $creating ? null : DB::table('job_seekers')->where('id', $id)->first();
         $canVerify = in_array($role, ['task_force', 'verifier'], true);
         $existingVerification = $creating
             ? 'Pending Verification'
-            : DB::table('job_seekers')->where('id', $id)->value('verification_status');
+            : ($existing?->verification_status ?? 'Pending Verification');
         $existingLifecycle = $creating
             ? 'SUBMITTED'
-            : DB::table('job_seekers')->where('id', $id)->value('lifecycle_status');
+            : ($existing?->lifecycle_status ?? 'SUBMITTED');
 
         $attributes = [
             'full_name' => $data['fullName'],
@@ -691,11 +808,11 @@ class BusinessDataController extends Controller
         $reason = $creating ? 'Pendaftaran data calon peserta baru.' : 'Pembaruan profil data calon peserta.';
 
         if (! $creating && $existing) {
-            if ($existing->status !== $data['status']) {
-                $fieldChanged = 'Status Peserta';
-                $oldValue = $existing->status;
-                $newValue = $data['status'];
-                $reason = "Perubahan status tahapan peserta dari {$oldValue} menjadi {$newValue}.";
+            if ($existing->readiness_status !== $data['readinessStatus']) {
+                $fieldChanged = 'Status Kesiapan';
+                $oldValue = $existing->readiness_status;
+                $newValue = $data['readinessStatus'];
+                $reason = "Perubahan status kesiapan peserta dari {$oldValue} menjadi {$newValue}.";
             } elseif ($existing->full_name !== $data['fullName']) {
                 $fieldChanged = 'Nama Lengkap';
                 $oldValue = $existing->full_name;
@@ -1155,15 +1272,44 @@ class BusinessDataController extends Controller
         if ($action === 'create' && $role === 'institution_admin' && $type === 'providers') {
             abort(403);
         }
-        if ($type === 'candidates' && $role === 'institution_admin' && ! $request->user()->institution_id) {
+        if ($type === 'candidates' && $role === 'institution_admin' && ! $this->resolveUserInstitution($request->user())) {
             abort(403);
         }
-        if ($action === 'create' && in_array($role, ['institution_admin', 'training_operator'], true) && ! $request->user()->institution_id && $type === 'programs') {
+        if ($action === 'create' && in_array($role, ['institution_admin', 'training_operator'], true) && ! $this->resolveUserInstitution($request->user()) && $type === 'programs') {
             abort(403);
         }
         if ($action === 'create' && $role === 'demand_admin' && ! $request->user()->employer_id) {
             abort(403);
         }
+    }
+
+    private function resolveUserInstitution(object $user): ?object
+    {
+        if (! empty($user->institution_id)) {
+            $inst = DB::table('institutions')->where('id', $user->institution_id)->first();
+            if ($inst) {
+                return $inst;
+            }
+        }
+
+        $scope = app(BusinessDataPresenter::class)->resolveInstitutionScope($user);
+        if (! empty($scope['ids'])) {
+            $inst = DB::table('institutions')->whereIn('id', $scope['ids'])->first();
+            if ($inst) {
+                return $inst;
+            }
+        }
+        foreach ($scope['patterns'] ?? [] as $pattern) {
+            $clean = str_replace('%', '', (string) $pattern);
+            if ($clean !== '') {
+                $inst = DB::table('institutions')->where('name', 'LIKE', "%{$clean}%")->first();
+                if ($inst) {
+                    return $inst;
+                }
+            }
+        }
+
+        return null;
     }
 
     private function assertRecordScope(Request $request, string $type, object $record): void
