@@ -1,5 +1,15 @@
-import { BadgeCheck, BriefcaseBusiness, ChevronDown, ChevronRight, Users } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import {
+  BadgeCheck,
+  BriefcaseBusiness,
+  ChevronDown,
+  ChevronRight,
+  Search,
+  Users,
+  X,
+} from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
+import { Input } from "@/components/ui/input";
 import {
   Dialog,
   DialogContent,
@@ -55,6 +65,25 @@ function normalizeSectorName(name: string) {
     .trim();
 }
 
+function matchesSearch(participant: ParticipantProjection, query: string): boolean {
+  if (query === "") {
+    return true;
+  }
+
+  return [
+    participant.name,
+    participant.province,
+    participant.sectorName,
+    participant.occupationName,
+    participant.educationLevel,
+    participant.major ?? "",
+    participant.sourceType,
+  ]
+    .join(" ")
+    .toLocaleLowerCase("id-ID")
+    .includes(query);
+}
+
 export function CountryProjectionDetailsDialog({
   country,
   sectors,
@@ -64,57 +93,77 @@ export function CountryProjectionDetailsDialog({
   onOpenChange,
   onSectorSelect,
 }: CountryProjectionDetailsDialogProps) {
-  const visibleParticipants = selectedSector
-    ? participants.filter(
-        (participant) =>
-          normalizeSectorName(participant.sectorName) === normalizeSectorName(selectedSector),
-      )
-    : participants;
+  const [searchQuery, setSearchQuery] = useState("");
+
+  useEffect(() => {
+    setSearchQuery("");
+  }, [country?.name, country?.year]);
+
+  const sectorParticipants = useMemo(() => {
+    if (!selectedSector) {
+      return participants;
+    }
+
+    const sectorKey = normalizeSectorName(selectedSector);
+
+    return participants.filter(
+      (participant) => normalizeSectorName(participant.sectorName) === sectorKey,
+    );
+  }, [participants, selectedSector]);
+
+  const normalizedQuery = searchQuery.trim().toLocaleLowerCase("id-ID");
+  const visibleParticipants = useMemo(
+    () => sectorParticipants.filter((participant) => matchesSearch(participant, normalizedQuery)),
+    [sectorParticipants, normalizedQuery],
+  );
+  const isFiltered = selectedSector !== null || normalizedQuery !== "";
 
   return (
     <Dialog open={country !== null} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="flex max-h-[85vh] w-[calc(100vw-1.5rem)] max-w-3xl flex-col gap-0 overflow-hidden p-0">
+        <DialogHeader className="shrink-0 border-b border-border px-4 py-4 text-left sm:px-5">
           <DialogTitle>{country ? `Rincian ${country.name}` : "Rincian negara"}</DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-xs sm:text-sm">
             {country
-              ? `Target, capaian, dan peserta terverifikasi ${country.year ? `tahun ${country.year}` : "di semua periode"}. Pilih sektor untuk melihat jabatan dan pesertanya.`
+              ? `Target, capaian, dan peserta terverifikasi ${country.year ? `tahun ${country.year}` : "di semua periode"}. Pilih sektor atau cari peserta untuk mempersempit daftar.`
               : "Pilih negara untuk melihat rincian target."}
           </DialogDescription>
         </DialogHeader>
 
         {country && (
-          <div className="space-y-4">
-            <div className="grid gap-3 sm:grid-cols-3">
-              <div className="rounded-lg border border-border bg-muted/30 p-3">
+          <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overflow-x-hidden px-4 py-4 sm:px-5">
+            <div className="grid gap-2 sm:grid-cols-3">
+              <div className="rounded-lg border border-border bg-muted/30 p-2.5">
                 <p className="text-xs text-muted-foreground">Target negara</p>
-                <p className="mt-1 text-xl font-bold tabular-nums">
+                <p className="mt-0.5 text-lg font-bold tabular-nums">
                   {numberFormat.format(country.target)}
                 </p>
               </div>
-              <div className="rounded-lg border border-border bg-muted/30 p-3">
+              <div className="rounded-lg border border-border bg-muted/30 p-2.5">
                 <p className="text-xs text-muted-foreground">Peserta terverifikasi</p>
-                <p className="mt-1 text-xl font-bold tabular-nums text-primary">
+                <p className="mt-0.5 text-lg font-bold tabular-nums text-primary">
                   {numberFormat.format(country.achieved)}
                 </p>
               </div>
-              <div className="rounded-lg border border-border bg-muted/30 p-3">
+              <div className="rounded-lg border border-border bg-muted/30 p-2.5">
                 <p className="text-xs text-muted-foreground">Target dari jabatan terdaftar</p>
-                <p className="mt-1 text-xl font-bold tabular-nums">
+                <p className="mt-0.5 text-lg font-bold tabular-nums">
                   {numberFormat.format(totalTarget)}
                 </p>
               </div>
             </div>
 
             {sectors.length === 0 ? (
-              <p className="rounded-lg border border-dashed border-border p-5 text-center text-sm text-muted-foreground">
+              <p className="rounded-lg border border-dashed border-border p-4 text-center text-sm text-muted-foreground">
                 Belum ada sektor dan jabatan yang didaftarkan untuk negara ini.
               </p>
             ) : (
               <div className="space-y-2">
                 <h3 className="text-sm font-semibold">Sektor terdaftar</h3>
                 {sectors.map((sector) => {
-                  const isSelected = selectedSector === sector.name;
+                  const isSelected =
+                    selectedSector !== null &&
+                    normalizeSectorName(selectedSector) === normalizeSectorName(sector.name);
 
                   return (
                     <section
@@ -128,12 +177,12 @@ export function CountryProjectionDetailsDialog({
                         className="flex w-full items-center justify-between gap-3 p-3 text-left hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
                       >
                         <span className="flex min-w-0 items-center gap-3">
-                          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+                          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
                             <BriefcaseBusiness className="h-4 w-4" aria-hidden="true" />
                           </span>
                           <span className="min-w-0">
                             <span className="block truncate text-sm font-semibold">{sector.name}</span>
-                            <span className="text-xs text-muted-foreground">
+                            <span className="block text-xs text-muted-foreground">
                               {numberFormat.format(sector.occupations.length)} jabatan
                             </span>
                           </span>
@@ -164,12 +213,12 @@ export function CountryProjectionDetailsDialog({
                             <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-2 text-sm">
                               {sector.occupations.map((occupation) => (
                                 <div key={occupation.name} className="contents">
-                                  <span className="flex items-center gap-2 py-1 text-muted-foreground">
+                                  <span className="flex min-w-0 items-center gap-2 py-1 text-muted-foreground">
                                     <span
                                       className="h-1.5 w-1.5 shrink-0 rounded-full bg-primary"
                                       aria-hidden="true"
                                     />
-                                    {occupation.name}
+                                    <span className="break-words">{occupation.name}</span>
                                   </span>
                                   <span className="py-1 text-right font-medium tabular-nums">
                                     {numberFormat.format(occupation.target)}
@@ -205,23 +254,61 @@ export function CountryProjectionDetailsDialog({
                 </h3>
                 <Badge variant="secondary" className="tabular-nums">
                   {numberFormat.format(visibleParticipants.length)}
-                  {selectedSector ? ` dari ${numberFormat.format(participants.length)}` : ""} peserta
+                  {isFiltered ? ` dari ${numberFormat.format(participants.length)}` : ""} peserta
                 </Badge>
               </div>
+
+              <div className="relative">
+                <Search
+                  className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+                  aria-hidden="true"
+                />
+                <Input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(event) => setSearchQuery(event.target.value)}
+                  placeholder="Cari nama, wilayah, sektor, atau jabatan"
+                  aria-label="Cari peserta terverifikasi"
+                  className="h-9 pl-9 pr-9"
+                />
+                {searchQuery !== "" && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery("")}
+                    aria-label="Hapus pencarian peserta"
+                    className="absolute right-2 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <X className="h-3.5 w-3.5" aria-hidden="true" />
+                  </button>
+                )}
+              </div>
+
               {selectedSector && (
-                <p className="text-xs text-muted-foreground">
-                  Menampilkan peserta dengan sektor {selectedSector}. Pilih sektor yang sama untuk
-                  melihat seluruh peserta.
-                </p>
+                <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                  <span>
+                    Sektor aktif: <span className="font-semibold text-foreground">{selectedSector}</span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => onSectorSelect(selectedSector)}
+                    className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-0.5 font-medium text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <X className="h-3 w-3" aria-hidden="true" />
+                    Hapus filter sektor
+                  </button>
+                </div>
               )}
+
               {visibleParticipants.length === 0 ? (
-                <p className="rounded-lg border border-dashed border-border p-5 text-center text-sm text-muted-foreground">
+                <p className="rounded-lg border border-dashed border-border p-4 text-center text-sm text-muted-foreground">
                   {participants.length === 0
                     ? "Belum ada peserta terverifikasi untuk negara ini."
-                    : "Belum ada peserta terverifikasi pada sektor ini."}
+                    : sectorParticipants.length === 0
+                      ? "Belum ada peserta terverifikasi pada sektor ini."
+                      : "Tidak ada peserta yang cocok dengan pencarian."}
                 </p>
               ) : (
-                <ul className="max-h-72 space-y-2 overflow-y-auto pr-1">
+                <ul className="space-y-2">
                   {visibleParticipants.map((participant) => (
                     <li
                       key={`${participant.id}-${participant.sectorName}`}
@@ -251,8 +338,8 @@ export function CountryProjectionDetailsDialog({
                           Terverifikasi
                         </Badge>
                       </div>
-                      <div className="mt-2 grid gap-1.5 border-t border-border/60 pt-2 text-xs sm:grid-cols-3">
-                        <div className="rounded bg-muted/40 p-1.5">
+                      <div className="mt-2 grid grid-cols-1 gap-1.5 border-t border-border/60 pt-2 text-xs sm:grid-cols-3">
+                        <div className="min-w-0 rounded bg-muted/40 p-1.5">
                           <span className="block text-[10px] font-medium text-muted-foreground">
                             Sektor
                           </span>
@@ -260,7 +347,7 @@ export function CountryProjectionDetailsDialog({
                             {participant.sectorName}
                           </span>
                         </div>
-                        <div className="rounded bg-muted/40 p-1.5">
+                        <div className="min-w-0 rounded bg-muted/40 p-1.5">
                           <span className="block text-[10px] font-medium text-muted-foreground">
                             Jabatan
                           </span>
@@ -268,7 +355,7 @@ export function CountryProjectionDetailsDialog({
                             {participant.occupationName}
                           </span>
                         </div>
-                        <div className="rounded bg-muted/40 p-1.5">
+                        <div className="min-w-0 rounded bg-muted/40 p-1.5">
                           <span className="block text-[10px] font-medium text-muted-foreground">
                             Sumber data
                           </span>
