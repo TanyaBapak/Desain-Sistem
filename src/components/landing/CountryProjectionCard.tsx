@@ -27,6 +27,11 @@ const countryAliases = new Map([
   ["uae", "uni emirat arab"],
   ["united arab emirates", "uni emirat arab"],
   ["uni emirat arab", "uni emirat arab"],
+  ["turki", "turki"],
+  ["turkey", "turki"],
+  ["turky", "turki"],
+  ["türkiye", "turki"],
+  ["turkiye", "turki"],
 ]);
 
 function normalizeCountryName(name: string) {
@@ -58,11 +63,25 @@ function getCountryProjection(
 
 function getCountrySectors(
   country: CountryProjection,
-  placementTargets: LandingProjectionData["placementTargets"],
+  projection: LandingProjectionData,
 ): SectorProjection[] {
   const sectors = new Map<string, Map<string, number>>();
+  const achievedBySector = new Map<string, number>();
+  const countryKey = normalizeCountryName(country.name);
 
-  placementTargets.forEach((item) => {
+  projection.sectors.forEach((item) => {
+    if (item.year !== undefined && country.year !== null && item.year !== country.year) {
+      return;
+    }
+    if (item.countryName && normalizeCountryName(item.countryName) !== countryKey) {
+      return;
+    }
+
+    const sectorName = item.sectorName ?? item.name;
+    achievedBySector.set(sectorName, (achievedBySector.get(sectorName) ?? 0) + item.achieved);
+  });
+
+  projection.placementTargets.forEach((item) => {
     if (country.year !== null && item.year !== country.year) {
       return;
     }
@@ -72,7 +91,7 @@ function getCountrySectors(
       .map(normalizeCountryName)
       .filter(Boolean)));
     const destinationIndex = destinations.findIndex(
-      (destination) => destination === normalizeCountryName(country.name),
+      (destination) => destination === countryKey,
     );
 
     if (destinationIndex < 0 || destinations.length === 0) {
@@ -90,6 +109,13 @@ function getCountrySectors(
     sectors.set(item.sectorName, occupations);
   });
 
+  // Tampilkan capaian sektor terverifikasi yang belum memiliki target penempatan.
+  achievedBySector.forEach((achieved, sectorName) => {
+    if (achieved > 0 && !sectors.has(sectorName)) {
+      sectors.set(sectorName, new Map());
+    }
+  });
+
   return Array.from(sectors, ([name, occupations]) => {
     const occupationRows = Array.from(occupations, ([occupationName, target]) => ({
       name: occupationName,
@@ -99,6 +125,7 @@ function getCountrySectors(
     return {
       name,
       target: occupationRows.reduce((total, occupation) => total + occupation.target, 0),
+      achieved: achievedBySector.get(name) ?? 0,
       occupations: occupationRows,
     };
   }).sort((left, right) => left.name.localeCompare(right.name, "id"));
@@ -115,7 +142,7 @@ export function CountryProjectionCard({ projection }: CountryProjectionCardProps
     [projection],
   );
   const sectors = selectedCountry
-    ? getCountrySectors(selectedCountry, projection.placementTargets)
+    ? getCountrySectors(selectedCountry, projection)
     : [];
   const totalTarget = sectors.reduce((total, sector) => total + sector.target, 0);
 
@@ -162,7 +189,7 @@ export function CountryProjectionCard({ projection }: CountryProjectionCardProps
                   : 0;
                 const sectorCount = getCountrySectors(
                   country,
-                  projection.placementTargets,
+                  projection,
                 ).length;
 
                 return (

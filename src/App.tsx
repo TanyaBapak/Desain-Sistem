@@ -1,5 +1,7 @@
 import React, { useEffect, useLayoutEffect } from "react";
+import { Head } from "@inertiajs/react";
 import { useAppStore } from "@/store/useAppStore";
+import { NAV_ITEMS } from "@/lib/sidebar-items";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { KemendagriLandingPage } from "@/components/landing/KemendagriLandingPage";
 import { UnifiedLoginPage } from "@/components/auth/UnifiedLoginPage";
@@ -41,7 +43,15 @@ interface LandingProjectionData {
   year: number | null;
   periods: number[];
   countries: { name: string; target: number; achieved: number; projected: number }[];
-  sectors: { name: string; target: number; achieved: number; projected: number }[];
+  sectors: {
+    name: string;
+    year?: number;
+    countryName?: string;
+    sectorName?: string;
+    target: number;
+    achieved: number;
+    projected: number;
+  }[];
   placementTargets: {
     year: number;
     sectorName: string;
@@ -206,6 +216,13 @@ function AppContent({
   } = useAppStore();
   const authenticatedUser = auth?.user ?? null;
   const activeTab = isRoot && authenticatedUser ? authenticatedUser.defaultTab : currentTab;
+  const pageTitle = (() => {
+    const navItem = NAV_ITEMS.find((item) => item.id === activeTab);
+    if (navItem) return navItem.label;
+    if (activeTab === "overview") return "Ringkasan";
+    if (activeTab === "modul-e") return "Pencocokan";
+    return "SMK Go Global";
+  })();
 
   useLayoutEffect(() => {
     if (businessData) {
@@ -277,28 +294,39 @@ function AppContent({
   );
 
   if (showLogin && !authenticatedUser) {
-    return <UnifiedLoginPage status={registrationStatus} />;
+    return (
+      <>
+        <Head title="Masuk" />
+        <UnifiedLoginPage status={registrationStatus} />
+      </>
+    );
   }
 
   if (showInstitutionRegistration && !authenticatedUser && registrationOptions) {
     return (
-      <InstitutionRegistrationPage
-        provinces={registrationOptions.provinces}
-        districts={registrationOptions.districts}
-        sectors={registrationOptions.sectors}
-        countries={registrationOptions.countries}
-      />
+      <>
+        <Head title="Pendaftaran Lembaga Vokasi" />
+        <InstitutionRegistrationPage
+          provinces={registrationOptions.provinces}
+          districts={registrationOptions.districts}
+          sectors={registrationOptions.sectors}
+          countries={registrationOptions.countries}
+        />
+      </>
     );
   }
 
   if (!authenticatedUser) {
     return (
-      <KemendagriLandingPage
-        kpiSummary={landingKpiSummary}
-        projection={landingProjection}
-        trainingSectors={trainingCatalog?.sectors ?? []}
-        publicCommandCenter={publicCommandCenter}
-      />
+      <>
+        <Head title="Platform Monitoring SMK Go Global" />
+        <KemendagriLandingPage
+          kpiSummary={landingKpiSummary}
+          projection={landingProjection}
+          trainingSectors={trainingCatalog?.sectors ?? []}
+          publicCommandCenter={publicCommandCenter}
+        />
+      </>
     );
   }
 
@@ -468,14 +496,17 @@ function AppContent({
   }
 
   return (
-    <AdminLayout
-      currentTab={activeTab}
-      onTabChange={setCurrentTab}
-      accessibleTabs={authenticatedUser.accessibleTabs}
-      impersonationAdminName={auth.impersonation?.adminName ?? null}
-    >
-      {page}
-    </AdminLayout>
+    <>
+      <Head title={pageTitle} />
+      <AdminLayout
+        currentTab={activeTab}
+        onTabChange={setCurrentTab}
+        accessibleTabs={authenticatedUser.accessibleTabs}
+        impersonationAdminName={auth.impersonation?.adminName ?? null}
+      >
+        {page}
+      </AdminLayout>
+    </>
   );
 }
 

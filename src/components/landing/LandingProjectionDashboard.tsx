@@ -4,6 +4,9 @@ import { CountryProjectionCard } from "@/components/landing/CountryProjectionCar
 
 export interface LandingProjectionSeries {
   name: string;
+  year?: number;
+  countryName?: string;
+  sectorName?: string;
   target: number;
   achieved: number;
   projected: number;
@@ -86,8 +89,8 @@ export function LandingProjectionDashboard({ projection }: LandingProjectionDash
 
         <p className="text-xs text-muted-foreground">
           Proyeksi menunjukkan sisa target dari kuota yang tercatat, bukan perkiraan otomatis
-          keberangkatan. Capaian memakai permintaan berstatus disetujui berdasarkan tahun
-          pembuatannya.
+          keberangkatan. Capaian negara dan capaian per sektor hanya menghitung permintaan yang
+          sudah diverifikasi (berstatus disetujui) berdasarkan tahun pembuatannya.
         </p>
       </div>
     </section>

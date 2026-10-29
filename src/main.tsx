@@ -36,6 +36,7 @@ document.documentElement.classList.toggle(
 );
 
 void createInertiaApp({
+  title: (title) => (title ? `${title} — SMK Go Global` : "SMK Go Global"),
   resolve: (name) => {
     if (name !== "App") {
       throw new Error(`Halaman Inertia tidak ditemukan: ${name}`);

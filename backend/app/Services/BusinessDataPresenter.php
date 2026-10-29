@@ -34,9 +34,32 @@ class BusinessDataPresenter
         'uea' => ['Uni Emirat Arab', 'UEA', 'UAE', 'United Arab Emirates'],
         'uae' => ['Uni Emirat Arab', 'UEA', 'UAE', 'United Arab Emirates'],
         'united arab emirates' => ['Uni Emirat Arab', 'UEA', 'UAE', 'United Arab Emirates'],
+        // Turkey, Turki, Turky, dan Türkiye adalah satu negara tujuan yang sama.
+        'turki' => ['Turki'],
+        'turkey' => ['Turki'],
+        'turky' => ['Turki'],
+        'türkiye' => ['Turki'],
+        'turkiye' => ['Turki'],
     ];
 
     private const NON_COUNTRY_DESTINATIONS = ['eropa timur', 'timur tengah'];
+
+    /**
+     * Padanan kata kunci nama sektor target penempatan dengan nama sektor master.
+     *
+     * @var array<string, array<int, string>>
+     */
+    private const SECTOR_NAME_ALIASES = [
+        'agriculture' => ['pertanian', 'agriculture', 'perkebunan'],
+        'farming' => ['pertanian', 'farming'],
+        'kesehatan' => ['kesehatan', 'caregiver', 'perawatan'],
+        'hospitality' => ['hospitality', 'pariwisata', 'perhotelan'],
+        'manufaktur' => ['manufaktur', 'pengelasan', 'manufacturing'],
+        'welding' => ['pengelasan', 'manufaktur'],
+        'otomotif' => ['otomotif'],
+        'konstruksi' => ['konstruksi'],
+        'transportasi' => ['transportasi', 'logistik'],
+    ];
 
     public const INDONESIA_38_PROVINCES = [
         ['id' => '11', 'name' => 'Aceh'],
@@ -661,11 +684,14 @@ class BusinessDataPresenter
                 ];
             }
         }
-        $existingSectorPerformance = collect($sectorPerformance)
-            ->keyBy(fn (array $item): string => "{$item['year']}|"
-                .$this->normalizeCountryName($item['countryName'])."|"
-                .$this->normalizeCountryName($item['sectorName']))
-            ->all();
+        $masterSectorNames = DB::table('sectors')->pluck('name', 'id')->all();
+        $sectorAchievedByPeriod = [];
+        foreach ($sectorPerformance as $sectorRow) {
+            $periodKey = "{$sectorRow['year']}|".$this->normalizeCountryName($sectorRow['countryName']);
+            $sectorAchievedByPeriod[$periodKey][(string) $sectorRow['sectorId']] =
+                ($sectorAchievedByPeriod[$periodKey][(string) $sectorRow['sectorId']] ?? 0)
+                + (int) $sectorRow['achieved'];
+        }
         $sectorPerformance = array_values(array_filter(
             $sectorPerformance,
             fn (array $item): bool => ! isset(
@@ -673,8 +699,12 @@ class BusinessDataPresenter
             ),
         ));
         foreach ($placementSectorTargets as $key => $placementTarget) {
-            $existing = $existingSectorPerformance[$key] ?? null;
-            $achieved = $existing['achieved'] ?? 0;
+            $periodKey = "{$placementTarget['year']}|".$this->normalizeCountryName($placementTarget['countryName']);
+            $achieved = $this->verifiedSectorAchieved(
+                $placementTarget['sectorName'],
+                $masterSectorNames,
+                $sectorAchievedByPeriod[$periodKey] ?? [],
+            );
             $target = $placementTarget['target'];
             $sectorPerformance[] = [
                 ...$placementTarget,
@@ -682,6 +712,59 @@ class BusinessDataPresenter
                 'projected' => max(0, $target - $achieved),
                 'percentage' => $target > 0 ? round(($achieved / $target) * 100, 1) : 0.0,
             ];
+        }
+        // Tampilkan capaian sektor terverifikasi yang belum punya target penempatan
+        // agar angka capaian per sektor tetap terlihat utuh.
+        foreach ($sectorAchievedByPeriod as $periodKey => $achievedBySector) {
+            if (! isset($placementCountryPeriods[$periodKey])) {
+                continue;
+            }
+
+            [$periodYear, $periodCountryKey] = explode('|', $periodKey, 2);
+            $periodCountryName = null;
+            foreach ($placementSectorTargets as $placementTarget) {
+                if ((int) $placementTarget['year'] !== (int) $periodYear
+                    || $this->normalizeCountryName($placementTarget['countryName']) !== $periodCountryKey) {
+                    continue;
+                }
+                $periodCountryName = $placementTarget['countryName'];
+                break;
+            }
+            if ($periodCountryName === null) {
+                continue;
+            }
+
+            foreach ($achievedBySector as $sectorId => $achieved) {
+                if ($achieved === 0 || ! isset($masterSectorNames[$sectorId])) {
+                    continue;
+                }
+
+                $alreadyRepresented = false;
+                foreach ($placementSectorTargets as $placementTarget) {
+                    if ((int) $placementTarget['year'] !== (int) $periodYear
+                        || $this->normalizeCountryName($placementTarget['countryName']) !== $periodCountryKey) {
+                        continue;
+                    }
+                    if ($this->sectorNamesMatch($placementTarget['sectorName'], $masterSectorNames[$sectorId])) {
+                        $alreadyRepresented = true;
+                        break;
+                    }
+                }
+                if ($alreadyRepresented) {
+                    continue;
+                }
+
+                $sectorPerformance[] = [
+                    'year' => (int) $periodYear,
+                    'countryId' => null,
+                    'countryName' => $periodCountryName,
+                    'sectorName' => $masterSectorNames[$sectorId],
+                    'target' => 0,
+                    'achieved' => $achieved,
+                    'projected' => 0,
+                    'percentage' => 0.0,
+                ];
+            }
         }
 
         $countryPerformanceByPeriod = collect($countryPerformance)
@@ -772,6 +855,9 @@ class BusinessDataPresenter
             ->map(fn (array $item): array => [
                 'name' => ($year === null ? "{$item['year']} · " : '')
                     ."{$item['countryName']} · {$item['sectorName']}",
+                'year' => (int) $item['year'],
+                'countryName' => $item['countryName'],
+                'sectorName' => $item['sectorName'],
                 'target' => $item['target'],
                 'achieved' => $item['achieved'],
                 'projected' => $item['projected'],
@@ -865,6 +951,72 @@ class BusinessDataPresenter
     }
 
     /**
+     * Kunci negara kanonis agar alias seperti Turkey/Turki/Turky dihitung sekali.
+     */
+    private function canonicalCountryKey(string $name): string
+    {
+        $normalized = $this->normalizeCountryName($name);
+        $aliases = self::COUNTRY_ALIASES[$normalized] ?? [];
+
+        return isset($aliases[0])
+            ? $this->normalizeCountryName($aliases[0])
+            : $normalized;
+    }
+
+    private function normalizeSectorName(string $name): string
+    {
+        $normalized = mb_strtolower(trim($name));
+        $normalized = preg_replace('/[^\p{L}\p{N}]+/u', ' ', $normalized) ?? $normalized;
+
+        return trim($normalized);
+    }
+
+    /**
+     * Menentukan apakah nama sektor target penempatan merujuk ke sektor master.
+     *
+     * @param  array<string, int>  $achievedBySectorId
+     * @param  array<string, string>  $masterSectorNames
+     */
+    private function verifiedSectorAchieved(
+        string $sectorName,
+        array $masterSectorNames,
+        array $achievedBySectorId,
+    ): int {
+        $total = 0;
+        foreach ($masterSectorNames as $sectorId => $masterName) {
+            $achieved = (int) ($achievedBySectorId[$sectorId] ?? 0);
+            if ($achieved === 0) {
+                continue;
+            }
+            if ($this->sectorNamesMatch($sectorName, $masterName)) {
+                $total += $achieved;
+            }
+        }
+
+        return $total;
+    }
+
+    private function sectorNamesMatch(string $left, string $right): bool
+    {
+        $left = $this->normalizeSectorName($left);
+        $right = $this->normalizeSectorName($right);
+        if ($left === '' || $right === '') {
+            return false;
+        }
+        if ($left === $right || str_contains($right, $left) || str_contains($left, $right)) {
+            return true;
+        }
+
+        foreach (self::SECTOR_NAME_ALIASES[$left] ?? [] as $alias) {
+            if ($alias === $right || str_contains($right, $alias)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * @param  array<int, array{year: int, sectorName: string, occupationName: string, projectionPlacement: string, target: int}>  $targets
      * @return array<int, array{year: int, sectorName: string, occupationName: string, projectionPlacement: string, target: int}>
      */
@@ -878,7 +1030,7 @@ class BusinessDataPresenter
 
             $countryName = preg_replace('/\\s*\\([^)]*\\)/u', '', $target['projectionPlacement'])
                 ?? $target['projectionPlacement'];
-            $normalizedCountry = $this->normalizeCountryName($countryName);
+            $normalizedCountry = $this->canonicalCountryKey($countryName);
             if (isset(self::PUBLIC_PLACEMENT_COUNTRY_TARGETS[$normalizedCountry])) {
                 $targetIndexesByCountry[$normalizedCountry][] = $index;
             }

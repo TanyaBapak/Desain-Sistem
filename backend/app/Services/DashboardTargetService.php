@@ -159,6 +159,11 @@ class DashboardTargetService
             'uea' => ['Uni Emirat Arab', 'UEA', 'UAE', 'United Arab Emirates'],
             'uae' => ['Uni Emirat Arab', 'UEA', 'UAE', 'United Arab Emirates'],
             'united arab emirates' => ['Uni Emirat Arab', 'UEA', 'UAE', 'United Arab Emirates'],
+            'turki' => ['Turki'],
+            'turkey' => ['Turki'],
+            'turky' => ['Turki'],
+            'türkiye' => ['Turki'],
+            'turkiye' => ['Turki'],
         ];
         foreach ($aliases[$normalizedDestination] ?? [] as $alias) {
             $normalizedAlias = mb_strtolower($alias);

@@ -20,6 +20,7 @@ export interface CountryProjection {
 export interface SectorProjection {
   name: string;
   target: number;
+  achieved: number;
   occupations: { name: string; target: number }[];
 }
 
@@ -54,11 +55,17 @@ export function CountryProjectionDetailsDialog({
 
         {country && (
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid gap-3 sm:grid-cols-3">
               <div className="rounded-lg border border-border bg-muted/30 p-3">
                 <p className="text-xs text-muted-foreground">Target negara</p>
                 <p className="mt-1 text-xl font-bold tabular-nums">
                   {numberFormat.format(country.target)}
+                </p>
+              </div>
+              <div className="rounded-lg border border-border bg-muted/30 p-3">
+                <p className="text-xs text-muted-foreground">Capaian terverifikasi</p>
+                <p className="mt-1 text-xl font-bold tabular-nums text-primary">
+                  {numberFormat.format(country.achieved)}
                 </p>
               </div>
               <div className="rounded-lg border border-border bg-muted/30 p-3">
@@ -102,8 +109,13 @@ export function CountryProjectionDetailsDialog({
                           </span>
                         </span>
                         <span className="flex shrink-0 items-center gap-2">
-                          <span className="text-sm font-semibold tabular-nums">
-                            {numberFormat.format(sector.target)}
+                          <span className="flex flex-col items-end">
+                            <span className="text-sm font-semibold tabular-nums">
+                              {numberFormat.format(sector.target)}
+                            </span>
+                            <span className="text-xs text-muted-foreground tabular-nums">
+                              {numberFormat.format(sector.achieved)} tercapai
+                            </span>
                           </span>
                           {isSelected ? (
                             <ChevronDown className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
@@ -114,28 +126,35 @@ export function CountryProjectionDetailsDialog({
                       </button>
                       {isSelected && (
                         <div className="border-t border-border bg-muted/20 px-3 py-2">
-                          <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-2 text-sm">
-                            {sector.occupations.map((occupation) => (
-                              <div key={occupation.name} className="contents">
-                                <span className="flex items-center gap-2 py-1 text-muted-foreground">
-                                  <span
-                                    className="h-1.5 w-1.5 shrink-0 rounded-full bg-primary"
-                                    aria-hidden="true"
-                                  />
-                                  {occupation.name}
-                                </span>
-                                <span className="py-1 text-right font-medium tabular-nums">
-                                  {numberFormat.format(occupation.target)}
-                                </span>
-                              </div>
-                            ))}
-                            <span className="border-t border-border pt-2 font-semibold">
-                              Total sektor
-                            </span>
-                            <span className="border-t border-border pt-2 text-right font-bold tabular-nums">
-                              {numberFormat.format(sector.target)}
-                            </span>
-                          </div>
+                          {sector.occupations.length === 0 ? (
+                            <p className="py-1 text-sm text-muted-foreground">
+                              Belum ada jabatan yang didaftarkan. Capaian berasal dari data
+                              terverifikasi.
+                            </p>
+                          ) : (
+                            <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-2 text-sm">
+                              {sector.occupations.map((occupation) => (
+                                <div key={occupation.name} className="contents">
+                                  <span className="flex items-center gap-2 py-1 text-muted-foreground">
+                                    <span
+                                      className="h-1.5 w-1.5 shrink-0 rounded-full bg-primary"
+                                      aria-hidden="true"
+                                    />
+                                    {occupation.name}
+                                  </span>
+                                  <span className="py-1 text-right font-medium tabular-nums">
+                                    {numberFormat.format(occupation.target)}
+                                  </span>
+                                </div>
+                              ))}
+                              <span className="border-t border-border pt-2 font-semibold">
+                                Total sektor
+                              </span>
+                              <span className="border-t border-border pt-2 text-right font-bold tabular-nums">
+                                {numberFormat.format(sector.target)}
+                              </span>
+                            </div>
+                          )}
                         </div>
                       )}
                     </section>

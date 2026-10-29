@@ -226,6 +226,74 @@ class DashboardTargetTest extends TestCase
         }
     }
 
+    public function test_public_projection_merges_turkey_turki_and_turky_as_one_country(): void
+    {
+        DB::table('landing_placement_targets')->insert([
+            [
+                'year' => 2027,
+                'sector_name' => 'Hospitality',
+                'occupation_name' => 'Housekeeping',
+                'projection_placement' => 'Turkey',
+                'target' => 800,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'year' => 2027,
+                'sector_name' => 'Hospitality',
+                'occupation_name' => 'Housekeeping',
+                'projection_placement' => 'Turky',
+                'target' => 700,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+        ]);
+
+        $projection = app(\App\Services\BusinessDataPresenter::class)->publicLandingProjection(2027);
+
+        $turkeyCountries = collect($projection['countries'])->filter(
+            fn (array $country): bool => in_array($country['name'], ['Turki', 'Turkey', 'Turky'], true),
+        );
+        $this->assertCount(1, $turkeyCountries);
+        $this->assertSame('Turki', $turkeyCountries->first()['name']);
+        $this->assertSame(5000, $turkeyCountries->first()['target']);
+
+        $turkeyTargets = collect($projection['placementTargets'])->filter(function (array $target): bool {
+            $destination = preg_replace('/\\s*\\([^)]*\\)/u', '', $target['projectionPlacement'])
+                ?? $target['projectionPlacement'];
+
+            return in_array(mb_strtolower(trim($destination)), ['turki', 'turkey', 'turky'], true);
+        });
+        $this->assertSame(5000, $turkeyTargets->sum('target'));
+    }
+
+    public function test_public_projection_shows_verified_sector_achievement(): void
+    {
+        DB::table('job_demands')->where('id', 'DEM-DEMO-001')->update([
+            'country_id' => 'JP',
+            'sector_id' => 'SECT-CARE',
+            'verification_status' => 'Approved',
+            'headcount' => 20,
+            'filled_quota' => 8,
+            'created_at' => now()->setYear(2027),
+            'updated_at' => now()->setYear(2027),
+        ]);
+
+        $projection = app(\App\Services\BusinessDataPresenter::class)->publicLandingProjection(2027);
+
+        $japanSectors = collect($projection['sectors'])
+            ->filter(fn (array $sector): bool => ($sector['countryName'] ?? null) === 'Jepang')
+            ->keyBy('sectorName');
+
+        $this->assertTrue($japanSectors->has('Kesehatan'), 'Sektor Kesehatan Jepang harus tersedia.');
+        $this->assertSame(8, $japanSectors['Kesehatan']['achieved']);
+        $this->assertSame(
+            max(0, $japanSectors['Kesehatan']['target'] - 8),
+            $japanSectors['Kesehatan']['projected'],
+        );
+        $this->assertSame(2027, $japanSectors['Kesehatan']['year']);
+    }
+
     public function test_only_super_admin_can_change_manual_landing_target(): void
     {
         $this->actingAs($this->userWithRole('leadership'))
