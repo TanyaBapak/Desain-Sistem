@@ -28,9 +28,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onMobileClose,
   impersonationAdminName,
 }) => {
-  const { currentScope } = useAppStore();
+  const { currentScope, currentUser } = useAppStore();
+  const isSuperAdmin = currentUser?.roleName === "super_admin" || currentUser?.role === "superadmin";
 
-  const navItems = NAV_ITEMS.filter((item) => accessibleTabs.includes(item.id));
+  const navItems = NAV_ITEMS.filter((item) => {
+    if (isSuperAdmin && (item.section === "Ringkasan" || item.section === "Pelaksanaan")) {
+      return false;
+    }
+    return accessibleTabs.includes(item.id);
+  });
   const compact = collapsed && !mobileOpen;
 
   // The active tab is supplied by the current Inertia page.
@@ -75,6 +81,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       <nav aria-label="Navigasi utama" className="flex-1 space-y-4 overflow-y-auto p-2">
         {(["Ringkasan", "Pelaksanaan", "Pengelolaan"] as SidebarSection[]).map((section) => {
+          if (isSuperAdmin && (section === "Ringkasan" || section === "Pelaksanaan")) {
+            return null;
+          }
           const sectionItems = navItems.filter((item) => item.section === section);
           if (sectionItems.length === 0) return null;
 

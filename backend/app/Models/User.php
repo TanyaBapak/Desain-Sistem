@@ -89,10 +89,6 @@ class User extends Authenticatable
     {
         $roleName = $this->primaryRole()?->name;
 
-        if ($roleName === 'super_admin') {
-            return true;
-        }
-
         return in_array($tab, self::accessibleTabsForRole($roleName), true);
     }
 
@@ -102,22 +98,7 @@ class User extends Authenticatable
     public static function accessibleTabsForRole(?string $roleName): array
     {
         return match ($roleName) {
-            'super_admin' => [
-                'dashboard',
-                'overview',
-                'modul-a',
-                'modul-b',
-                'modul-c',
-                'modul-d',
-                'matching',
-                'modul-e',
-                'approvals',
-                'reports',
-                'sippmi-monitoring',
-                'targets',
-                'rbac',
-                'audit',
-            ],
+            'super_admin' => ['rbac', 'targets', 'audit'],
             'leadership' => ['dashboard', 'reports', 'sippmi-monitoring'],
             'task_force' => ['dashboard', 'modul-a', 'modul-b', 'modul-c', 'modul-d', 'matching', 'sippmi-monitoring', 'approvals', 'reports'],
             'directorate_admin' => ['dashboard', 'modul-b', 'modul-c', 'matching', 'reports'],

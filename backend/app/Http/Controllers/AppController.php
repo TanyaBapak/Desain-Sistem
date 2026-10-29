@@ -38,14 +38,12 @@ class AppController extends Controller
         DashboardTargetService $dashboardTargetService,
         UserManagementController $userManagementController,
     ): Response|RedirectResponse {
-        if (! in_array($tab, self::TABS, true)) {
-            $role = $request->user()?->roles()->first();
-            $accessibleTabs = User::accessibleTabsForRole($role?->name);
+        $role = $request->user()?->primaryRole();
+        $accessibleTabs = User::accessibleTabsForRole($role?->name);
 
+        if (! in_array($tab, self::TABS, true) || ! $request->user()?->canAccessTab($tab)) {
             return redirect()->route('app.show', $accessibleTabs[0] ?? 'overview');
         }
-
-        abort_unless($request->user()?->canAccessTab($tab), 403);
 
         try {
             $bp3miScope->activeCodeForUser($request->user());
