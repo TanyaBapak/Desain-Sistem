@@ -314,11 +314,9 @@ class UserManagementController extends Controller
     public function impersonate(Request $request, User $user): RedirectResponse
     {
         $admin = $this->authorizeSuperAdmin($request);
-        abort_if($request->session()->has('impersonator_id'), 409, 'Sesi sedang menjalankan akun lain.');
         abort_if($user->id === $admin->id, 422, 'Tidak dapat login sebagai akun Anda sendiri.');
 
-        $targetIsSuperAdmin = $user->roles()->where('name', 'super_admin')->exists()
-            || $user->roles->contains('name', 'super_admin')
+        $targetIsSuperAdmin = $user->primaryRole()?->name === 'super_admin'
             || DB::table('model_has_roles')
                 ->join('roles', 'roles.id', '=', 'model_has_roles.role_id')
                 ->where('model_has_roles.model_id', $user->id)
@@ -353,11 +351,11 @@ class UserManagementController extends Controller
             'impersonator_id' => $admin->id,
             'impersonator_name' => $admin->name,
         ]);
-        $this->writeAudit($request, $user, 'Super admin mulai menjalankan sesi sebagai pengguna ini.');
+        $this->writeAudit($request, $user, 'Super admin mulai menjalankan sesi sebagai pengguna ini.', $admin);
         Auth::login($user);
         $request->session()->regenerate();
 
-        $roleName = $user->roles()->value('name')
+        $roleName = $user->primaryRole()?->name
             ?? DB::table('model_has_roles')
                 ->join('roles', 'roles.id', '=', 'model_has_roles.role_id')
                 ->where('model_has_roles.model_id', $user->id)
@@ -397,8 +395,25 @@ class UserManagementController extends Controller
     private function authorizeSuperAdmin(Request $request): User
     {
         $user = $request->user();
+        $impersonatorId = $request->session()->get('impersonator_id');
+
+        if ($impersonatorId) {
+            $impersonator = User::find($impersonatorId);
+            if ($impersonator && (
+                $impersonator->primaryRole()?->name === 'super_admin'
+                || DB::table('model_has_roles')
+                    ->join('roles', 'roles.id', '=', 'model_has_roles.role_id')
+                    ->where('model_has_roles.model_id', $impersonator->id)
+                    ->where('roles.name', 'super_admin')
+                    ->exists()
+            )) {
+                return $impersonator;
+            }
+        }
+
         $isSuperAdmin = $user && (
-            $user->roles()->where('name', 'super_admin')->exists()
+            $user->primaryRole()?->name === 'super_admin'
+            || $user->roles()->where('name', 'super_admin')->exists()
             || $user->roles->contains('name', 'super_admin')
             || $user->roles->first()?->name === 'super_admin'
             || DB::table('model_has_roles')

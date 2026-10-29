@@ -247,13 +247,61 @@ export const useAppStore = create<AppState>((set, get) => ({
   businessOptions: { provinces: [], districts: [], sectors: [], occupations: [], countries: [], institutions: [] },
   setBusinessData: (data) => set((state) => {
     const incomingCandidates = Array.isArray(data.candidates) ? data.candidates : [];
-    const candidates = incomingCandidates;
+    const candidates = incomingCandidates.map((c: any) => ({
+      ...c,
+      id: String(c.id ?? ''),
+      fullName: c.fullName || 'Tanpa Nama',
+      nik: c.nik || '',
+      provinsi: c.provinsi || '',
+      kabupatenKota: c.kabupatenKota || '',
+      educationLevel: c.educationLevel || 'SMK',
+      major: c.major || '',
+      institutionName: c.institutionName || '',
+      sourceType: c.sourceType || 'Disnaker Pemda',
+      skills: Array.isArray(c.skills) ? c.skills : [],
+      languageProficiency: Array.isArray(c.languageProficiency) ? c.languageProficiency : [],
+      preferredCountry: Array.isArray(c.preferredCountry) ? c.preferredCountry : [],
+      preferredJobRole: Array.isArray(c.preferredJobRole) ? c.preferredJobRole : [],
+      preferredSectors: Array.isArray(c.preferredSectors) ? c.preferredSectors : [],
+      certifications: Array.isArray(c.certifications) ? c.certifications : [],
+      workExperiences: Array.isArray(c.workExperiences) ? c.workExperiences : [],
+    }));
     const incomingPrograms = Array.isArray(data.programs) ? data.programs : [];
-    const programs = incomingPrograms;
+    const programs = incomingPrograms.map((p: any) => ({
+      ...p,
+      id: String(p.id ?? ''),
+      title: p.title || p.name || '',
+      programType: p.programType || 'Teknis Terpadu',
+      targetSector: p.targetSector || '',
+      targetJobRole: p.targetJobRole || '',
+      targetCountry: p.targetCountry || '',
+      certificationTarget: p.certificationTarget || '',
+      curriculumOutline: Array.isArray(p.curriculumOutline) ? p.curriculumOutline : [],
+      availableOccupations: Array.isArray(p.availableOccupations) ? p.availableOccupations : [],
+    }));
     const incomingProviders = Array.isArray(data.providers) ? data.providers : [];
-    const providers = incomingProviders;
+    const providers = incomingProviders.map((pr: any) => ({
+      ...pr,
+      id: String(pr.id ?? ''),
+      name: pr.name || 'Lembaga Vokasi',
+      providerType: pr.providerType || 'LPK',
+      provinsi: pr.provinsi || '',
+      kabupatenKota: pr.kabupatenKota || '',
+      supportedSectors: Array.isArray(pr.supportedSectors) ? pr.supportedSectors : [],
+      supportedCountries: Array.isArray(pr.supportedCountries) ? pr.supportedCountries : [],
+      offerings: Array.isArray(pr.offerings) ? pr.offerings : [],
+    }));
     const incomingDemands = Array.isArray(data.demands) ? data.demands : [];
-    const demands = incomingDemands;
+    const demands = incomingDemands.map((d: any) => ({
+      ...d,
+      id: String(d.id ?? ''),
+      employerName: d.employerName || '',
+      country: d.country || '',
+      targetSector: d.targetSector || '',
+      targetJobRole: d.targetJobRole || '',
+      requiredCertifications: Array.isArray(d.requiredCertifications) ? d.requiredCertifications : [],
+      requiredLanguages: Array.isArray(d.requiredLanguages) ? d.requiredLanguages : [],
+    }));
     return {
       candidates,
       programs,

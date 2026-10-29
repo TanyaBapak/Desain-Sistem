@@ -279,7 +279,7 @@ export const SupplyTable: React.FC = () => {
       }
 
       // 7. Negara Tujuan
-      const matchCountry = filterCountry === 'ALL' || c.preferredCountry.includes(filterCountry);
+      const matchCountry = filterCountry === 'ALL' || (c.preferredCountry ?? []).includes(filterCountry);
 
       // 8. Status Kesiapan & Verifikasi
       const matchReadiness = filterReadiness === 'ALL' || c.readinessStatus === filterReadiness;

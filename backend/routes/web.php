@@ -62,15 +62,49 @@ Route::post('/lembaga/daftar', [InstitutionRegistrationController::class, 'store
 Route::post('/integrations/gardata/webhook', GardataWebhookController::class)->name('integrations.gardata.webhook');
 Route::post('/integrations/sippmi/webhook', GardataWebhookController::class)->name('integrations.sippmi.webhook');
 
-Route::get('/debug-log', function () {
+Route::get('/debug-log', function (Request $request) {
+    if ($request->query('stats')) {
+        try {
+            $user = auth()->user();
+            return response()->json([
+                'auth' => $user ? [
+                    'id' => $user->id,
+                    'username' => $user->username,
+                    'role' => $user->roles()->value('name'),
+                    'scope_level' => $user->scope_level,
+                    'bp3mi_code' => $user->bp3mi_code,
+                ] : null,
+                'counts' => [
+                    'job_seekers' => DB::table('job_seekers')->whereNull('deleted_at')->count(),
+                    'job_seekers_by_prov' => DB::table('job_seekers')->whereNull('deleted_at')->groupBy('province_id')->select('province_id', DB::raw('count(*) as count'))->pluck('count', 'province_id'),
+                    'institutions' => DB::table('institutions')->count(),
+                    'institutions_active' => DB::table('institutions')->where('status', 'Aktif')->count(),
+                    'institutions_by_prov' => DB::table('institutions')->groupBy('province_id')->select('province_id', DB::raw('count(*) as count'))->pluck('count', 'province_id'),
+                    'training_programs' => DB::table('training_programs')->count(),
+                    'job_demands' => DB::table('job_demands')->count(),
+                    'users' => DB::table('users')->count(),
+                    'model_has_roles' => DB::table('model_has_roles')->count(),
+                ],
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json(['error' => $e->getMessage()]);
+        }
+    }
+
     $logPath = storage_path('logs/laravel.log');
     if (! file_exists($logPath)) {
         return response("Tidak ada file laravel.log di {$logPath}", 200, ['Content-Type' => 'text/plain; charset=utf-8']);
     }
 
+    $filter = $request->query('filter', '');
     $content = file_get_contents($logPath);
     $lines = explode("\n", $content);
-    $lastLines = array_slice($lines, -150);
+
+    if ($filter !== '') {
+        $lines = array_filter($lines, fn ($line) => stripos($line, $filter) !== false);
+    }
+
+    $lastLines = array_slice($lines, -200);
 
     return response(implode("\n", $lastLines), 200, ['Content-Type' => 'text/plain; charset=utf-8']);
 });

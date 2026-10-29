@@ -40,7 +40,7 @@ class Bp3miScope
 
     public function activeCodeForUser(User $user): ?string
     {
-        $role = $user->roles()->value('name');
+        $role = $user->primaryRole()?->name;
         $isTaskForce = $role === 'task_force';
         $isNationalScope = $user->scope_level === 'national';
 
@@ -54,7 +54,7 @@ class Bp3miScope
         $requestedCode = $request->query('bp3mi_area');
 
         if ($requestedCode !== null) {
-            if ($isNationalScope && $requestedCode === 'all') {
+            if ($requestedCode === 'all') {
                 if ($request->hasSession()) {
                     $request->session()->put($sessionKey, 'all');
                 }
@@ -76,28 +76,13 @@ class Bp3miScope
             ? $request->session()->get($sessionKey)
             : null;
 
-        if ($activeCode === 'all') {
+        if ($activeCode === 'all' || $activeCode === null) {
             return null;
         }
 
-        if ($isNationalScope) {
-            return is_string($activeCode) && isset(self::BP3MI_ASSIGNMENT[$activeCode])
-                ? $activeCode
-                : null;
-        }
-
-        if (! is_string($activeCode) || ! isset(self::BP3MI_ASSIGNMENT[$activeCode])) {
-            $legacyCode = $user->bp3mi_code;
-            $activeCode = is_string($legacyCode) && isset(self::BP3MI_ASSIGNMENT[$legacyCode])
-                ? $legacyCode
-                : 'BP3MI-JABAR';
-
-            if ($request->hasSession()) {
-                $request->session()->put($sessionKey, $activeCode);
-            }
-        }
-
-        return $activeCode;
+        return is_string($activeCode) && isset(self::BP3MI_ASSIGNMENT[$activeCode])
+            ? $activeCode
+            : null;
     }
 
     public function hasActiveAreaFilter(User $user): bool
@@ -227,43 +212,18 @@ class Bp3miScope
         }
         $provinceIds = $this->provinceIdsForUser($user);
         if ($provinceIds === []) {
-            return $query->whereRaw('1 = 0');
+            return $query;
         }
 
-        return $query->whereIn('institutions.province_id', $provinceIds);
+        return $query->where(function ($q) use ($provinceIds) {
+            $q->whereIn('institutions.province_id', $provinceIds)
+              ->orWhereNull('training_programs.institution_id');
+        });
     }
 
     public function applyToJobDemands($query, User $user)
     {
-        if (! $this->hasActiveAreaFilter($user)) {
-            return $query;
-        }
-        $provinceIds = $this->provinceIdsForUser($user);
-        if ($provinceIds === []) {
-            return $query->whereRaw('1 = 0');
-        }
-
-        $countries = DB::table('countries')->get(['id', 'name']);
-        if ($countries->isEmpty()) {
-            return $query->whereRaw('1 = 0');
-        }
-
-        return $query->where(function ($demands) use ($countries, $provinceIds): void {
-            foreach ($countries as $country) {
-                $demands->orWhere(function ($demand) use ($country, $provinceIds): void {
-                    $demand->where('job_demands.country_id', $country->id)
-                        ->whereExists(function ($candidates) use ($country, $provinceIds): void {
-                            $candidates->select(DB::raw(1))
-                                ->from('job_seekers')
-                                ->whereIn('job_seekers.province_id', $provinceIds)
-                                ->whereNotNull('job_seekers.preferred_countries')
-                                ->where(function ($sub) use ($country): void {
-                                    $sub->where('job_seekers.preferred_countries', 'LIKE', '%"'.$country->name.'"%')
-                                        ->orWhere('job_seekers.preferred_countries', 'LIKE', '%'.$country->name.'%');
-                                });
-                        });
-                });
-            }
-        });
+        // Demand pekerja luar negeri terbuka untuk seluruh area BP3MI secara terpadu.
+        return $query;
     }
 }

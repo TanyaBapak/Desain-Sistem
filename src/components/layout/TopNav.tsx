@@ -75,14 +75,14 @@ export const TopNav: React.FC<TopNavProps> = ({ currentTab, onOpenSidebar }) => 
               <select
                 aria-label="Filter area wilayah"
                 className="h-9 w-24 max-w-36 rounded-md border border-input bg-background px-2 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:w-auto sm:max-w-48 sm:px-3 sm:text-sm"
-                value={currentUser.bp3miCode ?? (isNationalAreaFilter ? "all" : "")}
+                value={currentUser.bp3miCode ?? "all"}
                 onChange={(event) => router.get(
                   window.location.pathname,
                   { bp3mi_area: event.target.value },
                   { preserveScroll: true, preserveState: false, replace: true },
                 )}
               >
-                {isNationalAreaFilter && <option value="all">Semua Nasional (Seluruh RI)</option>}
+                <option value="all">Semua Nasional (Seluruh RI)</option>
                 {currentUser.bp3miAssignments.map((assignment) => (
                   <option key={assignment.code} value={assignment.code}>{assignment.name}</option>
                 ))}

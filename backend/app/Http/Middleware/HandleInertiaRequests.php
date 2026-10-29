@@ -15,7 +15,7 @@ class HandleInertiaRequests extends Middleware
     {
         $user = $request->user();
         $user?->loadMissing('roles');
-        $role = $user?->roles->first();
+        $role = $user?->primaryRole();
         $bp3miScope = app(Bp3miScope::class);
         $activeBp3miCode = $user ? $bp3miScope->activeCodeForUser($user) : null;
         $activeBp3miAssignment = collect($bp3miScope->assignmentOptions())
@@ -82,6 +82,6 @@ class HandleInertiaRequests extends Middleware
      */
     private function accessibleTabs(User $user): array
     {
-        return User::accessibleTabsForRole($user->roles->first()?->name);
+        return User::accessibleTabsForRole($user->primaryRole()?->name);
     }
 }

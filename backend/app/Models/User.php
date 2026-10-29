@@ -71,13 +71,27 @@ class User extends Authenticatable
         return $this->morphToMany(Role::class, 'model', 'model_has_roles', 'model_id', 'role_id');
     }
 
+    public function primaryRole(): ?Role
+    {
+        $role = $this->roles->first();
+        if ($role) {
+            return $role;
+        }
+
+        $roleId = \Illuminate\Support\Facades\DB::table('model_has_roles')
+            ->where('model_id', $this->id)
+            ->value('role_id');
+
+        return $roleId ? Role::find($roleId) : null;
+    }
+
     public function canAccessTab(string $tab): bool
     {
-        $roleName = $this->roles->first()?->name
-            ?? \Illuminate\Support\Facades\DB::table('model_has_roles')
-                ->join('roles', 'roles.id', '=', 'model_has_roles.role_id')
-                ->where('model_has_roles.model_id', $this->id)
-                ->value('roles.name');
+        $roleName = $this->primaryRole()?->name;
+
+        if ($roleName === 'super_admin') {
+            return true;
+        }
 
         return in_array($tab, self::accessibleTabsForRole($roleName), true);
     }
@@ -88,7 +102,22 @@ class User extends Authenticatable
     public static function accessibleTabsForRole(?string $roleName): array
     {
         return match ($roleName) {
-            'super_admin' => ['targets', 'rbac', 'audit'],
+            'super_admin' => [
+                'dashboard',
+                'overview',
+                'modul-a',
+                'modul-b',
+                'modul-c',
+                'modul-d',
+                'matching',
+                'modul-e',
+                'approvals',
+                'reports',
+                'sippmi-monitoring',
+                'targets',
+                'rbac',
+                'audit',
+            ],
             'leadership' => ['dashboard', 'reports', 'sippmi-monitoring'],
             'task_force' => ['dashboard', 'modul-a', 'modul-b', 'modul-c', 'modul-d', 'matching', 'sippmi-monitoring', 'approvals', 'reports'],
             'directorate_admin' => ['dashboard', 'modul-b', 'modul-c', 'matching', 'reports'],

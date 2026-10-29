@@ -83,7 +83,14 @@ class AppController extends Controller
             'businessData' => $businessData,
         ];
 
-        if ($tab === 'rbac' && $request->user()->roles()->where('name', 'super_admin')->exists()) {
+        $isSuperAdmin = $request->user()?->primaryRole()?->name === 'super_admin'
+            || \Illuminate\Support\Facades\DB::table('model_has_roles')
+                ->join('roles', 'roles.id', '=', 'model_has_roles.role_id')
+                ->where('model_has_roles.model_id', $request->user()?->id)
+                ->where('roles.name', 'super_admin')
+                ->exists();
+
+        if ($tab === 'rbac' && $isSuperAdmin) {
             try {
                 $props['adminUsers'] = $userManagementController->indexData($request, $dashboardTargetService);
             } catch (\Throwable $e) {
@@ -108,7 +115,7 @@ class AppController extends Controller
             }
         }
 
-        if ($tab === 'targets' && $request->user()->roles()->where('name', 'super_admin')->exists()) {
+        if ($tab === 'targets' && $isSuperAdmin) {
             try {
                 $props['adminTargets'] = $userManagementController->targetData($request, $dashboardTargetService);
             } catch (\Throwable $e) {

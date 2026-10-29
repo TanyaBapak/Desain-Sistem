@@ -19,6 +19,10 @@ export const ProgramFormModal: React.FC<ProgramFormModalProps> = ({
   mode,
 }) => {
   const { businessOptions } = useAppStore();
+  const occupationsList = Array.isArray(businessOptions?.occupations) ? businessOptions.occupations : [];
+  const sectorsList = Array.isArray(businessOptions?.sectors) ? businessOptions.sectors : [];
+  const institutionsList = Array.isArray(businessOptions?.institutions) ? businessOptions.institutions : [];
+  const countriesList = Array.isArray(businessOptions?.countries) ? businessOptions.countries : [];
   const [title, setTitle] = useState('');
   const [programType, setProgramType] = useState<ProgramType>('Teknis Terpadu');
   const [targetSector, setTargetSector] = useState('Manufaktur / Pengelasan');
@@ -33,8 +37,8 @@ export const ProgramFormModal: React.FC<ProgramFormModalProps> = ({
   const [scheduleStart, setScheduleStart] = useState('');
   const [scheduleEnd, setScheduleEnd] = useState('');
   const [curriculumInput, setCurriculumInput] = useState('');
-  const availableOccupations = businessOptions.occupations.filter(
-    (occupation) => businessOptions.sectors.find((sector) => sector.name === targetSector)?.id === occupation.sector_id,
+  const availableOccupations = occupationsList.filter(
+    (occupation) => sectorsList.find((sector) => sector.name === targetSector)?.id === occupation.sector_id,
   );
 
   useEffect(() => {
@@ -44,7 +48,7 @@ export const ProgramFormModal: React.FC<ProgramFormModalProps> = ({
       setTargetSector(initialData.targetSector);
       setTargetJobRole(initialData.targetJobRole);
       setTargetCountry(initialData.targetCountry);
-      setInstitutionId(initialData.institutionId ?? businessOptions.institutions[0]?.id ?? '');
+      setInstitutionId(initialData.institutionId ?? institutionsList[0]?.id ?? '');
       setDurationJP(initialData.durationJP ?? '');
       setCertificationTarget(initialData.certificationTarget);
       setEstimatedCostPerParticipant(initialData.estimatedCostPerParticipant ?? '');
@@ -188,7 +192,7 @@ export const ProgramFormModal: React.FC<ProgramFormModalProps> = ({
                 }}
                 className="w-full text-xs p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-slate-50"
               >
-                {businessOptions.sectors.map((sector) => (
+                {sectorsList.map((sector) => (
                   <option key={sector.id} value={sector.name}>{sector.name}</option>
                 ))}
               </select>
@@ -219,7 +223,7 @@ export const ProgramFormModal: React.FC<ProgramFormModalProps> = ({
                 onChange={(e) => setTargetCountry(e.target.value)}
                 className="w-full text-xs p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-slate-50"
               >
-                {businessOptions.countries.map((country) => (
+                {countriesList.map((country) => (
                   <option key={country.id} value={country.name}>{country.name}</option>
                 ))}
               </select>
@@ -237,7 +241,7 @@ export const ProgramFormModal: React.FC<ProgramFormModalProps> = ({
               className="w-full text-xs p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-slate-50"
             >
               <option value="">Pilih lembaga penyelenggara</option>
-              {businessOptions.institutions.map((institution) => (
+              {institutionsList.map((institution) => (
                 <option key={institution.id} value={institution.id}>{institution.name}</option>
               ))}
             </select>
