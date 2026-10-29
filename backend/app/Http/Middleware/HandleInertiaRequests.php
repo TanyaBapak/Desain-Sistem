@@ -36,14 +36,19 @@ class HandleInertiaRequests extends Middleware
                     'roleName' => $role->name,
                     'roleTitle' => $role->title,
                     'badge' => $role->badge,
-                    'bp3miCode' => $activeBp3miCode ?? ($role->name === 'task_force' ? $user->bp3mi_code : null),
+                    // Task Force selalu mulai dari lingkup nasional; area BP3MI
+                    // hanya aktif setelah pengguna memilihnya di header.
+                    'bp3miCode' => $activeBp3miCode,
                     'bp3miAssignments' => $role->name === 'task_force' || $user->scope_level === 'national'
                         ? $bp3miScope->assignmentOptions()
                         : [],
                     'organization' => $user->organization ?? '',
                     'scope' => [
-                        'level' => $user->scope_level,
-                        'name' => $activeBp3miAssignment['name'] ?? $user->scope_name,
+                        'level' => $activeBp3miCode === null && $role->name === 'task_force'
+                            ? 'national'
+                            : $user->scope_level,
+                        'name' => $activeBp3miAssignment['name']
+                            ?? ($role->name === 'task_force' ? 'Nasional (Seluruh RI)' : $user->scope_name),
                         'provinsi' => $user->province_id,
                         'kabupatenKota' => $user->district_id,
                         'institutionId' => $user->institution_id,

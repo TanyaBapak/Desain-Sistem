@@ -87,6 +87,8 @@ class ProgramAllocationTest extends TestCase
         $this->assertSame('BP3MI-JKT', $user->bp3mi_code);
         $this->assertSame('task_force', $user->roles()->value('name'));
 
+        $this->actingAs($user)->get('/app/dashboard?bp3mi_area=BP3MI-JKT')->assertOk();
+
         $response = $this->actingAs($user)->postJson('/allocations', $this->allocationData());
 
         $this->assertDatabaseCount('program_allocations', 0);
@@ -116,16 +118,20 @@ class ProgramAllocationTest extends TestCase
         ]);
     }
 
-    public function test_task_force_without_legacy_assignment_defaults_to_selectable_bp3mi_area(): void
+    public function test_task_force_defaults_to_national_scope_until_area_is_selected(): void
     {
-        $user = $this->userWithRole('task_force', ['bp3mi_code' => null]);
+        $user = $this->userWithRole('task_force', ['bp3mi_code' => 'BP3MI-JABAR']);
 
         $this->actingAs($user)
             ->get('/app/dashboard')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->where('auth.user.bp3miCode', 'BP3MI-JABAR')
-                ->where('businessData.bp3miScope.provinces', ['Jawa Barat']));
+                ->where('auth.user.bp3miCode', null)
+                ->where('auth.user.scope.level', 'national')
+                ->where('auth.user.scope.name', 'Nasional (Seluruh RI)')
+                ->where('businessData.bp3miScope.code', null)
+                ->where('businessData.bp3miScope.codes', [])
+                ->where('businessData.bp3miScope.provinces', []));
     }
 
     public function test_bp3mi_scope_uses_province_codes_when_province_names_are_placeholders(): void
@@ -146,6 +152,8 @@ class ProgramAllocationTest extends TestCase
         DB::table('provinces')->where('id', '33')->update(['name' => 'Provinsi 33']);
         $user = $this->userWithRole('task_force', ['bp3mi_code' => 'BP3MI-JATENG']);
         $scope = app(Bp3miScope::class);
+
+        $this->actingAs($user)->get('/app/dashboard?bp3mi_area=BP3MI-JATENG')->assertOk();
 
         $this->assertTrue($scope->allowsProvinceId($user, '33'));
         $this->assertFalse($scope->allowsProvinceId($user, '32'));
@@ -192,13 +200,19 @@ class ProgramAllocationTest extends TestCase
             ->assertJsonPath('pagination.total', 2);
     }
 
-    public function test_task_force_cannot_clear_its_required_area_filter(): void
+    public function test_task_force_can_switch_to_national_area(): void
     {
         $user = $this->userWithRole('task_force');
 
         $this->actingAs($user)
             ->getJson('/app/dashboard?bp3mi_area=all')
-            ->assertUnprocessable();
+            ->assertOk();
+
+        $this->get('/app/dashboard')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('auth.user.bp3miCode', null)
+                ->where('businessData.bp3miScope.code', null));
     }
 
     public function test_recommended_providers_use_the_selected_bp3mi_area(): void
@@ -223,7 +237,7 @@ class ProgramAllocationTest extends TestCase
             ->get('/app/matching')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->where('businessData.bp3miScope.code', 'BP3MI-JABAR'));
+                ->where('businessData.bp3miScope.code', null));
     }
 
     public function test_recommended_providers_are_scoped_and_report_remaining_capacity(): void
@@ -397,6 +411,8 @@ class ProgramAllocationTest extends TestCase
             'preferred_job_roles' => json_encode([$occupation], JSON_THROW_ON_ERROR),
             'preferred_sectors' => json_encode([$sector], JSON_THROW_ON_ERROR),
         ]);
+
+        $this->actingAs($user)->get('/app/dashboard?bp3mi_area=BP3MI-JABAR')->assertOk();
 
         $this->actingAs($user)
             ->post('/matching/runs', ['demandId' => 'DEM-ALLOC-001'])
