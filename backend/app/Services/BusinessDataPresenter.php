@@ -2364,7 +2364,7 @@ class BusinessDataPresenter
                 // JP sedang berjalan tidak boleh melebihi target total JP program
                 $achievedJp = min($targetJp, $maxAchieved);
 
-                $participants = $records->map(function ($rec): array {
+                $participants = $records->map(function ($rec) use ($targetJp): array {
                     $nikMasked = $rec->nik
                         ? substr($rec->nik, 0, 6).'******'.substr($rec->nik, -4)
                         : '-';
