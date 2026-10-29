@@ -1,7 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { VocationalProvider, ProviderType } from '../../types';
 import { useAppStore } from '../../store/useAppStore';
-import { X, Building2, Save, ShieldCheck, Plus, Check } from 'lucide-react';
+import { X, Building2, Save, ShieldCheck } from 'lucide-react';
+
+const COUNTRY_OPTIONS = [
+  { id: 'JP', name: 'Jepang' },
+  { id: 'KR', name: 'Korea' },
+  { id: 'TR', name: 'Turki' },
+  { id: 'MY', name: 'Malaysia' },
+];
+
+function normalizeCountryKey(value: string): string | null {
+  const normalized = value.trim().toLowerCase();
+  if (!normalized) return null;
+  const found = COUNTRY_OPTIONS.find(
+    (country) => country.id.toLowerCase() === normalized || country.name.toLowerCase() === normalized,
+  );
+  return found ? found.id : null;
+}
 
 interface ProviderFormModalProps {
   isOpen: boolean;
@@ -20,68 +36,15 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
 }) => {
   const { businessOptions } = useAppStore();
 
-  const defaultCountries = [
-    { id: 'JP', name: 'Jepang' },
-    { id: 'KR', name: 'Korea' },
-    { id: 'MY', name: 'Malaysia' },
-    { id: 'TR', name: 'Turki' },
-    { id: 'DE', name: 'Jerman' },
-    { id: 'TW', name: 'Taiwan' },
-    { id: 'SA', name: 'Arab Saudi' },
-    { id: 'AE', name: 'Uni Emirat Arab' },
-    { id: 'SG', name: 'Singapura' },
-    { id: 'AU', name: 'Australia' },
-    { id: 'NL', name: 'Belanda' },
-    { id: 'SK', name: 'Slovakia' },
-    { id: 'QA', name: 'Qatar' },
-    { id: 'KW', name: 'Kuwait' },
-    { id: 'PL', name: 'Polandia' },
-    { id: 'NZ', name: 'Selandia Baru' },
-  ];
-
   const defaultSectorNames = [
-    'Caregiver',
-    'Hospitality & Pariwisata',
     'Kesehatan / Caregiver',
     'Manufaktur / Pengelasan',
     'Otomotif & Alat Berat',
-    'Konstruksi',
-    'Teknologi Informasi',
-    'Bisnis dan Manajemen',
-    'Pertanian & Perkebunan',
-    'Tata Boga & Kuliner',
-    'Logistik & Pergudangan',
-    'Perikanan & Kelautan',
+    'Hospitality & Pariwisata',
+    'Pertanian Modern',
   ];
 
-  // Dynamic user-added lists
-  const [customCountries, setCustomCountries] = useState<string[]>([]);
-  const [customCountryInput, setCustomCountryInput] = useState('');
-  const [customSectors, setCustomSectors] = useState<string[]>([]);
-  const [customSectorInput, setCustomSectorInput] = useState('');
-
-  // Combine countries
-  const baseCountriesMap = new Map<string, { id: string; name: string }>();
-  defaultCountries.forEach((c) => baseCountriesMap.set(c.id, c));
-  businessOptions.countries.forEach((c) => {
-    baseCountriesMap.set(c.id, { id: c.id, name: c.name });
-  });
-  (initialData?.supportedCountries ?? []).forEach((c) => {
-    const found = defaultCountries.find(
-      (dc) => dc.id.toLowerCase() === c.toLowerCase() || dc.name.toLowerCase() === c.toLowerCase(),
-    );
-    if (found) {
-      baseCountriesMap.set(found.id, found);
-    } else if (c.trim()) {
-      baseCountriesMap.set(c, { id: c, name: c });
-    }
-  });
-  customCountries.forEach((c) => {
-    if (c.trim() && !baseCountriesMap.has(c)) {
-      baseCountriesMap.set(c, { id: c, name: c });
-    }
-  });
-  const countriesList = Array.from(baseCountriesMap.values()).sort((a, b) => a.name.localeCompare(b.name, 'id'));
+  const countriesList = COUNTRY_OPTIONS;
 
   // Combine sectors
   const sectorOptions = Array.from(
@@ -89,7 +52,6 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
       ...defaultSectorNames,
       ...businessOptions.sectors.map((sector) => sector.name),
       ...(initialData?.supportedSectors ?? []),
-      ...customSectors,
     ]),
   ).sort((left, right) => left.localeCompare(right, 'id'));
 
@@ -144,10 +106,13 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
       setOperationalReadinessScore(initialData.operationalReadinessScore ?? 0);
       setSupportedSectors(initialData.supportedSectors ?? []);
 
-      const normalizedCountries = (initialData.supportedCountries ?? []).map((c) => {
-        const found = countriesList.find((cl) => cl.id.toLowerCase() === c.toLowerCase() || cl.name.toLowerCase() === c.toLowerCase());
-        return found ? found.id : c;
-      });
+      const normalizedCountries = Array.from(
+        new Set(
+          (initialData.supportedCountries ?? [])
+            .map(normalizeCountryKey)
+            .filter((countryId): countryId is string => countryId !== null),
+        ),
+      );
       setSupportedCountries(normalizedCountries);
       setFacilitiesInput(initialData.facilities ? initialData.facilities.join(', ') : '');
     } else {
@@ -165,42 +130,10 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
       setSupportedSectors([]);
       setSupportedCountries([]);
       setFacilitiesInput('');
-      setCustomCountries([]);
-      setCustomSectors([]);
     }
   }, [isOpen, initialData?.id, mode]);
 
   if (!isOpen) return null;
-
-  const handleAddCustomCountry = (e?: React.FormEvent) => {
-    e?.preventDefault();
-    const trimmed = customCountryInput.trim();
-    if (!trimmed) return;
-    const existing = countriesList.find(
-      (c) => c.name.toLowerCase() === trimmed.toLowerCase() || c.id.toLowerCase() === trimmed.toLowerCase(),
-    );
-    const countryKey = existing ? existing.id : trimmed;
-    if (!customCountries.includes(countryKey)) {
-      setCustomCountries((prev) => [...prev, countryKey]);
-    }
-    if (!supportedCountries.some((c) => c.toLowerCase() === countryKey.toLowerCase() || c.toLowerCase() === trimmed.toLowerCase())) {
-      setSupportedCountries((prev) => [...prev, countryKey]);
-    }
-    setCustomCountryInput('');
-  };
-
-  const handleAddCustomSector = (e?: React.FormEvent) => {
-    e?.preventDefault();
-    const trimmed = customSectorInput.trim();
-    if (!trimmed) return;
-    if (!customSectors.includes(trimmed)) {
-      setCustomSectors((prev) => [...prev, trimmed]);
-    }
-    if (!supportedSectors.includes(trimmed)) {
-      setSupportedSectors((prev) => [...prev, trimmed]);
-    }
-    setCustomSectorInput('');
-  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -211,10 +144,13 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
       .map((s) => s.trim())
       .filter((s) => s.length > 0);
 
-    const canonicalCountries = supportedCountries.map((c) => {
-      const found = countriesList.find((cl) => cl.id.toLowerCase() === c.toLowerCase() || cl.name.toLowerCase() === c.toLowerCase());
-      return found ? found.id : c;
-    });
+    const canonicalCountries = Array.from(
+      new Set(
+        supportedCountries
+          .map(normalizeCountryKey)
+          .filter((countryId): countryId is string => countryId !== null),
+      ),
+    );
 
     onSubmit({
       name,
@@ -522,31 +458,6 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
                   </label>
                 ))}
               </div>
-              {/* Tambah Sektor Baru Dinamis */}
-              <div className="flex items-center gap-1.5 pt-1">
-                <input
-                  type="text"
-                  value={customSectorInput}
-                  onChange={(e) => setCustomSectorInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      handleAddCustomSector();
-                    }
-                  }}
-                  placeholder="Ketik sektor baru..."
-                  className="flex-1 text-xs p-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-slate-50"
-                />
-                <button
-                  type="button"
-                  onClick={handleAddCustomSector}
-                  className="px-3 py-2 text-xs font-bold bg-slate-100 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 border border-slate-200 rounded-lg transition flex items-center gap-1 shrink-0"
-                  title="Tambah sektor baru"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>Tambah</span>
-                </button>
-              </div>
             </fieldset>
 
             {/* Negara Tujuan Penempatan */}
@@ -587,31 +498,6 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
                     </label>
                   );
                 })}
-              </div>
-              {/* Tambah Negara Tujuan Baru Dinamis */}
-              <div className="flex items-center gap-1.5 pt-1">
-                <input
-                  type="text"
-                  value={customCountryInput}
-                  onChange={(e) => setCustomCountryInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      handleAddCustomCountry();
-                    }
-                  }}
-                  placeholder="Ketik negara target baru..."
-                  className="flex-1 text-xs p-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-slate-50"
-                />
-                <button
-                  type="button"
-                  onClick={handleAddCustomCountry}
-                  className="px-3 py-2 text-xs font-bold bg-slate-100 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 border border-slate-200 rounded-lg transition flex items-center gap-1 shrink-0"
-                  title="Tambah negara baru"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>Tambah</span>
-                </button>
               </div>
             </fieldset>
           </div>
