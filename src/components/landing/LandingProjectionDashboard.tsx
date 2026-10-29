@@ -12,6 +12,20 @@ export interface LandingProjectionSeries {
   projected: number;
 }
 
+export interface LandingProjectionParticipant {
+  id: string;
+  name: string;
+  countryName: string;
+  countryKey?: string;
+  sectorName: string;
+  occupationName: string;
+  province: string;
+  educationLevel: string;
+  major?: string;
+  readinessStatus: string;
+  sourceType: string;
+}
+
 export interface LandingProjectionData {
   year: number | null;
   periods: number[];
@@ -24,6 +38,7 @@ export interface LandingProjectionData {
     projectionPlacement: string;
     target: number;
   }[];
+  participants: LandingProjectionParticipant[];
 }
 
 interface LandingProjectionDashboardProps {
@@ -89,8 +104,9 @@ export function LandingProjectionDashboard({ projection }: LandingProjectionDash
 
         <p className="text-xs text-muted-foreground">
           Proyeksi menunjukkan sisa target dari kuota yang tercatat, bukan perkiraan otomatis
-          keberangkatan. Capaian negara dan capaian per sektor hanya menghitung permintaan yang
-          sudah diverifikasi (berstatus disetujui) berdasarkan tahun pembuatannya.
+          keberangkatan. Capaian negara dan sektor dihitung dari peserta yang sudah terverifikasi
+          untuk negara tujuan tersebut, sehingga angkanya ikut berubah saat verifikasi peserta
+          diperbarui.
         </p>
       </div>
     </section>

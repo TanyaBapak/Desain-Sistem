@@ -267,7 +267,7 @@ class DashboardTargetTest extends TestCase
         $this->assertSame(5000, $turkeyTargets->sum('target'));
     }
 
-    public function test_public_projection_shows_verified_sector_achievement(): void
+    public function test_public_projection_shows_verified_participants_and_sector_achievement(): void
     {
         DB::table('job_demands')->where('id', 'DEM-DEMO-001')->update([
             'country_id' => 'JP',
@@ -278,20 +278,58 @@ class DashboardTargetTest extends TestCase
             'created_at' => now()->setYear(2027),
             'updated_at' => now()->setYear(2027),
         ]);
+        foreach ([
+            ['CAND-VERIFIED-001', 'Peserta Terverifikasi 01', 'Verified', '0000000000000002'],
+            ['CAND-VERIFIED-002', 'Peserta Terverifikasi 02', 'Verified', '0000000000000003'],
+            ['CAND-UNVERIFIED-001', 'Peserta Belum Terverifikasi', 'Unverified', '0000000000000004'],
+        ] as [$id, $fullName, $verificationStatus, $nik]) {
+            DB::table('job_seekers')->insert([
+                'id' => $id,
+                'registration_number' => "REG-{$id}",
+                'nik' => $nik,
+                'full_name' => $fullName,
+                'gender' => 'L',
+                'province_id' => '32',
+                'district_id' => '3201',
+                'education_level' => 'SMK',
+                'institution_name' => 'SMK Contoh Cibinong',
+                'major' => 'Teknik Pengelasan',
+                'source_type' => 'SMK',
+                'readiness_status' => 'Ready for Placement',
+                'verification_status' => $verificationStatus,
+                'lifecycle_status' => 'APPROVED',
+                'preferred_countries' => json_encode(['Jepang'], JSON_THROW_ON_ERROR),
+                'preferred_sectors' => json_encode(['Kesehatan / Caregiver'], JSON_THROW_ON_ERROR),
+                'preferred_job_roles' => json_encode(['Caregiver / Kaigo'], JSON_THROW_ON_ERROR),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
 
         $projection = app(\App\Services\BusinessDataPresenter::class)->publicLandingProjection(2027);
 
         $japanSectors = collect($projection['sectors'])
             ->filter(fn (array $sector): bool => ($sector['countryName'] ?? null) === 'Jepang')
             ->keyBy('sectorName');
+        $japan = collect($projection['countries'])->firstWhere('name', 'Jepang');
+        $japanParticipants = collect($projection['participants'])
+            ->filter(fn (array $participant): bool => $participant['countryName'] === 'Jepang');
 
+        $this->assertNotNull($japan, 'Negara Jepang harus tersedia.');
+        $this->assertCount(2, $japanParticipants, 'Hanya peserta terverifikasi yang dihitung.');
+        $this->assertSame(2, $japan['achieved']);
         $this->assertTrue($japanSectors->has('Kesehatan'), 'Sektor Kesehatan Jepang harus tersedia.');
-        $this->assertSame(8, $japanSectors['Kesehatan']['achieved']);
+        $this->assertSame(2, $japanSectors['Kesehatan']['achieved']);
         $this->assertSame(
-            max(0, $japanSectors['Kesehatan']['target'] - 8),
+            max(0, $japanSectors['Kesehatan']['target'] - 2),
             $japanSectors['Kesehatan']['projected'],
         );
         $this->assertSame(2027, $japanSectors['Kesehatan']['year']);
+        $this->assertSame(
+            2,
+            $japanSectors->sum('achieved'),
+            'Total capaian sektor harus sama dengan jumlah peserta terverifikasi negara tersebut.',
+        );
     }
 
     public function test_only_super_admin_can_change_manual_landing_target(): void
@@ -672,8 +710,8 @@ class DashboardTargetTest extends TestCase
                 ->where('landingProjection.countries', fn ($rows): bool => collect($rows)->contains(
                     fn (array $row): bool => $row['name'] === 'Jepang'
                         && $row['target'] === 540
-                        && $row['achieved'] === 8
-                        && $row['projected'] === 532,
+                        && $row['achieved'] === 0
+                        && $row['projected'] === 540,
                 ))
                 ->where('landingProjection.sectors.0.name', 'Jepang · Kesehatan')
                 ->where('landingProjection.sectors.0.target', 540)

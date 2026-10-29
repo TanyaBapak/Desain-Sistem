@@ -1,7 +1,10 @@
 import { useMemo, useState } from "react";
 import { ChevronRight, Globe2, Layers3 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import type { LandingProjectionData } from "@/components/landing/LandingProjectionDashboard";
+import type {
+  LandingProjectionData,
+  LandingProjectionParticipant,
+} from "@/components/landing/LandingProjectionDashboard";
 import {
   CountryProjectionDetailsDialog,
   type CountryProjection,
@@ -42,6 +45,14 @@ function normalizeCountryName(name: string) {
   return countryAliases.get(normalizedName) ?? normalizedName;
 }
 
+function normalizeSectorName(name: string) {
+  return name
+    .trim()
+    .toLocaleLowerCase("id-ID")
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .trim();
+}
+
 function getCountryProjection(
   name: string,
   projection: LandingProjectionData,
@@ -61,13 +72,25 @@ function getCountryProjection(
   return { ...series, name, year: null };
 }
 
+function getCountryParticipants(
+  country: CountryProjection,
+  projection: LandingProjectionData,
+): LandingProjectionParticipant[] {
+  const countryKey = normalizeCountryName(country.name);
+
+  return projection.participants.filter(
+    (participant) => normalizeCountryName(participant.countryName) === countryKey,
+  );
+}
+
 function getCountrySectors(
   country: CountryProjection,
   projection: LandingProjectionData,
+  participants: LandingProjectionParticipant[],
 ): SectorProjection[] {
-  const sectors = new Map<string, Map<string, number>>();
-  const achievedBySector = new Map<string, number>();
   const countryKey = normalizeCountryName(country.name);
+  const sectors = new Map<string, { name: string; target: number; achieved: number }>();
+  const occupationsBySector = new Map<string, Map<string, number>>();
 
   projection.sectors.forEach((item) => {
     if (item.year !== undefined && country.year !== null && item.year !== country.year) {
@@ -78,7 +101,14 @@ function getCountrySectors(
     }
 
     const sectorName = item.sectorName ?? item.name;
-    achievedBySector.set(sectorName, (achievedBySector.get(sectorName) ?? 0) + item.achieved);
+    const sectorKey = normalizeSectorName(sectorName);
+    const existing = sectors.get(sectorKey);
+
+    sectors.set(sectorKey, {
+      name: existing?.name ?? sectorName,
+      target: (existing?.target ?? 0) + item.target,
+      achieved: (existing?.achieved ?? 0) + item.achieved,
+    });
   });
 
   projection.placementTargets.forEach((item) => {
@@ -101,31 +131,32 @@ function getCountrySectors(
     const baseTarget = Math.floor(item.target / destinations.length);
     const remainingTarget = item.target % destinations.length;
     const targetShare = baseTarget + (destinationIndex < remainingTarget ? 1 : 0);
-    const occupations = sectors.get(item.sectorName) ?? new Map<string, number>();
+    const sectorKey = normalizeSectorName(item.sectorName);
+    const occupations = occupationsBySector.get(sectorKey) ?? new Map<string, number>();
     occupations.set(
       item.occupationName,
       (occupations.get(item.occupationName) ?? 0) + targetShare,
     );
-    sectors.set(item.sectorName, occupations);
+    occupationsBySector.set(sectorKey, occupations);
   });
 
-  // Tampilkan capaian sektor terverifikasi yang belum memiliki target penempatan.
-  achievedBySector.forEach((achieved, sectorName) => {
-    if (achieved > 0 && !sectors.has(sectorName)) {
-      sectors.set(sectorName, new Map());
+  // Pastikan sektor peserta terverifikasi tetap tampil walau belum punya target.
+  participants.forEach((participant) => {
+    const sectorKey = normalizeSectorName(participant.sectorName);
+    if (!sectors.has(sectorKey)) {
+      sectors.set(sectorKey, { name: participant.sectorName, target: 0, achieved: 0 });
     }
   });
 
-  return Array.from(sectors, ([name, occupations]) => {
-    const occupationRows = Array.from(occupations, ([occupationName, target]) => ({
-      name: occupationName,
-      target,
-    })).sort((left, right) => left.name.localeCompare(right.name, "id"));
+  return Array.from(sectors, ([sectorKey, sector]) => {
+    const occupationRows = Array.from(occupationsBySector.get(sectorKey) ?? new Map())
+      .map(([occupationName, target]) => ({ name: occupationName, target }))
+      .sort((left, right) => left.name.localeCompare(right.name, "id"));
 
     return {
-      name,
-      target: occupationRows.reduce((total, occupation) => total + occupation.target, 0),
-      achieved: achievedBySector.get(name) ?? 0,
+      name: sector.name,
+      target: sector.target,
+      achieved: sector.achieved,
       occupations: occupationRows,
     };
   }).sort((left, right) => left.name.localeCompare(right.name, "id"));
@@ -134,15 +165,44 @@ function getCountrySectors(
 export function CountryProjectionCard({ projection }: CountryProjectionCardProps) {
   const [selectedCountry, setSelectedCountry] = useState<CountryProjection | null>(null);
   const [selectedSector, setSelectedSector] = useState<string | null>(null);
-  const countries = useMemo(
-    () =>
-      projection.countries
-        .map((item) => getCountryProjection(item.name, projection, item))
-        .sort((left, right) => left.name.localeCompare(right.name, "id")),
-    [projection],
-  );
+  const countries = useMemo(() => {
+    const rows = projection.countries.map((item) =>
+      getCountryProjection(item.name, projection, item),
+    );
+
+    if (projection.year !== null) {
+      return rows.sort((left, right) => left.name.localeCompare(right.name, "id"));
+    }
+
+    // Pada mode "Semua periode", gabungkan baris per tahun menjadi satu kartu per negara
+    // agar jumlah peserta terverifikasi tidak tampil berulang di tiap periode.
+    const merged = new Map<string, CountryProjection>();
+    rows.forEach((row) => {
+      const countryKey = normalizeCountryName(row.name);
+      const existing = merged.get(countryKey);
+
+      if (!existing) {
+        merged.set(countryKey, { ...row, year: null });
+        return;
+      }
+
+      merged.set(countryKey, {
+        ...existing,
+        target: existing.target + row.target,
+        achieved: Math.max(existing.achieved, row.achieved),
+        projected: existing.projected + row.projected,
+      });
+    });
+
+    return Array.from(merged.values()).sort((left, right) =>
+      left.name.localeCompare(right.name, "id"),
+    );
+  }, [projection]);
+  const selectedParticipants = selectedCountry
+    ? getCountryParticipants(selectedCountry, projection)
+    : [];
   const sectors = selectedCountry
-    ? getCountrySectors(selectedCountry, projection)
+    ? getCountrySectors(selectedCountry, projection, selectedParticipants)
     : [];
   const totalTarget = sectors.reduce((total, sector) => total + sector.target, 0);
 
@@ -159,12 +219,12 @@ export function CountryProjectionCard({ projection }: CountryProjectionCardProps
         <CardHeader className="space-y-1.5 p-5">
           <CardTitle className="text-lg">Negara target</CardTitle>
           <CardDescription>
-            Pilih negara target untuk menelusuri target yang terdaftar per sektor dan jabatan.
+            Pilih negara target untuk menelusuri target, capaian, dan daftar peserta terverifikasi.
           </CardDescription>
           <div className="flex flex-wrap gap-x-4 gap-y-1 pt-2 text-xs text-muted-foreground">
             <span className="inline-flex items-center gap-1.5">
               <span className="h-2.5 w-2.5 rounded-sm bg-primary" aria-hidden="true" />
-              Tercapai
+              Peserta terverifikasi
             </span>
             <span className="inline-flex items-center gap-1.5">
               <span className="h-2.5 w-2.5 rounded-sm bg-muted-foreground/30" aria-hidden="true" />
@@ -180,17 +240,17 @@ export function CountryProjectionCard({ projection }: CountryProjectionCardProps
           ) : (
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {countries.map((country) => {
+                const participants = getCountryParticipants(country, projection);
+                const achieved = participants.length;
                 const target = Math.max(0, country.target);
+                const projected = Math.max(0, target - achieved);
                 const achievedPercent = target
-                  ? Math.min(100, (country.achieved / target) * 100)
+                  ? Math.min(100, (achieved / target) * 100)
                   : 0;
                 const remainingPercent = target
-                  ? Math.min(100 - achievedPercent, (country.projected / target) * 100)
+                  ? Math.min(100 - achievedPercent, (projected / target) * 100)
                   : 0;
-                const sectorCount = getCountrySectors(
-                  country,
-                  projection,
-                ).length;
+                const sectorCount = getCountrySectors(country, projection, participants).length;
 
                 return (
                   <button
@@ -201,7 +261,7 @@ export function CountryProjectionCard({ projection }: CountryProjectionCardProps
                       setSelectedSector(null);
                     }}
                     className="group rounded-lg border border-border bg-background p-4 text-left transition-colors hover:border-primary/50 hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    aria-label={`Lihat sektor dan jabatan tujuan ${country.name}${country.year ? ` tahun ${country.year}` : ""}`}
+                    aria-label={`Lihat peserta terverifikasi, sektor, dan jabatan tujuan ${country.name}${country.year ? ` tahun ${country.year}` : ""}`}
                   >
                     <span className="flex items-start justify-between gap-3">
                       <span className="flex min-w-0 items-center gap-3">
@@ -240,7 +300,7 @@ export function CountryProjectionCard({ projection }: CountryProjectionCardProps
                     <span
                       className="mt-3 flex h-2 overflow-hidden rounded-full bg-muted"
                       role="img"
-                      aria-label={`${numberFormat.format(country.achieved)} tercapai dari ${numberFormat.format(country.target)} target`}
+                      aria-label={`${numberFormat.format(achieved)} peserta terverifikasi dari ${numberFormat.format(country.target)} target`}
                     >
                       <span className="h-full bg-primary" style={{ width: `${achievedPercent}%` }} />
                       <span
@@ -249,8 +309,8 @@ export function CountryProjectionCard({ projection }: CountryProjectionCardProps
                       />
                     </span>
                     <span className="mt-2 flex justify-between gap-2 text-xs text-muted-foreground">
-                      <span>{numberFormat.format(country.achieved)} tercapai</span>
-                      <span>{numberFormat.format(country.projected)} tersisa</span>
+                      <span>{numberFormat.format(achieved)} peserta terverifikasi</span>
+                      <span>{numberFormat.format(projected)} tersisa</span>
                     </span>
                   </button>
                 );
@@ -261,8 +321,13 @@ export function CountryProjectionCard({ projection }: CountryProjectionCardProps
       </Card>
 
       <CountryProjectionDetailsDialog
-        country={selectedCountry}
+        country={
+          selectedCountry
+            ? { ...selectedCountry, achieved: selectedParticipants.length }
+            : null
+        }
         sectors={sectors}
+        participants={selectedParticipants}
         totalTarget={totalTarget}
         selectedSector={selectedSector}
         onOpenChange={closeDialog}

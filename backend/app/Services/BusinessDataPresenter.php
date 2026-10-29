@@ -59,6 +59,12 @@ class BusinessDataPresenter
         'otomotif' => ['otomotif'],
         'konstruksi' => ['konstruksi'],
         'transportasi' => ['transportasi', 'logistik'],
+        // Padanan untuk nama sektor master agar pencocokan tetap arah dua arah.
+        'pertanian modern' => ['pertanian', 'agriculture', 'perkebunan', 'farming'],
+        'kesehatan caregiver' => ['kesehatan', 'caregiver', 'perawatan', 'farmasi'],
+        'hospitality pariwisata' => ['hospitality', 'pariwisata', 'perhotelan', 'tourism', 'travel'],
+        'manufaktur pengelasan' => ['manufaktur', 'pengelasan', 'welding', 'manufacturing'],
+        'otomotif alat berat' => ['otomotif', 'mekatronika', 'alat berat'],
     ];
 
     public const INDONESIA_38_PROVINCES = [
@@ -614,7 +620,8 @@ class BusinessDataPresenter
      *     periods: array<int, int>,
      *     countries: array<int, array{name: string, target: int, achieved: int, projected: int}>,
      *     sectors: array<int, array{name: string, target: int, achieved: int, projected: int}>,
-     *     placementTargets: array<int, array{year: int, sectorName: string, occupationName: string, projectionPlacement: string, target: int}>
+     *     placementTargets: array<int, array{year: int, sectorName: string, occupationName: string, projectionPlacement: string, target: int}>,
+     *     participants: array<int, array<string, mixed>>
      * }
      */
     public function publicLandingProjection(?int $year): array
@@ -685,13 +692,7 @@ class BusinessDataPresenter
             }
         }
         $masterSectorNames = DB::table('sectors')->pluck('name', 'id')->all();
-        $sectorAchievedByPeriod = [];
-        foreach ($sectorPerformance as $sectorRow) {
-            $periodKey = "{$sectorRow['year']}|".$this->normalizeCountryName($sectorRow['countryName']);
-            $sectorAchievedByPeriod[$periodKey][(string) $sectorRow['sectorId']] =
-                ($sectorAchievedByPeriod[$periodKey][(string) $sectorRow['sectorId']] ?? 0)
-                + (int) $sectorRow['achieved'];
-        }
+        $participantDirectory = $this->verifiedParticipantDirectory($allowedCountryNames);
         $sectorPerformance = array_values(array_filter(
             $sectorPerformance,
             fn (array $item): bool => ! isset(
@@ -699,72 +700,13 @@ class BusinessDataPresenter
             ),
         ));
         foreach ($placementSectorTargets as $key => $placementTarget) {
-            $periodKey = "{$placementTarget['year']}|".$this->normalizeCountryName($placementTarget['countryName']);
-            $achieved = $this->verifiedSectorAchieved(
-                $placementTarget['sectorName'],
-                $masterSectorNames,
-                $sectorAchievedByPeriod[$periodKey] ?? [],
-            );
             $target = $placementTarget['target'];
             $sectorPerformance[] = [
                 ...$placementTarget,
-                'achieved' => $achieved,
-                'projected' => max(0, $target - $achieved),
-                'percentage' => $target > 0 ? round(($achieved / $target) * 100, 1) : 0.0,
+                'achieved' => 0,
+                'projected' => $target,
+                'percentage' => 0.0,
             ];
-        }
-        // Tampilkan capaian sektor terverifikasi yang belum punya target penempatan
-        // agar angka capaian per sektor tetap terlihat utuh.
-        foreach ($sectorAchievedByPeriod as $periodKey => $achievedBySector) {
-            if (! isset($placementCountryPeriods[$periodKey])) {
-                continue;
-            }
-
-            [$periodYear, $periodCountryKey] = explode('|', $periodKey, 2);
-            $periodCountryName = null;
-            foreach ($placementSectorTargets as $placementTarget) {
-                if ((int) $placementTarget['year'] !== (int) $periodYear
-                    || $this->normalizeCountryName($placementTarget['countryName']) !== $periodCountryKey) {
-                    continue;
-                }
-                $periodCountryName = $placementTarget['countryName'];
-                break;
-            }
-            if ($periodCountryName === null) {
-                continue;
-            }
-
-            foreach ($achievedBySector as $sectorId => $achieved) {
-                if ($achieved === 0 || ! isset($masterSectorNames[$sectorId])) {
-                    continue;
-                }
-
-                $alreadyRepresented = false;
-                foreach ($placementSectorTargets as $placementTarget) {
-                    if ((int) $placementTarget['year'] !== (int) $periodYear
-                        || $this->normalizeCountryName($placementTarget['countryName']) !== $periodCountryKey) {
-                        continue;
-                    }
-                    if ($this->sectorNamesMatch($placementTarget['sectorName'], $masterSectorNames[$sectorId])) {
-                        $alreadyRepresented = true;
-                        break;
-                    }
-                }
-                if ($alreadyRepresented) {
-                    continue;
-                }
-
-                $sectorPerformance[] = [
-                    'year' => (int) $periodYear,
-                    'countryId' => null,
-                    'countryName' => $periodCountryName,
-                    'sectorName' => $masterSectorNames[$sectorId],
-                    'target' => 0,
-                    'achieved' => $achieved,
-                    'projected' => 0,
-                    'percentage' => 0.0,
-                ];
-            }
         }
 
         $countryPerformanceByPeriod = collect($countryPerformance)
@@ -839,29 +781,83 @@ class BusinessDataPresenter
                 ->all();
         }
 
+        $countryYearByKey = [];
+        foreach ($selectedCountries as $item) {
+            $countryKey = $this->canonicalCountryKey($item['countryName']);
+            $countryYearByKey[$countryKey] = max(
+                (int) ($countryYearByKey[$countryKey] ?? 0),
+                (int) $item['year'],
+            );
+        }
+        $sectorNamesByCountry = [];
+        foreach ($selectedSectors as $item) {
+            $countryKey = $this->canonicalCountryKey($item['countryName']);
+            $sectorNamesByCountry[$countryKey][$this->normalizeSectorName($item['sectorName'])] =
+                $item['sectorName'];
+        }
+        $participantAssignment = $this->assignVerifiedParticipants(
+            $participantDirectory,
+            $sectorNamesByCountry,
+            array_values($masterSectorNames),
+        );
+        foreach ($participantAssignment['extraSectors'] as $countryKey => $sectorNames) {
+            if (! isset($countryYearByKey[$countryKey])) {
+                continue;
+            }
+            $countryName = $participantDirectory['byCountry'][$countryKey]['countryName'] ?? null;
+            foreach ($sectorNames as $sectorKey => $sectorName) {
+                $achieved = (int) ($participantAssignment['countByCountrySector'][$countryKey][$sectorKey] ?? 0);
+                $selectedSectors[] = [
+                    'year' => $countryYearByKey[$countryKey],
+                    'countryId' => null,
+                    'countryName' => $countryName,
+                    'sectorName' => $sectorName,
+                    'target' => 0,
+                    'achieved' => $achieved,
+                    'projected' => 0,
+                    'percentage' => 0.0,
+                ];
+            }
+        }
+
         $countries = collect($selectedCountries)
-            ->map(fn (array $item): array => [
-                'name' => $year === null
-                    ? "{$item['year']} · {$item['countryName']}"
-                    : $item['countryName'],
-                'target' => $item['target'],
-                'achieved' => $item['achieved'],
-                'projected' => $item['projected'],
-            ])
+            ->map(function (array $item) use ($participantAssignment, $year): array {
+                $countryKey = $this->canonicalCountryKey($item['countryName']);
+                $target = (int) $item['target'];
+                $achieved = (int) ($participantAssignment['countByCountry'][$countryKey] ?? 0);
+
+                return [
+                    'name' => $year === null
+                        ? "{$item['year']} · {$item['countryName']}"
+                        : $item['countryName'],
+                    'target' => $target,
+                    'achieved' => $achieved,
+                    'projected' => max(0, $target - $achieved),
+                ];
+            })
             ->sortBy('name')
             ->values()
             ->all();
         $sectors = collect($selectedSectors)
-            ->map(fn (array $item): array => [
-                'name' => ($year === null ? "{$item['year']} · " : '')
-                    ."{$item['countryName']} · {$item['sectorName']}",
-                'year' => (int) $item['year'],
-                'countryName' => $item['countryName'],
-                'sectorName' => $item['sectorName'],
-                'target' => $item['target'],
-                'achieved' => $item['achieved'],
-                'projected' => $item['projected'],
-            ])
+            ->map(function (array $item) use ($participantAssignment, $year): array {
+                $countryKey = $this->canonicalCountryKey($item['countryName']);
+                $target = (int) $item['target'];
+                $achieved = (int) (
+                    $participantAssignment['countByCountrySector'][$countryKey][$this->normalizeSectorName($item['sectorName'])]
+                    ?? 0
+                );
+
+                return [
+                    'name' => ($year === null ? "{$item['year']} · " : '')
+                        ."{$item['countryName']} · {$item['sectorName']}",
+                    'year' => (int) $item['year'],
+                    'countryName' => $item['countryName'],
+                    'sectorName' => $item['sectorName'],
+                    'target' => $target,
+                    'achieved' => $achieved,
+                    'projected' => max(0, $target - $achieved),
+                ];
+            })
             ->sortBy('name')
             ->values()
             ->all();
@@ -872,6 +868,7 @@ class BusinessDataPresenter
             'countries' => $countries,
             'sectors' => $sectors,
             'placementTargets' => $placementTargets,
+            'participants' => $participantAssignment['participants'],
         ];
     }
 
@@ -972,28 +969,219 @@ class BusinessDataPresenter
     }
 
     /**
-     * Menentukan apakah nama sektor target penempatan merujuk ke sektor master.
+     * Kumpulan peserta terverifikasi beserta negara tujuan yang terkait.
      *
-     * @param  array<string, int>  $achievedBySectorId
-     * @param  array<string, string>  $masterSectorNames
+     * Negara diambil dari demand yang sudah disetujui bila peserta sudah
+     * dialokasikan; jika belum, dipakai preferensi negara peserta.
+     *
+     * @param  array<int, string>  $allowedCountryNames
+     * @return array{byCountry: array<string, array{countryName: string, participants: array<int, array<string, mixed>>}>}
      */
-    private function verifiedSectorAchieved(
-        string $sectorName,
-        array $masterSectorNames,
-        array $achievedBySectorId,
-    ): int {
-        $total = 0;
-        foreach ($masterSectorNames as $sectorId => $masterName) {
-            $achieved = (int) ($achievedBySectorId[$sectorId] ?? 0);
-            if ($achieved === 0) {
-                continue;
+    private function verifiedParticipantDirectory(array $allowedCountryNames): array
+    {
+        $displayNameByKey = [];
+        foreach ($allowedCountryNames as $countryName) {
+            $displayNameByKey[$this->canonicalCountryKey($countryName)] = $countryName;
+        }
+
+        $rows = DB::table('job_seekers')
+            ->leftJoin('provinces', 'provinces.id', '=', 'job_seekers.province_id')
+            ->whereNull('job_seekers.deleted_at')
+            ->where('job_seekers.verification_status', 'Verified')
+            ->orderBy('job_seekers.full_name')
+            ->limit(2000)
+            ->get([
+                'job_seekers.id',
+                'job_seekers.full_name',
+                'job_seekers.education_level',
+                'job_seekers.major',
+                'job_seekers.readiness_status',
+                'job_seekers.source_type',
+                'job_seekers.preferred_countries',
+                'job_seekers.preferred_sectors',
+                'job_seekers.preferred_job_roles',
+                'provinces.name as province_name',
+            ]);
+        if ($rows->isEmpty()) {
+            return ['byCountry' => []];
+        }
+
+        $countryNames = DB::table('countries')->pluck('name', 'id')->all();
+        $masterSectorNames = DB::table('sectors')->pluck('name', 'id')->all();
+        $matchesBySeeker = DB::table('candidate_matches')
+            ->join('job_demands', 'job_demands.id', '=', 'candidate_matches.job_demand_id')
+            ->whereIn('candidate_matches.job_seeker_id', $rows->pluck('id')->all())
+            ->whereIn('candidate_matches.match_status', ['Dialokasikan', 'Lolos Seleksi'])
+            ->where('job_demands.verification_status', 'Approved')
+            ->get(['candidate_matches.job_seeker_id', 'job_demands.country_id', 'job_demands.sector_id'])
+            ->groupBy('job_seeker_id');
+
+        $byCountry = [];
+        foreach ($rows as $row) {
+            $matched = $matchesBySeeker->get($row->id, collect());
+            $countryCandidates = [];
+            foreach ($matched as $match) {
+                $countryName = $countryNames[$match->country_id] ?? null;
+                if ($countryName !== null) {
+                    $countryCandidates[] = $countryName;
+                }
             }
-            if ($this->sectorNamesMatch($sectorName, $masterName)) {
-                $total += $achieved;
+            if ($countryCandidates === []) {
+                $countryCandidates = $this->decodeArray($row->preferred_countries);
+            }
+
+            $sectorCandidates = [];
+            foreach ($matched as $match) {
+                $sectorName = $masterSectorNames[$match->sector_id] ?? null;
+                if ($sectorName !== null) {
+                    $sectorCandidates[] = $sectorName;
+                }
+            }
+            $sectorCandidates = array_merge(
+                $sectorCandidates,
+                $this->decodeArray($row->preferred_sectors),
+            );
+            if (($row->major ?? '') !== '') {
+                $sectorCandidates[] = (string) $row->major;
+            }
+            $sectorCandidates = array_values(array_unique(array_filter(
+                array_map(fn (mixed $value): string => trim((string) $value), $sectorCandidates),
+                fn (string $value): bool => $value !== '',
+            )));
+
+            $occupationCandidates = $this->decodeArray($row->preferred_job_roles);
+            if ($occupationCandidates === [] && ($row->major ?? '') !== '') {
+                $occupationCandidates = [(string) $row->major];
+            }
+
+            $participant = [
+                'id' => (string) $row->id,
+                'name' => (string) $row->full_name,
+                'province' => (string) ($row->province_name ?? 'Belum dipetakan'),
+                'educationLevel' => (string) ($row->education_level ?? '—'),
+                'major' => (string) ($row->major ?? ''),
+                'sectorNames' => $sectorCandidates,
+                'occupationName' => (string) ($occupationCandidates[0] ?? '—'),
+                'readinessStatus' => (string) ($row->readiness_status ?? '—'),
+                'sourceType' => $this->participantSourceLabel((string) $row->source_type),
+            ];
+
+            $addedCountryKeys = [];
+            foreach ($countryCandidates as $countryName) {
+                $countryKey = $this->canonicalCountryKey((string) $countryName);
+                if (! isset($displayNameByKey[$countryKey]) || isset($addedCountryKeys[$countryKey])) {
+                    continue;
+                }
+                $addedCountryKeys[$countryKey] = true;
+                $byCountry[$countryKey] ??= [
+                    'countryName' => $displayNameByKey[$countryKey],
+                    'participants' => [],
+                ];
+                $byCountry[$countryKey]['participants'][] = $participant;
             }
         }
 
-        return $total;
+        return ['byCountry' => $byCountry];
+    }
+
+    private function participantSourceLabel(string $sourceType): string
+    {
+        return match ($sourceType) {
+            'SMK', 'BLK', 'LPK', 'Lembaga Vokasi', 'lembaga_vokasi', 'vokasi' => 'Lembaga Vokasi',
+            'Mandiri' => 'SMK / Pendidikan Vokasi',
+            'Gardata', 'SIPPMI', 'sippmi' => 'Gardata / SIPPMI',
+            default => 'Disnaker Pemda',
+        };
+    }
+
+    /**
+     * Mengelompokkan peserta terverifikasi ke sektor target tiap negara.
+     *
+     * @param  array{byCountry: array<string, array{countryName: string, participants: array<int, array<string, mixed>>}>}  $directory
+     * @param  array<string, array<string, string>>  $sectorNamesByCountry
+     * @param  array<int, string>  $masterSectorNames
+     * @return array{
+     *     participants: array<int, array<string, mixed>>,
+     *     countByCountry: array<string, int>,
+     *     countByCountrySector: array<string, array<string, int>>,
+     *     extraSectors: array<string, array<string, string>>
+     * }
+     */
+    private function assignVerifiedParticipants(
+        array $directory,
+        array $sectorNamesByCountry,
+        array $masterSectorNames,
+    ): array {
+        $participants = [];
+        $countByCountry = [];
+        $countByCountrySector = [];
+        $extraSectors = [];
+        foreach ($directory['byCountry'] as $countryKey => $countryData) {
+            $targetSectorNames = array_values($sectorNamesByCountry[$countryKey] ?? []);
+            $seenParticipantIds = [];
+            foreach ($countryData['participants'] as $participant) {
+                if (isset($seenParticipantIds[$participant['id']])) {
+                    continue;
+                }
+                $seenParticipantIds[$participant['id']] = true;
+
+                $sectorName = $this->resolveParticipantSector(
+                    $participant['sectorNames'],
+                    $targetSectorNames,
+                    $masterSectorNames,
+                );
+                $sectorKey = $this->normalizeSectorName($sectorName);
+                $participants[] = [
+                    'id' => $participant['id'],
+                    'name' => $participant['name'],
+                    'countryName' => $countryData['countryName'],
+                    'countryKey' => $countryKey,
+                    'sectorName' => $sectorName,
+                    'occupationName' => $participant['occupationName'],
+                    'province' => $participant['province'],
+                    'educationLevel' => $participant['educationLevel'],
+                    'major' => $participant['major'],
+                    'readinessStatus' => $participant['readinessStatus'],
+                    'sourceType' => $participant['sourceType'],
+                ];
+                $countByCountry[$countryKey] = ($countByCountry[$countryKey] ?? 0) + 1;
+                $countByCountrySector[$countryKey][$sectorKey] =
+                    ($countByCountrySector[$countryKey][$sectorKey] ?? 0) + 1;
+                if (! isset($sectorNamesByCountry[$countryKey][$sectorKey])) {
+                    $extraSectors[$countryKey][$sectorKey] = $sectorName;
+                }
+            }
+        }
+
+        return compact('participants', 'countByCountry', 'countByCountrySector', 'extraSectors');
+    }
+
+    /**
+     * @param  array<int, string>  $sectorNames
+     * @param  array<int, string>  $targetSectorNames
+     * @param  array<int, string>  $masterSectorNames
+     */
+    private function resolveParticipantSector(
+        array $sectorNames,
+        array $targetSectorNames,
+        array $masterSectorNames,
+    ): string {
+        foreach ($targetSectorNames as $targetSectorName) {
+            foreach ($sectorNames as $sectorName) {
+                if ($this->sectorNamesMatch($sectorName, $targetSectorName)) {
+                    return $targetSectorName;
+                }
+            }
+        }
+        foreach ($masterSectorNames as $masterSectorName) {
+            foreach ($sectorNames as $sectorName) {
+                if ($this->sectorNamesMatch($sectorName, $masterSectorName)) {
+                    return $masterSectorName;
+                }
+            }
+        }
+
+        return $sectorNames[0] ?? 'Belum ditentukan';
     }
 
     private function sectorNamesMatch(string $left, string $right): bool
@@ -1009,6 +1197,11 @@ class BusinessDataPresenter
 
         foreach (self::SECTOR_NAME_ALIASES[$left] ?? [] as $alias) {
             if ($alias === $right || str_contains($right, $alias)) {
+                return true;
+            }
+        }
+        foreach (self::SECTOR_NAME_ALIASES[$right] ?? [] as $alias) {
+            if ($alias === $left || str_contains($left, $alias)) {
                 return true;
             }
         }

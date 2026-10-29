@@ -59,6 +59,19 @@ interface LandingProjectionData {
     projectionPlacement: string;
     target: number;
   }[];
+  participants: {
+    id: string;
+    name: string;
+    countryName: string;
+    countryKey?: string;
+    sectorName: string;
+    occupationName: string;
+    province: string;
+    educationLevel: string;
+    major?: string;
+    readinessStatus: string;
+    sourceType: string;
+  }[];
 }
 // All page components imported statically above
 
