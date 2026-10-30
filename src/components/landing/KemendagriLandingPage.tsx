@@ -4,7 +4,7 @@ import {
 } from '../../store/useAppStore';
 import { LandingProjectionDashboard, LandingProjectionData } from "@/components/landing/LandingProjectionDashboard";
 import { PublicCommandCenterSection } from "@/components/landing/PublicCommandCenterSection";
-import { UserRole, PublicCommandCenterData, TrainingSectorCatalogItem } from '../../types';
+import { PublicCommandCenterData, TrainingSectorCatalogItem } from '../../types';
 import { LOGO_URL } from '@/lib/assets';
 import {
   ShieldCheck,
@@ -93,11 +93,6 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
 
     return [sector.name, Array.from(new Set(targets))];
   }));
-
-  const handleSelectRole = (roleId: UserRole) => {
-    void roleId;
-    openLoginPage();
-  };
 
   return (
     <div className="min-h-screen bg-background text-foreground font-sans selection:bg-red-600 selection:text-white">
@@ -364,70 +359,6 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
       />
 
       <LandingProjectionDashboard projection={projection} />
-
-
-      <footer className="bg-slate-950 text-slate-400 border-t border-slate-800 text-xs py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 pb-8 border-b border-slate-800">
-            {/* Kolom 1: Profil Instansi */}
-            <div className="md:col-span-2 space-y-3">
-              <div className="flex items-center gap-2.5">
-                <img
-                  src={LOGO_URL}
-                  alt="Logo Resmi Kemnaker & Vokasi Indonesia"
-                  className="w-8 h-8 object-contain shrink-0"
-                />
-                <div>
-                  <span className="font-extrabold text-white text-sm block">
-                    KEMENTERIAN PELINDUNGAN PEKERJA MIGRAN INDONESIA
-                  </span>
-                  <span className="text-[10px] text-slate-400 font-medium">
-                    Task force SMK Go Global 2026
-                  </span>
-                </div>
-              </div>
-
-              <p className="text-slate-400 text-xs leading-relaxed max-w-lg">
-                Gedung Kementerian P2MI, Jl. MT Haryono Kav. 52, Pancoran, Jakarta Selatan 12770.<br />
-                Call Center 24 Jam: <strong>1500-262</strong> | Email: <strong>humas@p2mi.go.id</strong>
-              </p>
-            </div>
-
-            {/* Kolom 2: Layanan Publik & e-Government */}
-            <div>
-              <h4 className="text-white font-bold text-xs uppercase tracking-wider mb-3">
-                Kanal Layanan Terintegrasi
-              </h4>
-              <ul className="space-y-2 text-xs">
-                <li><a href="https://gardata.sippmi.com" target="_blank" rel="noreferrer" className="hover:text-white font-semibold text-amber-300">Pelaporan Diklat CPMI (gardata.sippmi.com)</a></li>
-                <li><a href="https://siskop2mi.bp2mi.go.id" target="_blank" rel="noreferrer" className="hover:text-white">SISKOP2MI Online</a></li>
-                <li><a href="https://vokasi.kemdikbud.go.id" target="_blank" rel="noreferrer" className="hover:text-white">Portal e-Vokasi Kemendikbud</a></li>
-                <li><a href="https://siapkerja.kemnaker.go.id" target="_blank" rel="noreferrer" className="hover:text-white">SIAPKerja Kemnaker</a></li>
-                <li><a href="https://lapor.go.id" target="_blank" rel="noreferrer" className="hover:text-white">SP4N-LAPOR!</a></li>
-              </ul>
-            </div>
-
-            {/* Kolom 3: Regulasi & Akses Sistem */}
-            <div>
-              <h4 className="text-white font-bold text-xs uppercase tracking-wider mb-3">
-                Akses Peran Sistem
-              </h4>
-              <ul className="space-y-2 text-xs">
-                <li onClick={() => handleSelectRole('admin')} className="hover:text-red-400 cursor-pointer">Admin Kementerian (Pusat)</li>
-                <li onClick={() => handleSelectRole('vokasi')} className="hover:text-red-400 cursor-pointer">Lembaga Vokasi (SMK/LPK)</li>
-                <li onClick={() => handleSelectRole('kandidat')} className="hover:text-red-400 cursor-pointer">Calon Peserta Vokasi</li>
-                <li onClick={() => handleSelectRole('disnaker')} className="hover:text-red-400 cursor-pointer">Dinas Tenaga Kerja Daerah</li>
-                <li onClick={() => handleSelectRole('employer')} className="hover:text-red-400 cursor-pointer">Employer Luar Negeri</li>
-              </ul>
-            </div>
-          </div>
-
-          <div className="flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-3">
-            <p>© 2026 Kementerian Pelindungan Pekerja Migran Indonesia (P2MI). Hak Cipta Dilindungi Undang-Undang.</p>
-            <p>Standar Antarmuka Portal Publik Pemerintahan Republik Indonesia</p>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 };
