@@ -33,6 +33,8 @@ export interface CandidateParticipant {
   kabupatenKota: string;
   educationLevel: 'SMK' | 'D3' | 'S1' | 'Lainnya';
   institutionName: string; // e.g. "SMKN 1 Gandapura"
+  institutionId?: string;
+  createdBy?: string;
   sourceType?: 'Disnaker Pemda' | 'Lembaga Vokasi' | 'SMK / Pendidikan Vokasi' | 'Gardata / SIPPMI' | string;
   major: string; // e.g. "Teknik Pengelasan", "Kesehatan/Caregiver"
   skills: string[]; // e.g. ["Arc Welding", "GMAW", "Safety Standard"]

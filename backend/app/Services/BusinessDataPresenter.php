@@ -1697,6 +1697,8 @@ class BusinessDataPresenter
                 'districts.name as district_name',
                 'job_seekers.education_level',
                 'job_seekers.institution_name',
+                'job_seekers.institution_id',
+                'job_seekers.created_by',
                 'job_seekers.source_type',
                 'job_seekers.major',
                 'job_seekers.readiness_status',
@@ -1740,6 +1742,8 @@ class BusinessDataPresenter
                 'kabupatenKota' => $row->district_name,
                 'educationLevel' => $row->education_level,
                 'institutionName' => $row->institution_name,
+                'institutionId' => $row->institution_id ? (string) $row->institution_id : null,
+                'createdBy' => $row->created_by,
                 'sourceType' => match ($row->source_type) {
                     'SMK', 'BLK', 'LPK', 'Lembaga Vokasi', 'lembaga_vokasi', 'vokasi' => 'Lembaga Vokasi',
                     'Mandiri' => 'SMK / Pendidikan Vokasi',

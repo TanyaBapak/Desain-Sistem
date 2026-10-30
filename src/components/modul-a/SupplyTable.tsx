@@ -92,6 +92,8 @@ export const SupplyTable: React.FC = () => {
   const [deletingCandidate, setDeletingCandidate] = useState<CandidateParticipant | null>(null);
   const [isGardataSyncing, setIsGardataSyncing] = useState(false);
   const [filterMajor, setFilterMajor] = useState('');
+  const [filterInstitution, setFilterInstitution] = useState('ALL');
+  const [filterCreator, setFilterCreator] = useState('ALL');
   const [filterSkill, setFilterSkill] = useState('ALL');
   const [filterJobRole, setFilterJobRole] = useState('ALL');
   const [filterLanguageLevel, setFilterLanguageLevel] = useState('ALL');
@@ -147,6 +149,16 @@ export const SupplyTable: React.FC = () => {
     return Array.from(countries).filter(Boolean).sort();
   }, [candidates]);
 
+  const institutionOptions = useMemo(
+    () => Array.from(new Set(candidates.map((c) => c.institutionName).filter(Boolean))).sort(),
+    [candidates],
+  );
+
+  const creatorOptions = useMemo(
+    () => Array.from(new Set(candidates.map((c) => c.createdBy).filter(Boolean) as string[])).sort(),
+    [candidates],
+  );
+
   const skillOptions = useMemo(
     () => Array.from(new Set(candidates.flatMap((candidate) => candidate.skills))).filter(Boolean).sort(),
     [candidates],
@@ -177,6 +189,8 @@ export const SupplyTable: React.FC = () => {
       filterVerification !== 'ALL' ||
       filterLanguage !== 'ALL' ||
       filterMajor !== '' ||
+      filterInstitution !== 'ALL' ||
+      filterCreator !== 'ALL' ||
       filterSkill !== 'ALL' ||
       filterJobRole !== 'ALL' ||
       filterLanguageLevel !== 'ALL'
@@ -194,6 +208,8 @@ export const SupplyTable: React.FC = () => {
     filterVerification,
     filterLanguage,
     filterMajor,
+    filterInstitution,
+    filterCreator,
     filterSkill,
     filterJobRole,
     filterLanguageLevel,
@@ -212,6 +228,8 @@ export const SupplyTable: React.FC = () => {
     setFilterVerification('ALL');
     setFilterLanguage('ALL');
     setFilterMajor('');
+    setFilterInstitution('ALL');
+    setFilterCreator('ALL');
     setFilterSkill('ALL');
     setFilterJobRole('ALL');
     setFilterLanguageLevel('ALL');
@@ -225,18 +243,20 @@ export const SupplyTable: React.FC = () => {
       const searchLower = searchCandidate.toLowerCase();
       const matchSearch =
         !searchCandidate ||
-        c.fullName.toLowerCase().includes(searchLower) ||
-        c.nik.toLowerCase().includes(searchLower) ||
-        c.id.toLowerCase().includes(searchLower) ||
-        c.institutionName.toLowerCase().includes(searchLower) ||
-        c.major.toLowerCase().includes(searchLower) ||
-        c.kabupatenKota.toLowerCase().includes(searchLower) ||
-        c.provinsi.toLowerCase().includes(searchLower) ||
-        c.skills.some((s) => s.toLowerCase().includes(searchLower)) ||
+        (c.fullName && c.fullName.toLowerCase().includes(searchLower)) ||
+        (c.nik && c.nik.toLowerCase().includes(searchLower)) ||
+        (c.id && c.id.toLowerCase().includes(searchLower)) ||
+        (c.institutionName && c.institutionName.toLowerCase().includes(searchLower)) ||
+        (c.createdBy && c.createdBy.toLowerCase().includes(searchLower)) ||
+        (c.sourceType && c.sourceType.toLowerCase().includes(searchLower)) ||
+        (c.major && c.major.toLowerCase().includes(searchLower)) ||
+        (c.kabupatenKota && c.kabupatenKota.toLowerCase().includes(searchLower)) ||
+        (c.provinsi && c.provinsi.toLowerCase().includes(searchLower)) ||
+        (c.skills && c.skills.some((s) => s.toLowerCase().includes(searchLower))) ||
         (c.certifications && c.certifications.some((cert) => cert.name.toLowerCase().includes(searchLower))) ||
-        c.languageProficiency.some((language) => `${language.language} ${language.level}`.toLowerCase().includes(searchLower)) ||
-        c.preferredCountry.some((country) => country.toLowerCase().includes(searchLower)) ||
-        c.preferredJobRole.some((role) => role.toLowerCase().includes(searchLower)) ||
+        (c.languageProficiency && c.languageProficiency.some((language) => `${language.language} ${language.level}`.toLowerCase().includes(searchLower))) ||
+        (c.preferredCountry && c.preferredCountry.some((country) => country.toLowerCase().includes(searchLower))) ||
+        (c.preferredJobRole && c.preferredJobRole.some((role) => role.toLowerCase().includes(searchLower))) ||
         (c.preferredSectors ?? []).some((sector) => sector.toLowerCase().includes(searchLower)) ||
         (c.workExperiences && c.workExperiences.some((w) =>
           `${w.sector} ${w.role} ${w.companyName ?? ''}`.toLowerCase().includes(searchLower),
@@ -246,9 +266,11 @@ export const SupplyTable: React.FC = () => {
       const matchProv = filterProvinsi === 'ALL' || c.provinsi === filterProvinsi;
       const matchDistrict = filterDistrict === 'ALL' || c.kabupatenKota === filterDistrict;
 
-      // 3. Pendidikan
+      // 3. Pendidikan & Lembaga
       const matchEdu = filterEducation === 'ALL' || c.educationLevel === filterEducation;
       const matchMajor = !filterMajor || c.major.toLowerCase().includes(filterMajor.toLowerCase());
+      const matchInstitution = filterInstitution === 'ALL' || c.institutionName === filterInstitution;
+      const matchCreator = filterCreator === 'ALL' || c.createdBy === filterCreator;
       const matchSkill = filterSkill === 'ALL' || c.skills.includes(filterSkill);
 
       // 4. Sektor
@@ -299,6 +321,8 @@ export const SupplyTable: React.FC = () => {
         matchDistrict &&
         matchEdu &&
         matchMajor &&
+        matchInstitution &&
+        matchCreator &&
         matchSkill &&
         matchSector &&
         matchWorkExp &&
@@ -325,6 +349,8 @@ export const SupplyTable: React.FC = () => {
     filterVerification,
     filterLanguage,
     filterMajor,
+    filterInstitution,
+    filterCreator,
     filterSkill,
     filterJobRole,
     filterLanguageLevel,
@@ -338,6 +364,8 @@ export const SupplyTable: React.FC = () => {
     filterDistrict,
     filterEducation,
     filterMajor,
+    filterInstitution,
+    filterCreator,
     filterSkill,
     filterSector,
     filterWorkExperience,
@@ -679,9 +707,39 @@ export const SupplyTable: React.FC = () => {
             </select>
           </div>
 
-          {/* 3. Jenjang Pendidikan */}
+          {/* 3. LPK / Lembaga */}
           <div>
-            <label className="text-[11px] font-bold text-slate-500 uppercase block mb-1">3. Pendidikan</label>
+            <label className="text-[11px] font-bold text-slate-500 uppercase block mb-1">3. LPK / Lembaga</label>
+            <select
+              value={filterInstitution}
+              onChange={(e) => setFilterInstitution(e.target.value)}
+              className="w-full text-xs py-1.5 px-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="ALL">Semua LPK / Lembaga</option>
+              {institutionOptions.map((inst) => (
+                <option key={inst} value={inst}>{inst}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* 4. Pengguna / Pembuat */}
+          <div>
+            <label className="text-[11px] font-bold text-slate-500 uppercase block mb-1">4. Pengguna / Pembuat</label>
+            <select
+              value={filterCreator}
+              onChange={(e) => setFilterCreator(e.target.value)}
+              className="w-full text-xs py-1.5 px-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="ALL">Semua Pengguna</option>
+              {creatorOptions.map((creator) => (
+                <option key={creator} value={creator}>{creator}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* 5. Jenjang Pendidikan */}
+          <div>
+            <label className="text-[11px] font-bold text-slate-500 uppercase block mb-1">5. Pendidikan</label>
             <select
               value={filterEducation}
               onChange={(e) => setFilterEducation(e.target.value)}
@@ -713,9 +771,9 @@ export const SupplyTable: React.FC = () => {
             </select>
           </div>
 
-          {/* 4. Sektor Pilihan */}
+          {/* 6. Sektor Pilihan */}
           <div>
-            <label className="text-[11px] font-bold text-slate-500 uppercase block mb-1">4. Sektor Pilihan</label>
+            <label className="text-[11px] font-bold text-slate-500 uppercase block mb-1">6. Sektor Pilihan</label>
             <select
               value={filterSector}
               onChange={(e) => setFilterSector(e.target.value)}
@@ -728,9 +786,9 @@ export const SupplyTable: React.FC = () => {
             </select>
           </div>
 
-          {/* 5. Pengalaman Kerja */}
+          {/* 7. Pengalaman Kerja */}
           <div>
-            <label className="text-[11px] font-bold text-slate-500 uppercase block mb-1">5. Pengalaman Kerja</label>
+            <label className="text-[11px] font-bold text-slate-500 uppercase block mb-1">7. Pengalaman Kerja</label>
             <select
               value={filterWorkExperience}
               onChange={(e) => setFilterWorkExperience(e.target.value)}
@@ -744,9 +802,9 @@ export const SupplyTable: React.FC = () => {
             </select>
           </div>
 
-          {/* 6. Sertifikasi Kompetensi */}
+          {/* 8. Sertifikasi Kompetensi */}
           <div>
-            <label className="text-[11px] font-bold text-slate-500 uppercase block mb-1">6. Sertifikasi</label>
+            <label className="text-[11px] font-bold text-slate-500 uppercase block mb-1">8. Sertifikasi</label>
             <select
               value={filterCertification}
               onChange={(e) => setFilterCertification(e.target.value)}
@@ -758,9 +816,9 @@ export const SupplyTable: React.FC = () => {
             </select>
           </div>
 
-          {/* 7. Kemahiran Bahasa */}
+          {/* 9. Kemahiran Bahasa */}
           <div>
-            <label className="text-[11px] font-bold text-slate-500 uppercase block mb-1">7. Bahasa Asing</label>
+            <label className="text-[11px] font-bold text-slate-500 uppercase block mb-1">9. Bahasa Asing</label>
             <select
               value={filterLanguage}
               onChange={(e) => setFilterLanguage(e.target.value)}
@@ -783,9 +841,9 @@ export const SupplyTable: React.FC = () => {
             </select>
           </div>
 
-          {/* 8. Negara Tujuan */}
+          {/* 10. Negara Tujuan */}
           <div>
-            <label className="text-[11px] font-bold text-slate-500 uppercase block mb-1">8. Negara Tujuan</label>
+            <label className="text-[11px] font-bold text-slate-500 uppercase block mb-1">10. Negara Tujuan</label>
             <select
               value={filterCountry}
               onChange={(e) => setFilterCountry(e.target.value)}
@@ -806,9 +864,9 @@ export const SupplyTable: React.FC = () => {
             </select>
           </div>
 
-          {/* 9. Status Kesiapan */}
+          {/* 11. Status Kesiapan */}
           <div>
-            <label className="text-[11px] font-bold text-slate-500 uppercase block mb-1">Status Kesiapan</label>
+            <label className="text-[11px] font-bold text-slate-500 uppercase block mb-1">11. Status Kesiapan</label>
             <select
               value={filterReadiness}
               onChange={(e) => setFilterReadiness(e.target.value)}
@@ -821,9 +879,9 @@ export const SupplyTable: React.FC = () => {
             </select>
           </div>
 
-          {/* 10. Status Verifikasi */}
+          {/* 12. Status Verifikasi */}
           <div>
-            <label className="text-[11px] font-bold text-slate-500 uppercase block mb-1">Status Verifikasi</label>
+            <label className="text-[11px] font-bold text-slate-500 uppercase block mb-1">12. Status Verifikasi</label>
             <select
               value={filterVerification}
               onChange={(e) => setFilterVerification(e.target.value)}
@@ -1027,7 +1085,7 @@ export const SupplyTable: React.FC = () => {
                         </div>
                       </td>
 
-                      {/* 2. Pendidikan & Jurusan */}
+                      {/* 2. Pendidikan, Lembaga & Pengguna */}
                       <td className="py-3 px-2">
                         <span className="font-semibold text-slate-800 block text-xs leading-snug">
                           {candidate.institutionName}
@@ -1035,6 +1093,11 @@ export const SupplyTable: React.FC = () => {
                         <span className="text-[11px] text-slate-500 block mt-0.5">
                           <strong className="text-blue-700">{candidate.educationLevel}</strong> — {candidate.major}
                         </span>
+                        {candidate.createdBy && (
+                          <span className="text-[10px] text-slate-400 block mt-0.5 truncate max-w-[220px]" title={`Pengguna / Pembuat: ${candidate.createdBy}`}>
+                            Oleh: <span className="text-slate-600 font-medium">{candidate.createdBy}</span>
+                          </span>
+                        )}
                       </td>
 
                       {/* 3. Bidang Keahlian & Sertifikasi Kompetensi */}

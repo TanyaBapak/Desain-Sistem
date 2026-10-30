@@ -461,6 +461,7 @@ class GardataPlacementSyncService
             'lifecycle_status' => $existing?->lifecycle_status ?? 'SUBMITTED',
             'preferred_countries' => $preferredCountries ? json_encode([$preferredCountries]) : null,
             'preferred_job_roles' => $expertise ? json_encode([$expertise]) : null,
+            'created_by' => $existing?->created_by ?? ($item['created_by'] ?? ($source === 'sippmi' ? 'Ir. Suci Purwandari, M.M, Ph.D' : 'Petugas Sinkronisasi SIPPMI')),
             'updated_at' => $now,
         ];
 

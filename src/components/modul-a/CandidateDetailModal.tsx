@@ -128,9 +128,15 @@ export const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({
             </div>
             <div className="space-y-2 text-xs">
               <div>
-                <span className="text-slate-500 block">Jenjang & Nama Sekolah:</span>
+                <span className="text-slate-500 block">Jenjang & Nama Sekolah / Lembaga:</span>
                 <span className="font-bold text-slate-800 text-sm">{candidate.educationLevel} — {candidate.institutionName}</span>
               </div>
+              {candidate.createdBy && (
+                <div>
+                  <span className="text-slate-500 block">Pengguna / Pembuat:</span>
+                  <span className="font-semibold text-slate-700">{candidate.createdBy}</span>
+                </div>
+              )}
               <div>
                 <span className="text-slate-500 block">Jurusan / Konsentrasi:</span>
                 <span className="font-semibold text-slate-700">{candidate.major}</span>
