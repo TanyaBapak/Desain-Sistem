@@ -590,10 +590,10 @@ class BusinessDataPresenter
     public function publicTrainingCatalog(): array
     {
         $sectors = DB::table('sectors')
-            ->orderBy('name')
+            ->orderByRaw("CASE id WHEN 'SECT-HOSP' THEN 1 WHEN 'SECT-CARE' THEN 2 WHEN 'SECT-WELD' THEN 3 WHEN 'SECT-AUTO' THEN 4 WHEN 'SECT-AGRI' THEN 5 ELSE 6 END, name")
             ->get(['id', 'name', 'aliases']);
         $occupations = DB::table('occupations')
-            ->orderBy('title')
+            ->orderBy('id')
             ->get(['id', 'sector_id', 'title', 'aliases'])
             ->groupBy('sector_id');
 

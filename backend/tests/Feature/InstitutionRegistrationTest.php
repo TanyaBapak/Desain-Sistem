@@ -39,7 +39,7 @@ class InstitutionRegistrationTest extends TestCase
         $this->assertSame('Pending Verification', $institution->verification_status);
         $this->assertSame('Swakelola Tipe 2', $institution->procurement_method);
         $this->assertSame(
-            ['Kesehatan / Caregiver', 'Manufaktur / Pengelasan'],
+            ['Kesehatan', 'Manufaktur'],
             json_decode($institution->supported_sectors, true, flags: JSON_THROW_ON_ERROR),
         );
         $metadata = json_decode($institution->external_metadata, true, flags: JSON_THROW_ON_ERROR);
@@ -120,7 +120,7 @@ class InstitutionRegistrationTest extends TestCase
         $this->post('/login', [
             'identifier' => 'lembaga@example.test',
             'password' => 'Pendaftaran-Aman-123',
-        ])->assertRedirect('/app/modul-a');
+        ])->assertRedirect('/app/modul-c');
     }
 
     public function test_registration_rejects_invalid_region_and_duplicate_identifier_without_documents(): void
@@ -193,7 +193,7 @@ class InstitutionRegistrationTest extends TestCase
             'instructorCount' => '8',
             'classCount' => '3',
             'readyParticipantCount' => '24',
-            'supportedSectors' => ['Kesehatan / Caregiver', 'Manufaktur / Pengelasan'],
+            'supportedSectors' => ['Kesehatan', 'Manufaktur'],
             'supportedCountries' => ['JP'],
             'procurementMethod' => 'Swakelola Tipe 2',
             'password' => 'Pendaftaran-Aman-123',

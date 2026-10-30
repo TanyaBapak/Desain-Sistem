@@ -98,7 +98,7 @@ class TrainingReferenceDataManagementTest extends TestCase
                                 && in_array('Solar Panel Technician', $job['aliases'], true),
                         ),
                 ) && collect($sectors)->contains(
-                    fn (array $item): bool => $item['name'] === 'Kesehatan / Caregiver'
+                    fn (array $item): bool => $item['name'] === 'Kesehatan'
                         && in_array('health', $item['aliases'], true),
                 )));
     }

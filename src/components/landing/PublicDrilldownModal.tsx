@@ -116,9 +116,11 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
               return selectedSectorAliases.includes(normalizedSupportedSector);
             });
           const supportsSelectedOccupation =
-            institution.supportedOccupations?.some(
-              (occupation) => selectedOccupationAliases.includes(normalizeCatalogValue(occupation)),
-            ) ?? false;
+            institution.supportedOccupations && institution.supportedOccupations.length > 0
+              ? institution.supportedOccupations.some(
+                  (occupation) => selectedOccupationAliases.includes(normalizeCatalogValue(occupation)),
+                )
+              : true;
 
           return supportsSelectedSector && supportsSelectedOccupation;
         })

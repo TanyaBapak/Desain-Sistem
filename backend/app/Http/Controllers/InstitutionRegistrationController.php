@@ -30,7 +30,7 @@ class InstitutionRegistrationController extends Controller
             'registrationOptions' => [
                 'provinces' => DB::table('provinces')->orderBy('name')->get(['id', 'name']),
                 'districts' => DB::table('districts')->orderBy('name')->get(['id', 'province_id', 'name']),
-                'sectors' => DB::table('sectors')->orderBy('name')->get(['id', 'name']),
+                'sectors' => DB::table('sectors')->orderByRaw("CASE id WHEN 'SECT-HOSP' THEN 1 WHEN 'SECT-CARE' THEN 2 WHEN 'SECT-WELD' THEN 3 WHEN 'SECT-AUTO' THEN 4 WHEN 'SECT-AGRI' THEN 5 ELSE 6 END, name")->get(['id', 'name']),
                 'countries' => DB::table('countries')->orderBy('name')->get(['id', 'name']),
             ],
         ]);

@@ -31,7 +31,7 @@ interface KemendagriLandingPageProps {
   trainingSectors: TrainingSectorCatalogItem[];
 }
 
-const TRAINING_SECTORS = ["Hospitality", "Manufaktur", "Kesehatan", "Konstruksi"];
+const TRAINING_SECTORS = ["Hospitality", "Kesehatan", "Manufaktur", "Konstruksi", "Fisherman"];
 const DEMAND_COUNTRIES = ["Turki", "Jepang", "Malaysia", "Korea"];
 
 const WIB_DATE_TIME_FORMAT = new Intl.DateTimeFormat("id-ID", {
@@ -80,8 +80,11 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
   const supplyTarget = 12600;
   const formattedTarget = supplyTarget.toLocaleString("id-ID");
   const sectorOccupations = Object.fromEntries(trainingSectors.map((sector) => {
+    if (sector.occupations && sector.occupations.length > 0) {
+      return [sector.name, sector.occupations.map((occupation) => occupation.title)];
+    }
     const sectorNames = [sector.name, ...sector.aliases].map(normalizeCatalogValue);
-    const occupationNames = sector.occupations.flatMap((occupation) => [
+    const occupationNames = (sector.occupations ?? []).flatMap((occupation) => [
       occupation.title,
       ...occupation.aliases,
     ]).map(normalizeCatalogValue);

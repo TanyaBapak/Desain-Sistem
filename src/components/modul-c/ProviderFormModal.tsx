@@ -37,11 +37,11 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
   const { businessOptions } = useAppStore();
 
   const defaultSectorNames = [
-    'Kesehatan / Caregiver',
-    'Manufaktur / Pengelasan',
-    'Otomotif & Alat Berat',
-    'Hospitality & Pariwisata',
-    'Pertanian Modern',
+    'Hospitality',
+    'Kesehatan',
+    'Manufaktur',
+    'Konstruksi',
+    'Fisherman',
   ];
 
   const countriesList = COUNTRY_OPTIONS;

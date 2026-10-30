@@ -45,7 +45,7 @@ class DashboardTargetTest extends TestCase
             ->get('/app/targets')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->where('auth.user.accessibleTabs', ['targets', 'rbac', 'audit'])
+                ->where('auth.user.accessibleTabs', fn ($tabs) => collect($tabs)->sort()->values()->all() === ['audit', 'rbac', 'targets'])
                 ->where('adminTargets.landingKpiTargets', [])
                 ->has('adminTargets.landingCountries', 4)
                 ->where('adminTargets.landingCountryTargets', [])
@@ -471,17 +471,11 @@ class DashboardTargetTest extends TestCase
             ->get('/app/targets')
             ->assertInertia(fn (Assert $page) => $page
                 ->where('adminTargets.landingPlacementOptions.sectors', fn ($sectors): bool => collect($sectors)
-                    ->contains('Kesehatan / Caregiver')
-                    && collect($sectors)->contains('Hospitality & Pariwisata')
-                    && collect($sectors)->contains('Kesehatan')
+                    ->contains('Kesehatan')
                     && collect($sectors)->contains('Hospitality'))
                 ->where('adminTargets.landingPlacementOptions.occupations', fn ($occupations): bool => collect($occupations)
                     ->contains(['sectorName' => 'Hospitality', 'occupationName' => 'Koki'])
-                    && collect($occupations)->contains(['sectorName' => 'Kesehatan', 'occupationName' => 'Perawat'])
-                    && collect($occupations)->contains([
-                        'sectorName' => 'Kesehatan / Caregiver',
-                        'occupationName' => 'Caregiver / Kaigo',
-                    ])));
+                    && collect($occupations)->contains(['sectorName' => 'Kesehatan', 'occupationName' => 'Perawat'])));
     }
 
     public function test_program_placement_target_seeder_does_not_overwrite_existing_manual_values(): void

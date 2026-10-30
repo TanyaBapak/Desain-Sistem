@@ -87,17 +87,17 @@ class ReferenceDataSeeder extends Seeder
         }
 
         foreach ([
-            ['SECT-CARE', 'Kesehatan / Caregiver', 'Pelatihan perawatan lansia dan pasien', 'HeartPulse', ['caregiver', 'care giver', 'care-giving', 'health', 'healthcare', 'health care', 'kesehatan']],
-            ['SECT-WELD', 'Manufaktur / Pengelasan', 'Pengelasan dan fabrikasi logam', 'Hammer', ['manufactur', 'manufaktur', 'manufacturing']],
-            ['SECT-AUTO', 'Otomotif & Alat Berat', 'Perawatan kendaraan dan alat berat', 'Cpu', []],
-            ['SECT-HOSP', 'Hospitality & Pariwisata', 'Perhotelan dan layanan pariwisata', 'Hotel', ['hospitality']],
-            ['SECT-AGRI', 'Pertanian Modern', 'Pertanian dan pengolahan hasil pangan', 'Wheat', ['fisherman', 'fisherman (agricultur)', 'fishery', 'agricultur', 'agriculture', 'perikanan', 'pertanian']],
+            ['SECT-HOSP', 'Hospitality', 'Perhotelan dan layanan pariwisata', 'Hotel', ['hospitality', 'hospitality & pariwisata', 'tourism', 'pariwisata', 'hotel', 'tourism, travel, dan hospitality']],
+            ['SECT-CARE', 'Kesehatan', 'Pelatihan perawatan lansia dan pasien', 'HeartPulse', ['kesehatan', 'kesehatan / caregiver', 'caregiver', 'care giver', 'care-giving', 'health', 'healthcare', 'health care']],
+            ['SECT-WELD', 'Manufaktur', 'Pengelasan, fabrikasi, dan produksi manufaktur', 'Hammer', ['manufaktur', 'manufaktur / pengelasan', 'manufactur', 'manufacturing', 'pengelasan', 'industri']],
+            ['SECT-AUTO', 'Konstruksi', 'Pekerjaan konstruksi dan infrastruktur', 'Building2', ['konstruksi', 'construction', 'otomotif & alat berat', 'alat berat', 'teknik sipil', 'bangunan']],
+            ['SECT-AGRI', 'Fisherman', 'Perikanan, kelautan, dan budidaya hasil alam', 'Fish', ['fisherman', 'fisherman (agricultur)', 'fishery', 'agricultur', 'agriculture', 'perikanan', 'pertanian', 'pertanian modern', 'pertanian & peternakan']],
         ] as [$id, $name, $description, $icon, $aliases]) {
             DB::table('sectors')->updateOrInsert(
                 ['id' => $id],
                 ['name' => $name, 'description' => $description, 'icon' => $icon],
             );
-            DB::table('sectors')->where('id', $id)->whereNull('aliases')->update([
+            DB::table('sectors')->where('id', $id)->update([
                 'aliases' => json_encode($aliases, JSON_THROW_ON_ERROR),
             ]);
         }
@@ -120,12 +120,35 @@ class ReferenceDataSeeder extends Seeder
         }
 
         DB::table('countries')->whereNotIn('id', ['JP', 'KR', 'MY', 'TR'])->delete();
+        DB::table('occupations')->whereIn('id', ['OCC-AT-01', 'OCC-HS-01'])->delete();
 
         foreach ([
-            ['OCC-KG-01', 'SECT-CARE', 'Caregiver / Kaigo', 'KG-SSW-01', 'Standar keperawatan dan bahasa Jepang', ['caregiver', 'caregiver (lvl pelaksana)', 'caregiver / kaigo', 'kaigo']],
-            ['OCC-WL-01', 'SECT-WELD', 'Welder SMAW / GMAW', 'WL-JIS-01', 'Sertifikasi pengelasan tingkat lanjut', []],
-            ['OCC-AT-01', 'SECT-AUTO', 'Teknisi Perawatan Otomotif', 'AT-GER-01', 'Standar teknisi otomotif', []],
-            ['OCC-HS-01', 'SECT-HOSP', 'Staf Hotel dan Layanan Makanan', 'HS-TW-01', 'Standar perhotelan dan bahasa Mandarin', []],
+            // Hospitality
+            ['OCC-HOSP-01', 'SECT-HOSP', 'Spa Therapist', 'HOSP-SPA', 'Standar terapi spa dan relaksasi', ['spa', 'spa therapist', 'therapist']],
+            ['OCC-HOSP-02', 'SECT-HOSP', 'Housekeeping', 'HOSP-HK', 'Standar tata graha hotel internasional', ['housekeeping', 'house keeper', 'tata graha']],
+            ['OCC-HOSP-03', 'SECT-HOSP', 'Cleaner', 'HOSP-CLN', 'Standar kebersihan komersial dan sanitasi', ['cleaner', 'cleaning service', 'pembersih']],
+            ['OCC-HOSP-04', 'SECT-HOSP', 'Cook', 'HOSP-CK', 'Standar kuliner dan pengolahan makanan', ['cook', 'chef', 'koki', 'juru masak']],
+            ['OCC-HOSP-05', 'SECT-HOSP', 'Waiter', 'HOSP-WT', 'Standar pelayanan restoran dan perhotelan', ['waiter', 'waitress', 'pramusaji']],
+            ['OCC-HOSP-06', 'SECT-HOSP', 'Barista', 'HOSP-BAR', 'Standar peracikan kopi dan minuman', ['barista', 'coffee maker']],
+
+            // Kesehatan
+            ['OCC-KG-01', 'SECT-CARE', 'Caregiver (Lvl Pelaksana)', 'CARE-LVL', 'Standar perawat pelaksana lansia', ['caregiver (lvl pelaksana)', 'caregiver', 'kaigo', 'caregiver / kaigo']],
+            ['OCC-CARE-02', 'SECT-CARE', 'Caregiver/Caretaker', 'CARE-CT', 'Standar pendampingan perawatan pasien', ['caregiver/caretaker', 'caretaker']],
+            ['OCC-CARE-03', 'SECT-CARE', 'Elderly Caretaker', 'CARE-ELD', 'Standar perawatan khusus geriatri', ['elderly caretaker', 'geriatric care']],
+            ['OCC-CARE-04', 'SECT-CARE', 'Nursing Home', 'CARE-NH', 'Standar pelayanan fasilitas panti wreda', ['nursing home', 'nurse assistant']],
+
+            // Manufaktur
+            ['OCC-WL-01', 'SECT-WELD', 'Welder', 'MFG-WELD', 'Sertifikasi pengelasan SMAW/GMAW/FCAW', ['welder', 'welder smaw / gmaw', 'pengelasan', 'juru las']],
+            ['OCC-MFG-02', 'SECT-WELD', 'Molding', 'MFG-MOLD', 'Standar cetakan injeksi plastik dan logam', ['molding', 'moulding', 'cetakan']],
+            ['OCC-MFG-03', 'SECT-WELD', 'Operation Production', 'MFG-PROD', 'Standar operator lini perakitan dan manufaktur', ['operation production', 'operator produksi', 'production operator']],
+
+            // Fisherman
+            ['OCC-FISH-01', 'SECT-AGRI', 'Plantation Worker Sawit', 'FISH-SAWIT', 'Standar pemanenan dan budidaya perkebunan kelapa sawit', ['plantation worker sawit', 'pekerja sawit', 'sawit']],
+            ['OCC-FISH-02', 'SECT-AGRI', 'Peternakan', 'FISH-TERNAK', 'Standar pemeliharaan dan peternakan hewan', ['peternakan', 'livestock']],
+            ['OCC-FISH-03', 'SECT-AGRI', 'Aquaculture', 'FISH-AQUA', 'Standar budidaya perikanan dan hasil laut', ['aquaculture', 'budidaya perikanan', 'abk fishermen']],
+            ['OCC-FISH-04', 'SECT-AGRI', 'Kehutanan', 'FISH-HUTAN', 'Standar konservasi dan pemanenan hasil hutan', ['kehutanan', 'forestry']],
+            ['OCC-FISH-05', 'SECT-AGRI', 'Farmer/Farming', 'FISH-FARM', 'Standar pertanian modern dan bercocok tanam', ['farmer/farming', 'farmer', 'farming', 'petani']],
+            ['OCC-FISH-06', 'SECT-AGRI', 'Budidaya Tanaman/Agriculture', 'FISH-AGRI', 'Standar budidaya tanaman pangan dan hortikultura', ['budidaya tanaman/agriculture', 'agriculture', 'agrikultur']],
         ] as [$id, $sectorId, $title, $code, $skillStandard, $aliases]) {
             DB::table('occupations')->updateOrInsert(
                 ['id' => $id],
@@ -136,7 +159,7 @@ class ReferenceDataSeeder extends Seeder
                     'skill_standard' => $skillStandard,
                 ],
             );
-            DB::table('occupations')->where('id', $id)->whereNull('aliases')->update([
+            DB::table('occupations')->where('id', $id)->update([
                 'aliases' => json_encode($aliases, JSON_THROW_ON_ERROR),
             ]);
         }
