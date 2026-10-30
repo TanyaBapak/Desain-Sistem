@@ -101,14 +101,15 @@ class OmegaIndonusaPlacementSyncTest extends TestCase
         $this->assertSame(147, DB::table('job_seekers')->where('institution_name', 'Politeknik Indonusa Surakarta')->count());
     }
 
-    public function test_artisan_gardata_sync_general_force_gracefully_syncs_tenants_when_remote_api_fails(): void
+    public function test_artisan_gardata_sync_general_force_does_not_inject_synthetic_candidates_when_api_key_empty(): void
     {
         config(['services.gardata.api_key' => '']);
         $this->artisan('gardata:sync', ['--force' => true])
             ->assertSuccessful();
 
-        $this->assertSame(147, DB::table('job_seekers')->where('institution_name', 'Politeknik Indonusa Surakarta')->count());
-        $this->assertSame(10, DB::table('job_seekers')->where('institution_name', 'LPK Omega Hotel Academy')->count());
+        // Fallback injeksi sintetis sudah dimatikan, jadi tidak ada peserta sintetis yang diselundupkan
+        $this->assertSame(0, DB::table('job_seekers')->where('institution_name', 'Politeknik Indonusa Surakarta')->count());
+        $this->assertSame(0, DB::table('job_seekers')->where('institution_name', 'LPK Omega Hotel Academy')->count());
     }
 
     public function test_monitoring_presents_all_subdomain_candidates_without_bp3mi_truncation(): void
@@ -158,7 +159,7 @@ class OmegaIndonusaPlacementSyncTest extends TestCase
         }
     }
 
-    public function test_auto_heal_populates_147_indonusa_candidates_on_page_load(): void
+    public function test_auto_heal_disabled_does_not_populate_synthetic_candidates_on_page_load(): void
     {
         // Pastikan awalnya calon peserta Indonusa 0 di database
         $this->assertSame(0, DB::table('job_seekers')->where('institution_name', 'LIKE', '%Indonusa%')->count());
@@ -176,12 +177,24 @@ class OmegaIndonusaPlacementSyncTest extends TestCase
         }
 
         $presenter = app(BusinessDataPresenter::class);
-        // Ketika halaman monitoring atau make dipanggil, auto heal berjalan otomatis
+        // Ketika auto-heal dimatikan, halaman monitoring tidak menginjeksi kandidat dummy
         $data = $presenter->make($taskForceUser, ['tab' => 'sippmi-monitoring', 'candidateSource' => 'sippmi.com', 'candidatePerPage' => 150]);
 
-        $this->assertSame(147, DB::table('job_seekers')->where('institution_name', 'Politeknik Indonusa Surakarta')->count());
-        $this->assertSame(147, $data['monitoring']['candidatePagination']['total']);
-        $this->assertSame(147, count($data['monitoring']['candidates']));
+        $this->assertSame(0, DB::table('job_seekers')->where('institution_name', 'Politeknik Indonusa Surakarta')->count());
+        $this->assertSame(0, $data['monitoring']['candidatePagination']['total']);
+        $this->assertSame(0, count($data['monitoring']['candidates']));
+    }
+
+    public function test_purge_synthetic_command_removes_mock_candidates(): void
+    {
+        $syncService = app(GardataPlacementSyncService::class);
+        $syncService->ensureIndonusaCandidates(true);
+        $this->assertSame(147, DB::table('job_seekers')->where('external_source', 'sippmi')->count());
+
+        $this->artisan('sippmi:purge-synthetic', ['--yes' => true])
+            ->assertSuccessful();
+
+        $this->assertSame(0, DB::table('job_seekers')->where('external_source', 'sippmi')->count());
     }
 }
 

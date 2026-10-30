@@ -1263,12 +1263,16 @@ class BusinessDataPresenter
 
     public function make(User $user, array $filters = []): array
     {
-        $shouldAutoHeal = ! app()->runningUnitTests()
-            || (($filters['tab'] ?? null) === 'sippmi-monitoring')
-            || ! empty($filters['candidateSource']);
-        if ($shouldAutoHeal) {
-            $this->autoHealTenantCandidates(true);
-        }
+        // Auto-heal dinonaktifkan: data peserta hanya diisi melalui sinkronisasi API resmi
+        // atau command `php artisan gardata:sync` / `php artisan sippmi:sync`.
+        // Untuk mengembalikan perilaku lama, hapus baris ini dan aktifkan kembali blok di bawah.
+        //
+        // $shouldAutoHeal = ! app()->runningUnitTests()
+        //     || (($filters['tab'] ?? null) === 'sippmi-monitoring')
+        //     || ! empty($filters['candidateSource']);
+        // if ($shouldAutoHeal) {
+        //     $this->autoHealTenantCandidates(true);
+        // }
 
         $role = $user->roles()->value('name');
         $cacheKey = $this->cacheKey($user, $role, $filters);
@@ -1359,6 +1363,21 @@ class BusinessDataPresenter
 
     public function autoHealTenantCandidates(bool $forceInTest = false): void
     {
+        // AUTO-HEAL DINONAKTIFKAN.
+        // Injeksi data sintetis dimatikan agar data riil dari API Gardata / SIPPMI
+        // dapat tersinkronisasi dengan bersih.
+        //
+        // Untuk mengisi data awal, jalankan salah satu perintah berikut:
+        //   php artisan sippmi:sync          → sinkronisasi dari API sippmi.com
+        //   php artisan gardata:sync          → sinkronisasi dari API gardata.sippmi.com
+        //   php artisan gardata:jurus-jitu    → sinkronisasi penuh (termasuk wilayah & LPK)
+        //
+        // Untuk mengembalikan perilaku lama (injeksi data sintetis), hapus return di bawah
+        // dan aktifkan kembali blok yang dikomentari.
+        return;
+
+        /* ---- KODE LAMA (dinonaktifkan) ----
+
         if (app()->runningUnitTests() && ! $forceInTest) {
             return;
         }
@@ -1425,6 +1444,8 @@ class BusinessDataPresenter
         } catch (\Throwable) {
             // Graceful fallback
         }
+
+        ---- AKHIR KODE LAMA */
     }
 
     private function cacheKey(User $user, ?string $role, array $filters): string
@@ -2667,12 +2688,13 @@ class BusinessDataPresenter
             return [];
         }
 
-        $shouldAutoHeal = ! app()->runningUnitTests()
-            || (($filters['tab'] ?? null) === 'sippmi-monitoring')
-            || ! empty($filters['candidateSource']);
-        if ($shouldAutoHeal) {
-            $this->autoHealTenantCandidates(true);
-        }
+        // Auto-heal dinonaktifkan: data peserta hanya diisi melalui sinkronisasi API resmi.
+        // $shouldAutoHeal = ! app()->runningUnitTests()
+        //     || (($filters['tab'] ?? null) === 'sippmi-monitoring')
+        //     || ! empty($filters['candidateSource']);
+        // if ($shouldAutoHeal) {
+        //     $this->autoHealTenantCandidates(true);
+        // }
 
         $canViewGardata = in_array($role, ['super_admin', 'task_force', 'leadership', 'auditor'], true);
         $externalClasses = DB::table('external_training_records')
