@@ -333,7 +333,7 @@ export function ExecutiveDashboardBreakdowns({ data }: ExecutiveDashboardBreakdo
   );
 }
 
-function CountryDemandProgress({ target, achieved }: { target: number; achieved: number }) {
+export function CountryDemandProgress({ target, achieved }: { target: number; achieved: number }) {
   if (target <= 0) {
     return <span className="text-muted-foreground">—</span>;
   }
@@ -361,7 +361,7 @@ function CountryDemandProgress({ target, achieved }: { target: number; achieved:
   );
 }
 
-function BreakdownBar({
+export function BreakdownBar({
   label,
   value,
   total,
@@ -460,6 +460,6 @@ export function ProvinceRatioBar({
   );
 }
 
-function EmptyBreakdown({ message }: { message: string }) {
+export function EmptyBreakdown({ message }: { message: string }) {
   return <p className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">{message}</p>;
 }

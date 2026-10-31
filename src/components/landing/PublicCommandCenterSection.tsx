@@ -1,15 +1,17 @@
 import React, { useMemo, useState } from "react";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Building2, Globe2, GraduationCap, Users } from "lucide-react";
-import { cn } from "@/lib/utils";
+  Sparkles,
+  Info,
+} from "lucide-react";
 import type { PublicCommandCenterData, TrainingSectorCatalogItem } from "@/types";
-import { PublicDrilldownModal, PublicDrilldownType } from "@/components/landing/PublicDrilldownModal";
+import {
+  PublicDrilldownModal,
+  PublicDrilldownType,
+} from "@/components/landing/PublicDrilldownModal";
+import { CascadingFlyout } from "@/components/shared/CascadingFlyout";
+import { SectorGapList } from "@/components/shared/SectorGapList";
+import { PillarTimelineFlow } from "@/components/shared/PillarTimelineFlow";
+import { PillarKey } from "@/components/shared/CascadingFlyoutData";
 
 interface PublicCommandCenterSectionProps {
   initialData?: PublicCommandCenterData;
@@ -71,14 +73,38 @@ export const PublicCommandCenterSection: React.FC<PublicCommandCenterSectionProp
     };
   }, [initialData, currentStats]);
 
+  const handleOpenDrilldownFromFlyout = (pillar: PillarKey) => {
+    const map: Record<PillarKey, PublicDrilldownType> = {
+      sup: "peserta",
+      pel: "program",
+      lpk: "lembaga",
+      dem: "demand",
+    };
+    setActiveDrilldown(map[pillar]);
+  };
+
+  const handleTimelineStageSelect = (stageId: string) => {
+    const stageMap: Record<string, PublicDrilldownType> = {
+      supply: "peserta",
+      pelatihan: "program",
+      vokasi: "lembaga",
+      demand: "demand",
+      penempatan: "alokasi",
+    };
+    if (stageMap[stageId]) {
+      setActiveDrilldown(stageMap[stageId]);
+    }
+  };
+
   return (
     <section
       id="dashboard-command-center"
       className="border-b border-border bg-slate-50/70 dark:bg-slate-950/40 py-10 sm:py-12"
       aria-labelledby="command-center-heading"
     >
-      <div className="w-full px-4 sm:px-6 lg:px-8 space-y-6">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div className="w-full px-4 sm:px-6 lg:px-8 space-y-6 max-w-7xl mx-auto">
+        {/* Section Header */}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-2 border-b border-border/60">
           <div>
             <div className="flex items-center gap-2">
               <h2
@@ -87,7 +113,7 @@ export const PublicCommandCenterSection: React.FC<PublicCommandCenterSectionProp
               >
                 Dashboard Command Center
               </h2>
-              <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-500/20">
+              <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-500/20">
                 Publik
               </span>
             </div>
@@ -97,184 +123,50 @@ export const PublicCommandCenterSection: React.FC<PublicCommandCenterSectionProp
             </p>
           </div>
 
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <span className="px-3 py-1 rounded-md bg-card border border-border font-medium flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-primary" />
+              <span>Satu Data · Satu Pemantauan · Satu Keputusan</span>
+            </span>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6 gap-4">
-          {/* 1. Calon Peserta */}
-          <CommandStatCard
-            label="Calon Peserta"
-            value={currentStats.candidatesCount}
-            desc="Seluruh peserta pada cakupan nasional"
-            icon={Users}
-            onClick={() => setActiveDrilldown("peserta")}
-          />
+        {/* Animated Pipeline / Timeline Flow (Supply -> Demand -> Penempatan) */}
+        <PillarTimelineFlow onSelectStage={handleTimelineStageSelect} />
 
-          {/* 2. Program Pelatihan */}
-          <CommandStatCard
-            label="Program Pelatihan"
-            value={programsCount}
-            desc="Program pada negara tujuan yang ditampilkan"
-            icon={GraduationCap}
-            onClick={() => setActiveDrilldown("program")}
-          />
-
-          <Card className="min-w-0">
-            <CardHeader className="p-4 pb-2">
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <CardTitle className="text-sm font-semibold text-foreground">
-                    Program Pelatihan per Sektor
-                  </CardTitle>
-                  <CardDescription className="text-xs">
-                    Pilih sektor untuk melihat jabatan dan lembaga vokasi
-                  </CardDescription>
-                </div>
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                  <GraduationCap className="h-4 w-4" aria-hidden="true" />
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-1 px-3 pb-3 pt-1">
-              {trainingSectors.length === 0 ? (
-                <p className="px-2 py-3 text-xs text-muted-foreground">
-                  Data sektor pelatihan belum tersedia.
-                </p>
-              ) : trainingSectors.map((sector) => (
-                <button
-                  key={sector.name}
-                  type="button"
-                  onClick={() => {
-                    setActiveProgramSector(sector.name);
-                    setActiveDrilldown("program");
-                  }}
-                  className="flex w-full min-w-0 items-center justify-between gap-2 rounded-md px-2 py-1.5 text-left text-xs hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  aria-label={`Lihat ${sectorOccupations[sector.name]?.length ?? 0} jabatan sektor ${sector.name}`}
-                >
-                  <span className="min-w-0 truncate font-medium">{sector.name}</span>
-                  <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 font-semibold tabular-nums text-muted-foreground">
-                    {sectorOccupations[sector.name]?.length ?? 0}
-                  </span>
-                </button>
-              ))}
-            </CardContent>
-          </Card>
-
-          {/* Lembaga Vokasi */}
-          <CommandStatCard
-            label="Lembaga Vokasi"
-            value={currentStats.registeredProvidersCount}
-            badge="Terverifikasi"
-            desc="Lembaga terverifikasi e-Vokasi"
-            icon={Building2}
-            onClick={() => setActiveDrilldown("lembaga")}
-          />
-
-          {/* 4. Lembaga Terdaftar Nasional */}
-          <CommandStatCard
-            label="Lembaga Terdaftar Nasional"
-            value={currentStats.registeredNationalLpkCount}
-            badge="Terverifikasi"
-            desc="Lembaga terverifikasi di seluruh Indonesia"
-            icon={Building2}
-            onClick={() => setActiveDrilldown("national_lpk")}
-          />
-
-          {/* 5. Permintaan Luar Negeri */}
-          <CommandStatCard
-            label="Permintaan Luar Negeri"
-            value={currentStats.demandsCount}
-            desc="Lowongan kerja LN"
-            icon={Globe2}
-            onClick={() => setActiveDrilldown("demand")}
-          />
-
+        {/* Guidance Instruction and Prototype Note */}
+        <div className="space-y-2">
+          <div className="text-xs sm:text-sm text-muted-foreground">
+            Klik card untuk membuka menu · arahkan kursor / ketuk untuk menelusuri lebih dalam
+          </div>
+          <div className="flex items-center gap-2 rounded-xl bg-primary/10 border border-primary/20 px-3.5 py-2 text-xs text-primary font-medium">
+            <Info className="h-4 w-4 shrink-0" />
+            <span>Prototipe terintegrasi dengan data riil & drill-down bertingkat (Cascading Flyout).</span>
+          </div>
         </div>
+
+        {/* 1. Cascading Flyout 4 Pillars Component */}
+        <CascadingFlyout onOpenDrilldownModal={handleOpenDrilldownFromFlyout} />
+
+        {/* 2. Kesenjangan Supply vs Demand per Sektor */}
+        <SectorGapList />
       </div>
 
       {/* Drilldown Modal for Public */}
       {activeDrilldown && (
         <PublicDrilldownModal
-        type={activeDrilldown}
-        onClose={() => {
-          setActiveDrilldown(null);
-          setActiveProgramSector(null);
-        }}
-        scopeName={scopeLabel}
-        data={synthesizedData}
-        initialSector={activeProgramSector}
-        sectorOccupations={sectorOccupations}
-        trainingSectors={trainingSectors}
-      />
+          type={activeDrilldown}
+          onClose={() => {
+            setActiveDrilldown(null);
+            setActiveProgramSector(null);
+          }}
+          scopeName={scopeLabel}
+          data={synthesizedData}
+          initialSector={activeProgramSector}
+          sectorOccupations={sectorOccupations}
+          trainingSectors={trainingSectors}
+        />
       )}
     </section>
   );
 };
-
-interface CommandStatCardProps {
-  label: string;
-  value: number;
-  desc: string;
-  badge?: string;
-  icon: React.ElementType;
-  onClick?: () => void;
-  children?: React.ReactNode;
-}
-
-function CommandStatCard({
-  label,
-  value,
-  desc,
-  badge,
-  icon: Icon,
-  onClick,
-  children,
-}: CommandStatCardProps) {
-  return (
-    <Card
-      onClick={onClick}
-      role={onClick ? "button" : undefined}
-      tabIndex={onClick ? 0 : undefined}
-      onKeyDown={(e) => {
-        if (onClick && (e.key === "Enter" || e.key === " ")) {
-          e.preventDefault();
-          onClick();
-        }
-      }}
-      className={cn(
-        "transition-all duration-200 select-none",
-        onClick &&
-          "cursor-pointer hover:border-primary/60 hover:shadow-md hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring group"
-      )}
-    >
-      <CardHeader className="flex flex-row items-center justify-between p-4 pb-2">
-        <div>
-          <CardTitle className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">
-            {label}
-          </CardTitle>
-          <CardDescription className="text-xs">{desc}</CardDescription>
-        </div>
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-all shrink-0">
-          <Icon className="h-4 w-4" aria-hidden="true" />
-        </div>
-      </CardHeader>
-      <CardContent className="p-4 pt-1">
-        <div className="flex items-baseline justify-between gap-2">
-          <div className="text-2xl font-bold tabular-nums text-foreground">
-            {value.toLocaleString("id-ID")}
-          </div>
-          {badge && (
-            <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 tabular-nums shrink-0">
-              {badge}
-            </span>
-          )}
-        </div>
-        {children}
-        {onClick && (
-          <p className="mt-2 text-[11px] font-medium text-primary flex items-center gap-1 group-hover:underline">
-            Klik untuk melihat detail &rarr;
-          </p>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
