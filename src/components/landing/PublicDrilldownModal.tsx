@@ -960,48 +960,8 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
         );
 
       case "demand":
-        return (
-          <div className="space-y-4">
-            <div className="rounded-xl border border-border bg-muted/40 p-4">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                  <Globe2 className="h-5 w-5" />
-                </div>
-                <div>
-                  <h4 className="text-sm font-bold text-foreground">
-                    Permintaan Kerja Luar Negeri
-                  </h4>
-                  <p className="text-xs text-muted-foreground">
-                    Permintaan resmi yang tervalidasi dari mitra dan program G to G / P to P
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="rounded-lg border border-border p-2">
-              <div className="space-y-2.5">
-                {(demands.length > 0 ? demands : defaultRealDemands).map((dmd) => (
-                  <div key={dmd.id} className="rounded-lg border border-border bg-white dark:bg-slate-900 p-3 space-y-1.5 hover:border-primary/50 transition shadow-xs">
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <h6 className="text-xs font-bold text-foreground">{dmd.occupation || "Tenaga Terampil"}</h6>
-                        <p className="text-[11px] text-muted-foreground">{dmd.employerName || "Mitra Resmi Luar Negeri"}</p>
-                      </div>
-                      <Badge variant="outline" className="text-[10px] shrink-0 font-bold border-blue-500/40 text-blue-600 dark:text-blue-400">
-                        {dmd.country}
-                      </Badge>
-                    </div>
-                    <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-1 border-t border-border/40">
-                      <span>Sektor: <strong>{dmd.sector || "Umum"}</strong></span>
-                      <span>Kuota: <strong className="text-foreground">{dmd.quota || 0} orang</strong></span>
-                      {dmd.deadline && <span>Batas: {dmd.deadline}</span>}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        );
+        // Konten popup demand disembunyikan sesuai permintaan
+        return null;
 
       case "alokasi":
         return (
