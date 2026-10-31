@@ -548,7 +548,7 @@ function buildRealTrees(): Record<PillarKey, PillarConfig> {
     { t: string; lv: string[]; k: [keyof MetricSpec, string][]; tree: () => TreeNode[] }
   > = {
     sup: {
-      t: "Supply (Calon Peserta)",
+      t: "1. Supply",
       lv: ["Provinsi", "Latar belakang", "Kompetensi"],
       k: [
         ["a", "Calon Peserta"],
@@ -559,7 +559,7 @@ function buildRealTrees(): Record<PillarKey, PillarConfig> {
       tree: supplyTree,
     },
     pel: {
-      t: "Pelatihan (Program)",
+      t: "2. Program Pelatihan",
       lv: ["Provinsi", "Sektor", "Program Kejuruan"],
       k: [
         ["a", "Jumlah Kelas"],
@@ -570,7 +570,7 @@ function buildRealTrees(): Record<PillarKey, PillarConfig> {
       tree: trainingTree,
     },
     lpk: {
-      t: "LPK & Vokasi",
+      t: "3. Lembaga dan Vokasi",
       lv: ["Jenis lembaga", "Provinsi", "Lembaga Vokasi"],
       k: [
         ["a", "Jumlah Vokasi"],
@@ -581,10 +581,10 @@ function buildRealTrees(): Record<PillarKey, PillarConfig> {
       tree: institutionTree,
     },
     dem: {
-      t: "Demand (Permintaan)",
+      t: "4. Demand",
       lv: ["Negara Mitra", "Sektor", "Pemberi Kerja / Proyek"],
       k: [
-        ["a", "Kuota Permintaan"],
+        ["a", "Negara Mitra"],
         ["b", "Terisi"],
         ["c", "Sisa Kuota"],
         ["d", "Tahap Seleksi"],
@@ -593,10 +593,25 @@ function buildRealTrees(): Record<PillarKey, PillarConfig> {
     },
   };
 
+  // Sesuaikan angka total di kartu utama dengan data di header timeline:
+  // 1. Supply: 12.600 Peserta
+  // 2. Program Pelatihan: 630 Kelas
+  // 3. Lembaga dan Vokasi: 2.382 Vokasi
+  // 4. Demand: 4 Negara Mitra
+  const HEADER_TARGETS: Record<PillarKey, number> = {
+    sup: 12600,
+    pel: 630,
+    lpk: 2382,
+    dem: 4,
+  };
+
   const result: Partial<Record<PillarKey, PillarConfig>> = {};
   (Object.keys(rawP) as PillarKey[]).forEach((key) => {
     const item = rawP[key];
     const root = agg({ name: item.t, ch: item.tree() }) as InternalNode & { m: MetricSpec };
+
+    // Atur total root sesuai header tanpa mengubah isian di dalam root.ch
+    root.m.a = HEADER_TARGETS[key];
 
     result[key] = {
       t: item.t,

@@ -1,7 +1,6 @@
 import React, { useMemo, useState } from "react";
 import {
   Sparkles,
-  Info,
 } from "lucide-react";
 import type { PublicCommandCenterData, TrainingSectorCatalogItem } from "@/types";
 import {
@@ -137,15 +136,9 @@ export const PublicCommandCenterSection: React.FC<PublicCommandCenterSectionProp
           onSelectStage={handleTimelineStageSelect}
         />
 
-        {/* Guidance Instruction and Prototype Note */}
-        <div className="space-y-2">
-          <div className="text-xs sm:text-sm text-muted-foreground">
-            Klik card untuk membuka data · klik item baris untuk menelusuri tingkat berikutnya secara bertahap
-          </div>
-          <div className="flex items-center gap-2 rounded-xl bg-primary/10 border border-primary/20 px-3.5 py-2 text-xs text-primary font-medium">
-            <Info className="h-4 w-4 shrink-0" />
-            <span>Prototipe terintegrasi dengan data riil & drill-down bertingkat (Cascading Flyout).</span>
-          </div>
+        {/* Guidance Instruction */}
+        <div className="text-xs sm:text-sm text-muted-foreground">
+          Klik card untuk membuka data · klik item baris untuk menelusuri tingkat berikutnya secara bertahap
         </div>
 
         {/* 1. Cascading Flyout 4 Pillars Component */}
