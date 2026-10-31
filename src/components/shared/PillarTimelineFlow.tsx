@@ -4,10 +4,6 @@ import {
   GraduationCap,
   Building2,
   Globe2,
-  Workflow,
-  CheckCircle2,
-  ChevronRight,
-  ArrowRight,
   Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -107,20 +103,12 @@ export function PillarTimelineFlow({
 }: PillarTimelineFlowProps) {
   const [activeStageId, setActiveStageId] = useState<string>("supply");
 
-  const currentStage = STAGES.find((s) => s.id === activeStageId) ?? STAGES[0];
-
   const handleCardClick = (stage: TimelineStage) => {
     // Switch active stage and immediately open the full modal / drilldown
     setActiveStageId(stage.id);
     onStageChange?.(stage.id, stage.pillarKey);
     const triggerFn = onOpenFull || onSelectStage;
     triggerFn?.(stage.id, stage.pillarKey);
-  };
-
-  const handleOpenFull = () => {
-    // Open full modal / drilldown when the action button is clicked ("baru nanti baru full")
-    const triggerFn = onOpenFull || onSelectStage;
-    triggerFn?.(currentStage.id, currentStage.pillarKey);
   };
 
   return (
@@ -211,35 +199,6 @@ export function PillarTimelineFlow({
             );
           })}
         </div>
-      </div>
-
-      {/* Selected Stage Detail Insight Card */}
-      <div className="p-3.5 sm:p-4 rounded-xl border border-border bg-white dark:bg-slate-900 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs animate-in fade-in-50 duration-200">
-        <div className="flex items-start gap-3 min-w-0">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground font-bold shrink-0 text-sm shadow-xs">
-            {currentStage.stepNumber}
-          </div>
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="font-bold text-foreground text-sm">{currentStage.title}</span>
-              <span className="text-muted-foreground hidden sm:inline">—</span>
-              <span className="font-semibold text-primary">{currentStage.subtitle}</span>
-              <span className="text-[10.5px] font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
-                {currentStage.metricLabel}: {currentStage.metricValue}
-              </span>
-            </div>
-            <p className="text-muted-foreground mt-1 leading-relaxed text-xs">{currentStage.desc}</p>
-          </div>
-        </div>
-
-        <button
-          type="button"
-          onClick={handleOpenFull}
-          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-bold shadow-md hover:bg-primary/90 transition shrink-0 cursor-pointer self-start sm:self-center group/btn"
-        >
-          <span>Buka Data Lengkap Tahap Ini</span>
-          <ArrowRight className="h-3.5 w-3.5 group-hover/btn:translate-x-0.5 transition-transform" />
-        </button>
       </div>
     </div>
   );
