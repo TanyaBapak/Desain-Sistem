@@ -49,7 +49,7 @@ const STAGES: TimelineStage[] = [
     id: "pelatihan",
     stepNumber: 2,
     pillarKey: "pel",
-    title: "2. Pelatihan",
+    title: "2. Program Pelatihan",
     subtitle: "Kurikulum & Pemenuhan JP",
     tag: "Standardisasi",
     desc: "Pembelajaran terstruktur (320-400 JP), bahasa asing (N4/A2), dan sertifikasi kompetensi (SSW/JIS/BNSP).",
@@ -64,7 +64,7 @@ const STAGES: TimelineStage[] = [
     id: "vokasi",
     stepNumber: 3,
     pillarKey: "lpk",
-    title: "3. LPK & Vokasi",
+    title: "3. Lembaga dan Vokasi",
     subtitle: "Kesiapan Balai e-Vokasi",
     tag: "Fasilitas",
     desc: "Verifikasi sarana bengkel kerja, instruktur berlisensi, akreditasi, dan kesiapan kapasitas kelas.",
@@ -89,21 +89,6 @@ const STAGES: TimelineStage[] = [
     status: "ready",
     colorClass: "text-amber-600 dark:text-amber-400 border-amber-500/40 bg-amber-500/10",
     badgeBg: "bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30",
-  },
-  {
-    id: "penempatan",
-    stepNumber: 5,
-    pillarKey: "matching",
-    title: "5. Penempatan",
-    subtitle: "Matching & Keberangkatan",
-    tag: "Hilirisasi",
-    desc: "Pencocokan algoritmik skor kompetensi, seleksi employer, kontrak kerja legal, dan penerbitan visa.",
-    icon: Workflow,
-    metricLabel: "Batch Alokasi",
-    metricValue: "12 Batch SK",
-    status: "ready",
-    colorClass: "text-purple-600 dark:text-purple-400 border-purple-500/40 bg-purple-500/10",
-    badgeBg: "bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-500/30",
   },
 ];
 
@@ -168,11 +153,11 @@ export function PillarTimelineFlow({
       <div className="relative">
         {/* Animated Connecting Flow Beam Line (Desktop) */}
         <div className="hidden lg:block absolute top-6 left-8 right-8 h-1 bg-muted rounded-full overflow-hidden z-0">
-          <div className="h-full bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 rounded-full animate-pulse opacity-80" />
+          <div className="h-full bg-gradient-to-r from-blue-500 via-indigo-500 via-emerald-500 to-amber-500 rounded-full animate-pulse opacity-80" />
         </div>
 
         {/* Stages Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 relative z-10">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 relative z-10">
           {STAGES.map((stage) => {
             const Icon = stage.icon;
             const isSelected = stage.id === activeStageId;
