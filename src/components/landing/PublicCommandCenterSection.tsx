@@ -189,14 +189,14 @@ export const PublicCommandCenterSection: React.FC<PublicCommandCenterSectionProp
                     </span>
                   </div>
                   <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-500/30">
-                    Integrasi API
+                    Level: Nasional
                   </span>
                 </div>
                 <h4 className="text-sm font-bold text-foreground group-hover:text-blue-600 transition-colors">
                   Integrasi BP2MI / SISKOP2MI
                 </h4>
                 <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                  Data lembaga dan balai kerja yang disinkronkan langsung dari basis data penempatan resmi KP2MI.
+                  Data lembaga dan balai kerja yang disinkronkan langsung dari basis data penempatan resmi KP2MI / BP2MI Pusat.
                 </p>
               </div>
 
@@ -221,14 +221,14 @@ export const PublicCommandCenterSection: React.FC<PublicCommandCenterSectionProp
                     </span>
                   </div>
                   <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30">
-                    Rekomendasi Pemda
+                    Level: Kab/Kota & Provinsi
                   </span>
                 </div>
                 <h4 className="text-sm font-bold text-foreground group-hover:text-indigo-600 transition-colors">
                   Inputan Disnaker Daerah
                 </h4>
                 <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                  Lembaga vokasi dan LPK yang diajukan serta diverifikasi oleh Dinas Tenaga Kerja Provinsi dan Kab/Kota.
+                  Lembaga vokasi dan LPK yang diajukan serta diverifikasi oleh Dinas Tenaga Kerja Kabupaten/Kota dan Disnaker Provinsi.
                 </p>
               </div>
 
@@ -249,18 +249,18 @@ export const PublicCommandCenterSection: React.FC<PublicCommandCenterSectionProp
                   <div className="flex items-center gap-2">
                     <span className="w-2.5 h-2.5 rounded-full bg-emerald-600 animate-pulse" />
                     <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">
-                      Umum / Lembaga
+                      Umum / Mandiri
                     </span>
                   </div>
                   <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
-                    Pendaftaran Mandiri
+                    Level: Lembaga Vokasi
                   </span>
                 </div>
                 <h4 className="text-sm font-bold text-foreground group-hover:text-emerald-600 transition-colors">
                   Pendaftaran Mandiri SMK / Balai
                 </h4>
                 <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                  Satuan pendidikan kejuruan dan lembaga pelatihan kerja yang mendaftar secara terbuka melalui portal Task Force.
+                  Satuan pendidikan kejuruan dan lembaga pelatihan kerja mandiri yang mendaftar secara terbuka melalui portal Task Force.
                 </p>
               </div>
 

@@ -147,6 +147,7 @@ export interface VocationalProvider {
   institutionCategory?: string;
   registrationSource?: 'siskop2mi' | 'disnaker' | 'umum' | string;
   registrationSourceId?: string;
+  inputLevel?: 'kabupaten_kota' | 'provinsi' | 'lembaga_vokasi' | 'nasional' | string;
 }
 
 // ==========================================
@@ -692,6 +693,7 @@ export interface PublicPreviewInstitution {
   studentCount?: number;
   registrationSource?: 'siskop2mi' | 'disnaker' | 'umum' | string;
   registrationSourceId?: string;
+  inputLevel?: 'kabupaten_kota' | 'provinsi' | 'lembaga_vokasi' | 'nasional' | string;
 }
 
 export interface PublicPreviewProgram {

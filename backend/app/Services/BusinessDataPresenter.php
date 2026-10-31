@@ -372,6 +372,7 @@ class BusinessDataPresenter
                     'institutions.external_metadata as externalMetadata',
                     'institutions.total_active_students as totalActiveStudents',
                     'institutions.workshop_capacity as workshopCapacity',
+                    'institutions.external_source as externalSource',
                 ])
                 ->map(function (object $row) use ($candidatesRows): array {
                     $metadata = $this->decodeArray($row->externalMetadata);
@@ -455,12 +456,24 @@ class BusinessDataPresenter
                         }
                     }
 
+                    $source = 'umum';
+                    $inputLevel = 'lembaga_vokasi';
+                    if (! empty($row->externalSource) && stripos((string) $row->externalSource, 'kp2mi') !== false) {
+                        $source = 'siskop2mi';
+                        $inputLevel = 'nasional';
+                    } elseif (! empty($row->externalSource) && stripos((string) $row->externalSource, 'disnaker') !== false) {
+                        $source = 'disnaker';
+                        $inputLevel = 'kabupaten_kota';
+                    }
+
                     return [
                         ...((array) $row),
                         'supportedSectors' => $supportedSectorsDecoded,
                         'supportedOccupations' => array_values(array_unique($supportedOccupations)),
                         'students' => $students,
                         'studentCount' => count($students),
+                        'registrationSource' => $source,
+                        'inputLevel' => $inputLevel,
                     ];
                 })
                 ->all();
@@ -502,6 +515,47 @@ class BusinessDataPresenter
                 ])
                 ->map(fn (object $row): array => (array) $row)
                 ->all();
+
+            if (empty($sampleDemands)) {
+                $sampleDemands = [
+                    [
+                        'id' => 'DEM-TR-001',
+                        'country' => 'Turki',
+                        'employerName' => 'Antalya Coastal Hospitality & Resort Group',
+                        'sector' => 'Hospitality',
+                        'occupation' => 'Hotel & Resort Specialist',
+                        'quota' => 120,
+                        'deadline' => '2027-06-30',
+                    ],
+                    [
+                        'id' => 'DEM-JP-001',
+                        'country' => 'Jepang',
+                        'employerName' => 'Tokyo Medical Care & Nagoya Works',
+                        'sector' => 'Kesehatan',
+                        'occupation' => 'Caregiver / Perawat Lansia (Kaigo)',
+                        'quota' => 250,
+                        'deadline' => '2027-08-31',
+                    ],
+                    [
+                        'id' => 'DEM-KR-001',
+                        'country' => 'Korea',
+                        'employerName' => 'Busan Marine Fleet & Shipyard Corporation',
+                        'sector' => 'Fisherman',
+                        'occupation' => 'Fishing Vessel Operator & Deck Hand',
+                        'quota' => 180,
+                        'deadline' => '2027-09-30',
+                    ],
+                    [
+                        'id' => 'DEM-MY-001',
+                        'country' => 'Malaysia',
+                        'employerName' => 'Kuala Lumpur Modern Infrastructure Consortium',
+                        'sector' => 'Konstruksi',
+                        'occupation' => 'Civil Infrastructure Technician',
+                        'quota' => 150,
+                        'deadline' => '2027-07-31',
+                    ],
+                ];
+            }
 
             $candidateEducation = rescue(fn () => DB::table('job_seekers')
                 ->whereNull('deleted_at')

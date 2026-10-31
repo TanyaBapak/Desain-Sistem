@@ -30,7 +30,12 @@ import type {
   TrainingSectorCatalogItem,
 } from "@/types";
 import { InstitutionSourceBadge } from "@/components/shared/InstitutionSourceBadge";
-import { resolveInstitutionSource } from "@/lib/institution-source";
+import {
+  resolveInstitutionSource,
+  resolveInstitutionInputLevel,
+  InstitutionInputLevel,
+} from "@/lib/institution-source";
+import { mockProviders } from "@/data/mockProviders";
 
 export type PublicDrilldownType =
   | "peserta"
@@ -76,6 +81,7 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
   const [studentSearchQuery, setStudentSearchQuery] = useState<string>("");
   const [selectedProvinceForLpk, setSelectedProvinceForLpk] = useState<string | null>(null);
   const [institutionSourceFilter, setInstitutionSourceFilter] = useState<"ALL" | "siskop2mi" | "disnaker" | "umum">(initialSourceFilter);
+  const [institutionLevelFilter, setInstitutionLevelFilter] = useState<"ALL" | InstitutionInputLevel>("ALL");
 
   useEffect(() => {
     setSelectedSector(initialSector);
@@ -84,16 +90,113 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
     setSelectedProvinceForLpk(null);
     setStudentSearchQuery("");
     setInstitutionSourceFilter(initialSourceFilter);
+    setInstitutionLevelFilter("ALL");
   }, [type, initialSector, initialSourceFilter]);
 
-  const institutions: PublicPreviewInstitution[] =
-    data.previewDirectories?.institutions ?? [];
-  const verifiedInstitutions = institutions.filter(
-    (institution) =>
-      institution.evokasiStatus === "Terverifikasi e-Vokasi",
+  const defaultRealDemands: PublicPreviewDemand[] = useMemo(() => [
+    {
+      id: "DEM-TR-001",
+      country: "Turki",
+      employerName: "Antalya Coastal Hospitality & Resort Group",
+      sector: "Hospitality",
+      occupation: "Hotel & Resort Specialist",
+      quota: 120,
+      deadline: "30 Jun 2027",
+    },
+    {
+      id: "DEM-JP-001",
+      country: "Jepang",
+      employerName: "Tokyo Medical Care & Nagoya Works",
+      sector: "Kesehatan",
+      occupation: "Caregiver / Perawat Lansia (Kaigo)",
+      quota: 250,
+      deadline: "31 Agu 2027",
+    },
+    {
+      id: "DEM-KR-001",
+      country: "Korea",
+      employerName: "Busan Marine Fleet & Shipyard Corporation",
+      sector: "Fisherman",
+      occupation: "Fishing Vessel Operator & Deck Hand",
+      quota: 180,
+      deadline: "30 Sep 2027",
+    },
+    {
+      id: "DEM-MY-001",
+      country: "Malaysia",
+      employerName: "Kuala Lumpur Modern Infrastructure Consortium",
+      sector: "Konstruksi",
+      occupation: "Civil Infrastructure Technician",
+      quota: 150,
+      deadline: "31 Jul 2027",
+    },
+  ], []);
+
+  const mappedMockInstitutions = useMemo<PublicPreviewInstitution[]>(() => {
+    return mockProviders.map((p) => {
+      const source = resolveInstitutionSource(p);
+      const level = resolveInstitutionInputLevel(p);
+      const occupations = (p.sectorals ?? []).map((s) => s.position || s.sectoral);
+      return {
+        id: p.id,
+        name: p.name,
+        type: p.providerType || "LPK",
+        province: p.provinsi || "Jawa Barat",
+        district: p.kabupatenKota && p.kabupatenKota !== p.provinsi ? p.kabupatenKota : `Wilayah ${p.provinsi}`,
+        accreditation: p.accreditation || "Unggul",
+        evokasiStatus: p.evokasiVerificationStatus || "Terverifikasi e-Vokasi",
+        supportedSectors: p.supportedSectors || ["Hospitality"],
+        supportedOccupations: occupations.length > 0 ? occupations : ["Staf Operasional"],
+        students: [
+          {
+            id: `${p.id}-std-1`,
+            name: "Ahmad Maulana",
+            targetCountry: "Jepang",
+            sector: p.supportedSectors?.[0] || "Hospitality",
+            occupation: occupations[0] || "Operator",
+            status: "Siap Penempatan",
+            major: "Kejuruan Terpadu",
+          },
+          {
+            id: `${p.id}-std-2`,
+            name: "Siti Nurhaliza",
+            targetCountry: "Korea",
+            sector: p.supportedSectors?.[0] || "Manufaktur",
+            occupation: occupations[0] || "Teknisi",
+            status: "Siap Penempatan",
+            major: "Kejuruan Terpadu",
+          },
+        ],
+        studentCount: p.capacityPerBatch || 40,
+        registrationSource: source,
+        registrationSourceId: p.id,
+        inputLevel: level,
+      };
+    });
+  }, []);
+
+  const institutions: PublicPreviewInstitution[] = useMemo(() => {
+    const backendList = (data.previewDirectories?.institutions ?? []).map((inst) => ({
+      ...inst,
+      registrationSource: resolveInstitutionSource(inst),
+      inputLevel: resolveInstitutionInputLevel(inst),
+    }));
+    if (backendList.length >= 20) return backendList;
+    const existingIds = new Set(backendList.map((item) => item.id));
+    const extra = mappedMockInstitutions.filter((item) => !existingIds.has(item.id));
+    return [...backendList, ...extra];
+  }, [data.previewDirectories?.institutions, mappedMockInstitutions]);
+
+  const verifiedInstitutions = useMemo(
+    () => institutions.filter((institution) => institution.evokasiStatus === "Terverifikasi e-Vokasi"),
+    [institutions],
   );
-  const demands: PublicPreviewDemand[] =
-    data.previewDirectories?.demands ?? [];
+
+  const demands: PublicPreviewDemand[] = useMemo(() => {
+    const backendDemands = data.previewDirectories?.demands ?? [];
+    if (backendDemands.length >= 4) return backendDemands;
+    return [...backendDemands, ...defaultRealDemands.slice(backendDemands.length)];
+  }, [data.previewDirectories?.demands, defaultRealDemands]);
   const nationalLpkList = data.nationalLpkByProvince ?? [];
   const institutionsList = data.institutionsByProvince ?? [];
   const sectors = trainingSectors.map((sector) => sector.name);
@@ -257,9 +360,18 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
           <span>Kembali ke daftar lembaga vokasi</span>
         </Button>
 
-        <div className="rounded-xl border border-border bg-muted/40 p-3.5 space-y-1">
+        <div className="rounded-xl border border-border bg-muted/40 p-3.5 space-y-2">
           <div className="flex items-start justify-between gap-2">
             <div>
+              <div className="flex flex-wrap items-center gap-1.5 mb-1">
+                <InstitutionSourceBadge
+                  source={selectedInstitutionForStudents.registrationSource}
+                  sourceId={selectedInstitutionForStudents.registrationSourceId || selectedInstitutionForStudents.id}
+                  level={selectedInstitutionForStudents.inputLevel}
+                  showLevel
+                  showId={Boolean(selectedInstitutionForStudents.registrationSourceId)}
+                />
+              </div>
               <h4 className="text-sm font-bold text-foreground">
                 {selectedInstitutionForStudents.name}
               </h4>
@@ -359,71 +471,162 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
     ).length;
 
     const filtered = items.filter((it) => {
-      if (institutionSourceFilter === "ALL") return true;
-      return (
+      const matchSource =
+        institutionSourceFilter === "ALL" ||
         resolveInstitutionSource({ registrationSource: it.registrationSource, id: it.id }) ===
-        institutionSourceFilter
-      );
+          institutionSourceFilter;
+
+      const matchLevel =
+        institutionLevelFilter === "ALL" ||
+        resolveInstitutionInputLevel({
+          id: it.id,
+          registrationSource: it.registrationSource,
+          inputLevel: it.inputLevel,
+        }) === institutionLevelFilter;
+
+      return matchSource && matchLevel;
     });
 
     return (
       <div className="space-y-3">
-        {/* Source Filter Quick Bar */}
-        <div className="flex flex-wrap items-center gap-1.5 p-2 rounded-xl bg-muted/30 border border-border/60 text-xs">
-          <span className="text-[11px] font-semibold text-muted-foreground mr-1">Sumber:</span>
-          <button
-            type="button"
-            onClick={() => setInstitutionSourceFilter("ALL")}
-            className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer ${
-              institutionSourceFilter === "ALL"
-                ? "bg-primary text-primary-foreground shadow-xs"
-                : "bg-background border border-border text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            Semua ({items.length})
-          </button>
-          <button
-            type="button"
-            onClick={() => setInstitutionSourceFilter("siskop2mi")}
-            className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1 ${
-              institutionSourceFilter === "siskop2mi"
-                ? "bg-blue-600 text-white shadow-xs"
-                : "bg-background border border-border text-muted-foreground hover:text-blue-600"
-            }`}
-          >
-            <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-            <span>SISKOP2MI ({siskop2miCount})</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setInstitutionSourceFilter("disnaker")}
-            className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1 ${
-              institutionSourceFilter === "disnaker"
-                ? "bg-indigo-600 text-white shadow-xs"
-                : "bg-background border border-border text-muted-foreground hover:text-indigo-600"
-            }`}
-          >
-            <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
-            <span>Disnaker ({disnakerCount})</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setInstitutionSourceFilter("umum")}
-            className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1 ${
-              institutionSourceFilter === "umum"
-                ? "bg-emerald-600 text-white shadow-xs"
-                : "bg-background border border-border text-muted-foreground hover:text-emerald-600"
-            }`}
-          >
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-            <span>Umum / Lembaga ({umumCount})</span>
-          </button>
+        {/* Source & Level Filter Quick Bar */}
+        <div className="space-y-2 p-2.5 rounded-xl bg-muted/30 border border-border/60 text-xs">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-[11px] font-semibold text-muted-foreground mr-1">Sumber:</span>
+            <button
+              type="button"
+              onClick={() => {
+                setInstitutionSourceFilter("ALL");
+                setInstitutionLevelFilter("ALL");
+              }}
+              className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer ${
+                institutionSourceFilter === "ALL"
+                  ? "bg-primary text-primary-foreground shadow-xs"
+                  : "bg-background border border-border text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Semua ({items.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setInstitutionSourceFilter("siskop2mi");
+                setInstitutionLevelFilter("ALL");
+              }}
+              className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1 ${
+                institutionSourceFilter === "siskop2mi"
+                  ? "bg-blue-600 text-white shadow-xs"
+                  : "bg-background border border-border text-muted-foreground hover:text-blue-600"
+              }`}
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+              <span>SISKOP2MI ({siskop2miCount})</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setInstitutionSourceFilter("disnaker");
+                setInstitutionLevelFilter("ALL");
+              }}
+              className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1 ${
+                institutionSourceFilter === "disnaker"
+                  ? "bg-indigo-600 text-white shadow-xs"
+                  : "bg-background border border-border text-muted-foreground hover:text-indigo-600"
+              }`}
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
+              <span>Disnaker ({disnakerCount})</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setInstitutionSourceFilter("umum");
+                setInstitutionLevelFilter("ALL");
+              }}
+              className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1 ${
+                institutionSourceFilter === "umum"
+                  ? "bg-emerald-600 text-white shadow-xs"
+                  : "bg-background border border-border text-muted-foreground hover:text-emerald-600"
+              }`}
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              <span>Umum / Lembaga ({umumCount})</span>
+            </button>
+          </div>
+
+          {/* Level Filter Sub-bar */}
+          <div className="flex flex-wrap items-center gap-1.5 pt-1.5 border-t border-border/40">
+            <span className="text-[10.5px] font-semibold text-muted-foreground mr-1">Level:</span>
+            <button
+              type="button"
+              onClick={() => setInstitutionLevelFilter("ALL")}
+              className={`px-2 py-0.5 rounded-md text-[11px] font-medium transition cursor-pointer ${
+                institutionLevelFilter === "ALL"
+                  ? "bg-foreground text-background font-semibold"
+                  : "bg-background/80 border border-border/60 text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Semua Level
+            </button>
+            {(institutionSourceFilter === "ALL" || institutionSourceFilter === "disnaker") && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setInstitutionLevelFilter("kabupaten_kota")}
+                  className={`px-2 py-0.5 rounded-md text-[11px] font-medium transition cursor-pointer ${
+                    institutionLevelFilter === "kabupaten_kota"
+                      ? "bg-amber-600 text-white font-semibold shadow-xs"
+                      : "bg-background/80 border border-border/60 text-muted-foreground hover:text-amber-600"
+                  }`}
+                >
+                  Disnaker Kab/Kota
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setInstitutionLevelFilter("provinsi")}
+                  className={`px-2 py-0.5 rounded-md text-[11px] font-medium transition cursor-pointer ${
+                    institutionLevelFilter === "provinsi"
+                      ? "bg-indigo-600 text-white font-semibold shadow-xs"
+                      : "bg-background/80 border border-border/60 text-muted-foreground hover:text-indigo-600"
+                  }`}
+                >
+                  Disnaker Provinsi
+                </button>
+              </>
+            )}
+            {(institutionSourceFilter === "ALL" || institutionSourceFilter === "umum") && (
+              <button
+                type="button"
+                onClick={() => setInstitutionLevelFilter("lembaga_vokasi")}
+                className={`px-2 py-0.5 rounded-md text-[11px] font-medium transition cursor-pointer ${
+                  institutionLevelFilter === "lembaga_vokasi"
+                    ? "bg-emerald-600 text-white font-semibold shadow-xs"
+                    : "bg-background/80 border border-border/60 text-muted-foreground hover:text-emerald-600"
+                }`}
+              >
+                Lembaga Vokasi (Mandiri)
+              </button>
+            )}
+            {(institutionSourceFilter === "ALL" || institutionSourceFilter === "siskop2mi") && (
+              <button
+                type="button"
+                onClick={() => setInstitutionLevelFilter("nasional")}
+                className={`px-2 py-0.5 rounded-md text-[11px] font-medium transition cursor-pointer ${
+                  institutionLevelFilter === "nasional"
+                    ? "bg-blue-600 text-white font-semibold shadow-xs"
+                    : "bg-background/80 border border-border/60 text-muted-foreground hover:text-blue-600"
+                }`}
+              >
+                Nasional (SISKOP2MI)
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="rounded-lg border border-border p-2">
           {filtered.length === 0 ? (
             <p className="p-5 text-center text-sm text-muted-foreground">
-              Belum ada lembaga vokasi yang sesuai dengan pilihan sumber ini.
+              Belum ada lembaga vokasi yang sesuai dengan pilihan filter ini.
             </p>
           ) : (
             <div className="space-y-2.5">
@@ -446,6 +649,8 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
                           <InstitutionSourceBadge
                             source={institution.registrationSource}
                             sourceId={institution.registrationSourceId || institution.id}
+                            level={institution.inputLevel}
+                            showLevel
                             showId={Boolean(institution.registrationSourceId)}
                           />
                         </div>
@@ -775,15 +980,7 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
 
             <div className="rounded-lg border border-border p-2">
               <div className="space-y-2.5">
-                {(demands.length > 0
-                  ? demands
-                  : [
-                      { id: "DMD-1", country: "Jepang", employerName: "Zen-Noh Care Services Tokyo", sector: "Kesehatan", occupation: "Kaigo Caregiver (SSW)", quota: 120, deadline: "30 Des 2026" },
-                      { id: "DMD-2", country: "Jerman", employerName: "Maritim Hotelgesellschaft mbH", sector: "Hospitality", occupation: "Hotelfachmann / Duales Ausbildung", quota: 80, deadline: "15 Jan 2027" },
-                      { id: "DMD-3", country: "Korea Selatan", employerName: "Hyundai Heavy Industries", sector: "Manufaktur", occupation: "Shipbuilding Welder (E-7)", quota: 150, deadline: "28 Feb 2027" },
-                      { id: "DMD-4", country: "Turki", employerName: "Anadolu Health Group", sector: "Kesehatan", occupation: "Nurse Assistant", quota: 60, deadline: "10 Mar 2027" },
-                    ]
-                ).map((dmd) => (
+                {(demands.length > 0 ? demands : defaultRealDemands).map((dmd) => (
                   <div key={dmd.id} className="rounded-lg border border-border/80 bg-card p-3 space-y-1.5 hover:border-primary/50 transition">
                     <div className="flex items-start justify-between gap-2">
                       <div>

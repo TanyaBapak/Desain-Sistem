@@ -29,6 +29,7 @@ export function InstitutionRegistrationPage({
     ownershipType: "Swasta",
     registrationSource: "umum",
     registrationSourceId: "",
+    inputLevel: "lembaga_vokasi",
     registrationNumber: "",
     provinceId: provinces[0]?.id ?? "",
     districtId: "",
@@ -106,7 +107,10 @@ export function InstitutionRegistrationPage({
                       name="registrationSource"
                       value="siskop2mi"
                       checked={data.registrationSource === "siskop2mi"}
-                      onChange={(e) => setData("registrationSource", e.target.value)}
+                      onChange={() => {
+                        setData("registrationSource", "siskop2mi");
+                        setData("inputLevel", "nasional");
+                      }}
                       className="text-primary"
                     />
                   </div>
@@ -131,7 +135,12 @@ export function InstitutionRegistrationPage({
                       name="registrationSource"
                       value="disnaker"
                       checked={data.registrationSource === "disnaker"}
-                      onChange={(e) => setData("registrationSource", e.target.value)}
+                      onChange={() => {
+                        setData("registrationSource", "disnaker");
+                        if (data.inputLevel !== "provinsi") {
+                          setData("inputLevel", "kabupaten_kota");
+                        }
+                      }}
                       className="text-primary"
                     />
                   </div>
@@ -156,7 +165,10 @@ export function InstitutionRegistrationPage({
                       name="registrationSource"
                       value="umum"
                       checked={data.registrationSource === "umum"}
-                      onChange={(e) => setData("registrationSource", e.target.value)}
+                      onChange={() => {
+                        setData("registrationSource", "umum");
+                        setData("inputLevel", "lembaga_vokasi");
+                      }}
                       className="text-primary"
                     />
                   </div>
@@ -166,6 +178,82 @@ export function InstitutionRegistrationPage({
                 </div>
               </label>
             </div>
+
+            {/* Level inputan sesuai sumber */}
+            {data.registrationSource === "disnaker" && (
+              <div className="p-3 bg-indigo-500/5 border border-indigo-500/30 rounded-xl space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-indigo-700 dark:text-indigo-400">
+                    Tingkat / Level Disnaker Penginput <span className="text-destructive">*</span>
+                  </span>
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30">
+                    Kewenangan
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <label className={`flex items-start gap-2.5 p-2.5 rounded-lg border text-xs cursor-pointer transition ${
+                    data.inputLevel === "kabupaten_kota"
+                      ? "bg-card border-indigo-600 font-semibold shadow-xs ring-2 ring-indigo-500/20"
+                      : "bg-muted/40 border-border text-muted-foreground hover:bg-muted/70"
+                  }`}>
+                    <input
+                      type="radio"
+                      name="inputLevel"
+                      value="kabupaten_kota"
+                      checked={data.inputLevel === "kabupaten_kota"}
+                      onChange={() => setData("inputLevel", "kabupaten_kota")}
+                      className="mt-0.5 text-primary"
+                    />
+                    <div>
+                      <div className="font-bold text-foreground">Disnaker Kabupaten / Kota</div>
+                      <div className="text-[11px] text-muted-foreground leading-snug">Rekomendasi dari Dinas Ketenagakerjaan Kab/Kota</div>
+                    </div>
+                  </label>
+                  <label className={`flex items-start gap-2.5 p-2.5 rounded-lg border text-xs cursor-pointer transition ${
+                    data.inputLevel === "provinsi"
+                      ? "bg-card border-indigo-600 font-semibold shadow-xs ring-2 ring-indigo-500/20"
+                      : "bg-muted/40 border-border text-muted-foreground hover:bg-muted/70"
+                  }`}>
+                    <input
+                      type="radio"
+                      name="inputLevel"
+                      value="provinsi"
+                      checked={data.inputLevel === "provinsi"}
+                      onChange={() => setData("inputLevel", "provinsi")}
+                      className="mt-0.5 text-primary"
+                    />
+                    <div>
+                      <div className="font-bold text-foreground">Disnaker Provinsi</div>
+                      <div className="text-[11px] text-muted-foreground leading-snug">Rekomendasi dari Dinas Tenaga Kerja Provinsi</div>
+                    </div>
+                  </label>
+                </div>
+              </div>
+            )}
+
+            {data.registrationSource === "umum" && (
+              <div className="p-2.5 bg-emerald-500/5 border border-emerald-500/30 rounded-xl flex items-center justify-between text-xs">
+                <div>
+                  <span className="font-bold text-emerald-700 dark:text-emerald-400">Tingkat / Level: </span>
+                  <span className="text-foreground font-medium">Lembaga Vokasi (Pendaftaran Mandiri)</span>
+                </div>
+                <span className="text-[10.5px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-semibold border border-emerald-500/30">
+                  SMK / LPK / Politeknik
+                </span>
+              </div>
+            )}
+
+            {data.registrationSource === "siskop2mi" && (
+              <div className="p-2.5 bg-blue-500/5 border border-blue-500/30 rounded-xl flex items-center justify-between text-xs">
+                <div>
+                  <span className="font-bold text-blue-700 dark:text-blue-400">Tingkat / Level: </span>
+                  <span className="text-foreground font-medium">Nasional (Integrasi SISKOP2MI Pusat)</span>
+                </div>
+                <span className="text-[10.5px] px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-700 dark:text-blue-300 font-semibold border border-blue-500/30">
+                  BP2MI Pusat
+                </span>
+              </div>
+            )}
 
             <div className="pt-1">
               <Field

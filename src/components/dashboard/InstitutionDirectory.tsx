@@ -2,7 +2,12 @@ import React, { useState, useMemo, useEffect } from "react";
 import { Building2, Search, ChevronLeft, ChevronRight, RotateCcw } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { InstitutionSourceBadge } from "@/components/shared/InstitutionSourceBadge";
-import { resolveInstitutionSource } from "@/lib/institution-source";
+import {
+  resolveInstitutionSource,
+  resolveInstitutionInputLevel,
+  INSTITUTION_SOURCES,
+  INSTITUTION_LEVELS,
+} from "@/lib/institution-source";
 
 export interface InstitutionDirectoryItem {
   id: string;
@@ -16,6 +21,7 @@ export interface InstitutionDirectoryItem {
   readyParticipantCount: number | null;
   registrationSource?: 'siskop2mi' | 'disnaker' | 'umum' | string;
   registrationSourceId?: string;
+  inputLevel?: string;
 }
 
 interface InstitutionDirectoryProps {
@@ -36,6 +42,7 @@ export function InstitutionDirectory({
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState("ALL");
   const [sourceFilter, setSourceFilter] = useState("ALL");
+  const [levelFilter, setLevelFilter] = useState("ALL");
   const [pageSize, setPageSize] = useState(defaultPageSize);
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -71,14 +78,22 @@ export function InstitutionDirectory({
       const matchSource =
         sourceFilter === "ALL" || itemSource === sourceFilter;
 
-      return matchSearch && matchType && matchSource;
+      const itemLevel = resolveInstitutionInputLevel({
+        id: item.id,
+        registrationSource: item.registrationSource,
+        inputLevel: item.inputLevel,
+      });
+      const matchLevel =
+        levelFilter === "ALL" || itemLevel === levelFilter;
+
+      return matchSearch && matchType && matchSource && matchLevel;
     });
-  }, [institutions, searchQuery, typeFilter, sourceFilter]);
+  }, [institutions, searchQuery, typeFilter, sourceFilter, levelFilter]);
 
   // Reset to page 1 on filter/search/pageSize change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, typeFilter, sourceFilter, pageSize]);
+  }, [searchQuery, typeFilter, sourceFilter, levelFilter, pageSize]);
 
   const totalFiltered = filteredInstitutions.length;
   const totalPages = Math.max(1, Math.ceil(totalFiltered / pageSize));
@@ -169,6 +184,22 @@ export function InstitutionDirectory({
             </select>
           </div>
 
+          {/* Level filter */}
+          <div className="relative">
+            <select
+              value={levelFilter}
+              onChange={(e) => setLevelFilter(e.target.value)}
+              className="h-8 rounded-md border border-input bg-background px-2.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+              aria-label="Filter level penginput lembaga"
+            >
+              <option value="ALL">Semua Level</option>
+              <option value="kabupaten_kota">Level: Kab/Kota (Disnaker)</option>
+              <option value="provinsi">Level: Provinsi (Disnaker)</option>
+              <option value="lembaga_vokasi">Level: Lembaga Vokasi</option>
+              <option value="nasional">Level: Nasional (SISKOP2MI)</option>
+            </select>
+          </div>
+
           {/* Page size selector */}
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <span>Baris:</span>
@@ -242,6 +273,8 @@ export function InstitutionDirectory({
                       <InstitutionSourceBadge
                         source={institution.registrationSource}
                         sourceId={institution.registrationSourceId || institution.id}
+                        level={institution.inputLevel}
+                        showLevel
                         showId={Boolean(institution.registrationSourceId)}
                       />
                     </td>

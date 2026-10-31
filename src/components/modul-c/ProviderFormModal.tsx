@@ -60,6 +60,7 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
   const [institutionStatus, setInstitutionStatus] = useState<'Negeri' | 'Swasta'>('Swasta');
   const [registrationSource, setRegistrationSource] = useState<'siskop2mi' | 'disnaker' | 'umum'>('umum');
   const [registrationSourceId, setRegistrationSourceId] = useState('');
+  const [inputLevel, setInputLevel] = useState<'kabupaten_kota' | 'provinsi' | 'lembaga_vokasi' | 'nasional'>('lembaga_vokasi');
   const [provinsi, setProvinsi] = useState('Jawa Barat');
   const [kabupatenKota, setKabupatenKota] = useState('Kabupaten Bogor');
   const [accreditation, setAccreditation] = useState<string>('A');
@@ -120,6 +121,8 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
         (initialData.source === 'vokasi.kp2mi.go.id' || initialData.source === 'kp2mi-api' ? 'siskop2mi' : 'umum');
       setRegistrationSource(sourceVal);
       setRegistrationSourceId(initialData.registrationSourceId || initialData.id || '');
+      const defaultLvl = sourceVal === 'disnaker' ? 'kabupaten_kota' : sourceVal === 'siskop2mi' ? 'nasional' : 'lembaga_vokasi';
+      setInputLevel((initialData.inputLevel as 'kabupaten_kota' | 'provinsi' | 'lembaga_vokasi' | 'nasional') || defaultLvl);
       setFacilitiesInput(initialData.facilities ? initialData.facilities.join(', ') : '');
     } else {
       setName('');
@@ -127,6 +130,7 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
       setInstitutionStatus('Swasta');
       setRegistrationSource('umum');
       setRegistrationSourceId('');
+      setInputLevel('lembaga_vokasi');
       setProvinsi('Jawa Barat');
       setKabupatenKota('Kabupaten Bogor');
       setAccreditation('A');
@@ -178,6 +182,7 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
       institutionStatus,
       registrationSource,
       registrationSourceId: registrationSourceId.trim(),
+      inputLevel,
     });
   };
 
@@ -230,7 +235,10 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
               {/* Option 1: SISKOP2MI */}
               <button
                 type="button"
-                onClick={() => setRegistrationSource('siskop2mi')}
+                onClick={() => {
+                  setRegistrationSource('siskop2mi');
+                  setInputLevel('nasional');
+                }}
                 className={`p-3 rounded-xl border text-left transition cursor-pointer flex flex-col justify-between ${
                   registrationSource === 'siskop2mi'
                     ? 'border-blue-600 bg-blue-50/80 ring-2 ring-blue-500/20 text-blue-900 shadow-xs'
@@ -255,7 +263,10 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
               {/* Option 2: Disnaker */}
               <button
                 type="button"
-                onClick={() => setRegistrationSource('disnaker')}
+                onClick={() => {
+                  setRegistrationSource('disnaker');
+                  if (inputLevel !== 'provinsi') setInputLevel('kabupaten_kota');
+                }}
                 className={`p-3 rounded-xl border text-left transition cursor-pointer flex flex-col justify-between ${
                   registrationSource === 'disnaker'
                     ? 'border-indigo-600 bg-indigo-50/80 ring-2 ring-indigo-500/20 text-indigo-900 shadow-xs'
@@ -272,7 +283,7 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
                     </span>
                   </div>
                   <p className="text-[11px] text-slate-500 leading-snug">
-                    Inputan / rekomendasi Disnaker Provinsi atau Kab/Kota
+                    Inputan / rekomendasi Disnaker Daerah (Provinsi atau Kab/Kota)
                   </p>
                 </div>
               </button>
@@ -280,7 +291,10 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
               {/* Option 3: Umum / Lembaga Vokasi */}
               <button
                 type="button"
-                onClick={() => setRegistrationSource('umum')}
+                onClick={() => {
+                  setRegistrationSource('umum');
+                  setInputLevel('lembaga_vokasi');
+                }}
                 className={`p-3 rounded-xl border text-left transition cursor-pointer flex flex-col justify-between ${
                   registrationSource === 'umum'
                     ? 'border-emerald-600 bg-emerald-50/80 ring-2 ring-emerald-500/20 text-emerald-900 shadow-xs'
@@ -297,11 +311,88 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
                     </span>
                   </div>
                   <p className="text-[11px] text-slate-500 leading-snug">
-                    Pendaftaran mandiri SMK, LPK, atau Balai Pelatihan
+                    Pendaftaran mandiri SMK, LPK, atau Balai Pelatihan Vokasi
                   </p>
                 </div>
               </button>
             </div>
+
+            {/* Level Selector sesuai Sumber Pendaftaran */}
+            {registrationSource === 'disnaker' && (
+              <div className="p-3 bg-indigo-50/60 border border-indigo-200/80 rounded-xl space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-indigo-950 flex items-center gap-1.5">
+                    <span>Tingkat / Level Disnaker Penginput</span>
+                    <span className="text-rose-500">*</span>
+                  </label>
+                  <span className="text-[10px] font-semibold text-indigo-700 bg-indigo-100 px-2 py-0.5 rounded-full border border-indigo-200">
+                    Kewenangan Wilayah
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <label className={`flex items-start gap-2.5 p-2.5 rounded-lg border text-xs cursor-pointer transition ${
+                    inputLevel === 'kabupaten_kota'
+                      ? 'bg-white border-indigo-600 text-indigo-950 font-medium shadow-xs ring-2 ring-indigo-500/20'
+                      : 'bg-white/70 border-indigo-200 text-slate-600 hover:bg-white'
+                  }`}>
+                    <input
+                      type="radio"
+                      name="providerInputLevel"
+                      value="kabupaten_kota"
+                      checked={inputLevel === 'kabupaten_kota'}
+                      onChange={() => setInputLevel('kabupaten_kota')}
+                      className="mt-0.5 text-indigo-600"
+                    />
+                    <div>
+                      <div className="font-bold text-slate-900">Disnaker Kabupaten / Kota</div>
+                      <div className="text-[11px] text-slate-500 leading-snug">Rekomendasi dari Dinas Ketenagakerjaan Kab/Kota setempat</div>
+                    </div>
+                  </label>
+                  <label className={`flex items-start gap-2.5 p-2.5 rounded-lg border text-xs cursor-pointer transition ${
+                    inputLevel === 'provinsi'
+                      ? 'bg-white border-indigo-600 text-indigo-950 font-medium shadow-xs ring-2 ring-indigo-500/20'
+                      : 'bg-white/70 border-indigo-200 text-slate-600 hover:bg-white'
+                  }`}>
+                    <input
+                      type="radio"
+                      name="providerInputLevel"
+                      value="provinsi"
+                      checked={inputLevel === 'provinsi'}
+                      onChange={() => setInputLevel('provinsi')}
+                      className="mt-0.5 text-indigo-600"
+                    />
+                    <div>
+                      <div className="font-bold text-slate-900">Disnaker Provinsi</div>
+                      <div className="text-[11px] text-slate-500 leading-snug">Rekomendasi dari Dinas Tenaga Kerja & Transmigrasi Provinsi</div>
+                    </div>
+                  </label>
+                </div>
+              </div>
+            )}
+
+            {registrationSource === 'umum' && (
+              <div className="p-2.5 bg-emerald-50/70 border border-emerald-200/80 rounded-xl flex items-center justify-between text-xs">
+                <div>
+                  <span className="font-bold text-emerald-950">Tingkat / Level: </span>
+                  <span className="text-emerald-800 font-medium">Lembaga Vokasi (Pendaftaran Mandiri)</span>
+                </div>
+                <span className="text-[10.5px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-semibold border border-emerald-200">
+                  SMK / LPK / Politeknik
+                </span>
+              </div>
+            )}
+
+            {registrationSource === 'siskop2mi' && (
+              <div className="p-2.5 bg-blue-50/70 border border-blue-200/80 rounded-xl flex items-center justify-between text-xs">
+                <div>
+                  <span className="font-bold text-blue-950">Tingkat / Level: </span>
+                  <span className="text-blue-800 font-medium">Nasional (Integrasi SISKOP2MI Pusat)</span>
+                </div>
+                <span className="text-[10.5px] px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 font-semibold border border-blue-200">
+                  BP2MI Pusat
+                </span>
+              </div>
+            )}
 
             {/* Inputan Nomor Referensi sesuai Sumber */}
             <div>

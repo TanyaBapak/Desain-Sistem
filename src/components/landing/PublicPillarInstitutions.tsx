@@ -61,7 +61,7 @@ export function PublicPillarVokasi({
         </Card>
       </div>
 
-      {/* Kanal Sumber Pendaftaran Lembaga */}
+      {/* Kanal Sumber Pendaftaran Lembaga & Level Penginput */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div
           onClick={() => onOpenDrilldown("lembaga")}
@@ -71,8 +71,9 @@ export function PublicPillarVokasi({
             <div className="flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-blue-500" />
               <span className="text-xs font-bold text-blue-700 dark:text-blue-400">SISKOP2MI</span>
+              <span className="text-[9.5px] px-1.5 py-0.2 rounded bg-blue-500/15 text-blue-700 dark:text-blue-300 font-semibold border border-blue-500/30">Level: Nasional</span>
             </div>
-            <p className="text-[11px] text-muted-foreground mt-0.5">Integrasi Sistem Penempatan KP2MI</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">Integrasi Sistem Penempatan BP2MI Pusat</p>
           </div>
           <span className="text-xs font-semibold text-blue-600 dark:text-blue-400 underline ml-2">Lihat &rarr;</span>
         </div>
@@ -85,8 +86,9 @@ export function PublicPillarVokasi({
             <div className="flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-indigo-500" />
               <span className="text-xs font-bold text-indigo-700 dark:text-indigo-400">Disnaker</span>
+              <span className="text-[9.5px] px-1.5 py-0.2 rounded bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 font-semibold border border-indigo-500/30">Level: Kab/Kota & Prov</span>
             </div>
-            <p className="text-[11px] text-muted-foreground mt-0.5">Inputan Rekomendasi Disnaker Daerah</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">Inputan Disnaker Kab/Kota & Provinsi</p>
           </div>
           <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 underline ml-2">Lihat &rarr;</span>
         </div>
@@ -99,8 +101,9 @@ export function PublicPillarVokasi({
             <div className="flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-emerald-500" />
               <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400">Umum / Lembaga</span>
+              <span className="text-[9.5px] px-1.5 py-0.2 rounded bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-semibold border border-emerald-500/30">Level: Vokasi</span>
             </div>
-            <p className="text-[11px] text-muted-foreground mt-0.5">Pendaftaran Mandiri SMK / Balai Vokasi</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">Pendaftaran Mandiri SMK / LPK / Balai</p>
           </div>
           <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 underline ml-2">Lihat &rarr;</span>
         </div>
@@ -206,7 +209,7 @@ export function PublicPillarNationalLpk({
         </Card>
       </div>
 
-      {/* Kanal Sumber Pendaftaran Lembaga */}
+      {/* Kanal Sumber Pendaftaran Lembaga & Level Penginput */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div
           onClick={() => onOpenDrilldown("lembaga")}
@@ -216,8 +219,9 @@ export function PublicPillarNationalLpk({
             <div className="flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-blue-500" />
               <span className="text-xs font-bold text-blue-700 dark:text-blue-400">SISKOP2MI</span>
+              <span className="text-[9.5px] px-1.5 py-0.2 rounded bg-blue-500/15 text-blue-700 dark:text-blue-300 font-semibold border border-blue-500/30">Level: Nasional</span>
             </div>
-            <p className="text-[11px] text-muted-foreground mt-0.5">Integrasi Sistem Penempatan KP2MI</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">Integrasi Sistem Penempatan BP2MI Pusat</p>
           </div>
           <span className="text-xs font-semibold text-blue-600 dark:text-blue-400 underline ml-2">Lihat &rarr;</span>
         </div>
@@ -230,8 +234,9 @@ export function PublicPillarNationalLpk({
             <div className="flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-indigo-500" />
               <span className="text-xs font-bold text-indigo-700 dark:text-indigo-400">Disnaker</span>
+              <span className="text-[9.5px] px-1.5 py-0.2 rounded bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 font-semibold border border-indigo-500/30">Level: Kab/Kota & Prov</span>
             </div>
-            <p className="text-[11px] text-muted-foreground mt-0.5">Inputan Rekomendasi Disnaker Daerah</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">Inputan Disnaker Kab/Kota & Provinsi</p>
           </div>
           <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 underline ml-2">Lihat &rarr;</span>
         </div>
@@ -244,8 +249,9 @@ export function PublicPillarNationalLpk({
             <div className="flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-emerald-500" />
               <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400">Umum / Lembaga</span>
+              <span className="text-[9.5px] px-1.5 py-0.2 rounded bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-semibold border border-emerald-500/30">Level: Vokasi</span>
             </div>
-            <p className="text-[11px] text-muted-foreground mt-0.5">Pendaftaran Mandiri SMK / Balai Vokasi</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">Pendaftaran Mandiri SMK / LPK / Balai</p>
           </div>
           <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 underline ml-2">Lihat &rarr;</span>
         </div>
