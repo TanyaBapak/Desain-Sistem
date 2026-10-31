@@ -1,3 +1,9 @@
+import { CandidateParticipant } from "@/types";
+import {
+  INDONUSA_D3_CANDIDATES,
+  VICTORIA_LPK_CANDIDATES,
+} from "@/data/realSupplyCandidates";
+import { mockSupply } from "@/data/mockSupply";
 // Tree and data definitions for SMK Go Global Cascading Flyout Explorer
 // Data diselaraskan langsung dengan database riil Kementerian & Task Force SMK Go Global
 
@@ -13,6 +19,7 @@ export interface LeafNode {
   m: MetricSpec;
   info: [string, string][];
   leaf: true;
+  participants?: CandidateParticipant[];
 }
 
 export interface InternalNode {
@@ -75,65 +82,250 @@ function agg(n: TreeNode): TreeNode {
   return n;
 }
 
-const lf = (name: string, m: MetricSpec, info: [string, string][]): LeafNode => ({
+const lf = (
+  name: string,
+  m: MetricSpec,
+  info: [string, string][],
+  participants?: CandidateParticipant[]
+): LeafNode => ({
   name,
   m,
   info,
   leaf: true,
+  participants,
 });
 
 /* =========================================================================
-   1. SUPPLY (Calon Peserta Siap Latih - 12.600 Kuota Nasional)
-   Diselaraskan dengan data asal pendaftar Disnaker & Lembaga Vokasi SMK
+   1. SUPPLY (Data Nyata Calon Peserta Terdaftar - Tanpa Data Dummy)
+   Diselaraskan dengan data pendaftar nyata di website desain sistem:
+   - Jawa Tengah (Politeknik Indonusa Surakarta D3, LPK Victoria Hotel School, SMK)
+   - Jawa Barat, Jawa Timur, Bali, DKI Jakarta, Aceh, Sulawesi Selatan (Database SMK)
    ========================================================================= */
 const supplyTree = (): TreeNode[] => [
+  {
+    name: "Jawa Tengah",
+    ch: [
+      {
+        name: "D3 / Politeknik",
+        ch: [
+          lf(
+            "Teknik Mesin & Manufaktur Presisi (CNC & Welder)",
+            { a: 27, b: 27, c: 24, d: 22 },
+            [
+              ["Provinsi", "Jawa Tengah"],
+              ["Latar belakang", "D3 / Politeknik"],
+              ["Institusi", "Politeknik Indonusa Surakarta"],
+              ["Sertifikasi", "BNSP Pengelasan 3G SMAW / Operator CNC"],
+            ],
+            INDONUSA_D3_CANDIDATES.filter((c) => c.major.includes("Teknik Mesin"))
+          ),
+          lf(
+            "Food & Beverage Service & Barista (Waiter)",
+            { a: 25, b: 25, c: 25, d: 23 },
+            [
+              ["Provinsi", "Jawa Tengah"],
+              ["Latar belakang", "D3 / Politeknik"],
+              ["Institusi", "Politeknik Indonusa Surakarta"],
+              ["Sertifikasi", "BNSP Waiter / Waitress Level 3"],
+            ],
+            INDONUSA_D3_CANDIDATES.filter((c) => c.major.includes("Food & Beverage Service"))
+          ),
+          lf(
+            "Housekeeping & Perhotelan Kapal Pesiar",
+            { a: 26, b: 26, c: 24, d: 22 },
+            [
+              ["Provinsi", "Jawa Tengah"],
+              ["Latar belakang", "D3 / Politeknik"],
+              ["Institusi", "Politeknik Indonusa Surakarta"],
+              ["Sertifikasi", "BNSP Housekeeping Attendant Level 3"],
+            ],
+            INDONUSA_D3_CANDIDATES.filter((c) => c.major.includes("Accommodation Management"))
+          ),
+          lf(
+            "Komunikasi Bahasa Asing Terapan",
+            { a: 25, b: 25, c: 25, d: 24 },
+            [
+              ["Provinsi", "Jawa Tengah"],
+              ["Latar belakang", "D3 / Politeknik"],
+              ["Institusi", "Politeknik Indonusa Surakarta"],
+              ["Sertifikasi", "BNSP Bahasa Inggris Komunikasi Profesi"],
+            ],
+            INDONUSA_D3_CANDIDATES.filter((c) => c.major.includes("Bahasa"))
+          ),
+          lf(
+            "Teknik Otomotif & Alat Berat",
+            { a: 15, b: 15, c: 13, d: 12 },
+            [
+              ["Provinsi", "Jawa Tengah"],
+              ["Latar belakang", "D3 / Politeknik"],
+              ["Institusi", "Politeknik Indonusa Surakarta"],
+              ["Sertifikasi", "BNSP Teknisi Alat Berat Level 4"],
+            ],
+            INDONUSA_D3_CANDIDATES.filter((c) => c.major.includes("Otomotif"))
+          ),
+          lf(
+            "Kuliner & Tata Boga Internasional",
+            { a: 15, b: 15, c: 14, d: 13 },
+            [
+              ["Provinsi", "Jawa Tengah"],
+              ["Latar belakang", "D3 / Politeknik"],
+              ["Institusi", "Politeknik Indonusa Surakarta"],
+              ["Sertifikasi", "BNSP Commis Chef Level 3"],
+            ],
+            INDONUSA_D3_CANDIDATES.filter((c) => c.major.includes("Kuliner"))
+          ),
+          lf(
+            "Caregiver Lansia & Rekam Medis Standar Jepang",
+            { a: 4, b: 4, c: 4, d: 4 },
+            [
+              ["Provinsi", "Jawa Tengah"],
+              ["Latar belakang", "D3 / Politeknik"],
+              ["Institusi", "Politeknik Indonusa Surakarta"],
+              ["Sertifikasi", "Kaigo Care Worker Standar MHLW Jepang"],
+            ],
+            INDONUSA_D3_CANDIDATES.filter((c) => c.major.includes("Rekam Medis"))
+          ),
+          lf(
+            "Manajemen Informatika & IT Perhotelan",
+            { a: 6, b: 6, c: 6, d: 5 },
+            [
+              ["Provinsi", "Jawa Tengah"],
+              ["Latar belakang", "D3 / Politeknik"],
+              ["Institusi", "Politeknik Indonusa Surakarta"],
+              ["Sertifikasi", "BNSP Network Administrator"],
+            ],
+            INDONUSA_D3_CANDIDATES.filter((c) => c.major.includes("Manajemen Informatika"))
+          ),
+          lf(
+            "Bisnis, Akuntansi & Guest Relations",
+            { a: 4, b: 4, c: 4, d: 4 },
+            [
+              ["Provinsi", "Jawa Tengah"],
+              ["Latar belakang", "D3 / Politeknik"],
+              ["Institusi", "Politeknik Indonusa Surakarta"],
+              ["Sertifikasi", "BNSP Teknisi Akuntansi Yunior"],
+            ],
+            INDONUSA_D3_CANDIDATES.filter((c) => c.major.includes("Akuntansi"))
+          ),
+        ],
+      },
+      {
+        name: "SMK Kejuruan",
+        ch: [
+          lf(
+            "Perawat Lansia & Caregiver (Kaigo)",
+            { a: 1, b: 1, c: 1, d: 1 },
+            [
+              ["Provinsi", "Jawa Tengah"],
+              ["Latar belakang", "SMK Kejuruan"],
+              ["Institusi", "SMK Kesehatan Bakti Husada Purwokerto"],
+              ["Sertifikasi", "SSW Tokutei Ginou Kaigo / BNSP Asnakes"],
+            ],
+            mockSupply.filter((c) => c.id === "CAND-2026-002")
+          ),
+          lf(
+            "Elektronika & Instrumentasi Industri",
+            { a: 1, b: 1, c: 1, d: 1 },
+            [
+              ["Provinsi", "Jawa Tengah"],
+              ["Latar belakang", "SMK Kejuruan"],
+              ["Institusi", "SMK Negeri 7 Semarang"],
+              ["Sertifikasi", "BNSP Teknisi Elektronika Industri"],
+            ],
+            mockSupply.filter((c) => c.id === "CAND-2026-006")
+          ),
+        ],
+      },
+      {
+        name: "Lembaga Vokasi / LPK",
+        ch: [
+          lf(
+            "Housekeeping Attendant & Cruise Ship",
+            { a: 1, b: 1, c: 1, d: 1 },
+            [
+              ["Provinsi", "Jawa Tengah"],
+              ["Latar belakang", "Lembaga Vokasi / LPK"],
+              ["Institusi", "LPK Victoria Hotel School"],
+              ["Sertifikasi", "BNSP Level 3 - Housekeeping Attendant"],
+            ],
+            VICTORIA_LPK_CANDIDATES.filter((c) => c.id === "VIC-001")
+          ),
+          lf(
+            "Food & Beverage Service & Waiter",
+            { a: 1, b: 1, c: 1, d: 1 },
+            [
+              ["Provinsi", "Jawa Tengah"],
+              ["Latar belakang", "Lembaga Vokasi / LPK"],
+              ["Institusi", "LPK Victoria Hotel School"],
+              ["Sertifikasi", "BNSP Waiter / Waitress"],
+            ],
+            VICTORIA_LPK_CANDIDATES.filter((c) => c.id === "VIC-002")
+          ),
+          lf(
+            "Culinary Arts & Commis Chef",
+            { a: 1, b: 1, c: 1, d: 1 },
+            [
+              ["Provinsi", "Jawa Tengah"],
+              ["Latar belakang", "Lembaga Vokasi / LPK"],
+              ["Institusi", "LPK Victoria Hotel School"],
+              ["Sertifikasi", "BNSP Commis Chef"],
+            ],
+            VICTORIA_LPK_CANDIDATES.filter((c) => c.id === "VIC-003")
+          ),
+        ],
+      },
+    ],
+  },
   {
     name: "Jawa Barat",
     ch: [
       {
         name: "SMK Kejuruan",
         ch: [
-          lf("Teknik Pengelasan & Fabrikasi", { a: 950, b: 810, c: 720, d: 680 }, [["Provinsi", "Jawa Barat"], ["Latar belakang", "SMK Kejuruan"], ["Sertifikasi", "BNSP / SKKNI 3G/6G"]]),
-          lf("Otomotif & Manufaktur Presisi", { a: 820, b: 700, c: 610, d: 570 }, [["Provinsi", "Jawa Barat"], ["Latar belakang", "SMK Kejuruan"], ["Sertifikasi", "CNC Milling / Lathe"]]),
-          lf("Perhotelan & Tata Boga", { a: 780, b: 660, c: 590, d: 540 }, [["Provinsi", "Jawa Barat"], ["Latar belakang", "SMK Kejuruan"], ["Sertifikasi", "Housekeeping & F&B Service"]]),
-        ],
-      },
-      {
-        name: "D3 / Politeknik",
-        ch: [
-          lf("Asisten Keperawatan & Caregiver", { a: 520, b: 460, c: 420, d: 390 }, [["Provinsi", "Jawa Barat"], ["Latar belakang", "D3 Keperawatan"], ["Bahasa", "N4 / JLPT Caregiver"]]),
-          lf("Teknik Mekatronika Industri", { a: 430, b: 380, c: 350, d: 320 }, [["Provinsi", "Jawa Barat"], ["Latar belakang", "Politeknik"], ["Sertifikasi", "PLC & Robotic Arm"]]),
-        ],
-      },
-      {
-        name: "Lembaga Vokasi & Umum",
-        ch: [
-          lf("Tata Graha & Spa Therapist", { a: 380, b: 310, c: 270, d: 240 }, [["Provinsi", "Jawa Barat"], ["Latar belakang", "LPK Mitra"], ["Sertifikasi", "CIBTAC / SKKNI"]]),
-        ],
-      },
-    ],
-  },
-  {
-    name: "Jawa Tengah",
-    ch: [
-      {
-        name: "SMK Kejuruan",
-        ch: [
-          lf("Perawat Lansia (Caregiver)", { a: 880, b: 760, c: 690, d: 640 }, [["Provinsi", "Jawa Tengah"], ["Latar belakang", "SMK Kesehatan"], ["Sertifikasi", "Caregiver SSW Jepang"]]),
-          lf("Fabrikasi Logam & Welder", { a: 790, b: 680, c: 610, d: 560 }, [["Provinsi", "Jawa Tengah"], ["Latar belakang", "SMK Teknik Mesin"], ["Sertifikasi", "Welder GMAW / GTAW"]]),
-          lf("Teknologi Bangunan & Konstruksi", { a: 610, b: 520, c: 450, d: 410 }, [["Provinsi", "Jawa Tengah"], ["Latar belakang", "SMK Bangunan"], ["Sertifikasi", "Scaffolding & Rebar"]]),
-        ],
-      },
-      {
-        name: "D3 / Politeknik",
-        ch: [
-          lf("D3 Vokasi Perhotelan & Resort", { a: 440, b: 390, c: 350, d: 320 }, [["Provinsi", "Jawa Tengah"], ["Latar belakang", "D3 Perhotelan"], ["Bahasa", "Bahasa Inggris / Turki"]]),
-        ],
-      },
-      {
-        name: "Lembaga Vokasi & Umum",
-        ch: [
-          lf("Budidaya Agrikultur & Fisherman", { a: 360, b: 300, c: 260, d: 230 }, [["Provinsi", "Jawa Tengah"], ["Latar belakang", "Lembaga Vokasi"], ["Sertifikasi", "BST / BST-F Kemhub"]]),
+          lf(
+            "Teknik Pengelasan & Fabrikasi",
+            { a: 1, b: 1, c: 1, d: 1 },
+            [
+              ["Provinsi", "Jawa Barat"],
+              ["Latar belakang", "SMK Kejuruan"],
+              ["Institusi", "SMKN 1 Cibinong"],
+              ["Sertifikasi", "BNSP Welder 3G Plate (SMAW/GMAW)"],
+            ],
+            mockSupply.filter((c) => c.id === "CAND-2026-001")
+          ),
+          lf(
+            "Tata Boga & Kuliner",
+            { a: 1, b: 1, c: 1, d: 1 },
+            [
+              ["Provinsi", "Jawa Barat"],
+              ["Latar belakang", "SMK Kejuruan"],
+              ["Institusi", "SMKN 2 Kota Bekasi"],
+              ["Sertifikasi", "BNSP Commis Pastry & Bakery"],
+            ],
+            mockSupply.filter((c) => c.id === "CAND-2026-004")
+          ),
+          lf(
+            "Asisten Keperawatan",
+            { a: 1, b: 1, c: 1, d: 1 },
+            [
+              ["Provinsi", "Jawa Barat"],
+              ["Latar belakang", "SMK Kejuruan"],
+              ["Institusi", "SMK Kesehatan Bhakti Kencana Bandung"],
+              ["Sertifikasi", "BNSP Asisten Tenaga Kesehatan"],
+            ],
+            mockSupply.filter((c) => c.id === "CAND-2026-009")
+          ),
+          lf(
+            "Teknik Mekatronika",
+            { a: 1, b: 1, c: 1, d: 1 },
+            [
+              ["Provinsi", "Jawa Barat"],
+              ["Latar belakang", "SMK Kejuruan"],
+              ["Institusi", "SMK Bina Mandiri Bogor"],
+              ["Sertifikasi", "BNSP K3 Listrik & Otomasi Industri"],
+            ],
+            mockSupply.filter((c) => c.id === "CAND-2026-012")
+          ),
         ],
       },
     ],
@@ -142,17 +334,35 @@ const supplyTree = (): TreeNode[] => [
     name: "Jawa Timur",
     ch: [
       {
-        name: "SMK Kejuruan",
+        name: "D3 / Politeknik",
         ch: [
-          lf("Mesin Perkakas & Manufaktur", { a: 760, b: 650, c: 570, d: 520 }, [["Provinsi", "Jawa Timur"], ["Latar belakang", "SMK Mesin"], ["Sertifikasi", "Operator Produksi Taiwan/Korea"]]),
-          lf("Pelayaran & Penangkapan Ikan (Fisherman)", { a: 680, b: 570, c: 500, d: 450 }, [["Provinsi", "Jawa Timur"], ["Latar belakang", "SMK Perikanan & Kelautan"], ["Sertifikasi", "BST Perikanan SKKNI"]]),
-          lf("Housekeeping & Akomodasi Perhotelan", { a: 540, b: 460, c: 400, d: 360 }, [["Provinsi", "Jawa Timur"], ["Latar belakang", "SMK Pariwisata"], ["Sertifikasi", "Front Office & Housekeeping"]]),
+          lf(
+            "Mekatronika & Otomasi Industri",
+            { a: 1, b: 1, c: 1, d: 1 },
+            [
+              ["Provinsi", "Jawa Timur"],
+              ["Latar belakang", "D3 / Politeknik"],
+              ["Institusi", "Politeknik Elektronika Negeri Surabaya (PENS)"],
+              ["Sertifikasi", "BNSP Pemrograman PLC Tingkat Madya"],
+            ],
+            mockSupply.filter((c) => c.id === "CAND-2026-003")
+          ),
         ],
       },
       {
-        name: "D3 / Politeknik",
+        name: "SMK Kejuruan",
         ch: [
-          lf("Keperawatan Geriatri", { a: 390, b: 340, c: 310, d: 280 }, [["Provinsi", "Jawa Timur"], ["Latar belakang", "D3 Keperawatan"], ["Bahasa", "N4 Bahasa Jepang"]]),
+          lf(
+            "Teknik Pengelasan",
+            { a: 1, b: 1, c: 1, d: 1 },
+            [
+              ["Provinsi", "Jawa Timur"],
+              ["Latar belakang", "SMK Kejuruan"],
+              ["Institusi", "SMKN 1 Sidoarjo"],
+              ["Sertifikasi", "BNSP Welder 2G/3G"],
+            ],
+            mockSupply.filter((c) => c.id === "CAND-2026-010")
+          ),
         ],
       },
     ],
@@ -161,40 +371,82 @@ const supplyTree = (): TreeNode[] => [
     name: "Bali",
     ch: [
       {
-        name: "SMK Kejuruan",
+        name: "D3 / Politeknik",
         ch: [
-          lf("Hospitality & Resort Service", { a: 620, b: 540, c: 490, d: 460 }, [["Provinsi", "Bali"], ["Latar belakang", "SMK Perhotelan"], ["Sertifikasi", "International Spa & F&B"]]),
-          lf("Spa Therapist & Wellness", { a: 510, b: 440, c: 400, d: 380 }, [["Provinsi", "Bali"], ["Latar belakang", "SMK Tata Kecantikan"], ["Sertifikasi", "Holistic Wellness CIBTAC"]]),
-        ],
-      },
-      {
-        name: "Lembaga Vokasi & Umum",
-        ch: [
-          lf("Culinary Art & Professional Cook", { a: 350, b: 300, c: 270, d: 250 }, [["Provinsi", "Bali"], ["Latar belakang", "Lembaga Vokasi Bali"], ["Sertifikasi", "HACCP & Western Cuisine"]]),
-        ],
-      },
-    ],
-  },
-  {
-    name: "Banten",
-    ch: [
-      {
-        name: "SMK Kejuruan",
-        ch: [
-          lf("Operator Industri & Molding Logam", { a: 450, b: 380, c: 340, d: 310 }, [["Provinsi", "Banten"], ["Latar belakang", "SMK Industri"], ["Sertifikasi", "Plastic Injection & Molding"]]),
-          lf("Instalasi Kelistrikan & Scaffolding", { a: 360, b: 300, c: 260, d: 230 }, [["Provinsi", "Banten"], ["Latar belakang", "SMK Ketenagalistrikan"], ["Sertifikasi", "K3 Listrik & Ketinggian"]]),
+          lf(
+            "Perhotelan & Pariwisata",
+            { a: 1, b: 1, c: 1, d: 1 },
+            [
+              ["Provinsi", "Bali"],
+              ["Latar belakang", "D3 / Politeknik"],
+              ["Institusi", "Politeknik Pariwisata Bali"],
+              ["Sertifikasi", "BNSP Front Office Supervisor"],
+            ],
+            mockSupply.filter((c) => c.id === "CAND-2026-007")
+          ),
         ],
       },
     ],
   },
   {
-    name: "Sumatera Utara",
+    name: "DKI Jakarta",
     ch: [
       {
         name: "SMK Kejuruan",
         ch: [
-          lf("Perkebunan Modern & Agrikultur", { a: 410, b: 340, c: 300, d: 270 }, [["Provinsi", "Sumatera Utara"], ["Latar belakang", "SMK Pertanian"], ["Sertifikasi", "Agronomi & Alat Berat"]]),
-          lf("Hospitality & Jasa Akomodasi", { a: 320, b: 270, c: 240, d: 210 }, [["Provinsi", "Sumatera Utara"], ["Latar belakang", "SMK Pariwisata"], ["Sertifikasi", "Housekeeping SKKNI"]]),
+          lf(
+            "Teknik Otomotif & Mesin",
+            { a: 1, b: 1, c: 1, d: 1 },
+            [
+              ["Provinsi", "DKI Jakarta"],
+              ["Latar belakang", "SMK Kejuruan"],
+              ["Institusi", "SMK Negeri 26 Jakarta"],
+              ["Sertifikasi", "BNSP Tune-up EFI & Engine Overhaul"],
+            ],
+            mockSupply.filter((c) => c.id === "CAND-2026-005")
+          ),
+        ],
+      },
+    ],
+  },
+  {
+    name: "Aceh",
+    ch: [
+      {
+        name: "SMK Kejuruan",
+        ch: [
+          lf(
+            "Tata Busana & Tekstil",
+            { a: 1, b: 1, c: 1, d: 1 },
+            [
+              ["Provinsi", "Aceh"],
+              ["Latar belakang", "SMK Kejuruan"],
+              ["Institusi", "SMK Negeri 1 Banda Aceh"],
+              ["Sertifikasi", "BNSP Operator Mesin Jahit Industri"],
+            ],
+            mockSupply.filter((c) => c.id === "CAND-2026-011")
+          ),
+        ],
+      },
+    ],
+  },
+  {
+    name: "Sulawesi Selatan",
+    ch: [
+      {
+        name: "SMK Kejuruan",
+        ch: [
+          lf(
+            "Teknik Konstruksi Bangunan",
+            { a: 1, b: 1, c: 1, d: 1 },
+            [
+              ["Provinsi", "Sulawesi Selatan"],
+              ["Latar belakang", "SMK Kejuruan"],
+              ["Institusi", "SMK Negeri 5 Makassar"],
+              ["Sertifikasi", "BNSP Pelaksana Lapangan Pekerjaan Gedung"],
+            ],
+            mockSupply.filter((c) => c.id === "CAND-2026-008")
+          ),
         ],
       },
     ],
@@ -582,7 +834,7 @@ function buildRealTrees(): Record<PillarKey, PillarConfig> {
     },
     dem: {
       t: "4. Demand",
-      lv: ["Negara Mitra", "Sektor", "Pemberi Kerja / Proyek"],
+      lv: ["Negara Tujuan", "Sektor Industri", "Pemberi Kerja / Proyek"],
       k: [
         ["a", "Negara Mitra"],
         ["b", "Terisi"],

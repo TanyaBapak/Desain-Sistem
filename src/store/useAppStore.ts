@@ -27,6 +27,7 @@ import {
   mockApprovals,
   mockAuditLogs,
   getRoleById,
+  mockDemand,
 } from '../data';
 import { visitAppTab, visitPath } from '../lib/navigation';
 
@@ -291,7 +292,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       supportedCountries: Array.isArray(pr.supportedCountries) ? pr.supportedCountries : [],
       offerings: Array.isArray(pr.offerings) ? pr.offerings : [],
     }));
-    const incomingDemands = Array.isArray(data.demands) ? data.demands : [];
+    const incomingDemands = Array.isArray(data.demands) && data.demands.length > 0 ? data.demands : mockDemand;
     const demands = incomingDemands.map((d: any) => ({
       ...d,
       id: String(d.id ?? ''),

@@ -117,10 +117,10 @@ export function CascadingFlyout({ className, onOpenDrilldownModal }: CascadingFl
   // to the left so that the latest panel always stays visible on the right.
   const panelPositions = React.useMemo(() => {
     if (isMobile || !anchors.length || !currentNodes.length) return [];
-    const PANEL_WIDTH = 300;
+    const PANEL_WIDTH = 330;
     const GAP = 8;
     const PADDING = 16;
-    const PANEL_HEIGHT = 480;
+    const PANEL_HEIGHT = 520;
     const winW = typeof window !== "undefined" ? window.innerWidth : 1200;
     const winH = typeof window !== "undefined" ? window.innerHeight : 800;
 
@@ -242,7 +242,7 @@ export function CascadingFlyout({ className, onOpenDrilldownModal }: CascadingFl
                     zIndex: 60 + k,
                     transition: "left 280ms cubic-bezier(0.16, 1, 0.3, 1), opacity 200ms ease",
                   }}
-                  className="fixed w-[300px] max-h-[min(70vh,520px)] flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in-0 duration-150"
+                  className="fixed w-[330px] max-h-[min(74vh,540px)] flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in-0 duration-150"
                 >
                   <PanelContent
                     levelIndex={k}
