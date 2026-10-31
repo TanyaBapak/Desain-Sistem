@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
 import { visitAllocationStage } from '../../lib/navigation';
+import { InstitutionSourceBadge } from '../shared/InstitutionSourceBadge';
 
 interface ProviderCardProps {
   provider: VocationalProvider;
@@ -63,6 +64,10 @@ export const ProviderCard: React.FC<ProviderCardProps> = ({
       <div className="p-5 border-b border-slate-100">
         <div className="flex items-start justify-between gap-2 mb-2.5">
           <div className="flex items-center gap-1.5 flex-wrap">
+            <InstitutionSourceBadge
+              source={provider.registrationSource}
+              sourceId={provider.registrationSourceId || provider.id}
+            />
             <span className="text-[11px] font-bold text-slate-700 bg-slate-100 px-2.5 py-0.5 rounded-md">
               {provider.providerType}
             </span>

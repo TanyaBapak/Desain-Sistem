@@ -53,23 +53,18 @@ export const PROVINCES = [
 ];
 
 export const SECTORS = [
-  "Caregiver",
-  "Perawat",
-  "Manufaktur",
-  "Welder",
   "Hospitality",
-  "Agrikultur",
+  "Kesehatan",
+  "Manufaktur",
   "Konstruksi",
-  "Transportasi",
+  "Fisherman",
 ];
 
 export const COUNTRIES = [
-  "Jepang",
-  "Jerman",
-  "Korea Selatan",
   "Turki",
-  "Arab Saudi",
-  "Taiwan",
+  "Jepang",
+  "Malaysia",
+  "Korea",
 ];
 
 export const formatNum = (n: number) => Math.round(n).toLocaleString("id-ID");
@@ -97,19 +92,31 @@ const lf = (name: string, m: MetricSpec, info: [string, string][]): LeafNode => 
 const sub = <T, R>(a: T[], fn: (item: T) => R): R[] =>
   a.filter(() => rnd() > 0.25).map(fn);
 
+function scaleLeafMetrics(node: TreeNode, factor: number) {
+  if (node.m) {
+    node.m.a = Math.max(1, Math.round(node.m.a * factor));
+    node.m.b = Math.round(node.m.b * factor);
+    node.m.c = Math.round(node.m.c * factor);
+    node.m.d = Math.round(node.m.d * factor);
+  }
+  if ("ch" in node && node.ch) {
+    node.ch.forEach((c) => scaleLeafMetrics(c, factor));
+  }
+}
+
 function buildTrees(): Record<PillarKey, PillarConfig> {
   // Reset seed for deterministic tree generation
   seed = 11;
 
   const rawP: Record<PillarKey, { t: string; lv: string[]; k: [keyof MetricSpec, string][]; tree: () => TreeNode[] }> = {
     sup: {
-      t: "Supply",
+      t: "Supply (Calon Peserta)",
       lv: ["Provinsi", "Latar belakang", "Kompetensi"],
       k: [
-        ["a", "Terdaftar"],
-        ["b", "Lolos"],
-        ["c", "Lulus bahasa"],
-        ["d", "Siap berangkat"],
+        ["a", "Calon Peserta"],
+        ["b", "Lolos Seleksi"],
+        ["c", "Lulus Bahasa"],
+        ["d", "Siap Penempatan"],
       ],
       tree: () =>
         PROVINCES.map((p) => ({
@@ -130,12 +137,12 @@ function buildTrees(): Record<PillarKey, PillarConfig> {
         })),
     },
     pel: {
-      t: "Pelatihan",
+      t: "Pelatihan (Program)",
       lv: ["Provinsi", "Sektor", "Kelas"],
       k: [
-        ["a", "Peserta"],
-        ["b", "Berjalan"],
-        ["c", "Selesai"],
+        ["a", "Jumlah Kelas"],
+        ["b", "Kelas Berjalan"],
+        ["c", "Kelas Selesai"],
         ["d", "Tersertifikasi"],
       ],
       tree: () =>
@@ -161,10 +168,10 @@ function buildTrees(): Record<PillarKey, PillarConfig> {
       t: "LPK & Vokasi",
       lv: ["Jenis lembaga", "Provinsi", "Lembaga"],
       k: [
-        ["a", "Kapasitas"],
-        ["b", "Terisi"],
-        ["c", "Lulus"],
-        ["d", "Ditempatkan"],
+        ["a", "Jumlah Vokasi"],
+        ["b", "Terakreditasi"],
+        ["c", "Kapasitas Latih"],
+        ["d", "Tersalurkan"],
       ],
       tree: () =>
         ["LPK", "SMK", "BLK / Polivokasi"].map((j) => ({
@@ -191,13 +198,13 @@ function buildTrees(): Record<PillarKey, PillarConfig> {
         })),
     },
     dem: {
-      t: "Demand",
+      t: "Demand (Permintaan)",
       lv: ["Negara", "Sektor", "Pemberi kerja"],
       k: [
-        ["a", "Kuota"],
+        ["a", "Kuota Permintaan"],
         ["b", "Terisi"],
-        ["c", "Sisa kuota"],
-        ["d", "Interview"],
+        ["c", "Sisa Kuota"],
+        ["d", "Tahap Seleksi"],
       ],
       tree: () =>
         COUNTRIES.map((g) => ({
@@ -223,10 +230,27 @@ function buildTrees(): Record<PillarKey, PillarConfig> {
     },
   };
 
+  // Calibrate each pillar to match hero header figures:
+  // Supply: 12.600 peserta target
+  // Pelatihan: 630 kelas
+  // Vokasi: 2.382 lembaga vokasi
+  // Demand: 1.850 kuota permintaan di 4 negara mitra
+  const targets: Record<PillarKey, number> = {
+    sup: 12600,
+    pel: 630,
+    lpk: 2382,
+    dem: 1850,
+  };
+
   const result: Partial<Record<PillarKey, PillarConfig>> = {};
   (Object.keys(rawP) as PillarKey[]).forEach((key) => {
     const item = rawP[key];
-    const root = agg({ name: item.t, ch: item.tree() }) as InternalNode & { m: MetricSpec };
+    const rawRoot = agg({ name: item.t, ch: item.tree() }) as InternalNode & { m: MetricSpec };
+    const factor = targets[key] / (rawRoot.m.a || 1);
+    scaleLeafMetrics(rawRoot, factor);
+    const root = agg(rawRoot) as InternalNode & { m: MetricSpec };
+    root.m.a = targets[key];
+
     result[key] = {
       t: item.t,
       lv: item.lv,
@@ -262,7 +286,7 @@ export function calculateSectorGaps(): SectorGapRow[] {
     return obj;
   };
 
-  const demandMap = sumBySector(PILLARS_DATA.dem, "c");
+  const demandMap = sumBySector(PILLARS_DATA.dem, "a");
   const certifiedMap = sumBySector(PILLARS_DATA.pel, "d");
 
   return SECTORS.map((s) => {

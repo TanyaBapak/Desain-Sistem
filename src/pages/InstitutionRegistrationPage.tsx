@@ -27,6 +27,8 @@ export function InstitutionRegistrationPage({
     institutionName: "",
     institutionType: "LPK",
     ownershipType: "Swasta",
+    registrationSource: "umum",
+    registrationSourceId: "",
     registrationNumber: "",
     provinceId: provinces[0]?.id ?? "",
     districtId: "",
@@ -79,6 +81,117 @@ export function InstitutionRegistrationPage({
         </header>
 
         <form onSubmit={submit} className="space-y-6">
+          {/* Kanal Asal / Sumber Pendaftaran */}
+          <section className="space-y-4 rounded-xl border border-border bg-card p-4 sm:p-6">
+            <div>
+              <h2 className="text-lg font-semibold">Kanal Asal / Sumber Pendaftaran</h2>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Pilih jalur pendaftaran lembaga (SISKOP2MI, Disnaker, atau pendaftaran umum/mandiri).
+              </p>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-3">
+              <label
+                className={`flex flex-col justify-between p-3.5 rounded-xl border cursor-pointer transition ${
+                  data.registrationSource === "siskop2mi"
+                    ? "border-blue-600 bg-blue-500/10 ring-2 ring-blue-500/20"
+                    : "border-border bg-card hover:bg-muted/50"
+                }`}
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-sm font-bold text-foreground">SISKOP2MI</span>
+                    <input
+                      type="radio"
+                      name="registrationSource"
+                      value="siskop2mi"
+                      checked={data.registrationSource === "siskop2mi"}
+                      onChange={(e) => setData("registrationSource", e.target.value)}
+                      className="text-primary"
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Sinkronisasi data sistem penempatan BP2MI / SISKOP2MI
+                  </p>
+                </div>
+              </label>
+
+              <label
+                className={`flex flex-col justify-between p-3.5 rounded-xl border cursor-pointer transition ${
+                  data.registrationSource === "disnaker"
+                    ? "border-indigo-600 bg-indigo-500/10 ring-2 ring-indigo-500/20"
+                    : "border-border bg-card hover:bg-muted/50"
+                }`}
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-sm font-bold text-foreground">Disnaker</span>
+                    <input
+                      type="radio"
+                      name="registrationSource"
+                      value="disnaker"
+                      checked={data.registrationSource === "disnaker"}
+                      onChange={(e) => setData("registrationSource", e.target.value)}
+                      className="text-primary"
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Rekomendasi / inputan Disnaker Provinsi atau Kab/Kota
+                  </p>
+                </div>
+              </label>
+
+              <label
+                className={`flex flex-col justify-between p-3.5 rounded-xl border cursor-pointer transition ${
+                  data.registrationSource === "umum"
+                    ? "border-emerald-600 bg-emerald-500/10 ring-2 ring-emerald-500/20"
+                    : "border-border bg-card hover:bg-muted/50"
+                }`}
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-sm font-bold text-foreground">Umum / Lembaga</span>
+                    <input
+                      type="radio"
+                      name="registrationSource"
+                      value="umum"
+                      checked={data.registrationSource === "umum"}
+                      onChange={(e) => setData("registrationSource", e.target.value)}
+                      className="text-primary"
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Pendaftaran mandiri SMK, LPK, atau Balai Pelatihan Vokasi
+                  </p>
+                </div>
+              </label>
+            </div>
+
+            <div className="pt-1">
+              <Field
+                label={
+                  data.registrationSource === "siskop2mi"
+                    ? "ID Lembaga di SISKOP2MI"
+                    : data.registrationSource === "disnaker"
+                    ? "Nomor Rekomendasi / Registrasi Disnaker"
+                    : "NPSN / Nomor Izin Operasional Lembaga"
+                }
+              >
+                <Input
+                  value={data.registrationSourceId}
+                  onChange={(e) => setData("registrationSourceId", e.target.value)}
+                  placeholder={
+                    data.registrationSource === "siskop2mi"
+                      ? "Contoh: SISKO-LPK-2026-00123"
+                      : data.registrationSource === "disnaker"
+                      ? "Contoh: 560/DISNAKER-VOK/2026"
+                      : "Contoh: NPSN 20101234 atau Izin LPK Mandiri"
+                  }
+                />
+              </Field>
+            </div>
+          </section>
+
           <section className="space-y-4 rounded-xl border border-border bg-card p-4 sm:p-6">
             <h2 className="text-lg font-semibold">Identitas lembaga</h2>
             <div className="grid gap-4 sm:grid-cols-2">

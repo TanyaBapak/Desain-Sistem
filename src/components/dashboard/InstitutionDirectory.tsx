@@ -1,6 +1,8 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { Building2, Search, ChevronLeft, ChevronRight, RotateCcw } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { InstitutionSourceBadge } from "@/components/shared/InstitutionSourceBadge";
+import { resolveInstitutionSource } from "@/lib/institution-source";
 
 export interface InstitutionDirectoryItem {
   id: string;
@@ -12,6 +14,8 @@ export interface InstitutionDirectoryItem {
   evokasiStatus: string;
   classCount: number | null;
   readyParticipantCount: number | null;
+  registrationSource?: 'siskop2mi' | 'disnaker' | 'umum' | string;
+  registrationSourceId?: string;
 }
 
 interface InstitutionDirectoryProps {
@@ -31,6 +35,7 @@ export function InstitutionDirectory({
 }: InstitutionDirectoryProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState("ALL");
+  const [sourceFilter, setSourceFilter] = useState("ALL");
   const [pageSize, setPageSize] = useState(defaultPageSize);
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -43,7 +48,7 @@ export function InstitutionDirectory({
     return Array.from(set).sort();
   }, [institutions]);
 
-  // Filter items based on search and type
+  // Filter items based on search, type, and registration source
   const filteredInstitutions = useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
     return institutions.filter((item) => {
@@ -59,14 +64,21 @@ export function InstitutionDirectory({
         typeFilter === "ALL" ||
         item.type.toLowerCase() === typeFilter.toLowerCase();
 
-      return matchSearch && matchType;
+      const itemSource = resolveInstitutionSource({
+        registrationSource: item.registrationSource,
+        id: item.id,
+      });
+      const matchSource =
+        sourceFilter === "ALL" || itemSource === sourceFilter;
+
+      return matchSearch && matchType && matchSource;
     });
-  }, [institutions, searchQuery, typeFilter]);
+  }, [institutions, searchQuery, typeFilter, sourceFilter]);
 
   // Reset to page 1 on filter/search/pageSize change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, typeFilter, pageSize]);
+  }, [searchQuery, typeFilter, sourceFilter, pageSize]);
 
   const totalFiltered = filteredInstitutions.length;
   const totalPages = Math.max(1, Math.ceil(totalFiltered / pageSize));
@@ -142,6 +154,21 @@ export function InstitutionDirectory({
             </div>
           )}
 
+          {/* Source filter */}
+          <div className="relative">
+            <select
+              value={sourceFilter}
+              onChange={(e) => setSourceFilter(e.target.value)}
+              className="h-8 rounded-md border border-input bg-background px-2.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+              aria-label="Filter kanal sumber lembaga"
+            >
+              <option value="ALL">Semua Sumber</option>
+              <option value="siskop2mi">SISKOP2MI</option>
+              <option value="disnaker">Disnaker</option>
+              <option value="umum">Umum / Lembaga</option>
+            </select>
+          </div>
+
           {/* Page size selector */}
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <span>Baris:</span>
@@ -177,6 +204,9 @@ export function InstitutionDirectory({
                     Wilayah
                   </th>
                   <th scope="col" className="px-4 py-2.5 font-medium">
+                    Kanal Sumber
+                  </th>
+                  <th scope="col" className="px-4 py-2.5 font-medium">
                     Status e-Vokasi
                   </th>
                   <th scope="col" className="px-4 py-2.5 font-medium">
@@ -207,6 +237,13 @@ export function InstitutionDirectory({
                     </th>
                     <td className="px-4 py-3 text-xs text-muted-foreground">
                       {institution.district}, {institution.province}
+                    </td>
+                    <td className="px-4 py-3 text-xs">
+                      <InstitutionSourceBadge
+                        source={institution.registrationSource}
+                        sourceId={institution.registrationSourceId || institution.id}
+                        showId={Boolean(institution.registrationSourceId)}
+                      />
                     </td>
                     <td className="px-4 py-3 text-xs">
                       <span

@@ -54,8 +54,8 @@ const STAGES: TimelineStage[] = [
     tag: "Standardisasi",
     desc: "Pembelajaran terstruktur (320-400 JP), bahasa asing (N4/A2), dan sertifikasi kompetensi (SSW/JIS/BNSP).",
     icon: GraduationCap,
-    metricLabel: "Katalog Kursus",
-    metricValue: "3.998 Program",
+    metricLabel: "Jumlah Kelas",
+    metricValue: "630 Kelas (5 Sektor)",
     status: "active",
     colorClass: "text-indigo-600 dark:text-indigo-400 border-indigo-500/40 bg-indigo-500/10",
     badgeBg: "bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border-indigo-500/30",
@@ -70,7 +70,7 @@ const STAGES: TimelineStage[] = [
     desc: "Verifikasi sarana bengkel kerja, instruktur berlisensi, akreditasi, dan kesiapan kapasitas kelas.",
     icon: Building2,
     metricLabel: "Lembaga Terverifikasi",
-    metricValue: "2.382 Mitra",
+    metricValue: "2.382 Vokasi",
     status: "ready",
     colorClass: "text-emerald-600 dark:text-emerald-400 border-emerald-500/40 bg-emerald-500/10",
     badgeBg: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30",
@@ -80,12 +80,12 @@ const STAGES: TimelineStage[] = [
     stepNumber: 4,
     pillarKey: "dem",
     title: "4. Demand",
-    subtitle: "Lowongan Kerja Global",
+    subtitle: "Permintaan Luar Negeri",
     tag: "Order Kerja",
-    desc: "Validasi kebutuhan pemberi kerja luar negeri via SISKOP2MI dan perjanjian G to G / P to P resmi.",
+    desc: "Validasi kebutuhan pekerja migran resmi via G2G/P2P untuk 4 negara mitra: Turki, Jepang, Malaysia, Korea.",
     icon: Globe2,
-    metricLabel: "Kebutuhan Terbuka",
-    metricValue: "1.330 Kuota",
+    metricLabel: "Negara Mitra",
+    metricValue: "4 Negara (Turki, Jepang...)",
     status: "ready",
     colorClass: "text-amber-600 dark:text-amber-400 border-amber-500/40 bg-amber-500/10",
     badgeBg: "bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30",
@@ -109,13 +109,32 @@ const STAGES: TimelineStage[] = [
 
 interface PillarTimelineFlowProps {
   className?: string;
+  onStageChange?: (stageId: string, pillarKey?: string) => void;
+  onOpenFull?: (stageId: string, pillarKey?: string) => void;
   onSelectStage?: (stageId: string, pillarKey?: string) => void;
 }
 
-export function PillarTimelineFlow({ className, onSelectStage }: PillarTimelineFlowProps) {
+export function PillarTimelineFlow({
+  className,
+  onStageChange,
+  onOpenFull,
+  onSelectStage,
+}: PillarTimelineFlowProps) {
   const [activeStageId, setActiveStageId] = useState<string>("supply");
 
   const currentStage = STAGES.find((s) => s.id === activeStageId) ?? STAGES[0];
+
+  const handleCardClick = (stage: TimelineStage) => {
+    // Only switch stage on card click ("hanya berpindah dahulu")
+    setActiveStageId(stage.id);
+    onStageChange?.(stage.id, stage.pillarKey);
+  };
+
+  const handleOpenFull = () => {
+    // Open full modal / drilldown when the action button is clicked ("baru nanti baru full")
+    const triggerFn = onOpenFull || onSelectStage;
+    triggerFn?.(currentStage.id, currentStage.pillarKey);
+  };
 
   return (
     <div className={cn("rounded-2xl border border-border bg-card p-4 sm:p-5 shadow-xs space-y-4", className)}>
@@ -160,10 +179,7 @@ export function PillarTimelineFlow({ className, onSelectStage }: PillarTimelineF
               <button
                 key={stage.id}
                 type="button"
-                onClick={() => {
-                  setActiveStageId(stage.id);
-                  onSelectStage?.(stage.id, stage.pillarKey);
-                }}
+                onClick={() => handleCardClick(stage)}
                 className={cn(
                   "p-3 rounded-xl border text-left transition-all duration-200 cursor-pointer flex flex-col justify-between group",
                   isSelected
@@ -211,28 +227,31 @@ export function PillarTimelineFlow({ className, onSelectStage }: PillarTimelineF
       </div>
 
       {/* Selected Stage Detail Insight Card */}
-      <div className="p-3.5 rounded-xl border border-primary/20 bg-primary/5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs animate-in fade-in-50 duration-200">
-        <div className="flex items-start gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold shrink-0 text-xs">
+      <div className="p-3.5 sm:p-4 rounded-xl border border-primary/20 bg-primary/5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs animate-in fade-in-50 duration-200">
+        <div className="flex items-start gap-3 min-w-0">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground font-bold shrink-0 text-sm shadow-xs">
             {currentStage.stepNumber}
           </div>
-          <div>
-            <div className="flex items-center gap-2">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
               <span className="font-bold text-foreground text-sm">{currentStage.title}</span>
-              <span className="text-muted-foreground">—</span>
+              <span className="text-muted-foreground hidden sm:inline">—</span>
               <span className="font-semibold text-primary">{currentStage.subtitle}</span>
+              <span className="text-[10.5px] font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+                {currentStage.metricLabel}: {currentStage.metricValue}
+              </span>
             </div>
-            <p className="text-muted-foreground mt-0.5 leading-relaxed">{currentStage.desc}</p>
+            <p className="text-muted-foreground mt-1 leading-relaxed text-xs">{currentStage.desc}</p>
           </div>
         </div>
 
         <button
           type="button"
-          onClick={() => onSelectStage?.(currentStage.id, currentStage.pillarKey)}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-bold shadow-xs hover:bg-primary/90 transition shrink-0 cursor-pointer self-start sm:self-center"
+          onClick={handleOpenFull}
+          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-bold shadow-md hover:bg-primary/90 transition shrink-0 cursor-pointer self-start sm:self-center group/btn"
         >
-          <span>Jelajahi Tahap Ini</span>
-          <ArrowRight className="h-3.5 w-3.5" />
+          <span>Buka Data Lengkap Tahap Ini</span>
+          <ArrowRight className="h-3.5 w-3.5 group-hover/btn:translate-x-0.5 transition-transform" />
         </button>
       </div>
     </div>

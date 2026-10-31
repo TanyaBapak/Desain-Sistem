@@ -28,6 +28,7 @@ export const PublicCommandCenterSection: React.FC<PublicCommandCenterSectionProp
 }) => {
   const [activeDrilldown, setActiveDrilldown] = useState<PublicDrilldownType | null>(null);
   const [activeProgramSector, setActiveProgramSector] = useState<string | null>(null);
+  const [activeSourceFilter, setActiveSourceFilter] = useState<"ALL" | "siskop2mi" | "disnaker" | "umum">("ALL");
 
   const scopeLabel = "Nasional (Seluruh RI)";
 
@@ -35,7 +36,7 @@ export const PublicCommandCenterSection: React.FC<PublicCommandCenterSectionProp
     return {
       scopeName: scopeLabel,
       candidatesCount: initialData?.national?.candidatesCount ?? 12600,
-      programsCount: initialData?.national?.programsCount ?? 3998,
+      programsCount: initialData?.national?.programsCount ?? 630,
       providersCount: initialData?.national?.providersCount ?? 2382,
       registeredProvidersCount: initialData?.national?.registeredProvidersCount ?? 24,
       nationalLpkCount: initialData?.national?.nationalLpkCount ?? 2382,
@@ -96,6 +97,11 @@ export const PublicCommandCenterSection: React.FC<PublicCommandCenterSectionProp
     }
   };
 
+  const handleOpenSourceDrilldown = (source: "siskop2mi" | "disnaker" | "umum") => {
+    setActiveSourceFilter(source);
+    setActiveDrilldown("lembaga");
+  };
+
   return (
     <section
       id="dashboard-command-center"
@@ -132,12 +138,12 @@ export const PublicCommandCenterSection: React.FC<PublicCommandCenterSectionProp
         </div>
 
         {/* Animated Pipeline / Timeline Flow (Supply -> Demand -> Penempatan) */}
-        <PillarTimelineFlow onSelectStage={handleTimelineStageSelect} />
+        <PillarTimelineFlow onOpenFull={handleTimelineStageSelect} />
 
         {/* Guidance Instruction and Prototype Note */}
         <div className="space-y-2">
           <div className="text-xs sm:text-sm text-muted-foreground">
-            Klik card untuk membuka menu · arahkan kursor / ketuk untuk menelusuri lebih dalam
+            Klik card untuk membuka data · klik item baris untuk menelusuri tingkat berikutnya secara bertahap
           </div>
           <div className="flex items-center gap-2 rounded-xl bg-primary/10 border border-primary/20 px-3.5 py-2 text-xs text-primary font-medium">
             <Info className="h-4 w-4 shrink-0" />
@@ -148,7 +154,125 @@ export const PublicCommandCenterSection: React.FC<PublicCommandCenterSectionProp
         {/* 1. Cascading Flyout 4 Pillars Component */}
         <CascadingFlyout onOpenDrilldownModal={handleOpenDrilldownFromFlyout} />
 
-        {/* 2. Kesenjangan Supply vs Demand per Sektor */}
+        {/* 2. Kanal Asal / Sumber Pendaftaran Lembaga Vokasi (3 Jalur Masuk) */}
+        <div className="space-y-3 pt-2">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+            <div>
+              <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                <span>Kanal Asal / Sumber Pendaftaran Lembaga Vokasi</span>
+                <span className="text-[10.5px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
+                  3 Pintu Masuk
+                </span>
+              </h3>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Pemetaan 2.382 lembaga mitra vokasi berdasarkan kanal asal pendaftaran dan integrasi sistem.
+              </p>
+            </div>
+            <span className="text-[11px] text-muted-foreground">
+              Klik kanal untuk melihat daftar lembaga
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {/* 1. SISKOP2MI */}
+            <button
+              type="button"
+              onClick={() => handleOpenSourceDrilldown("siskop2mi")}
+              className="p-4 rounded-2xl border border-blue-500/30 bg-card hover:bg-blue-500/5 hover:border-blue-500 transition-all text-left shadow-xs group cursor-pointer flex flex-col justify-between"
+            >
+              <div>
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-blue-600 animate-pulse" />
+                    <span className="text-xs font-bold text-blue-700 dark:text-blue-400 uppercase tracking-wider">
+                      SISKOP2MI
+                    </span>
+                  </div>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-500/30">
+                    Integrasi API
+                  </span>
+                </div>
+                <h4 className="text-sm font-bold text-foreground group-hover:text-blue-600 transition-colors">
+                  Integrasi BP2MI / SISKOP2MI
+                </h4>
+                <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                  Data lembaga dan balai kerja yang disinkronkan langsung dari basis data penempatan resmi KP2MI.
+                </p>
+              </div>
+
+              <div className="mt-4 pt-3 border-t border-border/60 flex items-center justify-between text-xs font-semibold text-blue-600 dark:text-blue-400">
+                <span>Jelajahi Lembaga SISKOP2MI</span>
+                <span className="group-hover:translate-x-1 transition-transform">›</span>
+              </div>
+            </button>
+
+            {/* 2. Disnaker */}
+            <button
+              type="button"
+              onClick={() => handleOpenSourceDrilldown("disnaker")}
+              className="p-4 rounded-2xl border border-indigo-500/30 bg-card hover:bg-indigo-500/5 hover:border-indigo-500 transition-all text-left shadow-xs group cursor-pointer flex flex-col justify-between"
+            >
+              <div>
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-indigo-600 animate-pulse" />
+                    <span className="text-xs font-bold text-indigo-700 dark:text-indigo-400 uppercase tracking-wider">
+                      Disnaker
+                    </span>
+                  </div>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30">
+                    Rekomendasi Pemda
+                  </span>
+                </div>
+                <h4 className="text-sm font-bold text-foreground group-hover:text-indigo-600 transition-colors">
+                  Inputan Disnaker Daerah
+                </h4>
+                <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                  Lembaga vokasi dan LPK yang diajukan serta diverifikasi oleh Dinas Tenaga Kerja Provinsi dan Kab/Kota.
+                </p>
+              </div>
+
+              <div className="mt-4 pt-3 border-t border-border/60 flex items-center justify-between text-xs font-semibold text-indigo-600 dark:text-indigo-400">
+                <span>Jelajahi Lembaga Disnaker</span>
+                <span className="group-hover:translate-x-1 transition-transform">›</span>
+              </div>
+            </button>
+
+            {/* 3. Umum / Lembaga Vokasi */}
+            <button
+              type="button"
+              onClick={() => handleOpenSourceDrilldown("umum")}
+              className="p-4 rounded-2xl border border-emerald-500/30 bg-card hover:bg-emerald-500/5 hover:border-emerald-500 transition-all text-left shadow-xs group cursor-pointer flex flex-col justify-between"
+            >
+              <div>
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-600 animate-pulse" />
+                    <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">
+                      Umum / Lembaga
+                    </span>
+                  </div>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
+                    Pendaftaran Mandiri
+                  </span>
+                </div>
+                <h4 className="text-sm font-bold text-foreground group-hover:text-emerald-600 transition-colors">
+                  Pendaftaran Mandiri SMK / Balai
+                </h4>
+                <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                  Satuan pendidikan kejuruan dan lembaga pelatihan kerja yang mendaftar secara terbuka melalui portal Task Force.
+                </p>
+              </div>
+
+              <div className="mt-4 pt-3 border-t border-border/60 flex items-center justify-between text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                <span>Jelajahi Lembaga Mandiri</span>
+                <span className="group-hover:translate-x-1 transition-transform">›</span>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        {/* 3. Kesenjangan Supply vs Demand per Sektor */}
         <SectorGapList />
       </div>
 
@@ -159,10 +283,12 @@ export const PublicCommandCenterSection: React.FC<PublicCommandCenterSectionProp
           onClose={() => {
             setActiveDrilldown(null);
             setActiveProgramSector(null);
+            setActiveSourceFilter("ALL");
           }}
           scopeName={scopeLabel}
           data={synthesizedData}
           initialSector={activeProgramSector}
+          initialSourceFilter={activeSourceFilter}
           sectorOccupations={sectorOccupations}
           trainingSectors={trainingSectors}
         />

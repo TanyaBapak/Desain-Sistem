@@ -145,6 +145,8 @@ export interface VocationalProvider {
   procurementMethod?: string | null;
   layer?: 'Layer 3/program' | 'Layer 2/fasilitas' | 'Layer 1/legalitas diterima' | 'Belum e-Vokasi' | string;
   institutionCategory?: string;
+  registrationSource?: 'siskop2mi' | 'disnaker' | 'umum' | string;
+  registrationSourceId?: string;
 }
 
 // ==========================================
@@ -688,6 +690,8 @@ export interface PublicPreviewInstitution {
   workshopCapacity?: number;
   students?: PublicPreviewStudent[];
   studentCount?: number;
+  registrationSource?: 'siskop2mi' | 'disnaker' | 'umum' | string;
+  registrationSourceId?: string;
 }
 
 export interface PublicPreviewProgram {

@@ -61,6 +61,51 @@ export function PublicPillarVokasi({
         </Card>
       </div>
 
+      {/* Kanal Sumber Pendaftaran Lembaga */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div
+          onClick={() => onOpenDrilldown("lembaga")}
+          className="p-3.5 rounded-xl border border-blue-500/30 bg-blue-500/5 hover:bg-blue-500/10 cursor-pointer transition flex items-center justify-between"
+        >
+          <div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-blue-500" />
+              <span className="text-xs font-bold text-blue-700 dark:text-blue-400">SISKOP2MI</span>
+            </div>
+            <p className="text-[11px] text-muted-foreground mt-0.5">Integrasi Sistem Penempatan KP2MI</p>
+          </div>
+          <span className="text-xs font-semibold text-blue-600 dark:text-blue-400 underline ml-2">Lihat &rarr;</span>
+        </div>
+
+        <div
+          onClick={() => onOpenDrilldown("lembaga")}
+          className="p-3.5 rounded-xl border border-indigo-500/30 bg-indigo-500/5 hover:bg-indigo-500/10 cursor-pointer transition flex items-center justify-between"
+        >
+          <div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-indigo-500" />
+              <span className="text-xs font-bold text-indigo-700 dark:text-indigo-400">Disnaker</span>
+            </div>
+            <p className="text-[11px] text-muted-foreground mt-0.5">Inputan Rekomendasi Disnaker Daerah</p>
+          </div>
+          <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 underline ml-2">Lihat &rarr;</span>
+        </div>
+
+        <div
+          onClick={() => onOpenDrilldown("lembaga")}
+          className="p-3.5 rounded-xl border border-emerald-500/30 bg-emerald-500/5 hover:bg-emerald-500/10 cursor-pointer transition flex items-center justify-between"
+        >
+          <div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-500" />
+              <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400">Umum / Lembaga</span>
+            </div>
+            <p className="text-[11px] text-muted-foreground mt-0.5">Pendaftaran Mandiri SMK / Balai Vokasi</p>
+          </div>
+          <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 underline ml-2">Lihat &rarr;</span>
+        </div>
+      </div>
+
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
@@ -159,6 +204,51 @@ export function PublicPillarNationalLpk({
             Buka Drill-down LPK
           </Button>
         </Card>
+      </div>
+
+      {/* Kanal Sumber Pendaftaran Lembaga */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div
+          onClick={() => onOpenDrilldown("lembaga")}
+          className="p-3.5 rounded-xl border border-blue-500/30 bg-blue-500/5 hover:bg-blue-500/10 cursor-pointer transition flex items-center justify-between"
+        >
+          <div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-blue-500" />
+              <span className="text-xs font-bold text-blue-700 dark:text-blue-400">SISKOP2MI</span>
+            </div>
+            <p className="text-[11px] text-muted-foreground mt-0.5">Integrasi Sistem Penempatan KP2MI</p>
+          </div>
+          <span className="text-xs font-semibold text-blue-600 dark:text-blue-400 underline ml-2">Lihat &rarr;</span>
+        </div>
+
+        <div
+          onClick={() => onOpenDrilldown("lembaga")}
+          className="p-3.5 rounded-xl border border-indigo-500/30 bg-indigo-500/5 hover:bg-indigo-500/10 cursor-pointer transition flex items-center justify-between"
+        >
+          <div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-indigo-500" />
+              <span className="text-xs font-bold text-indigo-700 dark:text-indigo-400">Disnaker</span>
+            </div>
+            <p className="text-[11px] text-muted-foreground mt-0.5">Inputan Rekomendasi Disnaker Daerah</p>
+          </div>
+          <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 underline ml-2">Lihat &rarr;</span>
+        </div>
+
+        <div
+          onClick={() => onOpenDrilldown("lembaga")}
+          className="p-3.5 rounded-xl border border-emerald-500/30 bg-emerald-500/5 hover:bg-emerald-500/10 cursor-pointer transition flex items-center justify-between"
+        >
+          <div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-500" />
+              <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400">Umum / Lembaga</span>
+            </div>
+            <p className="text-[11px] text-muted-foreground mt-0.5">Pendaftaran Mandiri SMK / Balai Vokasi</p>
+          </div>
+          <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 underline ml-2">Lihat &rarr;</span>
+        </div>
       </div>
 
       <Card>

@@ -111,7 +111,10 @@ export function CascadingFlyout({ className, onOpenDrilldownModal }: CascadingFl
     }
   }
 
-  // Compute adaptive positions for cascading panels to prevent stacking on right edge
+  // Compute sliding-window positions for cascading panels:
+  // Panels always cascade to the right (Card -> Panel 0 -> Panel 1 -> Panel 2...).
+  // When the latest panel would exceed the right screen edge, all panels shift smoothly
+  // to the left so that the latest panel always stays visible on the right.
   const panelPositions = React.useMemo(() => {
     if (isMobile || !anchors.length || !currentNodes.length) return [];
     const PANEL_WIDTH = 300;
@@ -122,63 +125,37 @@ export function CascadingFlyout({ className, onOpenDrilldownModal }: CascadingFl
     const winH = typeof window !== "undefined" ? window.innerHeight : 800;
 
     const card = anchors[0];
-    // If the card center is in the right half of the screen, cascade LEFT; otherwise RIGHT
-    const cascadeLeft = (card.left + card.right) / 2 > winW / 2;
+    const n = currentNodes.length;
 
-    const positions: { left: number; top: number }[] = [];
+    // Base position for panel 0:
+    // Starts aligned with card's left (or clamped to screen bounds)
+    const baseX = Math.max(PADDING, card.left);
 
-    for (let k = 0; k < currentNodes.length; k++) {
-      let left: number;
-      if (k === 0) {
-        if (cascadeLeft) {
-          // Cascade towards left of card
-          if (card.left - PANEL_WIDTH - GAP >= PADDING) {
-            left = card.left - PANEL_WIDTH - GAP;
-          } else {
-            left = Math.max(PADDING, card.right - PANEL_WIDTH);
-          }
-        } else {
-          // Cascade towards right of card
-          if (card.right + PANEL_WIDTH + GAP <= winW - PADDING) {
-            left = card.right + GAP;
-          } else {
-            left = Math.max(PADDING, card.left - PANEL_WIDTH - GAP);
-          }
-        }
-      } else {
-        const prev = positions[k - 1];
-        if (cascadeLeft) {
-          left = prev.left - PANEL_WIDTH - GAP;
-          if (left < PADDING) {
-            // If overflowed to the left screen edge, try to position to the right of panel 0
-            const rightOfPanel0 = positions[0].left + PANEL_WIDTH + GAP;
-            if (rightOfPanel0 + PANEL_WIDTH <= winW - PADDING) {
-              left = rightOfPanel0;
-            } else {
-              left = PADDING;
-            }
-          }
-        } else {
-          left = prev.left + PANEL_WIDTH + GAP;
-          if (left + PANEL_WIDTH > winW - PADDING) {
-            // If overflowed to the right screen edge, try to position to the left of panel 0
-            const leftOfPanel0 = positions[0].left - PANEL_WIDTH - GAP;
-            if (leftOfPanel0 >= PADDING) {
-              left = leftOfPanel0;
-            } else {
-              left = Math.max(PADDING, winW - PANEL_WIDTH - PADDING);
-            }
-          }
-        }
-      }
-
-      const anchor = anchors[k] || card;
-      const top = Math.max(PADDING, Math.min(anchor.top, winH - PANEL_HEIGHT - PADDING));
-
-      positions.push({ left, top });
+    // Calculate unshifted right-cascading positions:
+    // Panel k is at baseX + k * (PANEL_WIDTH + GAP)
+    const rawLefts: number[] = [];
+    for (let k = 0; k < n; k++) {
+      rawLefts.push(baseX + k * (PANEL_WIDTH + GAP));
     }
 
-    return positions;
+    // Check right edge of the latest panel (n - 1)
+    const maxAllowedRight = winW - PADDING;
+    const latestRightEdge = rawLefts[n - 1] + PANEL_WIDTH;
+    const overflow = Math.max(0, latestRightEdge - maxAllowedRight);
+
+    // If overflow > 0, shift ALL panels to the left by `overflow`
+    // This allows popups to keep opening to the right while earlier popups slide left
+    const shiftedPositions: { left: number; top: number }[] = [];
+
+    // Consistent top alignment across the cascading chain to avoid vertical jitter
+    const top = Math.max(PADDING, Math.min(card.top, winH - PANEL_HEIGHT - PADDING));
+
+    for (let k = 0; k < n; k++) {
+      const left = rawLefts[k] - overflow;
+      shiftedPositions.push({ left, top });
+    }
+
+    return shiftedPositions;
   }, [anchors, currentNodes.length, isMobile]);
 
   return (
@@ -252,15 +229,20 @@ export function CascadingFlyout({ className, onOpenDrilldownModal }: CascadingFl
               />
             </div>
           ) : (
-            // Desktop: Cascading Panels with intelligent direction (Left or Right)
+            // Desktop: Cascading Panels with sliding window (shift left as deep columns open to the right)
             currentNodes.map((node, k) => {
               const pos = panelPositions[k] ?? { left: 100, top: 100 };
 
               return (
                 <div
                   key={`${curPillar}-${k}`}
-                  style={{ left: `${pos.left}px`, top: `${pos.top}px` }}
-                  className="fixed z-60 w-[300px] max-h-[min(70vh,520px)] flex flex-col bg-card border border-border rounded-2xl shadow-2xl overflow-hidden animate-in fade-in-0 duration-150"
+                  style={{
+                    left: `${pos.left}px`,
+                    top: `${pos.top}px`,
+                    zIndex: 60 + k,
+                    transition: "left 280ms cubic-bezier(0.16, 1, 0.3, 1), opacity 200ms ease",
+                  }}
+                  className="fixed w-[300px] max-h-[min(70vh,520px)] flex flex-col bg-card border border-border rounded-2xl shadow-2xl overflow-hidden animate-in fade-in-0 duration-150"
                 >
                   <PanelContent
                     levelIndex={k}
@@ -269,8 +251,15 @@ export function CascadingFlyout({ className, onOpenDrilldownModal }: CascadingFl
                     metricKey={metricKey}
                     selectedChildIndex={path[k]}
                     onSelectChild={(childIdx, el) => handleItemSelect(k, childIdx, el)}
-                    onHoverChild={(childIdx, el) => handleItemHover(k, childIdx, el)}
-                    onBack={() => {}}
+                    onHoverChild={() => {}}
+                    onBack={() => {
+                      if (path.length > 0) {
+                        setPath((prev) => prev.slice(0, -1));
+                        setAnchors((prev) => prev.slice(0, -1));
+                      } else {
+                        closeAll();
+                      }
+                    }}
                     onSetMetric={setMetricKey}
                     onOpenFullModal={() => onOpenDrilldownModal?.(curPillar)}
                     isMobile={false}

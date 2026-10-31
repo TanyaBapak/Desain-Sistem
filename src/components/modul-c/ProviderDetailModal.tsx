@@ -1,6 +1,7 @@
 import React from 'react';
 import { Modal } from '../ui/Modal';
 import { Badge } from '../ui/Badge';
+import { InstitutionSourceBadge } from '../shared/InstitutionSourceBadge';
 import { VocationalProvider } from '../../types';
 import {
   Building2,
@@ -71,6 +72,11 @@ export const ProviderDetailModal: React.FC<ProviderDetailModalProps> = ({
         <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl">
           <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
             <div className="flex items-center gap-2 flex-wrap">
+              <InstitutionSourceBadge
+                source={provider.registrationSource}
+                sourceId={provider.registrationSourceId || provider.id}
+                showId={Boolean(provider.registrationSourceId)}
+              />
               <span className="text-xs font-bold text-slate-700 bg-slate-200 px-2.5 py-0.5 rounded-md">
                 Jenis: {provider.providerType}
               </span>

@@ -46,11 +46,12 @@ export function PanelContent({
             {pillar.lv[levelIndex - 1] || "Detail"} · Rincian
           </div>
           <div className="text-sm font-bold text-foreground flex items-center gap-2 mt-0.5">
-            {isMobile && (
+            {levelIndex > 0 && (
               <button
                 type="button"
                 onClick={onBack}
-                className="px-2 py-0.5 rounded-md bg-primary/10 text-primary text-xs"
+                title="Tutup rincian ini"
+                className="px-2 py-0.5 rounded-md bg-primary/10 text-primary text-xs hover:bg-primary/20 transition cursor-pointer"
               >
                 ‹
               </button>
@@ -118,11 +119,12 @@ export function PanelContent({
           Pilih {pillar.lv[levelIndex]?.toLowerCase() || "item"}
         </div>
         <div className="text-sm font-bold text-foreground flex items-center gap-2 mt-0.5">
-          {isMobile && levelIndex > 0 && (
+          {levelIndex > 0 && (
             <button
               type="button"
               onClick={onBack}
-              className="px-2 py-0.5 rounded-md bg-primary/10 text-primary text-xs"
+              title="Kembali ke tingkat sebelumnya"
+              className="px-2 py-0.5 rounded-md bg-primary/10 text-primary text-xs hover:bg-primary/20 transition cursor-pointer"
             >
               ‹
             </button>
@@ -162,11 +164,20 @@ export function PanelContent({
           return (
             <div
               key={c.name}
+              role="button"
+              tabIndex={0}
               onClick={(e) => onSelectChild(i, e.currentTarget)}
-              onMouseEnter={(e) => onHoverChild(i, e.currentTarget)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  onSelectChild(i, e.currentTarget);
+                }
+              }}
               className={cn(
-                "relative grid grid-cols-[1fr_auto_14px] gap-2 items-center p-2 rounded-xl cursor-pointer transition-all",
-                isSelected ? "bg-primary/15 font-semibold" : "hover:bg-muted/70"
+                "relative grid grid-cols-[1fr_auto_14px] gap-2 items-center p-2 rounded-xl cursor-pointer transition-all group",
+                isSelected
+                  ? "bg-primary/15 font-semibold ring-1 ring-primary/40 shadow-xs"
+                  : "hover:bg-muted/70 active:scale-[0.99]"
               )}
             >
               {/* Proportional background bar */}

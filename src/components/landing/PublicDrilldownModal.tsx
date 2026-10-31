@@ -29,6 +29,8 @@ import type {
   PublicPreviewDemand,
   TrainingSectorCatalogItem,
 } from "@/types";
+import { InstitutionSourceBadge } from "@/components/shared/InstitutionSourceBadge";
+import { resolveInstitutionSource } from "@/lib/institution-source";
 
 export type PublicDrilldownType =
   | "peserta"
@@ -45,6 +47,7 @@ interface PublicDrilldownModalProps {
   scopeName: string;
   data: PublicCommandCenterData;
   initialSector?: string | null;
+  initialSourceFilter?: "ALL" | "siskop2mi" | "disnaker" | "umum";
   sectorOccupations: Record<string, string[]>;
   trainingSectors: TrainingSectorCatalogItem[];
 }
@@ -59,6 +62,7 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
   scopeName,
   data,
   initialSector = null,
+  initialSourceFilter = "ALL",
   sectorOccupations,
   trainingSectors,
 }) => {
@@ -71,6 +75,7 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
   const [selectedInstitutionForStudents, setSelectedInstitutionForStudents] = useState<PublicPreviewInstitution | null>(null);
   const [studentSearchQuery, setStudentSearchQuery] = useState<string>("");
   const [selectedProvinceForLpk, setSelectedProvinceForLpk] = useState<string | null>(null);
+  const [institutionSourceFilter, setInstitutionSourceFilter] = useState<"ALL" | "siskop2mi" | "disnaker" | "umum">(initialSourceFilter);
 
   useEffect(() => {
     setSelectedSector(initialSector);
@@ -78,7 +83,8 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
     setSelectedInstitutionForStudents(null);
     setSelectedProvinceForLpk(null);
     setStudentSearchQuery("");
-  }, [type, initialSector]);
+    setInstitutionSourceFilter(initialSourceFilter);
+  }, [type, initialSector, initialSourceFilter]);
 
   const institutions: PublicPreviewInstitution[] =
     data.previewDirectories?.institutions ?? [];
@@ -341,72 +347,153 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
     );
   };
 
-  const renderInstitutionList = (items: PublicPreviewInstitution[]) => (
-    <div className="rounded-lg border border-border p-2">
-      {items.length === 0 ? (
-        <p className="p-5 text-center text-sm text-muted-foreground">
-          Belum ada lembaga vokasi yang sesuai dengan pilihan ini.
-        </p>
-      ) : (
-        <div className="space-y-2.5">
-          {items.map((institution) => {
-            const isVerified =
-              institution.evokasiStatus === "Terverifikasi e-Vokasi";
-            const studentCount = institution.students?.length ?? institution.studentCount ?? 0;
-            return (
-              <div
-                key={institution.id}
-                onClick={() => {
-                  setSelectedInstitutionForStudents(institution);
-                  setStudentSearchQuery("");
-                }}
-                className="rounded-lg border border-border/80 bg-card p-3 space-y-2 hover:border-primary/60 hover:shadow-md cursor-pointer transition-all group"
-              >
-                <div className="flex min-w-0 items-start justify-between gap-2">
-                  <div className="min-w-0 flex-1">
-                    <h6 className="break-words text-sm font-semibold text-foreground group-hover:text-primary transition-colors flex items-center gap-1.5">
-                      <span>{institution.name}</span>
-                      <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-transform group-hover:translate-x-0.5" />
-                    </h6>
-                    <p className="mt-0.5 text-xs text-muted-foreground">
-                      {institution.district ? `${institution.district}, ` : ""}
-                      {institution.province || scopeName}
-                    </p>
-                  </div>
-                  <Badge
-                    variant={isVerified ? "default" : "outline"}
-                    className={
-                      isVerified
-                        ? "max-w-[45%] shrink-0 whitespace-normal break-words bg-emerald-600/10 text-right text-xs text-emerald-700 dark:text-emerald-400 border border-emerald-500/20"
-                        : "max-w-[45%] shrink-0 whitespace-normal break-words text-right text-xs"
-                    }
-                  >
-                    {institution.evokasiStatus || "Terdaftar"}
-                  </Badge>
-                </div>
-                <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-t border-border/40 pt-1.5 text-xs text-muted-foreground">
-                  <div className="flex items-center gap-3">
-                    <span>
-                      Jenis: <strong>{institution.type}</strong>
-                    </span>
-                    {institution.accreditation && (
-                      <span>
-                        Akreditasi: <strong>{institution.accreditation}</strong>
-                      </span>
-                    )}
-                  </div>
-                  <span className="text-primary font-semibold text-xs flex items-center gap-1 group-hover:underline">
-                    <Users className="h-3.5 w-3.5" />
-                    {studentCount} Calon Peserta &rarr;
-                  </span>
-                </div>
-              </div>
-            );
-          })}
+  const renderInstitutionList = (items: PublicPreviewInstitution[]) => {
+    const siskop2miCount = items.filter(
+      (it) => resolveInstitutionSource({ registrationSource: it.registrationSource, id: it.id }) === "siskop2mi"
+    ).length;
+    const disnakerCount = items.filter(
+      (it) => resolveInstitutionSource({ registrationSource: it.registrationSource, id: it.id }) === "disnaker"
+    ).length;
+    const umumCount = items.filter(
+      (it) => resolveInstitutionSource({ registrationSource: it.registrationSource, id: it.id }) === "umum"
+    ).length;
+
+    const filtered = items.filter((it) => {
+      if (institutionSourceFilter === "ALL") return true;
+      return (
+        resolveInstitutionSource({ registrationSource: it.registrationSource, id: it.id }) ===
+        institutionSourceFilter
+      );
+    });
+
+    return (
+      <div className="space-y-3">
+        {/* Source Filter Quick Bar */}
+        <div className="flex flex-wrap items-center gap-1.5 p-2 rounded-xl bg-muted/30 border border-border/60 text-xs">
+          <span className="text-[11px] font-semibold text-muted-foreground mr-1">Sumber:</span>
+          <button
+            type="button"
+            onClick={() => setInstitutionSourceFilter("ALL")}
+            className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer ${
+              institutionSourceFilter === "ALL"
+                ? "bg-primary text-primary-foreground shadow-xs"
+                : "bg-background border border-border text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Semua ({items.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setInstitutionSourceFilter("siskop2mi")}
+            className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1 ${
+              institutionSourceFilter === "siskop2mi"
+                ? "bg-blue-600 text-white shadow-xs"
+                : "bg-background border border-border text-muted-foreground hover:text-blue-600"
+            }`}
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+            <span>SISKOP2MI ({siskop2miCount})</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setInstitutionSourceFilter("disnaker")}
+            className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1 ${
+              institutionSourceFilter === "disnaker"
+                ? "bg-indigo-600 text-white shadow-xs"
+                : "bg-background border border-border text-muted-foreground hover:text-indigo-600"
+            }`}
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
+            <span>Disnaker ({disnakerCount})</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setInstitutionSourceFilter("umum")}
+            className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1 ${
+              institutionSourceFilter === "umum"
+                ? "bg-emerald-600 text-white shadow-xs"
+                : "bg-background border border-border text-muted-foreground hover:text-emerald-600"
+            }`}
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+            <span>Umum / Lembaga ({umumCount})</span>
+          </button>
         </div>
-      )}
-    </div>
-  );
+
+        <div className="rounded-lg border border-border p-2">
+          {filtered.length === 0 ? (
+            <p className="p-5 text-center text-sm text-muted-foreground">
+              Belum ada lembaga vokasi yang sesuai dengan pilihan sumber ini.
+            </p>
+          ) : (
+            <div className="space-y-2.5">
+              {filtered.map((institution) => {
+                const isVerified =
+                  institution.evokasiStatus === "Terverifikasi e-Vokasi";
+                const studentCount = institution.students?.length ?? institution.studentCount ?? 0;
+                return (
+                  <div
+                    key={institution.id}
+                    onClick={() => {
+                      setSelectedInstitutionForStudents(institution);
+                      setStudentSearchQuery("");
+                    }}
+                    className="rounded-lg border border-border/80 bg-card p-3 space-y-2 hover:border-primary/60 hover:shadow-md cursor-pointer transition-all group"
+                  >
+                    <div className="flex min-w-0 items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-1.5 mb-1">
+                          <InstitutionSourceBadge
+                            source={institution.registrationSource}
+                            sourceId={institution.registrationSourceId || institution.id}
+                            showId={Boolean(institution.registrationSourceId)}
+                          />
+                        </div>
+                        <h6 className="break-words text-sm font-semibold text-foreground group-hover:text-primary transition-colors flex items-center gap-1.5">
+                          <span>{institution.name}</span>
+                          <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-transform group-hover:translate-x-0.5" />
+                        </h6>
+                        <p className="mt-0.5 text-xs text-muted-foreground">
+                          {institution.district ? `${institution.district}, ` : ""}
+                          {institution.province || scopeName}
+                        </p>
+                      </div>
+                      <Badge
+                        variant={isVerified ? "default" : "outline"}
+                        className={
+                          isVerified
+                            ? "max-w-[45%] shrink-0 whitespace-normal break-words bg-emerald-600/10 text-right text-xs text-emerald-700 dark:text-emerald-400 border border-emerald-500/20"
+                            : "max-w-[45%] shrink-0 whitespace-normal break-words text-right text-xs"
+                        }
+                      >
+                        {institution.evokasiStatus || "Terdaftar"}
+                      </Badge>
+                    </div>
+                    <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-t border-border/40 pt-1.5 text-xs text-muted-foreground">
+                      <div className="flex items-center gap-3">
+                        <span>
+                          Jenis: <strong>{institution.type}</strong>
+                        </span>
+                        {institution.accreditation && (
+                          <span>
+                            Akreditasi: <strong>{institution.accreditation}</strong>
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-primary font-semibold text-xs flex items-center gap-1 group-hover:underline">
+                        <Users className="h-3.5 w-3.5" />
+                        {studentCount} Calon Peserta &rarr;
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
 
   const renderContent = () => {
     switch (type) {

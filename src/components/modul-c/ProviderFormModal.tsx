@@ -58,6 +58,8 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
   const [name, setName] = useState('');
   const [providerType, setProviderType] = useState<ProviderType>('SMK');
   const [institutionStatus, setInstitutionStatus] = useState<'Negeri' | 'Swasta'>('Swasta');
+  const [registrationSource, setRegistrationSource] = useState<'siskop2mi' | 'disnaker' | 'umum'>('umum');
+  const [registrationSourceId, setRegistrationSourceId] = useState('');
   const [provinsi, setProvinsi] = useState('Jawa Barat');
   const [kabupatenKota, setKabupatenKota] = useState('Kabupaten Bogor');
   const [accreditation, setAccreditation] = useState<string>('A');
@@ -114,11 +116,17 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
         ),
       );
       setSupportedCountries(normalizedCountries);
+      const sourceVal = (initialData.registrationSource as 'siskop2mi' | 'disnaker' | 'umum') ||
+        (initialData.source === 'vokasi.kp2mi.go.id' || initialData.source === 'kp2mi-api' ? 'siskop2mi' : 'umum');
+      setRegistrationSource(sourceVal);
+      setRegistrationSourceId(initialData.registrationSourceId || initialData.id || '');
       setFacilitiesInput(initialData.facilities ? initialData.facilities.join(', ') : '');
     } else {
       setName('');
       setProviderType('SMK');
       setInstitutionStatus('Swasta');
+      setRegistrationSource('umum');
+      setRegistrationSourceId('');
       setProvinsi('Jawa Barat');
       setKabupatenKota('Kabupaten Bogor');
       setAccreditation('A');
@@ -168,6 +176,8 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
       supportedCountries: canonicalCountries,
       facilities: facilitiesArray,
       institutionStatus,
+      registrationSource,
+      registrationSourceId: registrationSourceId.trim(),
     });
   };
 
@@ -206,6 +216,116 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
 
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="p-6 max-h-[75vh] overflow-y-auto space-y-5">
+          {/* Kanal Asal / Sumber Lembaga Vokasi */}
+          <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/70 space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+              <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                <span>Kanal Sumber Pendaftaran Lembaga</span>
+                <span className="text-rose-500">*</span>
+              </label>
+              <span className="text-[11px] text-slate-500">Pilih asal jalur registrasi lembaga</span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+              {/* Option 1: SISKOP2MI */}
+              <button
+                type="button"
+                onClick={() => setRegistrationSource('siskop2mi')}
+                className={`p-3 rounded-xl border text-left transition cursor-pointer flex flex-col justify-between ${
+                  registrationSource === 'siskop2mi'
+                    ? 'border-blue-600 bg-blue-50/80 ring-2 ring-blue-500/20 text-blue-900 shadow-xs'
+                    : 'border-slate-200 bg-white hover:border-slate-300 text-slate-700'
+                }`}
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-bold">SISKOP2MI</span>
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                      registrationSource === 'siskop2mi' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-500'
+                    }`}>
+                      Integrasi
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 leading-snug">
+                    Sinkronisasi data sistem penempatan BP2MI / SISKOP2MI
+                  </p>
+                </div>
+              </button>
+
+              {/* Option 2: Disnaker */}
+              <button
+                type="button"
+                onClick={() => setRegistrationSource('disnaker')}
+                className={`p-3 rounded-xl border text-left transition cursor-pointer flex flex-col justify-between ${
+                  registrationSource === 'disnaker'
+                    ? 'border-indigo-600 bg-indigo-50/80 ring-2 ring-indigo-500/20 text-indigo-900 shadow-xs'
+                    : 'border-slate-200 bg-white hover:border-slate-300 text-slate-700'
+                }`}
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-bold">Disnaker</span>
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                      registrationSource === 'disnaker' ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-500'
+                    }`}>
+                      Daerah
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 leading-snug">
+                    Inputan / rekomendasi Disnaker Provinsi atau Kab/Kota
+                  </p>
+                </div>
+              </button>
+
+              {/* Option 3: Umum / Lembaga Vokasi */}
+              <button
+                type="button"
+                onClick={() => setRegistrationSource('umum')}
+                className={`p-3 rounded-xl border text-left transition cursor-pointer flex flex-col justify-between ${
+                  registrationSource === 'umum'
+                    ? 'border-emerald-600 bg-emerald-50/80 ring-2 ring-emerald-500/20 text-emerald-900 shadow-xs'
+                    : 'border-slate-200 bg-white hover:border-slate-300 text-slate-700'
+                }`}
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-bold">Umum / Lembaga</span>
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                      registrationSource === 'umum' ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-500'
+                    }`}>
+                      Mandiri
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 leading-snug">
+                    Pendaftaran mandiri SMK, LPK, atau Balai Pelatihan
+                  </p>
+                </div>
+              </button>
+            </div>
+
+            {/* Inputan Nomor Referensi sesuai Sumber */}
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                {registrationSource === 'siskop2mi' && 'ID Lembaga / Nomor Registrasi SISKOP2MI'}
+                {registrationSource === 'disnaker' && 'Nomor Rekomendasi / Registrasi Disnaker'}
+                {registrationSource === 'umum' && 'NPSN / Nomor Izin Operasional Lembaga'}
+              </label>
+              <input
+                type="text"
+                value={registrationSourceId}
+                onChange={(e) => setRegistrationSourceId(e.target.value)}
+                placeholder={
+                  registrationSource === 'siskop2mi'
+                    ? 'Contoh: SISKO-LPK-2026-00123'
+                    : registrationSource === 'disnaker'
+                    ? 'Contoh: 560/DISNAKER-VOK/2026'
+                    : 'Contoh: NPSN 20101234 atau Izin LPK-088'
+                }
+                className="w-full text-xs p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-white transition"
+              />
+            </div>
+          </div>
+
           {/* Nama Lembaga, Bentuk Lembaga & Status Kepemilikan */}
           <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
             <div className="md:col-span-6">
