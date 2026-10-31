@@ -52,7 +52,7 @@ class BusinessDataController extends Controller
     {
         $this->authorizeWrite($request, 'candidates', 'create');
         $validated = $request->validate([
-            'candidates' => ['required', 'array', 'min:1', 'max:500'],
+            'candidates' => ['required', 'array', 'min:1', 'max:20000'],
             'candidates.*.nik' => ['nullable', 'string', 'max:32'],
             'candidates.*.fullName' => ['required', 'string', 'max:150'],
             'candidates.*.gender' => ['nullable', 'string', 'max:20'],
@@ -71,6 +71,11 @@ class BusinessDataController extends Controller
             'candidates.*.preferredCountry' => ['nullable', 'array'],
             'candidates.*.preferredJobRole' => ['nullable', 'array'],
             'candidates.*.readinessStatus' => ['nullable', 'string', 'max:100'],
+        ], [
+            'candidates.required' => 'Daftar calon peserta wajib disertakan.',
+            'candidates.array' => 'Format data calon peserta tidak valid.',
+            'candidates.min' => 'Minimal 1 data calon peserta untuk diimpor.',
+            'candidates.max' => 'Jumlah data calon peserta yang diunggah maksimal 20.000 baris sekaligus.',
         ]);
 
         $importedCount = 0;

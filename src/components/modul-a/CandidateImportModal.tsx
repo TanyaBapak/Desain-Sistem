@@ -98,7 +98,7 @@ export const CandidateImportModal: React.FC<CandidateImportModalProps> = ({
         },
         onError: (errors: Record<string, string>) => {
           const firstMsg = Object.values(errors).find(Boolean);
-          toast.error(firstMsg ?? 'Gagal mengimpor data calon PMI. Periksa kembali format data wilayah dan NIK.');
+          if (firstMsg?.includes("validation.max.array") || firstMsg?.includes("candidates.max")) { toast.error("Jumlah baris data calon peserta melebihi batas sistem."); } else { toast.error(firstMsg ?? "Gagal mengimpor data calon PMI. Periksa kembali format data wilayah dan NIK."); }
         },
         onFinish: () => setIsSubmitting(false),
       },
