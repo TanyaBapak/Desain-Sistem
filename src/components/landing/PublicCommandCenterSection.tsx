@@ -9,7 +9,6 @@ import {
   PublicDrilldownType,
 } from "@/components/landing/PublicDrilldownModal";
 import { CascadingFlyout } from "@/components/shared/CascadingFlyout";
-import { SectorGapList } from "@/components/shared/SectorGapList";
 import { PillarTimelineFlow } from "@/components/shared/PillarTimelineFlow";
 import { PillarKey } from "@/components/shared/CascadingFlyoutData";
 
@@ -97,11 +96,6 @@ export const PublicCommandCenterSection: React.FC<PublicCommandCenterSectionProp
     }
   };
 
-  const handleOpenSourceDrilldown = (source: "siskop2mi" | "disnaker" | "umum") => {
-    setActiveSourceFilter(source);
-    setActiveDrilldown("lembaga");
-  };
-
   return (
     <section
       id="dashboard-command-center"
@@ -157,126 +151,7 @@ export const PublicCommandCenterSection: React.FC<PublicCommandCenterSectionProp
         {/* 1. Cascading Flyout 4 Pillars Component */}
         <CascadingFlyout onOpenDrilldownModal={handleOpenDrilldownFromFlyout} />
 
-        {/* 2. Kanal Asal / Sumber Pendaftaran Lembaga Vokasi (3 Jalur Masuk) */}
-        <div className="space-y-3 pt-2">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
-            <div>
-              <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-                <span>Kanal Asal / Sumber Pendaftaran Lembaga Vokasi</span>
-                <span className="text-[10.5px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
-                  3 Pintu Masuk
-                </span>
-              </h3>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Pemetaan 2.382 lembaga mitra vokasi berdasarkan kanal asal pendaftaran dan integrasi sistem.
-              </p>
-            </div>
-            <span className="text-[11px] text-muted-foreground">
-              Klik kanal untuk melihat daftar lembaga
-            </span>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            {/* 1. SISKOP2MI */}
-            <button
-              type="button"
-              onClick={() => handleOpenSourceDrilldown("siskop2mi")}
-              className="p-4 rounded-2xl border-2 border-blue-500/40 bg-white dark:bg-slate-900 hover:border-blue-600 transition-all text-left shadow-sm hover:shadow-md group cursor-pointer flex flex-col justify-between"
-            >
-              <div>
-                <div className="flex items-center justify-between gap-2 mb-2">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-blue-600 animate-pulse" />
-                    <span className="text-xs font-bold text-blue-700 dark:text-blue-400 uppercase tracking-wider">
-                      SISKOP2MI
-                    </span>
-                  </div>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
-                    Level: Nasional
-                  </span>
-                </div>
-                <h4 className="text-sm font-bold text-foreground group-hover:text-blue-600 transition-colors">
-                  Integrasi BP2MI / SISKOP2MI
-                </h4>
-                <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                  Data lembaga dan balai kerja yang disinkronkan langsung dari basis data penempatan resmi KP2MI / BP2MI Pusat.
-                </p>
-              </div>
-
-              <div className="mt-4 pt-3 border-t border-border flex items-center justify-between text-xs font-semibold text-blue-600 dark:text-blue-400">
-                <span>Jelajahi Lembaga SISKOP2MI</span>
-                <span className="group-hover:translate-x-1 transition-transform">›</span>
-              </div>
-            </button>
-
-            {/* 2. Disnaker */}
-            <button
-              type="button"
-              onClick={() => handleOpenSourceDrilldown("disnaker")}
-              className="p-4 rounded-2xl border-2 border-indigo-500/40 bg-white dark:bg-slate-900 hover:border-indigo-600 transition-all text-left shadow-sm hover:shadow-md group cursor-pointer flex flex-col justify-between"
-            >
-              <div>
-                <div className="flex items-center justify-between gap-2 mb-2">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-indigo-600 animate-pulse" />
-                    <span className="text-xs font-bold text-indigo-700 dark:text-indigo-400 uppercase tracking-wider">
-                      Disnaker
-                    </span>
-                  </div>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
-                    Level: Kab/Kota & Provinsi
-                  </span>
-                </div>
-                <h4 className="text-sm font-bold text-foreground group-hover:text-indigo-600 transition-colors">
-                  Inputan Disnaker Daerah
-                </h4>
-                <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                  Lembaga vokasi dan LPK yang diajukan serta diverifikasi oleh Dinas Tenaga Kerja Kabupaten/Kota dan Disnaker Provinsi.
-                </p>
-              </div>
-
-              <div className="mt-4 pt-3 border-t border-border flex items-center justify-between text-xs font-semibold text-indigo-600 dark:text-indigo-400">
-                <span>Jelajahi Lembaga Disnaker</span>
-                <span className="group-hover:translate-x-1 transition-transform">›</span>
-              </div>
-            </button>
-
-            {/* 3. Umum / Lembaga Vokasi */}
-            <button
-              type="button"
-              onClick={() => handleOpenSourceDrilldown("umum")}
-              className="p-4 rounded-2xl border-2 border-emerald-500/40 bg-white dark:bg-slate-900 hover:border-emerald-600 transition-all text-left shadow-sm hover:shadow-md group cursor-pointer flex flex-col justify-between"
-            >
-              <div>
-                <div className="flex items-center justify-between gap-2 mb-2">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-600 animate-pulse" />
-                    <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">
-                      Umum / Mandiri
-                    </span>
-                  </div>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
-                    Level: Lembaga Vokasi
-                  </span>
-                </div>
-                <h4 className="text-sm font-bold text-foreground group-hover:text-emerald-600 transition-colors">
-                  Pendaftaran Mandiri SMK / Balai
-                </h4>
-                <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                  Satuan pendidikan kejuruan dan lembaga pelatihan kerja mandiri yang mendaftar secara terbuka melalui portal Task Force.
-                </p>
-              </div>
-
-              <div className="mt-4 pt-3 border-t border-border flex items-center justify-between text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-                <span>Jelajahi Lembaga Mandiri</span>
-                <span className="group-hover:translate-x-1 transition-transform">›</span>
-              </div>
-            </button>
-          </div>
-        </div>
-
-        {/* 3. Kesenjangan Supply vs Demand per Sektor */}
-        <SectorGapList />
+        {/* Bagian Kanal Asal / Sumber Pendaftaran & Kesenjangan Supply vs Demand di-hidden sesuai permintaan */}
       </div>
 
       {/* Drilldown Modal for Public */}
