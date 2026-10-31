@@ -41,7 +41,7 @@ export function PanelContent({
     const leafNode = node;
     return (
       <div className="flex flex-col h-full overflow-hidden">
-        <div className="p-3 border-b border-border bg-muted/20">
+        <div className="p-3 border-b border-border bg-slate-50 dark:bg-slate-800">
           <div className="text-[11px] uppercase tracking-wider text-muted-foreground">
             {pillar.lv[levelIndex - 1] || "Detail"} · Rincian
           </div>
@@ -114,7 +114,7 @@ export function PanelContent({
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <div className="p-3 border-b border-border bg-muted/20">
+      <div className="p-3 border-b border-border bg-slate-50 dark:bg-slate-800">
         <div className="text-[11px] uppercase tracking-wider text-muted-foreground">
           Pilih {pillar.lv[levelIndex]?.toLowerCase() || "item"}
         </div>

@@ -105,7 +105,7 @@ export const PublicCommandCenterSection: React.FC<PublicCommandCenterSectionProp
   return (
     <section
       id="dashboard-command-center"
-      className="border-b border-border bg-slate-50/70 dark:bg-slate-950/40 py-10 sm:py-12"
+      className="border-b border-border bg-slate-50 dark:bg-slate-950 py-10 sm:py-12"
       aria-labelledby="command-center-heading"
     >
       <div className="w-full px-4 sm:px-6 lg:px-8 space-y-6 max-w-7xl mx-auto">
@@ -138,7 +138,10 @@ export const PublicCommandCenterSection: React.FC<PublicCommandCenterSectionProp
         </div>
 
         {/* Animated Pipeline / Timeline Flow (Supply -> Demand -> Penempatan) */}
-        <PillarTimelineFlow onOpenFull={handleTimelineStageSelect} />
+        <PillarTimelineFlow
+          onOpenFull={handleTimelineStageSelect}
+          onSelectStage={handleTimelineStageSelect}
+        />
 
         {/* Guidance Instruction and Prototype Note */}
         <div className="space-y-2">
@@ -178,7 +181,7 @@ export const PublicCommandCenterSection: React.FC<PublicCommandCenterSectionProp
             <button
               type="button"
               onClick={() => handleOpenSourceDrilldown("siskop2mi")}
-              className="p-4 rounded-2xl border border-blue-500/30 bg-card hover:bg-blue-500/5 hover:border-blue-500 transition-all text-left shadow-xs group cursor-pointer flex flex-col justify-between"
+              className="p-4 rounded-2xl border-2 border-blue-500/40 bg-white dark:bg-slate-900 hover:border-blue-600 transition-all text-left shadow-sm hover:shadow-md group cursor-pointer flex flex-col justify-between"
             >
               <div>
                 <div className="flex items-center justify-between gap-2 mb-2">
@@ -188,7 +191,7 @@ export const PublicCommandCenterSection: React.FC<PublicCommandCenterSectionProp
                       SISKOP2MI
                     </span>
                   </div>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-500/30">
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
                     Level: Nasional
                   </span>
                 </div>
@@ -200,7 +203,7 @@ export const PublicCommandCenterSection: React.FC<PublicCommandCenterSectionProp
                 </p>
               </div>
 
-              <div className="mt-4 pt-3 border-t border-border/60 flex items-center justify-between text-xs font-semibold text-blue-600 dark:text-blue-400">
+              <div className="mt-4 pt-3 border-t border-border flex items-center justify-between text-xs font-semibold text-blue-600 dark:text-blue-400">
                 <span>Jelajahi Lembaga SISKOP2MI</span>
                 <span className="group-hover:translate-x-1 transition-transform">›</span>
               </div>
@@ -210,7 +213,7 @@ export const PublicCommandCenterSection: React.FC<PublicCommandCenterSectionProp
             <button
               type="button"
               onClick={() => handleOpenSourceDrilldown("disnaker")}
-              className="p-4 rounded-2xl border border-indigo-500/30 bg-card hover:bg-indigo-500/5 hover:border-indigo-500 transition-all text-left shadow-xs group cursor-pointer flex flex-col justify-between"
+              className="p-4 rounded-2xl border-2 border-indigo-500/40 bg-white dark:bg-slate-900 hover:border-indigo-600 transition-all text-left shadow-sm hover:shadow-md group cursor-pointer flex flex-col justify-between"
             >
               <div>
                 <div className="flex items-center justify-between gap-2 mb-2">
@@ -220,7 +223,7 @@ export const PublicCommandCenterSection: React.FC<PublicCommandCenterSectionProp
                       Disnaker
                     </span>
                   </div>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30">
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
                     Level: Kab/Kota & Provinsi
                   </span>
                 </div>
@@ -232,7 +235,7 @@ export const PublicCommandCenterSection: React.FC<PublicCommandCenterSectionProp
                 </p>
               </div>
 
-              <div className="mt-4 pt-3 border-t border-border/60 flex items-center justify-between text-xs font-semibold text-indigo-600 dark:text-indigo-400">
+              <div className="mt-4 pt-3 border-t border-border flex items-center justify-between text-xs font-semibold text-indigo-600 dark:text-indigo-400">
                 <span>Jelajahi Lembaga Disnaker</span>
                 <span className="group-hover:translate-x-1 transition-transform">›</span>
               </div>
@@ -242,7 +245,7 @@ export const PublicCommandCenterSection: React.FC<PublicCommandCenterSectionProp
             <button
               type="button"
               onClick={() => handleOpenSourceDrilldown("umum")}
-              className="p-4 rounded-2xl border border-emerald-500/30 bg-card hover:bg-emerald-500/5 hover:border-emerald-500 transition-all text-left shadow-xs group cursor-pointer flex flex-col justify-between"
+              className="p-4 rounded-2xl border-2 border-emerald-500/40 bg-white dark:bg-slate-900 hover:border-emerald-600 transition-all text-left shadow-sm hover:shadow-md group cursor-pointer flex flex-col justify-between"
             >
               <div>
                 <div className="flex items-center justify-between gap-2 mb-2">
@@ -252,7 +255,7 @@ export const PublicCommandCenterSection: React.FC<PublicCommandCenterSectionProp
                       Umum / Mandiri
                     </span>
                   </div>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
                     Level: Lembaga Vokasi
                   </span>
                 </div>
@@ -264,7 +267,7 @@ export const PublicCommandCenterSection: React.FC<PublicCommandCenterSectionProp
                 </p>
               </div>
 
-              <div className="mt-4 pt-3 border-t border-border/60 flex items-center justify-between text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+              <div className="mt-4 pt-3 border-t border-border flex items-center justify-between text-xs font-semibold text-emerald-600 dark:text-emerald-400">
                 <span>Jelajahi Lembaga Mandiri</span>
                 <span className="group-hover:translate-x-1 transition-transform">›</span>
               </div>

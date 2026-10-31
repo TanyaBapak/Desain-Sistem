@@ -125,9 +125,11 @@ export function PillarTimelineFlow({
   const currentStage = STAGES.find((s) => s.id === activeStageId) ?? STAGES[0];
 
   const handleCardClick = (stage: TimelineStage) => {
-    // Only switch stage on card click ("hanya berpindah dahulu")
+    // Switch active stage and immediately open the full modal / drilldown
     setActiveStageId(stage.id);
     onStageChange?.(stage.id, stage.pillarKey);
+    const triggerFn = onOpenFull || onSelectStage;
+    triggerFn?.(stage.id, stage.pillarKey);
   };
 
   const handleOpenFull = () => {
@@ -137,7 +139,7 @@ export function PillarTimelineFlow({
   };
 
   return (
-    <div className={cn("rounded-2xl border border-border bg-card p-4 sm:p-5 shadow-xs space-y-4", className)}>
+    <div className={cn("rounded-2xl border border-border bg-white dark:bg-slate-900 p-4 sm:p-5 shadow-sm space-y-4", className)}>
       {/* Header bar */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-border/70 pb-3">
         <div className="flex items-center gap-2">
@@ -181,10 +183,10 @@ export function PillarTimelineFlow({
                 type="button"
                 onClick={() => handleCardClick(stage)}
                 className={cn(
-                  "p-3 rounded-xl border text-left transition-all duration-200 cursor-pointer flex flex-col justify-between group",
+                  "p-3.5 rounded-xl border text-left transition-all duration-200 cursor-pointer flex flex-col justify-between group",
                   isSelected
-                    ? "border-primary bg-primary/5 dark:bg-primary/10 shadow-md ring-2 ring-primary/20 scale-[1.02]"
-                    : "border-border bg-card/60 hover:bg-muted/50 hover:border-border/80"
+                    ? "border-primary bg-blue-50/90 dark:bg-slate-800 shadow-md ring-2 ring-primary/30 scale-[1.02]"
+                    : "border-border bg-white dark:bg-slate-900 hover:border-primary/50 hover:bg-slate-50/80 dark:hover:bg-slate-800/60 shadow-xs"
                 )}
               >
                 <div>
@@ -216,7 +218,7 @@ export function PillarTimelineFlow({
                   </div>
                 </div>
 
-                <div className="pt-2 mt-2 border-t border-border/50 flex items-center justify-between text-[11px]">
+                <div className="pt-2 mt-2 border-t border-border/60 flex items-center justify-between text-[11px]">
                   <span className="text-muted-foreground font-medium">{stage.metricLabel}:</span>
                   <span className="font-bold text-foreground tabular-nums">{stage.metricValue}</span>
                 </div>
@@ -227,7 +229,7 @@ export function PillarTimelineFlow({
       </div>
 
       {/* Selected Stage Detail Insight Card */}
-      <div className="p-3.5 sm:p-4 rounded-xl border border-primary/20 bg-primary/5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs animate-in fade-in-50 duration-200">
+      <div className="p-3.5 sm:p-4 rounded-xl border border-border bg-white dark:bg-slate-900 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs animate-in fade-in-50 duration-200">
         <div className="flex items-start gap-3 min-w-0">
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground font-bold shrink-0 text-sm shadow-xs">
             {currentStage.stepNumber}

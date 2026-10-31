@@ -173,9 +173,9 @@ export function CascadingFlyout({ className, onOpenDrilldownModal }: CascadingFl
               type="button"
               onClick={(e) => handleCardClick(k, e.currentTarget)}
               className={cn(
-                "p-4 rounded-2xl text-left border-2 transition-all duration-150 cursor-pointer bg-card shadow-xs group",
+                "p-4 rounded-2xl text-left border-2 transition-all duration-150 cursor-pointer bg-white dark:bg-slate-900 shadow-xs group",
                 isActive
-                  ? "border-primary bg-primary/5 dark:bg-primary/10 shadow-md scale-[1.01]"
+                  ? "border-primary bg-blue-50/90 dark:bg-slate-800 shadow-md scale-[1.01]"
                   : "border-border hover:border-primary/60 hover:-translate-y-0.5"
               )}
             >
@@ -207,7 +207,7 @@ export function CascadingFlyout({ className, onOpenDrilldownModal }: CascadingFl
           {/* Panels Container */}
           {isMobile ? (
             // Mobile: Bottom Sheet with single active level
-            <div className="fixed bottom-0 left-0 right-0 z-60 bg-card border-t border-border rounded-t-2xl shadow-2xl max-h-[75vh] flex flex-col overflow-hidden animate-in slide-in-from-bottom-5 duration-200">
+            <div className="fixed bottom-0 left-0 right-0 z-60 bg-white dark:bg-slate-900 border-t border-border rounded-t-2xl shadow-2xl max-h-[75vh] flex flex-col overflow-hidden animate-in slide-in-from-bottom-5 duration-200">
               <PanelContent
                 levelIndex={currentNodes.length - 1}
                 node={currentNodes[currentNodes.length - 1]}
@@ -242,7 +242,7 @@ export function CascadingFlyout({ className, onOpenDrilldownModal }: CascadingFl
                     zIndex: 60 + k,
                     transition: "left 280ms cubic-bezier(0.16, 1, 0.3, 1), opacity 200ms ease",
                   }}
-                  className="fixed w-[300px] max-h-[min(70vh,520px)] flex flex-col bg-card border border-border rounded-2xl shadow-2xl overflow-hidden animate-in fade-in-0 duration-150"
+                  className="fixed w-[300px] max-h-[min(70vh,520px)] flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in-0 duration-150"
                 >
                   <PanelContent
                     levelIndex={k}

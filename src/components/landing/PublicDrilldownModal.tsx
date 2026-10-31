@@ -407,7 +407,7 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
             filtered.map((s, idx) => (
               <div
                 key={s.id || idx}
-                className="rounded-lg border border-border/80 bg-card p-3 space-y-2 hover:border-primary/40 transition-colors shadow-xs"
+                className="rounded-lg border border-border bg-white dark:bg-slate-900 p-3 space-y-2 hover:border-primary/40 transition-colors shadow-xs"
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-2">
@@ -641,7 +641,7 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
                       setSelectedInstitutionForStudents(institution);
                       setStudentSearchQuery("");
                     }}
-                    className="rounded-lg border border-border/80 bg-card p-3 space-y-2 hover:border-primary/60 hover:shadow-md cursor-pointer transition-all group"
+                    className="rounded-lg border border-border bg-white dark:bg-slate-900 p-3 space-y-2 hover:border-primary/60 hover:shadow-md cursor-pointer transition-all group"
                   >
                     <div className="flex min-w-0 items-start justify-between gap-2">
                       <div className="min-w-0 flex-1">
@@ -981,7 +981,7 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
             <div className="rounded-lg border border-border p-2">
               <div className="space-y-2.5">
                 {(demands.length > 0 ? demands : defaultRealDemands).map((dmd) => (
-                  <div key={dmd.id} className="rounded-lg border border-border/80 bg-card p-3 space-y-1.5 hover:border-primary/50 transition">
+                  <div key={dmd.id} className="rounded-lg border border-border bg-white dark:bg-slate-900 p-3 space-y-1.5 hover:border-primary/50 transition shadow-xs">
                     <div className="flex items-start justify-between gap-2">
                       <div>
                         <h6 className="text-xs font-bold text-foreground">{dmd.occupation || "Tenaga Terampil"}</h6>
@@ -1085,7 +1085,7 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
 
   return (
     <Dialog open={Boolean(type)} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="flex w-[calc(100%-2rem)] max-w-2xl max-h-[calc(100dvh-2rem)] flex-col gap-4 overflow-hidden p-4 sm:p-6">
+      <DialogContent className="flex w-[calc(100%-2rem)] max-w-2xl max-h-[calc(100dvh-2rem)] flex-col gap-4 overflow-hidden p-4 sm:p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl">
         <DialogHeader className="space-y-1">
           <DialogTitle className="text-lg font-bold text-foreground">
             {getTitle()}
