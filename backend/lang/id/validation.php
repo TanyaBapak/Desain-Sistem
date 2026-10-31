@@ -19,3 +19,4 @@ return [
         'candidates' => 'Data calon peserta',
     ],
 ];
+

@@ -1,3 +1,4 @@
+import axios from 'axios';
 import React, { useRef, useState } from 'react';
 import { router } from '@inertiajs/react';
 import { Upload, FileSpreadsheet, Download, CheckCircle2, AlertTriangle, X, RefreshCw } from 'lucide-react';
@@ -31,6 +32,7 @@ export const CandidateImportModal: React.FC<CandidateImportModalProps> = ({
   const [selectedFileName, setSelectedFileName] = useState<string>('');
   const [isParsing, setIsParsing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [importProgress, setImportProgress] = useState<{ current: number; total: number } | null>(null);
   const [parseResult, setParseResult] = useState<CandidateImportParseResult | null>(null);
 
   if (!isOpen) return null;
@@ -40,6 +42,7 @@ export const CandidateImportModal: React.FC<CandidateImportModalProps> = ({
     setParseResult(null);
     setIsParsing(false);
     setIsSubmitting(false);
+    setImportProgress(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -82,27 +85,77 @@ export const CandidateImportModal: React.FC<CandidateImportModalProps> = ({
     }
   };
 
-  const handleSubmitImport = () => {
+  const handleSubmitImport = async () => {
     if (!parseResult || parseResult.validRows.length === 0) return;
 
-    router.post(
-      '/business-data/candidates/import',
-      { candidates: parseResult.validRows as unknown as Record<string, string>[] },
-      {
-        preserveScroll: true,
-        onStart: () => setIsSubmitting(true),
-        onSuccess: () => {
-          toast.success(`${parseResult.validRows.length} data calon PMI berhasil diunggah dan disimpan.`);
-          resetState();
-          onClose();
-        },
-        onError: (errors: Record<string, string>) => {
-          const firstMsg = Object.values(errors).find(Boolean);
-          if (firstMsg?.includes("validation.max.array") || firstMsg?.includes("candidates.max")) { toast.error("Jumlah baris data calon peserta melebihi batas sistem."); } else { toast.error(firstMsg ?? "Gagal mengimpor data calon PMI. Periksa kembali format data wilayah dan NIK."); }
-        },
-        onFinish: () => setIsSubmitting(false),
-      },
-    );
+    const rows = parseResult.validRows;
+    const total = rows.length;
+    const CHUNK_SIZE = 350; // Aman untuk batas server maupun konfigurasi lama (< 500 baris)
+
+    setIsSubmitting(true);
+    setImportProgress({ current: 0, total });
+
+    try {
+      if (total <= CHUNK_SIZE) {
+        // Berkas kecil (<= 350): kirim langsung via router.post
+        router.post(
+          '/business-data/candidates/import',
+          { candidates: rows as unknown as Record<string, string>[] },
+          {
+            preserveScroll: true,
+            onSuccess: () => {
+              toast.success(`${total} data calon PMI berhasil diunggah dan disimpan.`);
+              resetState();
+              onClose();
+            },
+            onError: (errors: Record<string, string>) => {
+              const firstMsg = Object.values(errors).find(Boolean);
+              toast.error(firstMsg ?? 'Gagal mengimpor data calon PMI. Periksa kembali format data wilayah dan NIK.');
+            },
+            onFinish: () => {
+              setIsSubmitting(false);
+              setImportProgress(null);
+            },
+          }
+        );
+        return;
+      }
+
+      // Berkas besar (1.000 - 10.000+ data): kirim secara bertahap (chunking)
+      let importedTotal = 0;
+      for (let i = 0; i < total; i += CHUNK_SIZE) {
+        const chunk = rows.slice(i, i + CHUNK_SIZE);
+        setImportProgress({ current: i, total });
+
+        await axios.post(
+          '/business-data/candidates/import',
+          { candidates: chunk },
+          {
+            headers: {
+              Accept: 'application/json',
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+
+        importedTotal += chunk.length;
+        setImportProgress({ current: importedTotal, total });
+      }
+
+      toast.success(`Berhasil mengimpor seluruh ${importedTotal} data calon PMI ke database.`);
+      resetState();
+      onClose();
+      router.reload();
+    } catch (err: unknown) {
+      const errorMsg =
+        (err as any)?.response?.data?.message ||
+        (err as any)?.response?.data?.errors?.candidates?.[0] ||
+        'Gagal mengimpor data calon PMI. Periksa koneksi atau format berkas.';
+      toast.error(errorMsg);
+    } finally {
+      setIsSubmitting(false);
+      setImportProgress(null);
+    }
   };
 
   return (
@@ -301,7 +354,11 @@ export const CandidateImportModal: React.FC<CandidateImportModalProps> = ({
             {isSubmitting ? (
               <>
                 <RefreshCw className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
-                <span>Mengunggah...</span>
+                <span>
+                  {importProgress
+                    ? `Menyimpan ${importProgress.current} / ${importProgress.total} (${Math.round((importProgress.current / importProgress.total) * 100)}%)...`
+                    : 'Mengunggah...'}
+                </span>
               </>
             ) : (
               <>

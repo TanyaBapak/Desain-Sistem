@@ -48,7 +48,7 @@ class BusinessDataController extends Controller
         return back()->with('success', 'Data berhasil disimpan ke database.');
     }
 
-    public function importCandidates(Request $request): RedirectResponse
+    public function importCandidates(Request $request): RedirectResponse|JsonResponse
     {
         $this->authorizeWrite($request, 'candidates', 'create');
         $validated = $request->validate([
@@ -166,6 +166,14 @@ class BusinessDataController extends Controller
         });
 
         app(BusinessDataPresenter::class)->forget($request->user());
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'importedCount' => $importedCount,
+                'message' => "{$importedCount} data calon PMI berhasil diunggah dan disimpan.",
+            ]);
+        }
 
         return back()->with('success', "{$importedCount} data calon PMI berhasil diunggah dan disimpan.");
     }
