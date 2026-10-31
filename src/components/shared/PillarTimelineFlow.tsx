@@ -35,7 +35,7 @@ const STAGES: TimelineStage[] = [
     tag: "Penjaringan",
     desc: "Penjaringan dari Disnaker, SMK, & BP3MI. Validasi NIK dan kesiapan latar belakang keahlian.",
     icon: Users,
-    metricLabel: "Terdata Nasional",
+    metricLabel: "Target Calon Peserta",
     metricValue: "12.600 Peserta",
     status: "completed",
     colorClass: "text-blue-600 dark:text-blue-400 border-blue-500/40 bg-blue-500/10",

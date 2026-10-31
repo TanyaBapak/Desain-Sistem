@@ -551,7 +551,7 @@ function buildRealTrees(): Record<PillarKey, PillarConfig> {
       t: "1. Supply",
       lv: ["Provinsi", "Latar belakang", "Kompetensi"],
       k: [
-        ["a", "Calon Peserta"],
+        ["a", "Target Calon Peserta"],
         ["b", "Lolos Seleksi"],
         ["c", "Lulus Bahasa"],
         ["d", "Siap Penempatan"],
