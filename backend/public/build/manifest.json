@@ -4,12 +4,12 @@
     "src": "../public/logo.png"
   },
   "resources/js/app.tsx": {
-    "file": "assets/app-BbXIGnOX.js",
+    "file": "assets/app-A0Sw0Ltj.js",
     "name": "app",
     "src": "resources/js/app.tsx",
     "isEntry": true,
     "css": [
-      "assets/app-CsUdhow1.css"
+      "assets/app-bxww__2D.css"
     ],
     "assets": [
       "assets/logo-Do86rduN.png"

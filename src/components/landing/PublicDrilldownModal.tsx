@@ -36,6 +36,10 @@ import {
   InstitutionInputLevel,
 } from "@/lib/institution-source";
 import { mockProviders } from "@/data/mockProviders";
+import { ALL_REGISTERED_CANDIDATES } from "@/data/realSupplyCandidates";
+import type { CandidateParticipant } from "@/types";
+import { CandidateDetailModal } from "@/components/modul-a/CandidateDetailModal";
+import { cn } from "@/lib/utils";
 
 export type PublicDrilldownType =
   | "peserta"
@@ -79,6 +83,8 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
   );
   const [selectedInstitutionForStudents, setSelectedInstitutionForStudents] = useState<PublicPreviewInstitution | null>(null);
   const [studentSearchQuery, setStudentSearchQuery] = useState<string>("");
+  const [candidateSearchQuery, setCandidateSearchQuery] = useState<string>("");
+  const [selectedCandidateForDetail, setSelectedCandidateForDetail] = useState<CandidateParticipant | null>(null);
   const [selectedProvinceForLpk, setSelectedProvinceForLpk] = useState<string | null>(null);
   const [institutionSourceFilter, setInstitutionSourceFilter] = useState<"ALL" | "siskop2mi" | "disnaker" | "umum">(initialSourceFilter);
   const [institutionLevelFilter, setInstitutionLevelFilter] = useState<"ALL" | InstitutionInputLevel>("ALL");
@@ -89,6 +95,8 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
     setSelectedInstitutionForStudents(null);
     setSelectedProvinceForLpk(null);
     setStudentSearchQuery("");
+    setCandidateSearchQuery("");
+    setSelectedCandidateForDetail(null);
     setInstitutionSourceFilter(initialSourceFilter);
     setInstitutionLevelFilter("ALL");
   }, [type, initialSector, initialSourceFilter]);
@@ -147,26 +155,19 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
         evokasiStatus: p.evokasiVerificationStatus || "Terverifikasi e-Vokasi",
         supportedSectors: p.supportedSectors || ["Hospitality"],
         supportedOccupations: occupations.length > 0 ? occupations : ["Staf Operasional"],
-        students: [
-          {
-            id: `${p.id}-std-1`,
-            name: "Ahmad Maulana",
-            targetCountry: "Jepang",
-            sector: p.supportedSectors?.[0] || "Hospitality",
-            occupation: occupations[0] || "Operator",
-            status: "Siap Penempatan",
-            major: "Kejuruan Terpadu",
-          },
-          {
-            id: `${p.id}-std-2`,
-            name: "Siti Nurhaliza",
-            targetCountry: "Korea",
-            sector: p.supportedSectors?.[0] || "Manufaktur",
-            occupation: occupations[0] || "Teknisi",
-            status: "Siap Penempatan",
-            major: "Kejuruan Terpadu",
-          },
-        ],
+        students: ALL_REGISTERED_CANDIDATES.filter(
+          (c) =>
+            c.institutionName?.toLowerCase().includes(p.name.toLowerCase()) ||
+            p.name.toLowerCase().includes(c.institutionName?.toLowerCase() || "")
+        ).map((s) => ({
+          id: s.id,
+          name: s.fullName,
+          targetCountry: s.preferredCountry?.[0] || "Jepang",
+          sector: s.preferredSectors?.[0] || "Hospitality",
+          occupation: s.preferredJobRole?.[0] || s.major || "Staff",
+          status: s.readinessStatus === "Ready for Placement" ? "Siap Penempatan" : "Dalam Pelatihan",
+          major: s.major,
+        })),
         studentCount: p.capacityPerBatch || 40,
         registrationSource: source,
         registrationSourceId: p.id,
@@ -235,6 +236,157 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
         })
       : [];
 
+  const matchingCandidates = useMemo(() => {
+    if (!selectedOccupation) return [];
+    const occLower = selectedOccupation.toLowerCase().trim();
+    const secLower = (selectedSector || "").toLowerCase().trim();
+
+    return ALL_REGISTERED_CANDIDATES.filter((c) => {
+      // 1. Direct matches
+      if (
+        c.preferredJobRole?.some(
+          (role) =>
+            role.toLowerCase().includes(occLower) ||
+            occLower.includes(role.toLowerCase())
+        )
+      ) {
+        return true;
+      }
+      if (c.major?.toLowerCase().includes(occLower)) {
+        return true;
+      }
+      if (c.skills?.some((sk) => sk.toLowerCase().includes(occLower))) {
+        return true;
+      }
+
+      // 2. Keyword & semantic mapping for occupations
+      if (occLower.includes("waiter") || occLower.includes("barista")) {
+        return (
+          c.major?.toLowerCase().includes("beverage") ||
+          c.major?.toLowerCase().includes("waiter") ||
+          c.major?.toLowerCase().includes("barista") ||
+          c.preferredJobRole?.some(
+            (r) =>
+              r.toLowerCase().includes("waiter") ||
+              r.toLowerCase().includes("barista") ||
+              r.toLowerCase().includes("beverage")
+          )
+        );
+      }
+      if (occLower.includes("housekeeping") || occLower.includes("cleaner")) {
+        return (
+          c.major?.toLowerCase().includes("accommodation") ||
+          c.major?.toLowerCase().includes("housekeeping") ||
+          c.preferredJobRole?.some(
+            (r) =>
+              r.toLowerCase().includes("housekeeping") ||
+              r.toLowerCase().includes("steward") ||
+              r.toLowerCase().includes("accommodation")
+          )
+        );
+      }
+      if (occLower.includes("cook")) {
+        return (
+          c.major?.toLowerCase().includes("kuliner") ||
+          c.major?.toLowerCase().includes("culinary") ||
+          c.preferredJobRole?.some(
+            (r) =>
+              r.toLowerCase().includes("cook") ||
+              r.toLowerCase().includes("chef") ||
+              r.toLowerCase().includes("culinary")
+          )
+        );
+      }
+      if (occLower.includes("spa") || occLower.includes("therapist")) {
+        return (
+          c.major?.toLowerCase().includes("spa") ||
+          c.major?.toLowerCase().includes("pariwisata") ||
+          c.preferredSectors?.some((s) => s.toLowerCase().includes("hospitality"))
+        );
+      }
+      if (occLower.includes("weld") || occLower.includes("las") || occLower.includes("fabrikasi")) {
+        return (
+          c.major?.toLowerCase().includes("mesin") ||
+          c.major?.toLowerCase().includes("las") ||
+          c.major?.toLowerCase().includes("weld") ||
+          c.preferredJobRole?.some((r) => r.toLowerCase().includes("weld"))
+        );
+      }
+      if (occLower.includes("caregiver") || occLower.includes("perawat") || occLower.includes("kaigo")) {
+        return (
+          c.major?.toLowerCase().includes("keperawatan") ||
+          c.major?.toLowerCase().includes("caregiver") ||
+          c.preferredJobRole?.some(
+            (r) =>
+              r.toLowerCase().includes("caregiver") ||
+              r.toLowerCase().includes("kaigo")
+          )
+        );
+      }
+      if (occLower.includes("cnc") || occLower.includes("bubut") || occLower.includes("mesin") || occLower.includes("operator")) {
+        return (
+          c.major?.toLowerCase().includes("mesin") ||
+          c.major?.toLowerCase().includes("manufaktur") ||
+          c.preferredJobRole?.some(
+            (r) =>
+              r.toLowerCase().includes("cnc") ||
+              r.toLowerCase().includes("operator") ||
+              r.toLowerCase().includes("mesin")
+          )
+        );
+      }
+      if (occLower.includes("otomotif") || occLower.includes("alat berat") || occLower.includes("mekanik")) {
+        return (
+          c.major?.toLowerCase().includes("otomotif") ||
+          c.preferredJobRole?.some(
+            (r) =>
+              r.toLowerCase().includes("otomotif") ||
+              r.toLowerCase().includes("mekanik")
+          )
+        );
+      }
+      if (occLower.includes("it") || occLower.includes("software") || occLower.includes("programmer") || occLower.includes("informatika")) {
+        return (
+          c.major?.toLowerCase().includes("informatika") ||
+          c.major?.toLowerCase().includes("software") ||
+          c.major?.toLowerCase().includes("it")
+        );
+      }
+      if (occLower.includes("bahasa") || occLower.includes("komunikasi")) {
+        return (
+          c.major?.toLowerCase().includes("bahasa") ||
+          c.major?.toLowerCase().includes("komunikasi")
+        );
+      }
+      if (occLower.includes("bisnis") || occLower.includes("logistik")) {
+        return (
+          c.major?.toLowerCase().includes("bisnis") ||
+          c.major?.toLowerCase().includes("logistik")
+        );
+      }
+
+      // 3. Fallback: match by sector
+      if (secLower && c.preferredSectors?.some((s) => s.toLowerCase().includes(secLower))) {
+        return true;
+      }
+
+      return false;
+    });
+  }, [selectedOccupation, selectedSector]);
+
+  const filteredCandidates = useMemo(() => {
+    const q = candidateSearchQuery.trim().toLowerCase();
+    if (!q) return matchingCandidates;
+    return matchingCandidates.filter(
+      (c) =>
+        c.fullName.toLowerCase().includes(q) ||
+        c.nik.toLowerCase().includes(q) ||
+        (c.institutionName && c.institutionName.toLowerCase().includes(q)) ||
+        (c.major && c.major.toLowerCase().includes(q)) ||
+        (c.kabupatenKota && c.kabupatenKota.toLowerCase().includes(q))
+    );
+  }, [matchingCandidates, candidateSearchQuery]);
+
     const provinceInstitutions = useMemo(() => {
     if (!selectedProvinceForLpk) return [];
     const cleanSelected = selectedProvinceForLpk.toLowerCase().trim();
@@ -247,85 +399,32 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
     return [
       {
         id: `inst-${cleanSelected.replace(/\s+/g, "-")}-1`,
-        name: `LPK Global Vokasi ${selectedProvinceForLpk}`,
+        name: `Lembaga Vokasi Mitra ${selectedProvinceForLpk}`,
         type: "Lembaga Pelatihan Kerja",
         province: selectedProvinceForLpk,
         district: `Pusat Pelatihan ${selectedProvinceForLpk}`,
         accreditation: "A (Unggul)",
         evokasiStatus: "Terverifikasi e-Vokasi",
-        supportedSectors: ["Hospitality & Caregiver", "Manufaktur & Teknik Mesin"],
-        supportedOccupations: ["Caregiver Kaigo", "Welder", "Hospitality Staff"],
-        studentCount: 18,
-        students: [
-          {
-            id: `std-${cleanSelected.replace(/\s+/g, "-")}-01`,
-            name: "Rizky Pratama",
-            targetCountry: "Jepang",
-            sector: "Caregiver & Kesehatan",
-            occupation: "Caregiver Kaigo",
-            status: "Siap Penempatan",
-            major: "Keperawatan Vokasi",
-          },
-          {
-            id: `std-${cleanSelected.replace(/\s+/g, "-")}-02`,
-            name: "Nabila Putri",
-            targetCountry: "Korea Selatan",
-            sector: "Manufaktur Presisi",
-            occupation: "Operator CNC",
-            status: "Siap Penempatan",
-            major: "Teknik Mesin",
-          },
-          {
-            id: `std-${cleanSelected.replace(/\s+/g, "-")}-03`,
-            name: "Dimas Anggara",
-            targetCountry: "Jerman",
-            sector: "Hospitality & Pariwisata",
-            occupation: "Front Office Specialist",
-            status: "Siap Penempatan",
-            major: "Perhotelan",
-          },
-          {
-            id: `std-${cleanSelected.replace(/\s+/g, "-")}-04`,
-            name: "Siti Rahayu",
-            targetCountry: "Australia",
-            sector: "Pertanian & Agribisnis",
-            occupation: "Agricultural Technician",
-            status: "Siap Penempatan",
-            major: "Agribisnis",
-          },
-        ],
-      },
-      {
-        id: `inst-${cleanSelected.replace(/\s+/g, "-")}-2`,
-        name: `Balai Vokasi Industri ${selectedProvinceForLpk}`,
-        type: "Balai Latihan Kerja",
-        province: selectedProvinceForLpk,
-        district: `Kawasan Industri ${selectedProvinceForLpk}`,
-        accreditation: "A",
-        evokasiStatus: "Terverifikasi e-Vokasi",
-        supportedSectors: ["Konstruksi & Infrastruktur", "Teknologi Informasi"],
-        supportedOccupations: ["Welder 3G/6G", "Network Technician"],
-        studentCount: 12,
-        students: [
-          {
-            id: `std-${cleanSelected.replace(/\s+/g, "-")}-05`,
-            name: "Fajar Nugraha",
-            targetCountry: "Jepang",
-            sector: "Konstruksi & Pengelasan",
-            occupation: "Welder 3G/6G",
-            status: "Siap Penempatan",
-            major: "Teknik Pengelasan",
-          },
-          {
-            id: `std-${cleanSelected.replace(/\s+/g, "-")}-06`,
-            name: "Nurul Hidayah",
-            targetCountry: "Korea Selatan",
-            sector: "Elektronika Industri",
-            occupation: "Assembly Operator",
-            status: "Siap Penempatan",
-            major: "Teknik Mekatronika",
-          },
-        ],
+        supportedSectors: ["Hospitality & Cruise Ship", "Manufaktur & Teknik Mesin"],
+        supportedOccupations: ["Waiter / Barista", "Welder", "Housekeeping Attendant"],
+        studentCount: ALL_REGISTERED_CANDIDATES.filter(
+          (c) =>
+            (c.provinsi || "").toLowerCase().includes(cleanSelected) ||
+            cleanSelected.includes((c.provinsi || "").toLowerCase())
+        ).length || 12,
+        students: ALL_REGISTERED_CANDIDATES.filter(
+          (c) =>
+            (c.provinsi || "").toLowerCase().includes(cleanSelected) ||
+            cleanSelected.includes((c.provinsi || "").toLowerCase())
+        ).map((s) => ({
+          id: s.id,
+          name: s.fullName,
+          targetCountry: s.preferredCountry?.[0] || "Jepang",
+          sector: s.preferredSectors?.[0] || "Hospitality",
+          occupation: s.preferredJobRole?.[0] || s.major || "Staff",
+          status: s.readinessStatus === "Ready for Placement" ? "Siap Penempatan" : "Dalam Pelatihan",
+          major: s.major,
+        })),
       },
     ];
   }, [selectedProvinceForLpk, institutions]);
@@ -738,21 +837,129 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
                   type="button"
                   variant="ghost"
                   size="sm"
-                  onClick={() => setSelectedOccupation(null)}
-                  className="-ml-2 w-fit"
+                  onClick={() => {
+                    setSelectedOccupation(null);
+                    setCandidateSearchQuery("");
+                  }}
+                  className="-ml-2 w-fit gap-1.5 text-xs text-primary hover:text-primary hover:bg-primary/10 cursor-pointer"
                 >
-                  <ArrowLeft className="mr-2 h-4 w-4" aria-hidden="true" />
-                  Kembali ke daftar jabatan
+                  <ArrowLeft className="mr-1.5 h-4 w-4" aria-hidden="true" />
+                  Kembali ke daftar jabatan ({selectedSector})
                 </Button>
-                <div className="rounded-xl border border-border bg-muted/40 p-4">
-                  <h4 className="text-sm font-bold text-foreground">
-                    Lembaga vokasi untuk jabatan {selectedOccupation}
-                  </h4>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    Sektor {selectedSector} · Lembaga yang mencantumkan jabatan ini.
-                  </p>
+
+                <div className="rounded-xl border border-border bg-muted/40 p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <h4 className="text-sm font-bold text-foreground flex items-center gap-2">
+                      <Users className="h-4 w-4 text-primary" />
+                      Daftar Calon Peserta — {selectedOccupation}
+                    </h4>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Sektor {selectedSector} · Menampilkan data peserta riil yang terdaftar beserta lembaga vokasi asalnya.
+                    </p>
+                  </div>
+                  <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 shrink-0 self-start sm:self-auto font-bold tabular-nums">
+                    {matchingCandidates.length} Peserta Terdaftar
+                  </Badge>
                 </div>
-                {renderInstitutionList(filteredInstitutions)}
+
+                {/* Search Box */}
+                {matchingCandidates.length > 2 && (
+                  <div className="relative">
+                    <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      type="text"
+                      value={candidateSearchQuery}
+                      onChange={(e) => setCandidateSearchQuery(e.target.value)}
+                      placeholder="Cari nama peserta, NIK, atau lembaga vokasi..."
+                      className="pl-8 text-xs h-9 bg-background"
+                    />
+                  </div>
+                )}
+
+                {/* Candidate Cards List */}
+                {filteredCandidates.length > 0 ? (
+                  <div className="space-y-2 max-h-[480px] overflow-y-auto pr-1">
+                    {filteredCandidates.map((c) => (
+                      <div
+                        key={c.id}
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => setSelectedCandidateForDetail(c)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            setSelectedCandidateForDetail(c);
+                          }
+                        }}
+                        className="p-3 rounded-xl border border-border bg-white dark:bg-slate-900/90 hover:border-primary/50 hover:bg-primary/5 transition cursor-pointer flex flex-col gap-2 shadow-2xs group"
+                      >
+                        {/* Header: Name, NIK, Status */}
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-700 to-indigo-600 text-white font-extrabold text-xs flex items-center justify-center shadow-xs shrink-0">
+                              {c.fullName.charAt(0)}
+                            </div>
+                            <div className="min-w-0">
+                              <div className="text-xs font-bold text-foreground truncate group-hover:text-primary transition-colors">
+                                {c.fullName}
+                              </div>
+                              <div className="text-[10.5px] font-mono text-muted-foreground tabular-nums">
+                                NIK: {c.nik}
+                              </div>
+                            </div>
+                          </div>
+
+                          <Badge
+                            variant="outline"
+                            className={cn(
+                              "text-[10px] px-1.5 py-0 font-semibold shrink-0",
+                              c.readinessStatus === "Ready for Placement"
+                                ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30"
+                                : "bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/30"
+                            )}
+                          >
+                            {c.readinessStatus === "Ready for Placement" ? "Siap Kerja" : "Pelatihan"}
+                          </Badge>
+                        </div>
+
+                        {/* Lembaga Vokasi Asal - Mencolok */}
+                        <div className="flex items-center gap-2 p-2 rounded-lg bg-blue-50/80 dark:bg-slate-800/80 border border-blue-200/60 dark:border-blue-900/40 text-xs">
+                          <Building2 className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
+                          <div className="min-w-0 flex-1">
+                            <span className="font-bold text-foreground">
+                              {c.institutionName || c.sourceType || "Lembaga Vokasi Terdaftar"}
+                            </span>
+                            <span className="text-muted-foreground ml-1.5 text-[11px]">
+                              ({c.kabupatenKota}, {c.provinsi})
+                            </span>
+                          </div>
+                          <Badge variant="outline" className="text-[10px] bg-white dark:bg-slate-900 shrink-0 font-medium">
+                            {c.educationLevel}
+                          </Badge>
+                        </div>
+
+                        {/* Major, Target Country, Link */}
+                        <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-border/40 text-[11.5px]">
+                          <span className="text-muted-foreground truncate max-w-[280px]">
+                            {c.major}
+                          </span>
+                          <div className="flex items-center gap-2.5">
+                            <span className="text-muted-foreground">
+                              Tujuan: <b className="text-foreground">{c.preferredCountry.join(", ")}</b>
+                            </span>
+                            <span className="text-[11px] font-bold text-primary group-hover:underline flex items-center">
+                              Lihat Profil ›
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="rounded-lg border border-dashed border-border p-8 text-center text-xs text-muted-foreground">
+                    Tidak ditemukan data peserta untuk jabatan {selectedOccupation}.
+                  </div>
+                )}
               </>
             ) : selectedSector ? (
               <>
@@ -1024,7 +1231,7 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
         return "Direktori Lembaga Vokasi Mitra";
       case "program":
         if (selectedSector && selectedOccupation) {
-          return `Lembaga Vokasi — ${selectedOccupation}`;
+          return `Peserta Siap Latih — ${selectedOccupation}`;
         }
         return selectedSector
           ? `Jabatan — ${selectedSector}`
@@ -1065,6 +1272,15 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
           </Button>
         </div>
       </DialogContent>
+
+      {/* Candidate Profile Detail Modal */}
+      {selectedCandidateForDetail && (
+        <CandidateDetailModal
+          candidate={selectedCandidateForDetail}
+          isOpen={Boolean(selectedCandidateForDetail)}
+          onClose={() => setSelectedCandidateForDetail(null)}
+        />
+      )}
     </Dialog>
   );
 };
