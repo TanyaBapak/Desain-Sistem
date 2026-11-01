@@ -1,6 +1,5 @@
 import { router } from "@inertiajs/react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { CountryProjectionCard } from "@/components/landing/CountryProjectionCard";
 import { SupplyTargetProjectionPanel } from "@/components/landing/SupplyTargetProjectionPanel";
 
 export interface LandingProjectionSeries {
@@ -101,10 +100,8 @@ export function LandingProjectionDashboard({ projection }: LandingProjectionDash
           </label>
         </div>
 
-        {/* Panel Penelusuran Suplai Negara Target (Negara · Sektor Jabatan · Daerah Asal · Sumber Data) */}
+        {/* Panel Penelusuran Suplai 4 Negara Target (Format Preview Cards seperti Alur Ekosistem) */}
         <SupplyTargetProjectionPanel projection={projection} />
-
-        <CountryProjectionCard projection={projection} />
 
         <p className="text-xs text-muted-foreground">
           Proyeksi menunjukkan sisa target dari kuota yang tercatat, bukan perkiraan otomatis
