@@ -26,11 +26,27 @@ interface SupplyTargetProjectionPanelProps {
   className?: string;
 }
 
+export const TARGET_4_COUNTRIES = [
+  "Turki",
+  "Malaysia",
+  "Korea Selatan",
+  "Jepang",
+] as const;
+
+export function match4Country(name: string): (typeof TARGET_4_COUNTRIES)[number] | null {
+  const norm = name.toLowerCase().trim();
+  if (norm.includes("turki") || norm.includes("turkey")) return "Turki";
+  if (norm.includes("malaysia")) return "Malaysia";
+  if (norm.includes("korea")) return "Korea Selatan";
+  if (norm.includes("jepang") || norm.includes("japan")) return "Jepang";
+  return null;
+}
+
 export function SupplyTargetProjectionPanel({
   projection,
   className,
 }: SupplyTargetProjectionPanelProps) {
-  const [selectedCountry, setSelectedCountry] = useState<string>("Semua Negara");
+  const [selectedCountry, setSelectedCountry] = useState<string>("Semua 4 Negara Target");
   const [selectedSectorJob, setSelectedSectorJob] = useState<string>("Semua Sektor & Jabatan");
   const [selectedRegion, setSelectedRegion] = useState<string>("Semua Daerah Asal");
   const [selectedSource, setSelectedSource] = useState<string>("Semua Sumber Data");
@@ -38,52 +54,32 @@ export function SupplyTargetProjectionPanel({
   const [currentPage, setCurrentPage] = useState<number>(1);
   const itemsPerPage = 10;
 
-  // 1. Ekstrak daftar negara unik dari target penempatan sistem
-  const countriesOptions = useMemo(() => {
-    const list = new Set<string>();
-    projection.placementTargets.forEach((pt) => {
-      const country = pt.projectionPlacement.trim();
-      if (country) list.add(country);
-    });
-    // Tambahkan negara utama jika belum ada
-    ["Jepang", "Turki", "Malaysia", "Korea", "Taiwan", "Jerman"].forEach((c) => list.add(c));
-    return ["Semua Negara", ...Array.from(list).sort((a, b) => a.localeCompare(b, "id"))];
-  }, [projection.placementTargets]);
-
-  // 2. Ekstrak sektor & jabatan unik dari database
-  const sectorJobOptions = useMemo(() => {
-    const set = new Set<string>();
-    projection.placementTargets.forEach((pt) => {
-      const label = `${pt.sectorName} · ${pt.occupationName}`;
-      set.add(label);
-    });
-    return ["Semua Sektor & Jabatan", ...Array.from(set).sort((a, b) => a.localeCompare(b, "id"))];
-  }, [projection.placementTargets]);
-
-  // 3. Pilihan Daerah Asal
-  const regionsOptions = [
-    "Semua Daerah Asal",
-    "Jawa Tengah",
-    "Jawa Barat",
-    "Jawa Timur",
-    "Bali",
-    "DKI Jakarta",
-    "Banten",
-    "Nusa Tenggara Barat",
+  // 1. Pilihan 4 Negara Target Utama
+  const countriesOptions = [
+    "Semua 4 Negara Target",
+    "Turki",
+    "Malaysia",
+    "Korea Selatan",
+    "Jepang",
   ];
 
-  // 4. Pilihan Sumber Data (sesuai arahan user: disnaker, umum, lembaga vokasi / smk)
-  const sourcesOptions = [
-    "Semua Sumber Data",
-    "Disnaker Pemda",
-    "Lembaga Vokasi / SMK",
-    "Mandiri / Umum",
-    "Integrasi BP3MI",
-  ];
-
-  // Pemetaan baris target suplai penempatan riil dari placementTargets database
+  // 2. Pemetaan baris target suplai penempatan riil HANYA untuk 4 negara target
   const enrichedTargets = useMemo(() => {
-    return projection.placementTargets.map((pt, index) => {
+    const list: {
+      id: string;
+      year: number;
+      country: (typeof TARGET_4_COUNTRIES)[number];
+      sector: string;
+      occupation: string;
+      targetQuota: number;
+      region: string;
+      source: string;
+    }[] = [];
+
+    projection.placementTargets.forEach((pt, index) => {
+      const matched = match4Country(pt.projectionPlacement);
+      if (!matched) return; // Hanya ambil 4 negara target: Turki, Malaysia, Korea Selatan, Jepang
+
       // Tentukan daerah asal potensial berdasarkan sektor (pemetaan vokasi)
       const sec = pt.sectorName.toLowerCase();
       let defaultRegion = "Jawa Tengah";
@@ -102,27 +98,58 @@ export function SupplyTargetProjectionPanel({
       else if (index % 4 === 2) defaultSource = "Mandiri / Umum";
       else defaultSource = "Integrasi BP3MI";
 
-      return {
-        id: `TARGET-${pt.year}-${index + 1}`,
+      list.push({
+        id: `TARGET-4-${pt.year}-${index + 1}`,
         year: pt.year,
-        country: pt.projectionPlacement,
+        country: matched,
         sector: pt.sectorName,
         occupation: pt.occupationName,
         targetQuota: pt.target,
         region: defaultRegion,
         source: defaultSource,
-      };
+      });
     });
+
+    return list;
   }, [projection.placementTargets]);
 
-  // Filter baris target
+  // 3. Ekstrak sektor & jabatan unik HANYA dari 4 negara target
+  const sectorJobOptions = useMemo(() => {
+    const set = new Set<string>();
+    enrichedTargets.forEach((pt) => {
+      const label = `${pt.sector} · ${pt.occupation}`;
+      set.add(label);
+    });
+    return ["Semua Sektor & Jabatan", ...Array.from(set).sort((a, b) => a.localeCompare(b, "id"))];
+  }, [enrichedTargets]);
+
+  // 4. Pilihan Daerah Asal
+  const regionsOptions = [
+    "Semua Daerah Asal",
+    "Jawa Tengah",
+    "Jawa Barat",
+    "Jawa Timur",
+    "Bali",
+    "DKI Jakarta",
+    "Banten",
+    "Nusa Tenggara Barat",
+  ];
+
+  // 5. Pilihan Sumber Data (disnaker, umum / mandiri, lembaga vokasi / smk)
+  const sourcesOptions = [
+    "Semua Sumber Data",
+    "Disnaker Pemda",
+    "Lembaga Vokasi / SMK",
+    "Mandiri / Umum",
+    "Integrasi BP3MI",
+  ];
+
+  // Filter baris target 4 negara
   const filteredTargets = useMemo(() => {
     return enrichedTargets.filter((row) => {
-      // Filter Negara
-      if (selectedCountry !== "Semua Negara") {
-        const normSelected = selectedCountry.toLowerCase();
-        const normCountry = row.country.toLowerCase();
-        if (!normCountry.includes(normSelected) && !normSelected.includes(normCountry)) {
+      // Filter Negara (4 Negara Target)
+      if (selectedCountry !== "Semua 4 Negara Target") {
+        if (row.country !== selectedCountry) {
           return false;
         }
       }
@@ -180,7 +207,7 @@ export function SupplyTargetProjectionPanel({
   }, [filteredTargets, currentPage, itemsPerPage]);
 
   const handleResetFilters = () => {
-    setSelectedCountry("Semua Negara");
+    setSelectedCountry("Semua 4 Negara Target");
     setSelectedSectorJob("Semua Sektor & Jabatan");
     setSelectedRegion("Semua Daerah Asal");
     setSelectedSource("Semua Sumber Data");
@@ -205,14 +232,14 @@ export function SupplyTargetProjectionPanel({
                 variant="outline"
                 className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 font-bold text-[11px]"
               >
-                Data Riil Sistem
+                4 Negara Target Utama
               </Badge>
             </div>
             <h3 className="text-xl sm:text-2xl font-black tracking-tight text-foreground">
               Data Suplai Penempatan Negara Target
             </h3>
             <p className="text-xs sm:text-sm text-muted-foreground">
-              Informasi kuota target suplai penempatan tenaga kerja ke negara tujuan (termasuk suplai Jepang: 2.000, Turki: 5.000, Malaysia: 5.000, dll.) yang dipetakan berdasarkan pilihan negara, sektor jabatan, daerah asal, dan sumber data pendaftaran.
+              Informasi kuota target suplai penempatan tenaga kerja untuk 4 negara target utama (Turki, Malaysia, Korea Selatan, dan Jepang: 2.000) berdasarkan pilihan negara, sektor jabatan, daerah asal, dan sumber data pendaftaran.
             </p>
           </div>
 

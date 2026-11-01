@@ -65,7 +65,6 @@ export const COUNTRIES = [
   "Jepang",
   "Malaysia",
   "Korea Selatan",
-  "Taiwan",
 ];
 
 export const formatNum = (n: number) => Math.round(n).toLocaleString("id-ID");
@@ -1175,40 +1174,6 @@ const trainingTree = (): TreeNode[] => [
       },
     ],
   },
-  {
-    name: "Taiwan",
-    ch: [
-      {
-        name: "Kesehatan / Caregiver",
-        ch: [
-          lf("Program Bahasa · Bahasa Mandarin Caregiver (TOCFL A2)", { a: 38, b: 16, c: 180, d: 420 }, [
-            ["Negara Tujuan", "Taiwan"],
-            ["Sektor", "Kesehatan"],
-            ["Rumpun Kurikulum", "Program Bahasa"],
-            ["Materi Kurikulum", "Pinyin, Karakter Tradisional, Kosakata Medis & Perawatan Lansia"],
-            ["Durasi Jam Pelajaran", "180 JP"],
-            ["Standar Kelulusan", "TOCFL Level A2"],
-          ]),
-          lf("Teknis · Asuhan Keperawatan Lansia & Panti Wreda Formal", { a: 35, b: 14, c: 260, d: 390 }, [
-            ["Negara Tujuan", "Taiwan"],
-            ["Sektor", "Kesehatan"],
-            ["Rumpun Kurikulum", "Teknis"],
-            ["Materi Praktek", "Vital Signs, Bantuan Mobilitas, Higiene Pasien, Etika Budaya Taiwan"],
-            ["Durasi Jam Pelajaran", "260 JP"],
-            ["Standar Industri", "Standar Ministry of Health and Welfare (MoHW) Taiwan"],
-          ]),
-          lf("Sertifikasi · Sertifikasi Pelatihan Kemnaker & MoHW Taiwan", { a: 34, b: 13, c: 80, d: 380 }, [
-            ["Negara Tujuan", "Taiwan"],
-            ["Sektor", "Kesehatan"],
-            ["Rumpun Kurikulum", "Sertifikasi"],
-            ["Skema Sertifikasi", "Sertifikat Pelatihan Caregiver Resmi & Sertifikasi BNSP"],
-            ["Durasi Jam Pelajaran", "80 JP"],
-            ["Lembaga Uji", "Kemnaker RI & TETO Taiwan"],
-          ]),
-        ],
-      },
-    ],
-  },
 ];
 
 /* =========================================================================
@@ -1392,15 +1357,15 @@ const institutionTree = (): TreeNode[] => [
         ],
       },
       {
-        name: "Taiwan · Kesehatan · Caregiver Lansia Formal",
+        name: "Jepang · Kesehatan · Caregiver Lansia Kaigo",
         ch: [
           lf("BLK-LN PRIMA DUTA SEJATI KENDAL", { a: 50, b: 3, c: 160, d: 42 }, [
             ["Jenis Vokasi", "Balai Latihan Kerja Luar Negeri"],
-            ["Negara · Sektor · Jabatan", "Taiwan · Kesehatan · Caregiver Lansia Formal"],
+            ["Negara · Sektor · Jabatan", "Jepang · Kesehatan · Caregiver Lansia Kaigo"],
             ["Jumlah Suplai", "50 Calon Peserta"],
             ["Jumlah Kelas", "3 Kelas Berjalan"],
             ["Lokasi", "Kabupaten Kendal, Jawa Tengah"],
-            ["Standar Kurikulum", "Kemenaker & Standar MoHW Taiwan"],
+            ["Standar Kurikulum", "Kemenaker & Standar SSW Kaigo Jepang"],
           ]),
         ],
       },
@@ -1660,42 +1625,6 @@ const demandTree = (): TreeNode[] => [
             ["Sektor & Jabatan", "Manufaktur · Operator Cetakan Logam"],
             ["Jumlah Kebutuhan", "40 Slot Pekerja"],
             ["Skema Penempatan", "G to G (EPS HRD Korea)"],
-            ["Masa Kontrak", "3 Tahun"],
-          ]),
-        ],
-      },
-    ],
-  },
-  {
-    name: "Taiwan",
-    ch: [
-      {
-        name: "Kesehatan · Caregiver Panti Lansia Formal",
-        ch: [
-          lf("P to P (Private to Private Resmi)", { a: 4900, b: 1650, c: 3250, d: 680 }, [
-            ["Negara Tujuan", "Taiwan"],
-            ["Sektor & Jabatan", "Kesehatan · Caregiver Panti Wreda Formal"],
-            ["Jumlah Kebutuhan", "4.900 Slot Pekerja"],
-            ["Skema Penempatan", "P to P (Private to Private Resmi)"],
-            ["Masa Kontrak", "3 Tahun"],
-          ]),
-          lf("Perseorangan / Mandiri Terverifikasi", { a: 620, b: 210, c: 410, d: 85 }, [
-            ["Negara Tujuan", "Taiwan"],
-            ["Sektor & Jabatan", "Kesehatan · Home Caregiver Lansia"],
-            ["Jumlah Kebutuhan", "620 Slot Pekerja"],
-            ["Skema Penempatan", "Perseorangan / Mandiri"],
-            ["Masa Kontrak", "3 Tahun"],
-          ]),
-        ],
-      },
-      {
-        name: "Manufaktur · Operator Pabrik Fabrikasi",
-        ch: [
-          lf("P to P (Private to Private Resmi)", { a: 3200, b: 1200, c: 2000, d: 520 }, [
-            ["Negara Tujuan", "Taiwan"],
-            ["Sektor & Jabatan", "Manufaktur · Operator Produksi Elektronik"],
-            ["Jumlah Kebutuhan", "3.200 Slot Pekerja"],
-            ["Skema Penempatan", "P to P (Private to Private Resmi)"],
             ["Masa Kontrak", "3 Tahun"],
           ]),
         ],
