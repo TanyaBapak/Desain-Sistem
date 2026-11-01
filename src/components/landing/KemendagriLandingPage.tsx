@@ -32,7 +32,200 @@ interface KemendagriLandingPageProps {
 }
 
 const TRAINING_SECTORS = ["Hospitality", "Kesehatan", "Manufaktur", "Konstruksi", "Fisherman"];
-const DEMAND_COUNTRIES = ["Turki", "Jepang", "Malaysia", "Korea"];
+const DEMAND_COUNTRIES = ["Turki", "Jepang", "Malaysia", "Korea Selatan"];
+
+interface ProgramTrackItem {
+  type: 'teknis' | 'bahasa';
+  title: string;
+  jp: number;
+  startDate: string;
+  finishDate: string;
+}
+
+interface SectorProgramItem {
+  sector: string;
+  tracks: ProgramTrackItem[];
+}
+
+interface CountryProgramPillar {
+  country: string;
+  sectors: SectorProgramItem[];
+}
+
+const PILLAR_COUNTRY_PROGRAMS: CountryProgramPillar[] = [
+  {
+    country: "Turki",
+    sectors: [
+      {
+        sector: "Hospitality",
+        tracks: [
+          {
+            type: "teknis",
+            title: "Housekeeping",
+            jp: 360,
+            startDate: "07 Nov 2026",
+            finishDate: "24 Des 2026",
+          },
+          {
+            type: "bahasa",
+            title: "Bahasa Inggris (Housekeeping)",
+            jp: 200,
+            startDate: "07 Nov 2026",
+            finishDate: "15 Des 2026",
+          },
+        ],
+      },
+      {
+        sector: "Manufaktur",
+        tracks: [
+          {
+            type: "teknis",
+            title: "Welder (SMAW 3G/4G)",
+            jp: 400,
+            startDate: "10 Nov 2026",
+            finishDate: "30 Des 2026",
+          },
+          {
+            type: "bahasa",
+            title: "Bahasa Turki Dasar",
+            jp: 160,
+            startDate: "10 Nov 2026",
+            finishDate: "10 Des 2026",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    country: "Malaysia",
+    sectors: [
+      {
+        sector: "Konstruksi",
+        tracks: [
+          {
+            type: "teknis",
+            title: "Civil Infrastructure Worker",
+            jp: 360,
+            startDate: "05 Nov 2026",
+            finishDate: "20 Des 2026",
+          },
+          {
+            type: "bahasa",
+            title: "Bahasa Melayu & Regulasi Kerja",
+            jp: 120,
+            startDate: "05 Nov 2026",
+            finishDate: "30 Nov 2026",
+          },
+        ],
+      },
+      {
+        sector: "Perkebunan",
+        tracks: [
+          {
+            type: "teknis",
+            title: "Plantation Mechanization",
+            jp: 320,
+            startDate: "08 Nov 2026",
+            finishDate: "18 Des 2026",
+          },
+          {
+            type: "bahasa",
+            title: "K3 & Budaya Kerja Industri",
+            jp: 100,
+            startDate: "08 Nov 2026",
+            finishDate: "25 Nov 2026",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    country: "Korea Selatan",
+    sectors: [
+      {
+        sector: "Fisherman",
+        tracks: [
+          {
+            type: "teknis",
+            title: "Offshore Fishery Operations",
+            jp: 420,
+            startDate: "03 Nov 2026",
+            finishDate: "05 Jan 2027",
+          },
+          {
+            type: "bahasa",
+            title: "Bahasa Korea (EPS-TOPIK)",
+            jp: 240,
+            startDate: "03 Nov 2026",
+            finishDate: "20 Des 2026",
+          },
+        ],
+      },
+      {
+        sector: "Manufaktur",
+        tracks: [
+          {
+            type: "teknis",
+            title: "Ship Hull Assembly & Fabrication",
+            jp: 450,
+            startDate: "05 Nov 2026",
+            finishDate: "10 Jan 2027",
+          },
+          {
+            type: "bahasa",
+            title: "Bahasa Korea Industri Terapan",
+            jp: 240,
+            startDate: "05 Nov 2026",
+            finishDate: "22 Des 2026",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    country: "Jepang",
+    sectors: [
+      {
+        sector: "Kesehatan",
+        tracks: [
+          {
+            type: "teknis",
+            title: "Kaigo (Perawat Lansia)",
+            jp: 480,
+            startDate: "01 Nov 2026",
+            finishDate: "15 Jan 2027",
+          },
+          {
+            type: "bahasa",
+            title: "Bahasa Jepang (JLPT N4 / JFT-Basic)",
+            jp: 320,
+            startDate: "01 Nov 2026",
+            finishDate: "31 Des 2026",
+          },
+        ],
+      },
+      {
+        sector: "Pertanian",
+        tracks: [
+          {
+            type: "teknis",
+            title: "Smart Agriculture & Food Packaging",
+            jp: 360,
+            startDate: "04 Nov 2026",
+            finishDate: "24 Des 2026",
+          },
+          {
+            type: "bahasa",
+            title: "Bahasa Jepang Praktis Kerja",
+            jp: 200,
+            startDate: "04 Nov 2026",
+            finishDate: "12 Des 2026",
+          },
+        ],
+      },
+    ],
+  },
+];
 
 const WIB_DATE_TIME_FORMAT = new Intl.DateTimeFormat("id-ID", {
   weekday: "long",
@@ -61,6 +254,7 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
   } = useAppStore();
 
   const [currentTime, setCurrentTime] = useState<Date | null>(null);
+  const [selectedProgramCountry, setSelectedProgramCountry] = useState<string>("Turki");
 
   useEffect(() => {
     const updateTime = () => setCurrentTime(new Date());
@@ -312,15 +506,97 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
                 </div>
               </article>
 
-              <article className="rounded-xl border border-slate-700/60 bg-slate-800/80 p-3">
-                <span className="block font-bold uppercase text-slate-400">2. Siap Program (Negara · Sektor · Jabatan)</span>
-                <ul className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5 text-slate-200">
-                  {TRAINING_SECTORS.map((sector) => (
-                    <li key={sector} className="before:mr-1.5 before:content-['•']">
-                      {sector}
-                    </li>
-                  ))}
-                </ul>
+              <article className="rounded-xl border border-slate-700/60 bg-slate-800/80 p-3.5 space-y-3">
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center justify-between">
+                    <span className="block font-bold uppercase tracking-wider text-[11px] text-slate-300">
+                      2. Siap Program (Kurikulum Diklat)
+                    </span>
+                    <span className="text-[10px] font-semibold text-blue-400">
+                      Dual-Track Terpadu
+                    </span>
+                  </div>
+                  {/* Pilihan Negara */}
+                  <div className="grid grid-cols-4 gap-1 rounded-lg bg-slate-900/90 p-1 border border-slate-700/70">
+                    {PILLAR_COUNTRY_PROGRAMS.map((item) => {
+                      const isActive = item.country === selectedProgramCountry;
+                      return (
+                        <button
+                          key={item.country}
+                          type="button"
+                          onClick={() => setSelectedProgramCountry(item.country)}
+                          className={`px-1.5 py-1 text-[11px] font-bold rounded-md transition-all text-center truncate ${
+                            isActive
+                              ? "bg-blue-600 text-white shadow-xs"
+                              : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
+                          }`}
+                          title={`Lihat kurikulum diklat negara ${item.country}`}
+                        >
+                          {item.country}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Daftar Sektor & Kurikulum Dual-Track */}
+                {(() => {
+                  const activeConfig =
+                    PILLAR_COUNTRY_PROGRAMS.find((p) => p.country === selectedProgramCountry) ??
+                    PILLAR_COUNTRY_PROGRAMS[0];
+                  return (
+                    <div className="space-y-2 pt-1">
+                      {activeConfig.sectors.map((sec) => (
+                        <div
+                          key={sec.sector}
+                          className="rounded-lg bg-slate-900/70 border border-slate-700/60 p-2.5 space-y-2"
+                        >
+                          <div className="flex items-center justify-between border-b border-slate-800 pb-1.5 text-xs">
+                            <span className="font-extrabold text-blue-300">
+                              Sektor {sec.sector}
+                            </span>
+                            <span className="text-[10px] font-medium text-slate-400">
+                              Target {activeConfig.country}
+                            </span>
+                          </div>
+
+                          <div className="space-y-1.5 text-xs">
+                            {sec.tracks.map((tr) => (
+                              <div
+                                key={tr.type}
+                                className="flex flex-col gap-1 rounded-md bg-slate-800/80 border border-slate-700/50 p-2 text-slate-200"
+                              >
+                                <div className="flex items-center justify-between gap-1.5">
+                                  <div className="flex items-center gap-1.5 min-w-0">
+                                    <span
+                                      className={`px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider shrink-0 ${
+                                        tr.type === "teknis"
+                                          ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                                          : "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30"
+                                      }`}
+                                    >
+                                      {tr.type === "teknis" ? "Teknis" : "Bahasa"}
+                                    </span>
+                                    <span className="font-semibold text-white truncate text-[11px]">
+                                      {tr.title}
+                                    </span>
+                                  </div>
+                                  <span className="shrink-0 text-[10px] font-bold tabular-nums px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                                    {tr.jp} JP
+                                  </span>
+                                </div>
+                                <div className="flex items-center justify-between text-[10px] text-slate-400 tabular-nums pt-0.5">
+                                  <span>Mulai: <strong className="text-slate-300 font-semibold">{tr.startDate}</strong></span>
+                                  <span>Selesai: <strong className="text-slate-300 font-semibold">{tr.finishDate}</strong></span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
               </article>
 
               <article className="rounded-xl border border-slate-700/60 bg-slate-800/80 p-3">
