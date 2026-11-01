@@ -8,7 +8,6 @@ import {
   PublicDrilldownType,
 } from "@/components/landing/PublicDrilldownModal";
 import { CascadingFlyout } from "@/components/shared/CascadingFlyout";
-import { PillarTimelineFlow } from "@/components/shared/PillarTimelineFlow";
 import { PillarKey } from "@/components/shared/CascadingFlyoutData";
 
 interface PublicCommandCenterSectionProps {
@@ -95,6 +94,17 @@ export const PublicCommandCenterSection: React.FC<PublicCommandCenterSectionProp
     }
   };
 
+  React.useEffect(() => {
+    const handleCustomDrilldown = (e: Event) => {
+      const customEvent = e as CustomEvent<PublicDrilldownType>;
+      if (customEvent.detail) {
+        setActiveDrilldown(customEvent.detail);
+      }
+    };
+    window.addEventListener("p2mi:open-drilldown", handleCustomDrilldown);
+    return () => window.removeEventListener("p2mi:open-drilldown", handleCustomDrilldown);
+  }, []);
+
   return (
     <section
       id="dashboard-command-center"
@@ -128,17 +138,6 @@ export const PublicCommandCenterSection: React.FC<PublicCommandCenterSectionProp
               <span>Satu Data · Satu Pemantauan · Satu Keputusan</span>
             </span>
           </div>
-        </div>
-
-        {/* Animated Pipeline / Timeline Flow (Supply -> Demand -> Penempatan) */}
-        <PillarTimelineFlow
-          onOpenFull={handleTimelineStageSelect}
-          onSelectStage={handleTimelineStageSelect}
-        />
-
-        {/* Guidance Instruction */}
-        <div className="text-xs sm:text-sm text-muted-foreground">
-          Klik card untuk membuka data · klik item baris untuk menelusuri tingkat berikutnya secara bertahap
         </div>
 
         {/* 1. Cascading Flyout 4 Pillars Component */}

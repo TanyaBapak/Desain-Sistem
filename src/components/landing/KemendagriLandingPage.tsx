@@ -15,6 +15,10 @@ import {
   ChevronRight,
   PhoneCall,
   Compass,
+  Users,
+  GraduationCap,
+  Globe2,
+  Sparkles,
 } from 'lucide-react';
 
 interface KemendagriLandingPageProps {
@@ -255,6 +259,14 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
 
   const [currentTime, setCurrentTime] = useState<Date | null>(null);
 
+  const handlePillarDrilldown = (stageType: "peserta" | "program" | "lembaga" | "demand") => {
+    const elem = document.getElementById("dashboard-command-center");
+    if (elem) {
+      elem.scrollIntoView({ behavior: "smooth" });
+    }
+    window.dispatchEvent(new CustomEvent("p2mi:open-drilldown", { detail: stageType }));
+  };
+
   useEffect(() => {
     const updateTime = () => setCurrentTime(new Date());
     updateTime();
@@ -488,78 +500,121 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
 
           {/* Right program overview card */}
           <div className="lg:col-span-7 bg-slate-900/95 border border-slate-800 rounded-2xl p-5 sm:p-6 shadow-2xl backdrop-blur-md space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 border-b border-slate-800 pb-3">
-              <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-blue-400 block">
-                  INFORMASI PROGRAM
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2.5">
+                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-600/30 text-blue-400 border border-blue-500/40 shrink-0">
+                  <Sparkles className="w-4 h-4" />
                 </span>
-                <h3 className="text-base font-bold text-white">
-                  Alur 4 Pilar: Siap Latih hingga Siap Permintaan
-                </h3>
+                <div>
+                  <h3 className="text-sm sm:text-base font-extrabold text-white">
+                    Alur Ekosistem SMK Go Global: Hulu ke Hilir
+                  </h3>
+                  <p className="text-[11px] text-slate-400">
+                    Rantai proses terpadu dari penjaringan talenta hingga penempatan luar negeri.
+                  </p>
+                </div>
               </div>
-              <span className="text-[11px] font-medium text-slate-400">
-                Rantai Kesiapan Terpadu
-              </span>
+              <div className="flex items-center gap-1.5 text-[10px] text-emerald-400 font-semibold bg-emerald-950/60 border border-emerald-800/60 px-2.5 py-1 rounded-full shrink-0 self-start sm:self-auto">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span>Alur Terhubung Real-Time</span>
+              </div>
             </div>
 
             {/* Alur 4 Pilar Terhubung dengan Garis Data */}
             <div className="relative">
               {/* Desktop Connecting Line di latar belakang */}
-              <div className="hidden xl:block absolute top-1/2 left-4 right-4 h-0.5 -translate-y-1/2 bg-gradient-to-r from-emerald-500/40 via-blue-500/50 via-amber-500/40 to-cyan-500/40 pointer-events-none z-0" />
+              <div className="hidden xl:block absolute top-1/2 left-6 right-6 h-0.5 -translate-y-1/2 bg-gradient-to-r from-blue-500/50 via-indigo-500/50 via-emerald-500/50 to-amber-500/50 pointer-events-none z-0" />
 
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 relative z-10">
                 {/* Pilar 1 */}
-                <article className="group relative rounded-xl border border-slate-700/80 bg-slate-800/90 p-3.5 flex flex-col justify-between hover:border-emerald-500/50 hover:bg-slate-800 transition shadow-sm">
+                <article
+                  onClick={() => handlePillarDrilldown("peserta")}
+                  className="group relative rounded-xl border border-blue-500/60 bg-slate-800/95 p-3.5 flex flex-col justify-between hover:border-blue-400 hover:bg-slate-800 hover:shadow-lg hover:shadow-blue-900/30 transition cursor-pointer"
+                  title="Klik untuk membuka data rincian peserta / suplai siap latih"
+                >
                   <div>
-                    <div className="flex items-center justify-between gap-1 mb-1">
-                      <span className="text-[9px] font-black uppercase tracking-wider text-emerald-400">
-                        Pilar 1
+                    <div className="flex items-center justify-between gap-1 mb-2">
+                      <div className="w-7 h-7 rounded-lg bg-blue-500/20 text-blue-400 border border-blue-500/30 flex items-center justify-center">
+                        <Users className="w-4 h-4" />
+                      </div>
+                      <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                        PENJARINGAN
                       </span>
                     </div>
-                    <h4 className="text-sm font-extrabold text-white">
-                      1. Siap Latih
+                    <h4 className="text-sm font-extrabold text-white group-hover:text-blue-300 transition-colors">
+                      1. Siap Latih / Suplai Tersedia
                     </h4>
                     <p className="text-[11px] text-slate-300 font-medium mt-0.5">
                       Calon Peserta Siap Latih
                     </p>
+
+                    {/* Informasi Ketercapaian & Progres */}
+                    <div className="mt-2.5 bg-slate-900/90 rounded-lg p-2 border border-slate-700/60">
+                      <div className="flex items-center justify-between text-[11px] font-bold">
+                        <span className="text-emerald-400 tabular-nums">30%</span>
+                        <span className="text-slate-200 tabular-nums">3.834 / 12.600</span>
+                      </div>
+                      <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-slate-800">
+                        <div
+                          className="h-full rounded-full bg-emerald-500 transition-all duration-500"
+                          style={{ width: "30%" }}
+                        />
+                      </div>
+                    </div>
                   </div>
-                  <div className="mt-3 pt-2.5 border-t border-slate-700/60">
-                    <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider">
+
+                  <div className="mt-2.5 pt-2 border-t border-slate-700/60 flex items-center justify-between text-xs">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                       Target: 12.600:
                     </span>
-                    <span className="text-xs font-black text-emerald-400 tabular-nums mt-0.5 block">
+                    <span className="text-xs font-black text-emerald-400 tabular-nums">
                       12.600 Peserta
                     </span>
                   </div>
+
                   {/* Panah alur desktop */}
-                  <div className="hidden xl:flex absolute -right-2.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-slate-900 border border-slate-700 items-center justify-center text-[10px] text-slate-400 z-20">
+                  <div className="hidden xl:flex absolute -right-2.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-slate-900 border border-blue-500/50 items-center justify-center text-[10px] text-blue-400 z-20">
                     →
                   </div>
                 </article>
 
                 {/* Pilar 2 */}
-                <article className="group relative rounded-xl border border-slate-700/80 bg-slate-800/90 p-3.5 flex flex-col justify-between hover:border-blue-500/50 hover:bg-slate-800 transition shadow-sm">
+                <article
+                  onClick={() => handlePillarDrilldown("program")}
+                  className="group relative rounded-xl border border-slate-700/80 bg-slate-800/90 p-3.5 flex flex-col justify-between hover:border-indigo-400 hover:bg-slate-800 hover:shadow-lg hover:shadow-indigo-900/30 transition cursor-pointer"
+                  title="Klik untuk membuka data rincian program pelatihan"
+                >
                   <div>
-                    <div className="flex items-center justify-between gap-1 mb-1">
-                      <span className="px-1.5 py-0.2 rounded text-[9px] font-bold uppercase tracking-wider bg-blue-500/20 text-blue-300 border border-blue-500/30">
-                        Standardisasi
+                    <div className="flex items-center justify-between gap-1 mb-2">
+                      <div className="w-7 h-7 rounded-lg bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 flex items-center justify-center">
+                        <GraduationCap className="w-4 h-4" />
+                      </div>
+                      <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                        STANDARDISASI
                       </span>
                     </div>
-                    <h4 className="text-sm font-extrabold text-white">
+                    <h4 className="text-sm font-extrabold text-white group-hover:text-indigo-300 transition-colors">
                       2. Siap Program
                     </h4>
                     <p className="text-[11px] text-slate-300 font-medium mt-0.5">
                       Bahasa · Teknis · Sertifikasi
                     </p>
+
+                    <div className="mt-2.5 bg-slate-900/90 rounded-lg p-2 border border-slate-700/60 text-[11px] text-slate-400 flex items-center justify-between">
+                      <span>Kurikulum Target</span>
+                      <span className="text-indigo-300 font-bold">5 Sektor Unggulan</span>
+                    </div>
                   </div>
-                  <div className="mt-3 pt-2.5 border-t border-slate-700/60">
-                    <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider">
+
+                  <div className="mt-2.5 pt-2 border-t border-slate-700/60 flex items-center justify-between text-xs">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                       Target: 630 Kelas:
                     </span>
-                    <span className="text-xs font-black text-blue-300 tabular-nums mt-0.5 block">
+                    <span className="text-xs font-black text-blue-300 tabular-nums">
                       630 Kelas (5 Sektor)
                     </span>
                   </div>
+
                   {/* Panah alur desktop */}
                   <div className="hidden xl:flex absolute -right-2.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-slate-900 border border-slate-700 items-center justify-center text-[10px] text-slate-400 z-20">
                     →
@@ -567,28 +622,42 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
                 </article>
 
                 {/* Pilar 3 */}
-                <article className="group relative rounded-xl border border-slate-700/80 bg-slate-800/90 p-3.5 flex flex-col justify-between hover:border-amber-500/50 hover:bg-slate-800 transition shadow-sm">
+                <article
+                  onClick={() => handlePillarDrilldown("lembaga")}
+                  className="group relative rounded-xl border border-slate-700/80 bg-slate-800/90 p-3.5 flex flex-col justify-between hover:border-emerald-400 hover:bg-slate-800 hover:shadow-lg hover:shadow-emerald-900/30 transition cursor-pointer"
+                  title="Klik untuk membuka data rincian lembaga vokasi ber-suplai"
+                >
                   <div>
-                    <div className="flex items-center justify-between gap-1 mb-1">
-                      <span className="px-1.5 py-0.2 rounded text-[9px] font-bold uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                        Fasilitas
+                    <div className="flex items-center justify-between gap-1 mb-2">
+                      <div className="w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center">
+                        <Building2 className="w-4 h-4" />
+                      </div>
+                      <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                        FASILITAS
                       </span>
                     </div>
-                    <h4 className="text-sm font-extrabold text-white">
+                    <h4 className="text-sm font-extrabold text-white group-hover:text-emerald-300 transition-colors">
                       3. Siap Vokasi
                     </h4>
                     <p className="text-[11px] text-slate-300 font-medium mt-0.5">
                       Sesuai Vokasi Ber-Suplai
                     </p>
+
+                    <div className="mt-2.5 bg-slate-900/90 rounded-lg p-2 border border-slate-700/60 text-[11px] text-slate-400 flex items-center justify-between">
+                      <span>Kesiapan Penyelenggara</span>
+                      <span className="text-emerald-300 font-bold">Terverifikasi</span>
+                    </div>
                   </div>
-                  <div className="mt-3 pt-2.5 border-t border-slate-700/60">
-                    <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider">
+
+                  <div className="mt-2.5 pt-2 border-t border-slate-700/60 flex items-center justify-between text-xs">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                       Vokasi Ber-Suplai:
                     </span>
-                    <span className="text-xs font-black text-amber-300 tabular-nums mt-0.5 block">
+                    <span className="text-xs font-black text-amber-300 tabular-nums">
                       {vocationalCount?.toLocaleString("id-ID") ?? "8"} Vokasi Ber-Suplai
                     </span>
                   </div>
+
                   {/* Panah alur desktop */}
                   <div className="hidden xl:flex absolute -right-2.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-slate-900 border border-slate-700 items-center justify-center text-[10px] text-slate-400 z-20">
                     →
@@ -596,25 +665,38 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
                 </article>
 
                 {/* Pilar 4 */}
-                <article className="group relative rounded-xl border border-slate-700/80 bg-slate-800/90 p-3.5 flex flex-col justify-between hover:border-cyan-500/50 hover:bg-slate-800 transition shadow-sm">
+                <article
+                  onClick={() => handlePillarDrilldown("demand")}
+                  className="group relative rounded-xl border border-slate-700/80 bg-slate-800/90 p-3.5 flex flex-col justify-between hover:border-amber-400 hover:bg-slate-800 hover:shadow-lg hover:shadow-amber-900/30 transition cursor-pointer"
+                  title="Klik untuk membuka data rincian permintaan luar negeri"
+                >
                   <div>
-                    <div className="flex items-center justify-between gap-1 mb-1">
-                      <span className="px-1.5 py-0.2 rounded text-[9px] font-bold uppercase tracking-wider bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
-                        Order Kerja
+                    <div className="flex items-center justify-between gap-1 mb-2">
+                      <div className="w-7 h-7 rounded-lg bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center">
+                        <Globe2 className="w-4 h-4" />
+                      </div>
+                      <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                        ORDER KERJA
                       </span>
                     </div>
-                    <h4 className="text-sm font-extrabold text-white">
+                    <h4 className="text-sm font-extrabold text-white group-hover:text-amber-300 transition-colors">
                       4. Siap Permintaan
                     </h4>
                     <p className="text-[11px] text-slate-300 font-medium mt-0.5">
                       Permintaan Luar Negeri
                     </p>
+
+                    <div className="mt-2.5 bg-slate-900/90 rounded-lg p-2 border border-slate-700/60 text-[11px] text-slate-400 flex items-center justify-between">
+                      <span>Mitra Penempatan</span>
+                      <span className="text-amber-300 font-bold">G2G & P to P</span>
+                    </div>
                   </div>
-                  <div className="mt-3 pt-2.5 border-t border-slate-700/60">
-                    <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider">
+
+                  <div className="mt-2.5 pt-2 border-t border-slate-700/60 flex items-center justify-between text-xs">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                       Target: 4 Negara:
                     </span>
-                    <span className="text-xs font-black text-cyan-300 tabular-nums mt-0.5 block">
+                    <span className="text-xs font-black text-cyan-300 tabular-nums">
                       4 Negara (Turki, Jepang...)
                     </span>
                   </div>
