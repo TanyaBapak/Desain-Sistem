@@ -1,5 +1,5 @@
 import { CandidateParticipant } from '../types';
-import * as XLSX from 'xlsx';
+import type { WorkBook } from 'xlsx';
 
 const CANDIDATE_HEADERS = [
   'Nama lengkap',
@@ -120,7 +120,8 @@ export function exportCandidatesCsv(candidates: CandidateParticipant[]): void {
   downloadCsv('data-calon-pmi.csv', createCsv([CANDIDATE_HEADERS, ...rows]));
 }
 
-export function exportCandidatesXlsx(candidates: CandidateParticipant[]): void {
+export async function exportCandidatesXlsx(candidates: CandidateParticipant[]): Promise<void> {
+  const XLSX = await import('xlsx');
   const rows = candidates.map((candidate) => {
     const exp = formatExperienceText(candidate.workExperiences);
     const lang = formatLangText(candidate.languageProficiency);
@@ -155,7 +156,8 @@ export function downloadCandidateTemplate(): void {
   downloadCsv('template-pengumpulan-calon-pmi.csv', createCsv([TEMPLATE_HEADERS]));
 }
 
-export function downloadCandidateTemplateXlsx(): void {
+export async function downloadCandidateTemplateXlsx(): Promise<void> {
+  const XLSX = await import('xlsx');
   const worksheet = XLSX.utils.aoa_to_sheet([TEMPLATE_HEADERS]);
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, 'Template Calon PMI');
@@ -243,7 +245,8 @@ export async function parseCandidateSpreadsheet(
   },
 ): Promise<CandidateImportParseResult> {
   const arrayBuffer = await file.arrayBuffer();
-  let workbook: XLSX.WorkBook;
+  const XLSX = await import('xlsx');
+  let workbook: WorkBook;
 
   if (file.name.toLowerCase().endsWith('.csv')) {
     const text = new TextDecoder('utf-8').decode(arrayBuffer).replace(/^\uFEFF/, '').replace(/^sep=;\r?\n/i, '');

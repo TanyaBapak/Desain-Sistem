@@ -23,6 +23,29 @@ export default defineConfig({
     },
     dedupe: ["react", "react-dom", "@inertiajs/react"],
   },
+  build: {
+    chunkSizeWarningLimit: 600,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes("node_modules/lucide-react")) {
+            return "vendor-lucide";
+          }
+          if (id.includes("node_modules/@radix-ui")) {
+            return "vendor-radix";
+          }
+          if (
+            id.includes("node_modules/react") ||
+            id.includes("node_modules/react-dom") ||
+            id.includes("node_modules/@inertiajs") ||
+            id.includes("node_modules/zustand")
+          ) {
+            return "vendor-framework";
+          }
+        },
+      },
+    },
+  },
   server: {
     port: 3000,
     fs: {

@@ -4,22 +4,54 @@ import { useAppStore } from "@/store/useAppStore";
 import { NAV_ITEMS } from "@/lib/sidebar-items";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { KemendagriLandingPage } from "@/components/landing/KemendagriLandingPage";
-import { UnifiedLoginPage } from "@/components/auth/UnifiedLoginPage";
-import { InstitutionRegistrationPage } from "@/pages/InstitutionRegistrationPage";
-import { DashboardPage } from "@/pages/DashboardPage";
-import { RoleManagementPage } from "@/pages/RoleManagementPage";
-import { UserManagementPage } from "@/pages/UserManagementPage";
-import { TargetManagementPage } from "@/pages/TargetManagementPage";
-import { SippmiMonitoringPage } from "@/pages/SippmiMonitoringPage";
-import { SupplyTable } from "@/components/modul-a/SupplyTable";
-import { TrainingProgramsView } from "@/components/modul-b/TrainingProgramsView";
-import { ProvidersView } from "@/components/modul-c/ProvidersView";
-import { GlobalDemandsView } from "@/components/modul-d/GlobalDemandsView";
-import { MatchingEngineView } from "@/components/matching/MatchingEngineView";
-import { ApprovalWorkflowView } from "@/components/approvals/ApprovalWorkflowView";
-import { AuditLogView } from "@/components/audit/AuditLogView";
-import { ReportsView } from "@/components/reports/ReportsView";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
+
+// Lazy-loaded tab & auth components to dramatically reduce initial bundle size
+const UnifiedLoginPage = React.lazy(() =>
+  import("@/components/auth/UnifiedLoginPage").then((m) => ({ default: m.UnifiedLoginPage }))
+);
+const InstitutionRegistrationPage = React.lazy(() =>
+  import("@/pages/InstitutionRegistrationPage").then((m) => ({ default: m.InstitutionRegistrationPage }))
+);
+const DashboardPage = React.lazy(() =>
+  import("@/pages/DashboardPage").then((m) => ({ default: m.DashboardPage }))
+);
+const RoleManagementPage = React.lazy(() =>
+  import("@/pages/RoleManagementPage").then((m) => ({ default: m.RoleManagementPage }))
+);
+const UserManagementPage = React.lazy(() =>
+  import("@/pages/UserManagementPage").then((m) => ({ default: m.UserManagementPage }))
+);
+const TargetManagementPage = React.lazy(() =>
+  import("@/pages/TargetManagementPage").then((m) => ({ default: m.TargetManagementPage }))
+);
+const SippmiMonitoringPage = React.lazy(() =>
+  import("@/pages/SippmiMonitoringPage").then((m) => ({ default: m.SippmiMonitoringPage }))
+);
+const SupplyTable = React.lazy(() =>
+  import("@/components/modul-a/SupplyTable").then((m) => ({ default: m.SupplyTable }))
+);
+const TrainingProgramsView = React.lazy(() =>
+  import("@/components/modul-b/TrainingProgramsView").then((m) => ({ default: m.TrainingProgramsView }))
+);
+const ProvidersView = React.lazy(() =>
+  import("@/components/modul-c/ProvidersView").then((m) => ({ default: m.ProvidersView }))
+);
+const GlobalDemandsView = React.lazy(() =>
+  import("@/components/modul-d/GlobalDemandsView").then((m) => ({ default: m.GlobalDemandsView }))
+);
+const MatchingEngineView = React.lazy(() =>
+  import("@/components/matching/MatchingEngineView").then((m) => ({ default: m.MatchingEngineView }))
+);
+const ApprovalWorkflowView = React.lazy(() =>
+  import("@/components/approvals/ApprovalWorkflowView").then((m) => ({ default: m.ApprovalWorkflowView }))
+);
+const AuditLogView = React.lazy(() =>
+  import("@/components/audit/AuditLogView").then((m) => ({ default: m.AuditLogView }))
+);
+const ReportsView = React.lazy(() =>
+  import("@/components/reports/ReportsView").then((m) => ({ default: m.ReportsView }))
+);
 import type { ExecutiveDashboardBreakdownsData } from "@/components/reports/ExecutiveDashboardBreakdowns";
 import type { DashboardTargetManagementData } from "@/pages/user-management-types";
 import {
@@ -301,23 +333,26 @@ function AppContent({
   ]);
 
   const loading = (
-    <div role="status" className="p-6 text-sm text-muted-foreground">
-      Memuat halaman…
+    <div role="status" className="p-8 text-sm text-muted-foreground flex items-center justify-center min-h-[300px]">
+      <div className="flex flex-col items-center gap-2.5">
+        <div className="h-6 w-6 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+        <span className="text-xs font-medium">Memuat modul…</span>
+      </div>
     </div>
   );
 
   if (showLogin && !authenticatedUser) {
     return (
-      <>
+      <React.Suspense fallback={loading}>
         <Head title="Masuk" />
         <UnifiedLoginPage status={registrationStatus} />
-      </>
+      </React.Suspense>
     );
   }
 
   if (showInstitutionRegistration && !authenticatedUser && registrationOptions) {
     return (
-      <>
+      <React.Suspense fallback={loading}>
         <Head title="Pendaftaran Lembaga Vokasi" />
         <InstitutionRegistrationPage
           provinces={registrationOptions.provinces}
@@ -325,7 +360,7 @@ function AppContent({
           sectors={registrationOptions.sectors}
           countries={registrationOptions.countries}
         />
-      </>
+      </React.Suspense>
     );
   }
 
@@ -517,7 +552,9 @@ function AppContent({
         accessibleTabs={authenticatedUser.accessibleTabs}
         impersonationAdminName={auth.impersonation?.adminName ?? null}
       >
-        {page}
+        <React.Suspense fallback={loading}>
+          {page}
+        </React.Suspense>
       </AdminLayout>
     </>
   );

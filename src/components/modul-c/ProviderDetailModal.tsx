@@ -69,7 +69,7 @@ export const ProviderDetailModal: React.FC<ProviderDetailModalProps> = ({
     >
       <div className="space-y-6">
         {/* Header Summary */}
-        <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl">
+        <div className="p-4 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl">
           <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
             <div className="flex items-center gap-2 flex-wrap">
               <InstitutionSourceBadge
@@ -77,20 +77,20 @@ export const ProviderDetailModal: React.FC<ProviderDetailModalProps> = ({
                 sourceId={provider.registrationSourceId || provider.id}
                 showId={Boolean(provider.registrationSourceId)}
               />
-              <span className="text-xs font-bold text-slate-700 bg-slate-200 px-2.5 py-0.5 rounded-md">
+              <span className="text-xs font-bold text-slate-700 dark:text-slate-200 bg-slate-200 dark:bg-slate-700 px-2.5 py-0.5 rounded-md">
                 Jenis: {provider.providerType}
               </span>
               <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-md ${
                 (provider.institutionStatus || 'Swasta') === 'Negeri'
-                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                  : 'bg-slate-100 text-slate-600 border border-slate-200'
+                  ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700'
               }`}>
                 Status: {provider.institutionStatus || 'Swasta'}
               </span>
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-500">Status e-Vokasi:</span>
+              <span className="text-xs text-slate-500 dark:text-slate-400">Status e-Vokasi:</span>
               <Badge
                 variant={
                   provider.evokasiVerificationStatus === 'Terverifikasi e-Vokasi'
@@ -110,31 +110,31 @@ export const ProviderDetailModal: React.FC<ProviderDetailModalProps> = ({
               <img
                 src={provider.logoUrl}
                 alt={provider.name}
-                className="w-14 h-14 object-contain rounded-xl border border-slate-200 bg-white p-1.5 shrink-0 shadow-xs"
+                className="w-14 h-14 object-contain rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-1.5 shrink-0 shadow-xs"
                 onError={(e) => {
                   e.currentTarget.style.display = 'none';
                 }}
               />
             ) : (
-              <div className="w-14 h-14 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0">
+              <div className="w-14 h-14 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center shrink-0">
                 <Building2 className="w-7 h-7 text-slate-400" />
               </div>
             )}
 
             <div className="min-w-0 flex-1">
-              <h3 className="text-lg font-bold text-slate-900 leading-snug">{provider.name}</h3>
+              <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 leading-snug">{provider.name}</h3>
 
-              <div className="flex items-center gap-2 text-xs text-slate-600 mt-1 flex-wrap">
+              <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400 mt-1 flex-wrap">
                 <span className="flex items-center gap-1 font-medium">
                   <MapPin className="w-3.5 h-3.5 text-slate-400" />
                   <span>{provider.kabupatenKota}, {provider.provinsi}</span>
                 </span>
                 <span>•</span>
-                <span className="font-semibold text-slate-800">Akreditasi: {provider.accreditation}</span>
+                <span className="font-semibold text-slate-800 dark:text-slate-200">Akreditasi: {provider.accreditation}</span>
                 {provider.procurementMethod && (
                   <>
                     <span>•</span>
-                    <span className="font-semibold text-slate-800">
+                    <span className="font-semibold text-slate-800 dark:text-slate-200">
                       Skema penyelenggaraan: {provider.procurementMethod}
                     </span>
                   </>
@@ -142,22 +142,22 @@ export const ProviderDetailModal: React.FC<ProviderDetailModalProps> = ({
               </div>
 
               {provider.address && (
-                <p className="text-xs text-slate-500 mt-2 leading-relaxed bg-white/70 p-2 rounded-lg border border-slate-200/60">
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 leading-relaxed bg-white/70 dark:bg-slate-800/70 p-2 rounded-lg border border-slate-200/60 dark:border-slate-700/60">
                   {provider.address}
                 </p>
               )}
             </div>
           </div>
 
-          <div className="mt-4 pt-3 border-t border-slate-200/80">
-            <h4 className="text-sm font-semibold text-slate-800 mb-3">Identitas Lembaga</h4>
+          <div className="mt-4 pt-3 border-t border-slate-200/80 dark:border-slate-700/80">
+            <h4 className="text-sm font-semibold text-slate-800 dark:text-slate-200 mb-3">Identitas Lembaga</h4>
             <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
               <div>
-                <dt className="text-xs text-slate-500">Pimpinan Lembaga</dt>
-                <dd className="font-medium text-slate-800">{provider.leaderName || 'Belum tersedia di data sumber'}</dd>
+                <dt className="text-xs text-slate-500 dark:text-slate-400">Pimpinan Lembaga</dt>
+                <dd className="font-medium text-slate-800 dark:text-slate-200">{provider.leaderName || 'Belum tersedia di data sumber'}</dd>
               </div>
               <div>
-                <dt className="text-xs text-slate-500">Jabatan Pimpinan</dt>
+                <dt className="text-xs text-slate-500 dark:text-slate-400">Jabatan Pimpinan</dt>
                 <dd className="font-medium text-slate-800">{provider.leaderPosition || 'Belum tersedia di data sumber'}</dd>
               </div>
               <div>
@@ -212,34 +212,34 @@ export const ProviderDetailModal: React.FC<ProviderDetailModalProps> = ({
 
         {/* Institution readiness metrics */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div className="p-3 bg-white border border-slate-200 rounded-xl text-center">
-            <Users className="w-4 h-4 mx-auto text-blue-600 mb-1" />
-            <span className="text-[11px] text-slate-400 uppercase font-bold block">Jumlah Kelas</span>
-            <span className="text-base font-extrabold text-slate-800">
+          <div className="p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-center">
+            <Users className="w-4 h-4 mx-auto text-blue-600 dark:text-blue-400 mb-1" />
+            <span className="text-[11px] text-slate-400 dark:text-slate-500 uppercase font-bold block">Jumlah Kelas</span>
+            <span className="text-base font-extrabold text-slate-800 dark:text-slate-200">
               {provider.classCount == null ? 'Belum tersedia' : `${provider.classCount} Kelas`}
             </span>
           </div>
 
-          <div className="p-3 bg-white border border-slate-200 rounded-xl text-center">
-            <Users className="w-4 h-4 mx-auto text-blue-600 mb-1" />
-            <span className="text-[11px] text-slate-400 uppercase font-bold block">Peserta Siap Mengikuti Pelatihan</span>
-            <span className="text-base font-extrabold text-slate-800">
+          <div className="p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-center">
+            <Users className="w-4 h-4 mx-auto text-blue-600 dark:text-blue-400 mb-1" />
+            <span className="text-[11px] text-slate-400 dark:text-slate-500 uppercase font-bold block">Peserta Siap Mengikuti Pelatihan</span>
+            <span className="text-base font-extrabold text-slate-800 dark:text-slate-200">
               {provider.readyParticipantCount == null ? 'Belum tersedia' : `${provider.readyParticipantCount} Orang`}
             </span>
           </div>
 
-          <div className="p-3 bg-white border border-slate-200 rounded-xl text-center">
-            <Award className="w-4 h-4 mx-auto text-emerald-600 mb-1" />
-            <span className="text-[11px] text-slate-400 uppercase font-bold block">Instruktur Tersertifikasi</span>
-            <span className="text-base font-extrabold text-slate-800">
+          <div className="p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-center">
+            <Award className="w-4 h-4 mx-auto text-emerald-600 dark:text-emerald-400 mb-1" />
+            <span className="text-[11px] text-slate-400 dark:text-slate-500 uppercase font-bold block">Instruktur Tersertifikasi</span>
+            <span className="text-base font-extrabold text-slate-800 dark:text-slate-200">
               {provider.certifiedInstructorsCount == null ? 'Belum tersedia' : `${provider.certifiedInstructorsCount} Orang`}
             </span>
           </div>
 
-          <div className="p-3 bg-white border border-slate-200 rounded-xl text-center">
-            <Flame className="w-4 h-4 mx-auto text-amber-500 mb-1" />
-            <span className="text-[11px] text-slate-400 uppercase font-bold block">Skor Kesiapan Operasional</span>
-            <span className="text-base font-extrabold text-blue-600">
+          <div className="p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-center">
+            <Flame className="w-4 h-4 mx-auto text-amber-500 dark:text-amber-400 mb-1" />
+            <span className="text-[11px] text-slate-400 dark:text-slate-500 uppercase font-bold block">Skor Kesiapan Operasional</span>
+            <span className="text-base font-extrabold text-blue-600 dark:text-blue-400">
               {provider.operationalReadinessScore == null ? 'Belum tersedia' : `${provider.operationalReadinessScore} / 100`}
             </span>
           </div>
@@ -247,39 +247,39 @@ export const ProviderDetailModal: React.FC<ProviderDetailModalProps> = ({
 
         {/* Sector expertise and associated occupations */}
         <div>
-          <span className="text-xs font-bold text-slate-700 uppercase tracking-wider block mb-2">
+          <span className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider block mb-2">
             Sektor & Bidang Spesialisasi:
           </span>
           <div className="space-y-3">
             {sectorOfferings.length > 0 ? sectorOfferings.map(({ sector, occupations }) => (
               <div
                 key={sector}
-                className="rounded-lg border border-slate-200 bg-slate-50 p-3"
+                className="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 p-3"
               >
-                <span className="block text-xs text-slate-500">Sektor Keahlian</span>
-                <span className="font-semibold text-slate-800">{sector}</span>
-                <div className="mt-2 border-t border-slate-200 pt-2">
-                  <span className="block text-xs text-slate-500">Jabatan</span>
+                <span className="block text-xs text-slate-500 dark:text-slate-400">Sektor Keahlian</span>
+                <span className="font-semibold text-slate-800 dark:text-slate-200">{sector}</span>
+                <div className="mt-2 border-t border-slate-200 dark:border-slate-700 pt-2">
+                  <span className="block text-xs text-slate-500 dark:text-slate-400">Jabatan</span>
                   {occupations.length > 0 ? (
-                    <ul className="mt-1 list-inside list-disc space-y-1 text-sm text-slate-700">
+                    <ul className="mt-1 list-inside list-disc space-y-1 text-sm text-slate-700 dark:text-slate-300">
                       {occupations.map((occupation) => (
                         <li key={occupation}>{occupation}</li>
                       ))}
                     </ul>
                   ) : (
-                    <span className="mt-1 block text-sm text-slate-500">Belum tersedia di data sumber</span>
+                    <span className="mt-1 block text-sm text-slate-500 dark:text-slate-400">Belum tersedia di data sumber</span>
                   )}
                 </div>
               </div>
             )) : (
-              <p className="text-sm text-slate-500">Data sektor dan jabatan belum tersedia.</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400">Data sektor dan jabatan belum tersedia.</p>
             )}
           </div>
         </div>
 
         {/* Negara Tujuan Penempatan */}
         <div>
-          <span className="text-xs font-bold text-slate-700 uppercase tracking-wider block mb-2">
+          <span className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider block mb-2">
             Negara Tujuan Penempatan:
           </span>
           {provider.supportedCountries && provider.supportedCountries.length > 0 ? (
@@ -287,38 +287,38 @@ export const ProviderDetailModal: React.FC<ProviderDetailModalProps> = ({
               {provider.supportedCountries.map((country, idx) => (
                 <span
                   key={idx}
-                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200 shadow-xs"
+                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 shadow-xs"
                 >
-                  <Globe className="w-3.5 h-3.5 text-emerald-600" />
+                  <Globe className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                   <span>{country}</span>
                 </span>
               ))}
             </div>
           ) : (
-            <p className="text-xs text-slate-500 italic">Belum ada negara tujuan penempatan yang ditentukan.</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 italic">Belum ada negara tujuan penempatan yang ditentukan.</p>
           )}
         </div>
 
         {/* Fasilitas & Sarana Lab */}
         <div>
-          <span className="text-xs font-bold text-slate-700 uppercase tracking-wider block mb-2">
+          <span className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider block mb-2">
             Kelengkapan Fasilitas Laboratorium & Workshop Standar:
           </span>
           <div className="space-y-2">
             {provider.facilities.map((facility, idx) => (
               <div
                 key={idx}
-                className="flex items-start gap-2.5 p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs"
+                className="flex items-start gap-2.5 p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs"
               >
-                <Check className="w-4 h-4 text-emerald-600 mt-0.5 shrink-0" />
-                <span className="text-slate-800 font-medium leading-relaxed">{facility}</span>
+                <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400 mt-0.5 shrink-0" />
+                <span className="text-slate-800 dark:text-slate-200 font-medium leading-relaxed">{facility}</span>
               </div>
             ))}
           </div>
         </div>
 
         {/* Quick Action Verifikasi e-Vokasi & Allocation */}
-        <div className="flex flex-wrap items-center justify-between pt-4 border-t border-slate-200 gap-3">
+        <div className="flex flex-wrap items-center justify-between pt-4 border-t border-slate-200 dark:border-slate-800 gap-3">
           <p className="text-xs text-muted-foreground">
             Status e-Vokasi ditampilkan dari data tersimpan/sinkronisasi; verifikasi eksternal tidak dapat disimulasikan dari sini.
           </p>

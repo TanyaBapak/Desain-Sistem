@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import axios from "axios";
-import * as XLSX from "xlsx";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -67,6 +66,7 @@ export function UserCredentialsExportDialog({
       const filename = `Kredensial_Akun_Pengguna_${timestamp}`;
 
       if (format === "xlsx") {
+        const XLSX = await import("xlsx");
         const rows = usersData.map((u, idx) => ({
           No: idx + 1,
           "Nama Lengkap": u.name,

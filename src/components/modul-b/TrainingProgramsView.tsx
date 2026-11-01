@@ -106,7 +106,7 @@ export const TrainingProgramsView: React.FC = () => {
             <button
               onClick={handleSyncFromProviders}
               disabled={syncing}
-              className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors shadow-sm disabled:opacity-60"
+              className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm disabled:opacity-60"
             >
               <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
               <span>{syncing ? 'Menarik Program...' : 'Tarik Program dari Lembaga Vokasi'}</span>
@@ -116,7 +116,7 @@ export const TrainingProgramsView: React.FC = () => {
       </div>
 
       {/* Control & Tab Filter Bar */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-4">
+      <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
           {/* Category Tabs */}
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 no-scrollbar">
@@ -130,7 +130,7 @@ export const TrainingProgramsView: React.FC = () => {
                   className={`px-3 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap ${
                     isActive
                       ? 'bg-blue-600 text-white shadow-xs'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
                   }`}
                 >
                   {cat}
@@ -141,11 +141,11 @@ export const TrainingProgramsView: React.FC = () => {
 
           {/* Target Country Filter */}
           <div className="flex items-center gap-2">
-            <label className="text-xs text-slate-500 font-semibold whitespace-nowrap">Negara:</label>
+            <label className="text-xs text-slate-500 dark:text-slate-400 font-semibold whitespace-nowrap">Negara:</label>
             <select
               value={filterProgramCountry}
               onChange={(e) => setFilterProgramCountry(e.target.value)}
-              className="text-xs py-1.5 px-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+              className="text-xs py-1.5 px-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
             >
               <option value="ALL">Semua Negara</option>
               {businessOptions.countries.map((country) => (
@@ -163,7 +163,7 @@ export const TrainingProgramsView: React.FC = () => {
             value={searchProgram}
             onChange={(e) => setSearchProgram(e.target.value)}
             placeholder="Cari program pelatihan, sertifikasi (misal: SSW Tokutei Ginou, BNSP, B1), atau sektor..."
-            className="w-full pl-10 pr-4 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition"
+            className="w-full pl-10 pr-4 py-2 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white dark:focus:bg-slate-800 transition"
           />
         </div>
       </div>

@@ -286,7 +286,7 @@ export const ProvidersView: React.FC = () => {
       </div>
 
       {/* Control & Filter Bar matching https://vokasi.kp2mi.go.id/cari-lembaga */}
-      <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4">
+      <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
         {/* Row 1: Search Input */}
         <div className="relative">
           <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -295,12 +295,12 @@ export const ProvidersView: React.FC = () => {
             value={searchProvider}
             onChange={(e) => setSearchProvider(e.target.value)}
             placeholder="Cari Nama Lembaga atau Pelatihan Lembaga (contoh: SMKS Taruna, BBPVP Bandung, LPK Jepang, Caregiver, Rekam Medis)..."
-            className="w-full pl-10 pr-4 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition"
+            className="w-full pl-10 pr-4 py-2.5 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white dark:focus:bg-slate-800 transition"
           />
         </div>
 
         {/* Row 2: Provider Type Tabs */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 no-scrollbar border-b border-slate-100 pb-3">
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 no-scrollbar border-b border-slate-100 dark:border-slate-800 pb-3">
           {providerTypeOptions.map((opt) => {
             const isActive = filterProviderType === opt.id;
             return (
@@ -310,7 +310,7 @@ export const ProvidersView: React.FC = () => {
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap ${
                   isActive
                     ? 'bg-blue-600 text-white shadow-xs'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
                 }`}
               >
                 {opt.label}
@@ -323,11 +323,11 @@ export const ProvidersView: React.FC = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
           {/* Filter Sektor */}
           <div className="space-y-1">
-            <label className="text-[11px] text-slate-500 font-semibold block">Sektor Spesialisasi:</label>
+            <label className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold block">Sektor Spesialisasi:</label>
             <select
               value={filterProviderSector}
               onChange={(e) => setFilterProviderSector(e.target.value)}
-              className="w-full py-2 px-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-slate-700"
+              className="w-full py-2 px-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-slate-700 dark:text-slate-200"
             >
               <option value="ALL">Semua Sektor Vokasi</option>
               {sectorOptions.map((sec) => (
@@ -338,11 +338,11 @@ export const ProvidersView: React.FC = () => {
 
           {/* Filter Provinsi */}
           <div className="space-y-1">
-            <label className="text-[11px] text-slate-500 font-semibold block">Provinsi:</label>
+            <label className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold block">Provinsi:</label>
             <select
               value={filterProviderProvince}
               onChange={(e) => setFilterProviderProvince(e.target.value)}
-              className="w-full py-2 px-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-slate-700"
+              className="w-full py-2 px-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-slate-700 dark:text-slate-200"
             >
               <option value="ALL">Semua Provinsi</option>
               {provinceOptions.filter(x => x !== 'ALL').map((prov) => (
@@ -353,11 +353,11 @@ export const ProvidersView: React.FC = () => {
 
           {/* Filter Status Lembaga (Negeri / Swasta) */}
           <div className="space-y-1">
-            <label className="text-[11px] text-slate-500 font-semibold block">Status Kepemilikan:</label>
+            <label className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold block">Status Kepemilikan:</label>
             <select
               value={filterInstitutionStatus}
               onChange={(e) => setFilterInstitutionStatus(e.target.value)}
-              className="w-full py-2 px-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-slate-700"
+              className="w-full py-2 px-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-slate-700 dark:text-slate-200"
             >
               <option value="ALL">Semua Status (Negeri & Swasta)</option>
               <option value="Negeri">Negeri (Pemerintah)</option>
@@ -367,11 +367,11 @@ export const ProvidersView: React.FC = () => {
 
           {/* Filter Status e-Vokasi */}
           <div className="space-y-1">
-            <label className="text-[11px] text-slate-500 font-semibold block">Status e-Vokasi:</label>
+            <label className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold block">Status e-Vokasi:</label>
             <select
               value={filterEvokasiStatus}
               onChange={(e) => setFilterEvokasiStatus(e.target.value)}
-              className="w-full py-2 px-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-slate-700"
+              className="w-full py-2 px-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-slate-700 dark:text-slate-200"
             >
               <option value="ALL">Semua Status Verifikasi</option>
               <option value="Terverifikasi e-Vokasi">Terverifikasi e-Vokasi</option>
@@ -434,10 +434,10 @@ export const ProvidersView: React.FC = () => {
           ))}
         </div>
       ) : (
-        <div className="p-12 text-center bg-white rounded-2xl border border-slate-200 space-y-3">
-          <Building2 className="w-12 h-12 text-slate-300 mx-auto" />
-          <h4 className="text-base font-bold text-slate-800">Tidak ada lembaga vokasi yang cocok</h4>
-          <p className="text-xs text-slate-500 max-w-md mx-auto">
+        <div className="p-12 text-center bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-3">
+          <Building2 className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto" />
+          <h4 className="text-base font-bold text-slate-800 dark:text-slate-200">Tidak ada lembaga vokasi yang cocok</h4>
+          <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto">
             Coba ubah kata kunci pencarian atau sesuaikan filter jenis lembaga, provinsi, dan sektor vokasi.
           </p>
           <button
@@ -447,7 +447,7 @@ export const ProvidersView: React.FC = () => {
               setFilterProviderProvince('ALL');
               setFilterProviderSector('ALL');
             }}
-            className="px-4 py-2 text-xs font-bold bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-100 transition inline-block"
+            className="px-4 py-2 text-xs font-bold bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 rounded-xl hover:bg-blue-100 dark:hover:bg-blue-900/60 transition inline-block"
           >
             Reset Filter Pencarian
           </button>
@@ -456,9 +456,9 @@ export const ProvidersView: React.FC = () => {
 
       {/* Pagination Controls */}
       {totalPages > 1 && (
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white px-5 py-3.5 rounded-2xl border border-slate-200 shadow-xs">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white dark:bg-slate-900 px-5 py-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1.5 text-xs text-slate-500">
+            <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
               <span>Tampilkan:</span>
               <select
                 value={itemsPerPage}
@@ -466,7 +466,7 @@ export const ProvidersView: React.FC = () => {
                   setItemsPerPage(Number(e.target.value));
                   setCurrentPage(1);
                 }}
-                className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-700"
+                className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-1 text-xs font-semibold text-slate-700 dark:text-slate-200"
                 aria-label="Pilihan jumlah kartu per halaman"
               >
                 {[12, 24, 60, 100, 150].map((size) => (
@@ -476,9 +476,9 @@ export const ProvidersView: React.FC = () => {
                 ))}
               </select>
             </div>
-            <span className="text-xs text-slate-500 font-medium">
-              Halaman <span className="font-bold text-slate-800">{currentPage}</span> dari{' '}
-              <span className="font-bold text-slate-800">{totalPages}</span>
+            <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+              Halaman <span className="font-bold text-slate-800 dark:text-slate-200">{currentPage}</span> dari{' '}
+              <span className="font-bold text-slate-800 dark:text-slate-200">{totalPages}</span>
             </span>
           </div>
 
@@ -486,7 +486,7 @@ export const ProvidersView: React.FC = () => {
             <button
               onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
               disabled={currentPage === 1}
-              className="px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition flex items-center gap-1"
+              className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition flex items-center gap-1"
             >
               <ChevronLeft className="w-3.5 h-3.5" />
               <span>Sebelumnya</span>
@@ -507,7 +507,7 @@ export const ProvidersView: React.FC = () => {
                     className={`w-8 h-8 rounded-lg text-xs font-bold transition ${
                       isActive
                         ? 'bg-blue-600 text-white shadow-xs'
-                        : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+                        : 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
                     }`}
                   >
                     {pageNumber}
@@ -519,7 +519,7 @@ export const ProvidersView: React.FC = () => {
             <button
               onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
               disabled={currentPage === totalPages}
-              className="px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition flex items-center gap-1"
+              className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition flex items-center gap-1"
             >
               <span>Selanjutnya</span>
               <ChevronRight className="w-3.5 h-3.5" />

@@ -49,33 +49,33 @@ export const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({
     >
       <div className="space-y-6">
         {/* Profile Card Header (Nama, NIK, Domisili, Status) */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-200 gap-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-700 gap-4">
           <div className="flex items-center gap-4">
             <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-blue-700 to-indigo-600 text-white font-extrabold text-xl flex items-center justify-center shadow-md shrink-0">
               {candidate.fullName.charAt(0)}
             </div>
             <div>
               <div className="flex flex-wrap items-center gap-2">
-                <h4 className="text-lg font-bold text-slate-900">{candidate.fullName}</h4>
-                <span className="text-xs px-2 py-0.5 rounded bg-slate-200 text-slate-700 font-semibold">
+                <h4 className="text-lg font-bold text-slate-900 dark:text-slate-100">{candidate.fullName}</h4>
+                <span className="text-xs px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold">
                   {candidate.gender === 'L' ? 'Laki-laki' : 'Perempuan'}
                 </span>
                 {candidate.sourceType && (
                   <span
                     className={`text-[10px] font-bold px-2 py-0.5 rounded border ${
                       candidate.sourceType.includes('Gardata')
-                        ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                        ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800'
                         : candidate.sourceType === 'Disnaker Pemda'
-                        ? 'bg-amber-50 text-amber-800 border-amber-300'
-                        : 'bg-purple-50 text-purple-800 border-purple-300'
+                        ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-800'
+                        : 'bg-purple-50 dark:bg-purple-950/60 text-purple-800 dark:text-purple-300 border-purple-300 dark:border-purple-800'
                     }`}
                   >
                     Sumber: {candidate.sourceType}
                   </span>
                 )}
               </div>
-              <p className="text-xs text-slate-500 font-mono mt-0.5">NIK: {candidate.nik}</p>
-              <div className="flex items-center gap-1.5 text-xs text-slate-600 mt-1">
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-mono mt-0.5">NIK: {candidate.nik}</p>
+              <div className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-300 mt-1">
                 <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                 <span className="font-semibold">{candidate.kabupatenKota}, {candidate.provinsi}</span>
               </div>
@@ -84,7 +84,7 @@ export const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({
 
           <div className="flex flex-col items-start sm:items-end gap-2 w-full sm:w-auto">
             <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-500">Status Verifikasi:</span>
+              <span className="text-xs text-slate-500 dark:text-slate-400">Status Verifikasi:</span>
               <Badge
                 variant={
                   candidate.verificationStatus === 'Verified'
@@ -102,7 +102,7 @@ export const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-500">Kesiapan Kerja:</span>
+              <span className="text-xs text-slate-500 dark:text-slate-400">Kesiapan Kerja:</span>
               <Badge
                 variant={
                   candidate.readinessStatus === 'Ready for Placement'
@@ -121,32 +121,32 @@ export const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({
         {/* 9 Komponen Pemetaan Utama Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* 1. Pendidikan & Lembaga Asal */}
-          <div className="p-4 rounded-xl border border-slate-200 bg-white">
-            <div className="flex items-center gap-2 text-blue-700 font-bold text-sm mb-3">
+          <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+            <div className="flex items-center gap-2 text-blue-700 dark:text-blue-400 font-bold text-sm mb-3">
               <GraduationCap className="w-4 h-4" />
               <span>1. Latar Belakang Pendidikan</span>
             </div>
             <div className="space-y-2 text-xs">
               <div>
-                <span className="text-slate-500 block">Jenjang & Nama Sekolah / Lembaga:</span>
-                <span className="font-bold text-slate-800 text-sm">{candidate.educationLevel} — {candidate.institutionName}</span>
+                <span className="text-slate-500 dark:text-slate-400 block">Jenjang & Nama Sekolah / Lembaga:</span>
+                <span className="font-bold text-slate-800 dark:text-slate-200 text-sm">{candidate.educationLevel} — {candidate.institutionName}</span>
               </div>
               {candidate.createdBy && (
                 <div>
-                  <span className="text-slate-500 block">Pengguna / Pembuat:</span>
-                  <span className="font-semibold text-slate-700">{candidate.createdBy}</span>
+                  <span className="text-slate-500 dark:text-slate-400 block">Pengguna / Pembuat:</span>
+                  <span className="font-semibold text-slate-700 dark:text-slate-300">{candidate.createdBy}</span>
                 </div>
               )}
               <div>
-                <span className="text-slate-500 block">Jurusan / Konsentrasi:</span>
-                <span className="font-semibold text-slate-700">{candidate.major}</span>
+                <span className="text-slate-500 dark:text-slate-400 block">Jurusan / Konsentrasi:</span>
+                <span className="font-semibold text-slate-700 dark:text-slate-300">{candidate.major}</span>
               </div>
             </div>
           </div>
 
           {/* 2. Kemahiran Bahasa Asing */}
-          <div className="p-4 rounded-xl border border-slate-200 bg-white">
-            <div className="flex items-center gap-2 text-indigo-700 font-bold text-sm mb-3">
+          <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+            <div className="flex items-center gap-2 text-indigo-700 dark:text-indigo-400 font-bold text-sm mb-3">
               <Languages className="w-4 h-4" />
               <span>2. Kemampuan Bahasa Asing</span>
             </div>
@@ -154,28 +154,28 @@ export const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({
               {candidate.languageProficiency.map((lp, idx) => (
                 <div
                   key={idx}
-                  className="flex items-center gap-2 bg-indigo-50 border border-indigo-200 rounded-lg px-3 py-1.5 text-xs"
+                  className="flex items-center gap-2 bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 rounded-lg px-3 py-1.5 text-xs"
                 >
-                  <span className="font-bold text-indigo-950">{lp.language}:</span>
-                  <span className="px-2 py-0.5 rounded bg-white text-indigo-700 font-bold shadow-xs">
+                  <span className="font-bold text-indigo-950 dark:text-indigo-200">{lp.language}:</span>
+                  <span className="px-2 py-0.5 rounded bg-white dark:bg-slate-800 text-indigo-700 dark:text-indigo-300 font-bold shadow-xs">
                     {lp.level}
                   </span>
                 </div>
               ))}
               {candidate.languageProficiency.length === 0 && (
-                <span className="text-xs text-slate-400">Belum ada catatan kemahiran bahasa.</span>
+                <span className="text-xs text-slate-400 dark:text-slate-500">Belum ada catatan kemahiran bahasa.</span>
               )}
             </div>
           </div>
 
           {/* 3. Pengalaman Kerja (Bidang & Lama Pengalaman) */}
-          <div className="p-4 rounded-xl border border-slate-200 bg-white md:col-span-2">
+          <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 md:col-span-2">
             <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2 text-amber-700 font-bold text-sm">
+              <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400 font-bold text-sm">
                 <Briefcase className="w-4 h-4" />
                 <span>3. Pengalaman Kerja / Magang Industri</span>
               </div>
-              <span className="text-xs text-slate-500">
+              <span className="text-xs text-slate-500 dark:text-slate-400">
                 {candidate.workExperiences && candidate.workExperiences.length > 0
                   ? `${candidate.workExperiences.reduce((acc, curr) => acc + curr.durationYears, 0).toFixed(1)} Tahun Total Pengalaman`
                   : 'Fresh Graduate'}
@@ -185,26 +185,26 @@ export const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({
             {candidate.workExperiences && candidate.workExperiences.length > 0 ? (
               <div className="space-y-2 mt-2">
                 {candidate.workExperiences.map((exp, idx) => (
-                  <div key={idx} className="p-3 rounded-lg bg-amber-50/50 border border-amber-200/70 text-xs">
+                  <div key={idx} className="p-3 rounded-lg bg-amber-50/50 dark:bg-amber-950/40 border border-amber-200/70 dark:border-amber-800/60 text-xs">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
                       <div className="flex items-center gap-2">
-                        <span className="font-bold text-slate-900 text-sm">{exp.role}</span>
-                        <span className="px-2 py-0.5 rounded bg-amber-100 text-amber-800 font-semibold text-[11px]">
+                        <span className="font-bold text-slate-900 dark:text-slate-100 text-sm">{exp.role}</span>
+                        <span className="px-2 py-0.5 rounded bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-200 font-semibold text-[11px]">
                           Bidang: {exp.sector}
                         </span>
                       </div>
-                      <span className="text-slate-600 font-semibold">
-                        Lama: <strong className="text-amber-800">{exp.durationYears} Tahun</strong>
+                      <span className="text-slate-600 dark:text-slate-400 font-semibold">
+                        Lama: <strong className="text-amber-800 dark:text-amber-400">{exp.durationYears} Tahun</strong>
                       </span>
                     </div>
                     {exp.companyName && (
-                      <div className="flex items-center gap-1.5 text-slate-600 mt-1">
+                      <div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-400 mt-1">
                         <Building className="w-3.5 h-3.5 text-slate-400" />
                         <span>{exp.companyName}</span>
                       </div>
                     )}
                     {exp.description && (
-                      <p className="text-slate-600 mt-1 text-[11px] leading-relaxed">
+                      <p className="text-slate-600 dark:text-slate-400 mt-1 text-[11px] leading-relaxed">
                         {exp.description}
                       </p>
                     )}
@@ -212,33 +212,33 @@ export const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({
                 ))}
               </div>
             ) : (
-              <div className="p-3 rounded-lg bg-slate-50 border border-slate-200 text-xs text-slate-500 italic">
+              <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 text-xs text-slate-500 dark:text-slate-400 italic">
                 Lulusan baru (Fresh Graduate) / belum memiliki riwayat pekerjaan formal sebelum diklat.
               </div>
             )}
           </div>
 
           {/* 4. Sertifikasi Kompetensi yang Dimiliki */}
-          <div className="p-4 rounded-xl border border-slate-200 bg-white md:col-span-2">
-            <div className="flex items-center gap-2 text-emerald-700 font-bold text-sm mb-2">
+          <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 md:col-span-2">
+            <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400 font-bold text-sm mb-2">
               <Award className="w-4 h-4" />
               <span>4. Sertifikasi Kompetensi yang Dimiliki</span>
             </div>
             {candidate.certifications && candidate.certifications.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
                 {candidate.certifications.map((cert, idx) => (
-                  <div key={idx} className="p-3 rounded-lg bg-emerald-50/60 border border-emerald-200 text-xs">
+                  <div key={idx} className="p-3 rounded-lg bg-emerald-50/60 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-xs">
                     <div className="flex items-start justify-between gap-2">
-                      <span className="font-bold text-emerald-950 block">{cert.name}</span>
+                      <span className="font-bold text-emerald-950 dark:text-emerald-200 block">{cert.name}</span>
                       <span className="shrink-0 px-1.5 py-0.5 rounded bg-emerald-600 text-white font-bold text-[10px]">
                         VALID
                       </span>
                     </div>
-                    <span className="text-emerald-800 text-[11px] block mt-1">
+                    <span className="text-emerald-800 dark:text-emerald-300 text-[11px] block mt-1">
                       Penerbit: <strong>{cert.issuer}</strong>
                     </span>
                     {cert.validUntil && (
-                      <span className="text-[11px] text-slate-500 block mt-0.5">
+                      <span className="text-[11px] text-slate-500 dark:text-slate-400 block mt-0.5">
                         Berlaku hingga: {cert.validUntil}
                       </span>
                     )}
@@ -246,23 +246,23 @@ export const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({
                 ))}
               </div>
             ) : (
-              <div className="p-3 rounded-lg bg-slate-50 border border-slate-200 text-xs text-slate-500 italic">
+              <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 text-xs text-slate-500 dark:text-slate-400 italic">
                 Belum terdaftar memiliki sertifikat kompetensi resmi (kandidat perlu uji kompetensi di Modul B).
               </div>
             )}
           </div>
 
           {/* 5. Keterampilan / Kompetensi Teknis */}
-          <div className="p-4 rounded-xl border border-slate-200 bg-white">
-            <div className="flex items-center gap-2 text-slate-800 font-bold text-sm mb-2">
-              <Wrench className="w-4 h-4 text-blue-600" />
+          <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+            <div className="flex items-center gap-2 text-slate-800 dark:text-slate-200 font-bold text-sm mb-2">
+              <Wrench className="w-4 h-4 text-blue-600 dark:text-blue-400" />
               <span>5. Bidang Keahlian & Keterampilan</span>
             </div>
             <div className="flex flex-wrap gap-1.5 mt-2">
               {candidate.skills.map((skill, idx) => (
                 <span
                   key={idx}
-                  className="px-2.5 py-1 rounded-md text-xs font-semibold bg-slate-100 text-slate-800 border border-slate-200"
+                  className="px-2.5 py-1 rounded-md text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700"
                 >
                   {skill}
                 </span>
@@ -271,14 +271,14 @@ export const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({
           </div>
 
           {/* 6. Preferensi Penempatan: Negara, Sektor & Jabatan */}
-          <div className="p-4 rounded-xl border border-slate-200 bg-white">
-            <div className="flex items-center gap-2 text-slate-800 font-bold text-sm mb-2">
-              <Globe className="w-4 h-4 text-blue-600" />
+          <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+            <div className="flex items-center gap-2 text-slate-800 dark:text-slate-200 font-bold text-sm mb-2">
+              <Globe className="w-4 h-4 text-blue-600 dark:text-blue-400" />
               <span>6. Peminatan Penempatan Luar Negeri</span>
             </div>
             <div className="space-y-2 text-xs mt-2">
               <div>
-                <span className="text-slate-500 block mb-1">Negara Tujuan yang Diminati:</span>
+                <span className="text-slate-500 dark:text-slate-400 block mb-1">Negara Tujuan yang Diminati:</span>
                 <div className="flex flex-wrap gap-1">
                   {candidate.preferredCountry.map((country, i) => (
                     <Badge key={i} variant="primary" size="sm">
@@ -288,15 +288,15 @@ export const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({
                 </div>
               </div>
               <div>
-                <span className="text-slate-500 block mb-1">Sektor & Jabatan yang Dipilih:</span>
+                <span className="text-slate-500 dark:text-slate-400 block mb-1">Sektor & Jabatan yang Dipilih:</span>
                 <div className="flex flex-wrap gap-1.5">
                   {candidate.preferredSectors && candidate.preferredSectors.map((sector, i) => (
-                    <span key={i} className="px-2 py-0.5 rounded bg-blue-50 border border-blue-200 text-blue-800 font-bold text-[11px]">
+                    <span key={i} className="px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-300 font-bold text-[11px]">
                       Sektor: {sector}
                     </span>
                   ))}
                   {candidate.preferredJobRole.map((role, i) => (
-                    <span key={i} className="px-2 py-0.5 rounded bg-slate-100 border border-slate-200 text-slate-800 font-medium text-[11px]">
+                    <span key={i} className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-300 font-medium text-[11px]">
                       Jabatan: {role}
                     </span>
                   ))}
@@ -307,7 +307,7 @@ export const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({
         </div>
 
         {/* Action Buttons */}
-        <div className="flex flex-wrap items-center justify-between pt-4 border-t border-slate-200 gap-3">
+        <div className="flex flex-wrap items-center justify-between pt-4 border-t border-slate-200 dark:border-slate-800 gap-3">
           {canVerify && (
             <div className="flex items-center gap-2">
               <span className="text-xs text-slate-500">Tindakan verifikasi:</span>

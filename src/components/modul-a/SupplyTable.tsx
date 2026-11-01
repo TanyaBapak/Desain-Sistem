@@ -501,9 +501,9 @@ export const SupplyTable: React.FC = () => {
           {canVerifyCandidates && (
             <button
               onClick={() => setCurrentTab('approvals')}
-              className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-white px-3 py-2 text-sm font-semibold text-blue-900 shadow-xs transition hover:bg-blue-50 sm:w-auto"
+              className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-white dark:bg-slate-800 px-3 py-2 text-sm font-semibold text-blue-900 dark:text-blue-200 border border-slate-200 dark:border-slate-700 shadow-xs transition hover:bg-blue-50 dark:hover:bg-slate-700 sm:w-auto"
             >
-              <ShieldCheck className="w-3.5 h-3.5 text-blue-600" />
+              <ShieldCheck className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
               <span>Pusat Verifikasi</span>
             </button>
           )}
@@ -512,21 +512,21 @@ export const SupplyTable: React.FC = () => {
 
       {/* KPI Summary Cards */}
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-4">
-        <div className="xl:col-span-3 bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
-          <span className="text-xs text-slate-500 font-semibold block">Total Calon PMI Terdata</span>
+        <div className="xl:col-span-3 bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs">
+          <span className="text-xs text-slate-500 dark:text-slate-400 font-semibold block">Total Calon PMI Terdata</span>
           <div className="flex items-baseline gap-2 mt-1">
-            <span className="text-2xl font-extrabold text-slate-900 tabular-nums">{candidates.length}</span>
-            <span className="text-xs text-blue-600 font-bold">Kandidat</span>
+            <span className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tabular-nums">{candidates.length}</span>
+            <span className="text-xs text-blue-600 dark:text-blue-400 font-bold">Kandidat</span>
           </div>
-          <span className="text-[11px] text-slate-400 mt-1 block">SMK, D3, & Politeknik Vokasi</span>
+          <span className="text-[11px] text-slate-400 dark:text-slate-500 mt-1 block">SMK, D3, & Politeknik Vokasi</span>
         </div>
 
-        <div className="xl:col-span-9 rounded-xl border border-slate-200 bg-white shadow-xs">
-          <div className="flex items-center justify-between px-4 py-2.5 border-b border-slate-100">
-            <h2 className="text-sm font-semibold text-slate-900">Rekap Hasil Pencarian &amp; Filter</h2>
-            <span className="text-[11px] text-slate-500">{filteredCandidates.length} dari {candidates.length} calon PMI</span>
+        <div className="xl:col-span-9 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs">
+          <div className="flex items-center justify-between px-4 py-2.5 border-b border-slate-100 dark:border-slate-800">
+            <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Rekap Hasil Pencarian &amp; Filter</h2>
+            <span className="text-[11px] text-slate-500 dark:text-slate-400">{filteredCandidates.length} dari {candidates.length} calon PMI</span>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-slate-100">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-slate-100 dark:divide-slate-800">
             {[
               { title: 'Wilayah Terbanyak', items: filteredRegionalSummary },
               { title: 'Kompetensi Terbanyak', items: filteredSkillSummary },
@@ -534,17 +534,17 @@ export const SupplyTable: React.FC = () => {
               { title: 'Jabatan Pilihan', items: filteredJobSummary },
             ].map(({ title, items }) => (
               <div key={title} className="px-4 py-3">
-                <h3 className="text-xs font-bold uppercase tracking-wide text-slate-500">{title}</h3>
+                <h3 className="text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">{title}</h3>
                 {items.length ? (
                   <ul className="mt-2 space-y-1">
                     {items.map(({ label, count }) => (
                       <li key={label} className="flex items-center justify-between gap-2">
-                        <span className="truncate text-sm text-slate-700">{label}</span>
-                        <span className="tabular-nums text-sm font-semibold text-slate-900">{count}</span>
+                        <span className="truncate text-sm text-slate-700 dark:text-slate-300">{label}</span>
+                        <span className="tabular-nums text-sm font-semibold text-slate-900 dark:text-slate-100">{count}</span>
                       </li>
                     ))}
                   </ul>
-                ) : <p className="mt-2 text-xs text-slate-400">Belum ada data</p>}
+                ) : <p className="mt-2 text-xs text-slate-400 dark:text-slate-500">Belum ada data</p>}
               </div>
             ))}
           </div>
@@ -625,7 +625,7 @@ export const SupplyTable: React.FC = () => {
       </div>
 
       {/* Filter and Control Bar (9 Dimensi Pemetaan) */}
-      <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4">
+      <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
         {/* Search Bar & Matching Action */}
         <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
           <div className="relative flex-1">
@@ -635,13 +635,13 @@ export const SupplyTable: React.FC = () => {
               value={searchCandidate}
               onChange={(e) => setSearchCandidate(e.target.value)}
               placeholder="Cari nama calon PMI, NIK, asal sekolah, jurusan, keterampilan (mis. Welder/Caregiver), sertifikasi..."
-              className="w-full pl-10 pr-4 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition"
+              className="w-full pl-10 pr-4 py-2 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white dark:focus:bg-slate-800 transition"
             />
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="text-xs text-slate-500">
-              Terpilih: <strong className="text-blue-600 tabular-nums">{selectedCandidateIds.length}</strong> Calon PMI
+            <span className="text-xs text-slate-500 dark:text-slate-400">
+              Terpilih: <strong className="text-blue-600 dark:text-blue-400 tabular-nums">{selectedCandidateIds.length}</strong> Calon PMI
             </span>
             {canMatchCandidates && selectedCandidateIds.length > 0 && (
               <button
@@ -655,7 +655,7 @@ export const SupplyTable: React.FC = () => {
             {hasActiveFilters && (
               <button
                 onClick={resetAllFilters}
-                className="px-3 py-2 rounded-xl text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 transition flex items-center gap-1"
+                className="px-3 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition flex items-center gap-1"
                 title="Bersihkan semua filter"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
@@ -666,14 +666,14 @@ export const SupplyTable: React.FC = () => {
         </div>
 
         {/* Filter multidimensi */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 pt-3 border-t border-slate-100">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
           {/* 1. Asal Provinsi */}
           <div>
-            <label className="text-[11px] font-bold text-slate-500 uppercase block mb-1">1. Provinsi Asal</label>
+            <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase block mb-1">1. Provinsi Asal</label>
             <select
               value={filterProvinsi}
               onChange={(e) => setFilterProvinsi(e.target.value)}
-              className="w-full text-xs py-1.5 px-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full text-xs py-1.5 px-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="ALL">Semua Provinsi</option>
               {provinsiOptions.map((prov) => (
@@ -684,11 +684,11 @@ export const SupplyTable: React.FC = () => {
 
           {/* 2. Kabupaten/Kota (Cascading dinamis) */}
           <div>
-            <label className="text-[11px] font-bold text-slate-500 uppercase block mb-1">2. Kabupaten / Kota</label>
+            <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase block mb-1">2. Kabupaten / Kota</label>
             <select
               value={filterDistrict}
               onChange={(e) => setFilterDistrict(e.target.value)}
-              className="w-full text-xs py-1.5 px-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full text-xs py-1.5 px-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="ALL">Semua Kab/Kota</option>
               {districtOptions.map((dist) => (
@@ -699,11 +699,11 @@ export const SupplyTable: React.FC = () => {
 
           {/* 3. LPK / Lembaga */}
           <div>
-            <label className="text-[11px] font-bold text-slate-500 uppercase block mb-1">3. LPK / Lembaga</label>
+            <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase block mb-1">3. LPK / Lembaga</label>
             <select
               value={filterInstitution}
               onChange={(e) => setFilterInstitution(e.target.value)}
-              className="w-full text-xs py-1.5 px-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full text-xs py-1.5 px-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="ALL">Semua LPK / Lembaga</option>
               {institutionOptions.map((inst) => (
@@ -714,11 +714,11 @@ export const SupplyTable: React.FC = () => {
 
           {/* 4. Pengguna / Pembuat */}
           <div>
-            <label className="text-[11px] font-bold text-slate-500 uppercase block mb-1">4. Pengguna / Pembuat</label>
+            <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase block mb-1">4. Pengguna / Pembuat</label>
             <select
               value={filterCreator}
               onChange={(e) => setFilterCreator(e.target.value)}
-              className="w-full text-xs py-1.5 px-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full text-xs py-1.5 px-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="ALL">Semua Pengguna</option>
               {creatorOptions.map((creator) => (
@@ -729,11 +729,11 @@ export const SupplyTable: React.FC = () => {
 
           {/* 5. Jenjang Pendidikan */}
           <div>
-            <label className="text-[11px] font-bold text-slate-500 uppercase block mb-1">5. Pendidikan</label>
+            <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase block mb-1">5. Pendidikan</label>
             <select
               value={filterEducation}
               onChange={(e) => setFilterEducation(e.target.value)}
-              className="w-full text-xs py-1.5 px-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full text-xs py-1.5 px-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="ALL">Semua Jenjang</option>
               <option value="SMK">SMK</option>
@@ -743,19 +743,19 @@ export const SupplyTable: React.FC = () => {
           </div>
 
           <div>
-            <label htmlFor="filter-major" className="text-[11px] font-bold text-slate-500 uppercase block mb-1">Jurusan</label>
+            <label htmlFor="filter-major" className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase block mb-1">Jurusan</label>
             <input
               id="filter-major"
               value={filterMajor}
               onChange={(event) => setFilterMajor(event.target.value)}
               placeholder="Cari jurusan"
-              className="w-full text-xs py-1.5 px-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full text-xs py-1.5 px-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
           <div>
-            <label className="text-[11px] font-bold text-slate-500 uppercase block mb-1">Keterampilan</label>
-            <select value={filterSkill} onChange={(event) => setFilterSkill(event.target.value)} className="w-full text-xs py-1.5 px-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase block mb-1">Keterampilan</label>
+            <select value={filterSkill} onChange={(event) => setFilterSkill(event.target.value)} className="w-full text-xs py-1.5 px-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
               <option value="ALL">Semua Keterampilan</option>
               {skillOptions.map((skill) => <option key={skill} value={skill}>{skill}</option>)}
             </select>
@@ -763,11 +763,11 @@ export const SupplyTable: React.FC = () => {
 
           {/* 6. Sektor Pilihan */}
           <div>
-            <label className="text-[11px] font-bold text-slate-500 uppercase block mb-1">6. Sektor Pilihan</label>
+            <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase block mb-1">6. Sektor Pilihan</label>
             <select
               value={filterSector}
               onChange={(e) => setFilterSector(e.target.value)}
-              className="w-full text-xs py-1.5 px-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full text-xs py-1.5 px-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="ALL">Semua Sektor</option>
               {sectorOptions.map((sec) => (
@@ -778,11 +778,11 @@ export const SupplyTable: React.FC = () => {
 
           {/* 7. Pengalaman Kerja */}
           <div>
-            <label className="text-[11px] font-bold text-slate-500 uppercase block mb-1">7. Pengalaman Kerja</label>
+            <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase block mb-1">7. Pengalaman Kerja</label>
             <select
               value={filterWorkExperience}
               onChange={(e) => setFilterWorkExperience(e.target.value)}
-              className="w-full text-xs py-1.5 px-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full text-xs py-1.5 px-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="ALL">Semua Pengalaman</option>
               <option value="fresh">Fresh Graduate / Tanpa Pengalaman</option>
@@ -794,11 +794,11 @@ export const SupplyTable: React.FC = () => {
 
           {/* 8. Sertifikasi Kompetensi */}
           <div>
-            <label className="text-[11px] font-bold text-slate-500 uppercase block mb-1">8. Sertifikasi</label>
+            <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase block mb-1">8. Sertifikasi</label>
             <select
               value={filterCertification}
               onChange={(e) => setFilterCertification(e.target.value)}
-              className="w-full text-xs py-1.5 px-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full text-xs py-1.5 px-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="ALL">Semua Sertifikasi</option>
               <option value="has_cert">Memiliki Sertifikasi (BNSP/SSW)</option>
@@ -808,11 +808,11 @@ export const SupplyTable: React.FC = () => {
 
           {/* 9. Kemahiran Bahasa */}
           <div>
-            <label className="text-[11px] font-bold text-slate-500 uppercase block mb-1">9. Bahasa Asing</label>
+            <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase block mb-1">9. Bahasa Asing</label>
             <select
               value={filterLanguage}
               onChange={(e) => setFilterLanguage(e.target.value)}
-              className="w-full text-xs py-1.5 px-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full text-xs py-1.5 px-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="ALL">Semua Bahasa</option>
               <option value="Jepang">Bahasa Jepang</option>
@@ -824,8 +824,8 @@ export const SupplyTable: React.FC = () => {
           </div>
 
           <div>
-            <label className="text-[11px] font-bold text-slate-500 uppercase block mb-1">Level Bahasa</label>
-            <select value={filterLanguageLevel} onChange={(event) => setFilterLanguageLevel(event.target.value)} className="w-full text-xs py-1.5 px-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase block mb-1">Level Bahasa</label>
+            <select value={filterLanguageLevel} onChange={(event) => setFilterLanguageLevel(event.target.value)} className="w-full text-xs py-1.5 px-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
               <option value="ALL">Semua Level</option>
               {languageLevelOptions.map((level) => <option key={level} value={level}>{level}</option>)}
             </select>
@@ -833,11 +833,11 @@ export const SupplyTable: React.FC = () => {
 
           {/* 10. Negara Tujuan */}
           <div>
-            <label className="text-[11px] font-bold text-slate-500 uppercase block mb-1">10. Negara Tujuan</label>
+            <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase block mb-1">10. Negara Tujuan</label>
             <select
               value={filterCountry}
               onChange={(e) => setFilterCountry(e.target.value)}
-              className="w-full text-xs py-1.5 px-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full text-xs py-1.5 px-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="ALL">Semua Negara</option>
               {countryOptions.map((cntry) => (
@@ -847,8 +847,8 @@ export const SupplyTable: React.FC = () => {
           </div>
 
           <div>
-            <label className="text-[11px] font-bold text-slate-500 uppercase block mb-1">Jabatan Pilihan</label>
-            <select value={filterJobRole} onChange={(event) => setFilterJobRole(event.target.value)} className="w-full text-xs py-1.5 px-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase block mb-1">Jabatan Pilihan</label>
+            <select value={filterJobRole} onChange={(event) => setFilterJobRole(event.target.value)} className="w-full text-xs py-1.5 px-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
               <option value="ALL">Semua Jabatan</option>
               {jobRoleOptions.map((role) => <option key={role} value={role}>{role}</option>)}
             </select>
@@ -856,11 +856,11 @@ export const SupplyTable: React.FC = () => {
 
           {/* 11. Status Kesiapan */}
           <div>
-            <label className="text-[11px] font-bold text-slate-500 uppercase block mb-1">11. Status Kesiapan</label>
+            <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase block mb-1">11. Status Kesiapan</label>
             <select
               value={filterReadiness}
               onChange={(e) => setFilterReadiness(e.target.value)}
-              className="w-full text-xs py-1.5 px-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full text-xs py-1.5 px-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="ALL">Semua Kesiapan</option>
               <option value="Ready for Placement">Siap Penempatan</option>
@@ -871,11 +871,11 @@ export const SupplyTable: React.FC = () => {
 
           {/* 12. Status Verifikasi */}
           <div>
-            <label className="text-[11px] font-bold text-slate-500 uppercase block mb-1">12. Status Verifikasi</label>
+            <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase block mb-1">12. Status Verifikasi</label>
             <select
               value={filterVerification}
               onChange={(e) => setFilterVerification(e.target.value)}
-              className="w-full text-xs py-1.5 px-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full text-xs py-1.5 px-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="ALL">Semua Verifikasi</option>
               <option value="Verified">Terverifikasi Sah</option>
@@ -886,15 +886,15 @@ export const SupplyTable: React.FC = () => {
         </div>
 
         {/* Selection Helper Bar */}
-        <div className="flex flex-wrap items-center justify-between text-xs bg-slate-50 px-3 py-2 rounded-xl border border-slate-200 gap-2">
+        <div className="flex flex-wrap items-center justify-between text-xs bg-slate-50 dark:bg-slate-800/60 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 gap-2">
           {canMatchCandidates && (
             <div className="flex items-center gap-2">
               <button
                 onClick={handleSelectAllToggle}
-                className="flex items-center gap-1.5 font-semibold text-slate-700 hover:text-blue-600 transition"
+                className="flex items-center gap-1.5 font-semibold text-slate-700 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400 transition"
               >
                 {allFilteredSelected ? (
-                  <CheckSquare className="w-4 h-4 text-blue-600" />
+                  <CheckSquare className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                 ) : (
                   <Square className="w-4 h-4 text-slate-400" />
                 )}
@@ -910,7 +910,7 @@ export const SupplyTable: React.FC = () => {
               )}
             </div>
           )}
-          <span className="text-slate-500 font-medium">
+          <span className="text-slate-500 dark:text-slate-400 font-medium">
             Menampilkan <strong>{filteredCandidates.length}</strong> dari {candidates.length} Calon PMI
           </span>
           <div className="flex flex-wrap gap-2">
@@ -923,16 +923,16 @@ export const SupplyTable: React.FC = () => {
                 <Upload className="h-3.5 w-3.5" aria-hidden="true" /> Unggah Data (.XLSX / CSV)
               </button>
             )}
-            <button type="button" onClick={() => exportCandidatesXlsx(filteredCandidates)} className="flex items-center gap-1 rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-100">
+            <button type="button" onClick={() => exportCandidatesXlsx(filteredCandidates)} className="flex items-center gap-1 rounded-lg border border-emerald-300 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/60 px-3 py-2 text-xs font-semibold text-emerald-800 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/60">
               <Download className="h-3.5 w-3.5" aria-hidden="true" /> Unduh Hasil Filter (.XLSX)
             </button>
-            <button type="button" onClick={() => exportCandidatesCsv(filteredCandidates)} className="flex items-center gap-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100">
+            <button type="button" onClick={() => exportCandidatesCsv(filteredCandidates)} className="flex items-center gap-1 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700">
               <Download className="h-3.5 w-3.5" aria-hidden="true" /> Unduh Hasil (CSV)
             </button>
-            <button type="button" onClick={downloadCandidateTemplateXlsx} className="flex items-center gap-1 rounded-lg border border-blue-300 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-800 hover:bg-blue-100">
+            <button type="button" onClick={downloadCandidateTemplateXlsx} className="flex items-center gap-1 rounded-lg border border-blue-300 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/60 px-3 py-2 text-xs font-semibold text-blue-800 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/60">
               <Download className="h-3.5 w-3.5" aria-hidden="true" /> Unduh Template Pengumpulan (.XLSX)
             </button>
-            <button type="button" onClick={downloadCandidateTemplate} className="flex items-center gap-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100">
+            <button type="button" onClick={downloadCandidateTemplate} className="flex items-center gap-1 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700">
               <Download className="h-3.5 w-3.5" aria-hidden="true" /> Unduh Template (CSV)
             </button>
           </div>
@@ -940,19 +940,19 @@ export const SupplyTable: React.FC = () => {
       </div>
 
       {/* Main Table View */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-4 py-3">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs overflow-hidden">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 px-4 py-3">
           <div>
-            <h2 className="text-sm font-semibold text-slate-900">Daftar Calon PMI</h2>
-            <p className="text-xs text-slate-500">Tampilan ringkas cocok untuk pimpinan; bisa beralih ke tampilan lengkap.</p>
+            <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Daftar Calon PMI</h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400">Tampilan ringkas cocok untuk pimpinan; bisa beralih ke tampilan lengkap.</p>
           </div>
           <div className="flex items-center gap-2">
-            <div className="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-1 text-xs">
+            <div className="inline-flex rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-1 text-xs">
               <button
                 type="button"
                 onClick={() => setViewMode('compact')}
                 className={`flex items-center gap-1.5 rounded-md px-2.5 py-1.5 font-semibold transition ${
-                  viewMode === 'compact' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                  viewMode === 'compact' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
                 }`}
               >
                 <List className="h-3.5 w-3.5" /> Tampilan Ringkas
@@ -961,7 +961,7 @@ export const SupplyTable: React.FC = () => {
                 type="button"
                 onClick={() => setViewMode('full')}
                 className={`flex items-center gap-1.5 rounded-md px-2.5 py-1.5 font-semibold transition ${
-                  viewMode === 'full' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                  viewMode === 'full' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
                 }`}
               >
                 <LayoutList className="h-3.5 w-3.5" /> Tampilan Lengkap
@@ -971,7 +971,7 @@ export const SupplyTable: React.FC = () => {
         </div>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[1000px] table-fixed text-left text-sm">
-            <thead className="bg-slate-50/80 border-b border-slate-200 text-xs font-bold text-slate-600 uppercase tracking-wider">
+            <thead className="bg-slate-50/80 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
               <tr>
                 {canMatchCandidates && (
                   <th className="w-[4%] py-3.5 px-2 text-center">
@@ -987,17 +987,17 @@ export const SupplyTable: React.FC = () => {
                 <th className="w-[10%] py-3.5 px-2 text-right">Aksi</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 text-slate-700">
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-300">
               {filteredCandidates.length === 0 ? (
                 <tr>
-                  <td colSpan={canMatchCandidates ? 8 : 7} className="py-12 text-center text-slate-400">
-                    <AlertCircle className="w-8 h-8 mx-auto mb-2 text-slate-300" />
-                    <p className="font-semibold text-slate-600">Tidak ada calon PMI yang cocok dengan kriteria filter</p>
-                    <p className="text-xs text-slate-400 mt-1">Coba sesuaikan kata kunci pencarian atau reset filter wilayah dan keahlian.</p>
+                  <td colSpan={canMatchCandidates ? 8 : 7} className="py-12 text-center text-slate-400 dark:text-slate-500">
+                    <AlertCircle className="w-8 h-8 mx-auto mb-2 text-slate-300 dark:text-slate-600" />
+                    <p className="font-semibold text-slate-600 dark:text-slate-300">Tidak ada calon PMI yang cocok dengan kriteria filter</p>
+                    <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Coba sesuaikan kata kunci pencarian atau reset filter wilayah dan keahlian.</p>
                     {hasActiveFilters && (
                       <button
                         onClick={resetAllFilters}
-                        className="mt-3 px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-50 text-blue-700 hover:bg-blue-100 transition"
+                        className="mt-3 px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/60 transition"
                       >
                         Reset Semua Filter
                       </button>
@@ -1014,8 +1014,8 @@ export const SupplyTable: React.FC = () => {
                   return (
                     <tr
                       key={candidate.id}
-                      className={`hover:bg-blue-50/40 transition-colors ${
-                        isSelected ? 'bg-blue-50/60 font-medium' : ''
+                      className={`hover:bg-blue-50/40 dark:hover:bg-slate-800/50 transition-colors ${
+                        isSelected ? 'bg-blue-50/60 dark:bg-blue-950/40 font-medium' : ''
                       }`}
                     >
                       {/* Checkbox */}
@@ -1025,12 +1025,12 @@ export const SupplyTable: React.FC = () => {
                             type="button"
                             onClick={() => toggleCandidateSelection(candidate.id)}
                             aria-label={`Pilih ${candidate.fullName}`}
-                            className="rounded p-1.5 text-slate-600 transition hover:bg-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                            className="rounded p-1.5 text-slate-600 dark:text-slate-400 transition hover:bg-slate-200 dark:hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                           >
                             {isSelected ? (
-                              <CheckSquare className="w-4 h-4 text-blue-600" />
+                              <CheckSquare className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                             ) : (
-                              <Square className="w-4 h-4 text-slate-300" />
+                              <Square className="w-4 h-4 text-slate-300 dark:text-slate-600" />
                             )}
                           </button>
                         </td>
@@ -1039,22 +1039,22 @@ export const SupplyTable: React.FC = () => {
                       {/* 1. Nama Lengkap, NIK Masked & Domisili */}
                       <td className="py-3 px-3">
                         <div className="flex items-start gap-2.5">
-                          <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-800 font-bold flex items-center justify-center text-xs shrink-0 mt-0.5">
+                          <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/60 text-blue-800 dark:text-blue-300 font-bold flex items-center justify-center text-xs shrink-0 mt-0.5">
                             {candidate.fullName.charAt(0)}
                           </div>
                           <div className="min-w-0">
                             <button
                               type="button"
                               onClick={() => setActiveCandidate(candidate)}
-                              className="block max-w-full truncate text-left font-bold leading-tight text-slate-900 underline-offset-2 hover:text-blue-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                              className="block max-w-full truncate text-left font-bold leading-tight text-slate-900 dark:text-slate-100 underline-offset-2 hover:text-blue-700 dark:hover:text-blue-400 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                             >
                               {candidate.fullName}
                             </button>
-                            <span className="text-[11px] text-slate-400 font-mono block">
+                            <span className="text-[11px] text-slate-400 dark:text-slate-500 font-mono block">
                               NIK: {candidate.nik}
                             </span>
-                            <div className="flex items-center gap-1 text-[11px] text-slate-600 mt-0.5">
-                              <span className="font-medium text-slate-700 truncate">
+                            <div className="flex items-center gap-1 text-[11px] text-slate-600 dark:text-slate-400 mt-0.5">
+                              <span className="font-medium text-slate-700 dark:text-slate-300 truncate">
                                 {candidate.kabupatenKota}, {candidate.provinsi}
                               </span>
                             </div>
@@ -1062,10 +1062,10 @@ export const SupplyTable: React.FC = () => {
                               <span
                                 className={`inline-block mt-1 text-[9px] font-bold px-1.5 py-0.5 rounded border ${
                                   candidate.sourceType.includes('Gardata')
-                                    ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                                    ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800'
                                     : candidate.sourceType === 'Disnaker Pemda'
-                                    ? 'bg-amber-50 text-amber-800 border-amber-300'
-                                    : 'bg-purple-50 text-purple-800 border-purple-300'
+                                    ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-800'
+                                    : 'bg-purple-50 dark:bg-purple-950/60 text-purple-800 dark:text-purple-300 border-purple-300 dark:border-purple-800'
                                 }`}
                               >
                                 Feeder: {candidate.sourceType}
@@ -1077,15 +1077,15 @@ export const SupplyTable: React.FC = () => {
 
                       {/* 2. Pendidikan, Lembaga & Pengguna */}
                       <td className="py-3 px-2">
-                        <span className="font-semibold text-slate-800 block text-xs leading-snug">
+                        <span className="font-semibold text-slate-800 dark:text-slate-200 block text-xs leading-snug">
                           {candidate.institutionName}
                         </span>
-                        <span className="text-[11px] text-slate-500 block mt-0.5">
-                          <strong className="text-blue-700">{candidate.educationLevel}</strong> — {candidate.major}
+                        <span className="text-[11px] text-slate-500 dark:text-slate-400 block mt-0.5">
+                          <strong className="text-blue-700 dark:text-blue-400">{candidate.educationLevel}</strong> — {candidate.major}
                         </span>
                         {candidate.createdBy && (
-                          <span className="text-[10px] text-slate-400 block mt-0.5 truncate max-w-[220px]" title={`Pengguna / Pembuat: ${candidate.createdBy}`}>
-                            Oleh: <span className="text-slate-600 font-medium">{candidate.createdBy}</span>
+                          <span className="text-[10px] text-slate-400 dark:text-slate-500 block mt-0.5 truncate max-w-[220px]" title={`Pengguna / Pembuat: ${candidate.createdBy}`}>
+                            Oleh: <span className="text-slate-600 dark:text-slate-300 font-medium">{candidate.createdBy}</span>
                           </span>
                         )}
                       </td>
@@ -1096,24 +1096,24 @@ export const SupplyTable: React.FC = () => {
                           {(viewMode === 'compact' ? candidate.skills.slice(0, 3) : candidate.skills.slice(0, 2)).map((sk, idx) => (
                             <span
                               key={idx}
-                              className="rounded px-1.5 py-0.5 text-[10px] font-semibold bg-slate-100 text-slate-700 border border-slate-200"
+                              className="rounded px-1.5 py-0.5 text-[10px] font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700"
                             >
                               {sk}
                             </span>
                           ))}
                           {(viewMode === 'compact' ? candidate.skills.length > 3 : candidate.skills.length > 2) && (
-                            <span className="text-[10px] text-slate-400 font-semibold self-center">
+                            <span className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold self-center">
                               +{viewMode === 'compact' ? candidate.skills.length - 3 : candidate.skills.length - 2}
                             </span>
                           )}
                         </div>
                         {candidate.certifications && candidate.certifications.length > 0 ? (
-                          <div className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-50 border border-emerald-200 text-emerald-800 text-[10px] font-bold">
-                            <Award className="w-3 h-3 text-emerald-600 shrink-0" />
+                          <div className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 text-[10px] font-bold">
+                            <Award className="w-3 h-3 text-emerald-600 dark:text-emerald-400 shrink-0" />
                             <span className="truncate max-w-[140px]">{candidate.certifications[0].name}</span>
                           </div>
                         ) : (
-                          <span className="text-[10px] text-slate-400 italic">Belum bersertifikat</span>
+                          <span className="text-[10px] text-slate-400 dark:text-slate-500 italic">Belum bersertifikat</span>
                         )}
                       </td>
 
@@ -1121,18 +1121,18 @@ export const SupplyTable: React.FC = () => {
                       <td className="py-3 px-2">
                         {totalWorkYears > 0 ? (
                           <div>
-                            <div className="flex items-center gap-1 font-bold text-amber-900 text-xs">
-                              <Briefcase className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                            <div className="flex items-center gap-1 font-bold text-amber-900 dark:text-amber-400 text-xs">
+                              <Briefcase className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
                               <span>{totalWorkYears.toFixed(1)} Tahun</span>
                             </div>
                             {viewMode === 'full' && (
-                              <span className="text-[11px] text-slate-500 block truncate max-w-[130px] mt-0.5" title={candidate.workExperiences?.[0]?.role}>
+                              <span className="text-[11px] text-slate-500 dark:text-slate-400 block truncate max-w-[130px] mt-0.5" title={candidate.workExperiences?.[0]?.role}>
                                 {candidate.workExperiences?.[0]?.role}
                               </span>
                             )}
                           </div>
                         ) : (
-                          <span className="inline-block text-[11px] px-2 py-0.5 rounded bg-slate-100 text-slate-500 font-medium">
+                          <span className="inline-block text-[11px] px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 font-medium">
                             Fresh Graduate
                           </span>
                         )}
@@ -1145,25 +1145,25 @@ export const SupplyTable: React.FC = () => {
                             {candidate.languageProficiency.slice(0, viewMode === 'compact' ? 2 : 2).map((lp, idx) => (
                               <span
                                 key={idx}
-                                className="inline-flex items-center rounded border border-indigo-100 bg-indigo-50 px-1.5 py-0.5 text-[10px] font-semibold text-indigo-700"
+                                className="inline-flex items-center rounded border border-indigo-100 dark:border-indigo-900/60 bg-indigo-50 dark:bg-indigo-950/60 px-1.5 py-0.5 text-[10px] font-semibold text-indigo-700 dark:text-indigo-300"
                               >
                                 {lp.language} · {lp.level}
                               </span>
                             ))}
                           </div>
-                          <div className="flex items-center gap-1 text-[11px] text-slate-600 mt-0.5">
-                            <Globe className="w-3 h-3 text-blue-500 shrink-0" />
-                            <span className="font-semibold text-slate-800 truncate">
+                          <div className="flex items-center gap-1 text-[11px] text-slate-600 dark:text-slate-400 mt-0.5">
+                            <Globe className="w-3 h-3 text-blue-500 dark:text-blue-400 shrink-0" />
+                            <span className="font-semibold text-slate-800 dark:text-slate-200 truncate">
                               {candidate.preferredCountry.join(', ')}
                             </span>
                           </div>
                           {viewMode === 'full' && (
-                            <span className="text-[10px] text-slate-400 truncate">
+                            <span className="text-[10px] text-slate-400 dark:text-slate-500 truncate">
                               {candidate.preferredJobRole.join(' / ')}
                             </span>
                           )}
                           {viewMode === 'compact' && (
-                            <span className="text-[10px] text-slate-500 truncate">
+                            <span className="text-[10px] text-slate-500 dark:text-slate-400 truncate">
                               Jabatan: {candidate.preferredJobRole.slice(0, 2).join(', ')}{candidate.preferredJobRole.length > 2 ? ' +' + (candidate.preferredJobRole.length - 2) : ''}
                             </span>
                           )}
@@ -1194,7 +1194,7 @@ export const SupplyTable: React.FC = () => {
                           <button
                             onClick={() => setActiveCandidate(candidate)}
                             aria-label={`Lihat detail ${candidate.fullName}`}
-                            className="inline-flex items-center gap-1 rounded-lg bg-blue-50 px-2 py-1.5 text-xs font-semibold text-blue-700 shadow-xs transition hover:bg-blue-600 hover:text-white"
+                            className="inline-flex items-center gap-1 rounded-lg bg-blue-50 dark:bg-blue-950/60 px-2 py-1.5 text-xs font-semibold text-blue-700 dark:text-blue-300 shadow-xs transition hover:bg-blue-600 dark:hover:bg-blue-600 hover:text-white"
                             title="Lihat Detail Pemetaan"
                           >
                             <Eye className="w-3.5 h-3.5" />
@@ -1209,7 +1209,7 @@ export const SupplyTable: React.FC = () => {
                                 setIsFormOpen(true);
                               }}
                               aria-label={`Ubah data ${candidate.fullName}`}
-                              className="inline-flex items-center rounded-lg bg-slate-100 p-1.5 text-xs font-semibold text-slate-600 shadow-xs transition hover:bg-slate-200"
+                              className="inline-flex items-center rounded-lg bg-slate-100 dark:bg-slate-800 p-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 shadow-xs transition hover:bg-slate-200 dark:hover:bg-slate-700"
                               title="Ubah Data"
                             >
                               <Edit2 className="w-3.5 h-3.5" />
@@ -1220,7 +1220,7 @@ export const SupplyTable: React.FC = () => {
                             <button
                               onClick={() => setDeletingCandidate(candidate)}
                               aria-label={`Hapus ${candidate.fullName}`}
-                              className="inline-flex items-center rounded-lg bg-rose-50 p-1.5 text-xs font-semibold text-rose-700 shadow-xs transition hover:bg-rose-600 hover:text-white"
+                              className="inline-flex items-center rounded-lg bg-rose-50 dark:bg-rose-950/60 p-1.5 text-xs font-semibold text-rose-700 dark:text-rose-300 shadow-xs transition hover:bg-rose-600 hover:text-white"
                               title="Hapus"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
@@ -1235,13 +1235,13 @@ export const SupplyTable: React.FC = () => {
             </tbody>
           </table>
         </div>
-        <nav aria-label="Halaman daftar calon PMI" className="flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-slate-200 px-4 py-3 text-sm">
-          <div className="flex flex-wrap items-center gap-2 text-slate-600">
+        <nav aria-label="Halaman daftar calon PMI" className="flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-slate-200 dark:border-slate-800 px-4 py-3 text-sm">
+          <div className="flex flex-wrap items-center gap-2 text-slate-600 dark:text-slate-400">
             <span>
               Halaman {activePage} dari {pageCount} · {filteredCandidates.length} hasil
             </span>
-            <span className="text-slate-300 hidden sm:inline">|</span>
-            <label className="flex items-center gap-1.5 text-xs text-slate-500">
+            <span className="text-slate-300 dark:text-slate-700 hidden sm:inline">|</span>
+            <label className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
               <span>Tampilkan:</span>
               <select
                 value={pageSize}
@@ -1249,7 +1249,7 @@ export const SupplyTable: React.FC = () => {
                   setPageSize(Number(e.target.value));
                   setCurrentPage(1);
                 }}
-                className="rounded-md border border-slate-300 bg-white px-2 py-1 text-xs font-semibold text-slate-700 shadow-xs focus:border-blue-500 focus:outline-none"
+                className="rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-1 text-xs font-semibold text-slate-700 dark:text-slate-200 shadow-xs focus:border-blue-500 focus:outline-none"
               >
                 {[15, 25, 50, 100, 150].map((size) => (
                   <option key={size} value={size}>
@@ -1260,10 +1260,10 @@ export const SupplyTable: React.FC = () => {
             </label>
           </div>
           <div className="flex gap-2">
-            <button type="button" onClick={() => setCurrentPage((page) => Math.max(1, page - 1))} disabled={activePage <= 1} className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-xs hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50">
+            <button type="button" onClick={() => setCurrentPage((page) => Math.max(1, page - 1))} disabled={activePage <= 1} className="rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 shadow-xs hover:bg-slate-50 dark:hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50">
               Sebelumnya
             </button>
-            <button type="button" onClick={() => setCurrentPage((page) => Math.min(pageCount, page + 1))} disabled={activePage >= pageCount} className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-xs hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50">
+            <button type="button" onClick={() => setCurrentPage((page) => Math.min(pageCount, page + 1))} disabled={activePage >= pageCount} className="rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 shadow-xs hover:bg-slate-50 dark:hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50">
               Berikutnya
             </button>
           </div>
