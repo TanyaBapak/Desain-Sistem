@@ -287,8 +287,8 @@ export function DashboardOverviewTab({
         </CardContent>
       </Card>
 
-      {/* Kesenjangan Supply vs Demand per Sektor */}
-      <SectorGapList />
+      {/* Kesenjangan Supply vs Demand per Sektor di-hidden sesuai permintaan penyesuaian */}
+      {/* <SectorGapList /> */}
 
       {/* Role Context Info Banner */}
       {stakeholder && (

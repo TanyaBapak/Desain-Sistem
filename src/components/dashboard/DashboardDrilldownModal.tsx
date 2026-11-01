@@ -34,6 +34,7 @@ import {
 } from "@/types";
 import { cn } from "@/lib/utils";
 import { ProvinceRatioBar } from "@/components/reports/ExecutiveDashboardBreakdowns";
+import { CandidateDetailModal } from "@/components/modul-a/CandidateDetailModal";
 
 export type DrilldownType =
   | "lembaga"
@@ -89,6 +90,7 @@ export const DashboardDrilldownModal: React.FC<DashboardDrilldownModalProps> = (
   const [pesertaSubView, setPesertaSubView] = useState<"lembaga" | "kategori">("lembaga");
   const [searchQuery, setSearchQuery] = useState("");
   const [page, setPage] = useState(1);
+  const [selectedCandidateForDetail, setSelectedCandidateForDetail] = useState<CandidateParticipant | null>(null);
   const pageSize = 8;
 
   // Reset filter state when modal type changes
@@ -101,6 +103,7 @@ export const DashboardDrilldownModal: React.FC<DashboardDrilldownModalProps> = (
     setPesertaSubView("lembaga");
     setSearchQuery("");
     setPage(1);
+    setSelectedCandidateForDetail(null);
   }, [type]);
 
   const currentStep = filterStack[filterStack.length - 1];
@@ -125,7 +128,8 @@ export const DashboardDrilldownModal: React.FC<DashboardDrilldownModalProps> = (
   };
 
   return (
-    <Dialog open={Boolean(type)} onOpenChange={(open) => !open && onClose()}>
+    <>
+      <Dialog open={Boolean(type)} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-4xl w-[95vw] max-h-[90vh] flex flex-col p-0 gap-0 overflow-hidden rounded-2xl border bg-card text-card-foreground shadow-2xl">
         {/* Modal Header */}
         <DialogHeader className="p-5 md:p-6 pb-4 border-b border-border bg-muted/20">
@@ -283,6 +287,7 @@ export const DashboardDrilldownModal: React.FC<DashboardDrilldownModalProps> = (
               page={page}
               setPage={setPage}
               pageSize={pageSize}
+              onSelectCandidate={setSelectedCandidateForDetail}
             />
           ) : modalType === "peserta" ? (
             pesertaSubView === "lembaga" ? (
@@ -301,6 +306,7 @@ export const DashboardDrilldownModal: React.FC<DashboardDrilldownModalProps> = (
                 page={page}
                 setPage={setPage}
                 pageSize={pageSize}
+                onSelectCandidate={setSelectedCandidateForDetail}
               />
             ) : (
               <PesertaDrilldown
@@ -313,11 +319,13 @@ export const DashboardDrilldownModal: React.FC<DashboardDrilldownModalProps> = (
                 page={page}
                 setPage={setPage}
                 pageSize={pageSize}
+                onSelectCandidate={setSelectedCandidateForDetail}
               />
             )
           ) : modalType === "program" ? (
             <ProgramDrilldown
               programs={programs}
+              candidates={candidates}
               filterStack={filterStack}
               onPushFilter={handlePushFilter}
               viewMode={viewMode}
@@ -326,6 +334,7 @@ export const DashboardDrilldownModal: React.FC<DashboardDrilldownModalProps> = (
               page={page}
               setPage={setPage}
               pageSize={pageSize}
+              onSelectCandidate={setSelectedCandidateForDetail}
             />
           ) : modalType === "demand" ? (
             <DemandDrilldown
@@ -355,6 +364,16 @@ export const DashboardDrilldownModal: React.FC<DashboardDrilldownModalProps> = (
         </div>
       </DialogContent>
     </Dialog>
+
+    {/* Candidate Detail Modal popup di luar kontainer Dialog agar layer selalu di paling depan */}
+    {selectedCandidateForDetail && (
+      <CandidateDetailModal
+        candidate={selectedCandidateForDetail}
+        isOpen={Boolean(selectedCandidateForDetail)}
+        onClose={() => setSelectedCandidateForDetail(null)}
+      />
+    )}
+  </>
   );
 };
 
@@ -376,6 +395,7 @@ interface LembagaDrilldownProps {
   page: number;
   setPage: (p: number) => void;
   pageSize: number;
+  onSelectCandidate?: (candidate: CandidateParticipant) => void;
 }
 
 const LembagaDrilldown: React.FC<LembagaDrilldownProps> = ({
@@ -393,6 +413,7 @@ const LembagaDrilldown: React.FC<LembagaDrilldownProps> = ({
   page,
   setPage,
   pageSize,
+  onSelectCandidate,
 }) => {
   const [showAllProvinces, setShowAllProvinces] = useState(false);
   const [selectedProviderForStudents, setSelectedProviderForStudents] = useState<VocationalProvider | null>(null);
@@ -765,7 +786,7 @@ const LembagaDrilldown: React.FC<LembagaDrilldownProps> = ({
                       </div>
                     </div>
 
-                    <div className="text-right shrink-0">
+                    <div className="flex sm:flex-col items-end gap-2 shrink-0">
                       <Badge
                         variant={student.readinessStatus === "Ready for Placement" ? "default" : "outline"}
                         className={
@@ -780,6 +801,15 @@ const LembagaDrilldown: React.FC<LembagaDrilldownProps> = ({
                           ? "Perlu Upskilling"
                           : "Dalam Pelatihan"}
                       </Badge>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => onSelectCandidate?.(student)}
+                        className="h-7 text-xs px-2.5 text-primary hover:text-primary hover:bg-primary/10 cursor-pointer"
+                      >
+                        Lihat Profil ›
+                      </Button>
                     </div>
                   </div>
                 </div>
@@ -1175,6 +1205,7 @@ interface PesertaDrilldownProps {
   page: number;
   setPage: (p: number) => void;
   pageSize: number;
+  onSelectCandidate?: (candidate: CandidateParticipant) => void;
 }
 
 const PesertaDrilldown: React.FC<PesertaDrilldownProps> = ({
@@ -1187,6 +1218,7 @@ const PesertaDrilldown: React.FC<PesertaDrilldownProps> = ({
   page,
   setPage,
   pageSize,
+  onSelectCandidate,
 }) => {
   const filteredCandidates = useMemo(() => {
     let result = candidates;
@@ -1490,7 +1522,7 @@ const PesertaDrilldown: React.FC<PesertaDrilldownProps> = ({
                       </p>
                     </div>
 
-                    <div className="text-right shrink-0">
+                    <div className="flex sm:flex-col items-end gap-2 shrink-0">
                       <Badge
                         variant={
                           candidate.readinessStatus === "Ready for Placement"
@@ -1501,6 +1533,15 @@ const PesertaDrilldown: React.FC<PesertaDrilldownProps> = ({
                       >
                         {candidate.readinessStatus}
                       </Badge>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => onSelectCandidate?.(candidate)}
+                        className="h-7 text-xs px-2.5 text-primary hover:text-primary hover:bg-primary/10 cursor-pointer"
+                      >
+                        Lihat Profil ›
+                      </Button>
                     </div>
                   </div>
                 </div>
@@ -1550,6 +1591,7 @@ const PesertaDrilldown: React.FC<PesertaDrilldownProps> = ({
 // ==========================================
 interface ProgramDrilldownProps {
   programs: TrainingProgram[];
+  candidates?: CandidateParticipant[];
   filterStack: FilterStep[];
   onPushFilter: (step: FilterStep) => void;
   viewMode: "categories" | "list";
@@ -1558,10 +1600,12 @@ interface ProgramDrilldownProps {
   page: number;
   setPage: (p: number) => void;
   pageSize: number;
+  onSelectCandidate?: (candidate: CandidateParticipant) => void;
 }
 
 const ProgramDrilldown: React.FC<ProgramDrilldownProps> = ({
   programs,
+  candidates = [],
   filterStack,
   onPushFilter,
   viewMode,
@@ -1570,6 +1614,7 @@ const ProgramDrilldown: React.FC<ProgramDrilldownProps> = ({
   page,
   setPage,
   pageSize,
+  onSelectCandidate,
 }) => {
   const filteredPrograms = useMemo(() => {
     let result = programs;
