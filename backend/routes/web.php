@@ -140,6 +140,8 @@ Route::middleware(['auth', EnsureUserIsActive::class])->group(function () {
     Route::post('/admin/users/{user}/impersonate', [UserManagementController::class, 'impersonate'])
         ->whereNumber('user')
         ->name('admin.users.impersonate');
+    Route::post('/admin/users/export-credentials', [UserManagementController::class, 'exportCredentials'])
+        ->name('admin.users.export-credentials');
     Route::post('/integrations/gardata/sync', GardataSyncController::class)->name('integrations.gardata.sync');
     Route::put('/training-classes/{classId}/gardata-mapping', [GardataTrainingMappingController::class, 'update'])
         ->where('classId', '[A-Za-z0-9-]+')

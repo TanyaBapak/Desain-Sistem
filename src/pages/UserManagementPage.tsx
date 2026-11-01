@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { router } from "@inertiajs/react";
-import { ChevronLeft, ChevronRight, Search, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, KeyRound, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ManagedUserRow } from "@/pages/ManagedUserRow";
 import { UserCreateForm } from "@/pages/UserCreateForm";
+import { UserCredentialsExportDialog } from "@/pages/UserCredentialsExportDialog";
 import type { UserManagementData } from "@/pages/user-management-types";
 
 interface UserManagementPageProps {
@@ -16,6 +17,7 @@ interface UserManagementPageProps {
 export function UserManagementPage({ adminUsers, currentUserId }: UserManagementPageProps) {
   const [selectedRole, setSelectedRole] = useState(adminUsers?.selectedRole ?? "");
   const [searchKeyword, setSearchKeyword] = useState(adminUsers?.search ?? "");
+  const [isExportOpen, setIsExportOpen] = useState(false);
 
   useEffect(() => {
     setSelectedRole(adminUsers?.selectedRole ?? "");
@@ -135,6 +137,16 @@ export function UserManagementPage({ adminUsers, currentUserId }: UserManagement
                 Reset
               </Button>
             )}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setIsExportOpen(true)}
+              className="h-9 gap-1.5 text-xs font-semibold text-primary border-primary/40 hover:bg-primary/10 shrink-0 cursor-pointer"
+            >
+              <KeyRound className="h-3.5 w-3.5" />
+              <span>Export Kredensial</span>
+            </Button>
           </div>
         </CardHeader>
         <CardContent>
@@ -199,6 +211,14 @@ export function UserManagementPage({ adminUsers, currentUserId }: UserManagement
           </div>
         </CardContent>
       </Card>
+      <UserCredentialsExportDialog
+        isOpen={isExportOpen}
+        onClose={() => setIsExportOpen(false)}
+        selectedRole={selectedRole}
+        roleTitle={roleOptions.find((r) => r.name === selectedRole)?.title}
+        searchKeyword={searchKeyword}
+        totalUsers={adminUsers.total}
+      />
     </div>
   );
 }

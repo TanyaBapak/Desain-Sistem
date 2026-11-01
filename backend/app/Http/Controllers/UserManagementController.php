@@ -392,6 +392,113 @@ class UserManagementController extends Controller
         return redirect()->route('app.show', 'rbac');
     }
 
+    public function exportCredentials(Request $request)
+    {
+        $admin = $this->authorizeSuperAdmin($request);
+
+        $roleFilter = $request->input('role');
+        $search = $request->input('search');
+        $userIds = $request->input('userIds');
+
+        $query = User::query()
+            ->with('roles')
+            ->where('id', '!=', $admin->id);
+
+        // Jangan pernah mereset akun sesama super_admin
+        $query->whereDoesntHave('roles', function ($q) {
+            $q->where('name', 'super_admin');
+        });
+
+        if (is_array($userIds) && count($userIds) > 0) {
+            $query->whereIn('id', $userIds);
+        } else {
+            if ($roleFilter && $roleFilter !== 'all') {
+                $query->whereHas('roles', function ($q) use ($roleFilter): void {
+                    $q->where('name', $roleFilter);
+                });
+            }
+
+            if ($search && trim((string) $search) !== '') {
+                $keyword = trim((string) $search);
+                $query->where(function ($q) use ($keyword): void {
+                    $q->where('name', 'like', "%{$keyword}%")
+                        ->orWhere('email', 'like', "%{$keyword}%")
+                        ->orWhere('username', 'like', "%{$keyword}%");
+                });
+            }
+        }
+
+        $users = $query->orderBy('name')->get();
+
+        if ($users->isEmpty()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tidak ada akun pengguna yang dapat diekspor sesuai kriteria.',
+                'data' => [],
+            ], 422);
+        }
+
+        $exportData = [];
+
+        DB::transaction(function () use ($users, $request, &$exportData): void {
+            foreach ($users as $user) {
+                // Generate temporary password acak yang kuat & mudah dibaca (misal: SGG-KPM842)
+                $plainPassword = 'SGG-' . Str::upper(Str::random(3)) . random_int(100, 999);
+
+                $user->password = Hash::make($plainPassword);
+                $user->save();
+
+                $this->writeAudit(
+                    $request,
+                    $user,
+                    'Password sementara di-generate melalui fitur Export Kredensial Super Admin.'
+                );
+
+                $exportData[] = [
+                    'id' => (string) $user->id,
+                    'name' => $user->name,
+                    'username' => $user->username,
+                    'email' => $user->email,
+                    'roleTitle' => $user->roles?->first()?->title ?? $user->roles?->first()?->name ?? 'Tanpa peran',
+                    'scopeName' => $user->scope_name ?? 'Nasional',
+                    'status' => $user->status ?? 'Aktif',
+                    'password' => $plainPassword,
+                ];
+            }
+        });
+
+        if ($request->query('format') === 'csv') {
+            $filename = 'kredensial-pengguna-' . now()->format('Ymd-His') . '.csv';
+            return response()->streamDownload(function () use ($exportData): void {
+                $out = fopen('php://output', 'w');
+                fprintf($out, chr(0xEF).chr(0xBB).chr(0xBF));
+                fputcsv($out, ['No', 'Nama Lengkap', 'Username', 'Email', 'Peran', 'Lingkup', 'Status', 'Password Baru']);
+                foreach ($exportData as $i => $row) {
+                    fputcsv($out, [
+                        $i + 1,
+                        $row['name'],
+                        $row['username'],
+                        $row['email'],
+                        $row['roleTitle'],
+                        $row['scopeName'],
+                        $row['status'],
+                        $row['password'],
+                    ]);
+                }
+                fclose($out);
+            }, $filename, [
+                'Content-Type' => 'text/csv; charset=UTF-8',
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Berhasil membuat password baru dan menyiapkan data untuk ' . count($exportData) . ' pengguna.',
+            'count' => count($exportData),
+            'data' => $exportData,
+        ]);
+    }
+
     private function authorizeSuperAdmin(Request $request): User
     {
         $user = $request->user();
