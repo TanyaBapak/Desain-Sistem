@@ -82,10 +82,8 @@ export function PillarTimelineFlow({
       tag: "Penjaringan",
       desc: "Penjaringan talenta dari Disnaker, SMK, & Lembaga Vokasi. Validasi NIK dan kesiapan latar belakang keahlian calon peserta.",
       icon: Users,
-      metricLabel: "Target: 12.600",
-      metricValue: actualCandidates > 0
-        ? `${actualCandidates.toLocaleString("id-ID")} (${Math.round((actualCandidates / TARGET_SUPPLY) * 100)}%)`
-        : "12.600 Peserta",
+      metricLabel: `Target: ${TARGET_SUPPLY.toLocaleString("id-ID")}`,
+      metricValue: `${actualCandidates.toLocaleString("id-ID")} Peserta (${Math.round((actualCandidates / TARGET_SUPPLY) * 100)}%)`,
       status: "completed",
       colorClass: "text-blue-600 dark:text-blue-400 border-blue-500/40 bg-blue-500/10",
       badgeBg: "bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-500/30",
@@ -99,10 +97,8 @@ export function PillarTimelineFlow({
       tag: "Standardisasi",
       desc: "Pelatihan terstruktur per negara tujuan yang mencakup Program Bahasa (N4/EPS/A2), keahlian Teknis, dan Sertifikasi kompetensi resmi.",
       icon: GraduationCap,
-      metricLabel: "Target: 630 Kelas",
-      metricValue: actualPrograms > 0
-        ? `${actualPrograms.toLocaleString("id-ID")} (${Math.round((actualPrograms / TARGET_PROGRAM) * 100)}%)`
-        : "630 Kelas (5 Sektor)",
+      metricLabel: `Target: ${TARGET_PROGRAM.toLocaleString("id-ID")} Kelas`,
+      metricValue: `${actualPrograms.toLocaleString("id-ID")} Kelas (${Math.round((actualPrograms / TARGET_PROGRAM) * 100)}%)`,
       status: "active",
       colorClass: "text-indigo-600 dark:text-indigo-400 border-indigo-500/40 bg-indigo-500/10",
       badgeBg: "bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border-indigo-500/30",

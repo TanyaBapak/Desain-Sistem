@@ -568,7 +568,7 @@ class ProgramAllocationTest extends TestCase
         ]);
 
         $this->actingAs($user)
-            ->get('/app/matching')
+            ->get('/app/matching?bp3mi_area=BP3MI-JABAR')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->where('businessData.monitoring.classes.0.averageAttendance', null)

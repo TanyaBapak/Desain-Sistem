@@ -20,6 +20,7 @@ class DatabaseSeeder extends Seeder
             ProgramPlacementTargetSeeder::class,
             DevelopmentAdminSeeder::class,
             DevelopmentRoleUsersSeeder::class,
+            InstitutionDataPlottingSeeder::class,
         ]);
     }
 }

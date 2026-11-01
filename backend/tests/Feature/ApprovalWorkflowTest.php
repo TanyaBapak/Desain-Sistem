@@ -82,7 +82,7 @@ class ApprovalWorkflowTest extends TestCase
         ]);
 
         $this->actingAs($this->userWithRole('task_force'))
-            ->post('/approvals/APP-TEST-001', [
+            ->post('/approvals/APP-TEST-001?bp3mi_area=BP3MI-JABAR', [
                 'action' => 'approve',
                 'notes' => 'Data telah diperiksa.',
             ])

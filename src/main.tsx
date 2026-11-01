@@ -6,22 +6,42 @@ import App from "../backend/resources/js/Pages/App";
 import './index.css';
 
 // Proteksi DOM reconciliation React 18 dari manipulasi eksternal
-// (Google Translate, ekstensi peramban, maupun transisi unmount cepat).
+// (Google Translate, password manager autofill, ekstensi peramban, maupun transisi unmount cepat).
 if (typeof window !== "undefined" && typeof Node === "function" && Node.prototype) {
   const originalRemoveChild = Node.prototype.removeChild;
   Node.prototype.removeChild = function <T extends Node>(child: T): T {
-    if (child.parentNode !== this) {
+    try {
+      return originalRemoveChild.call(this, child) as T;
+    } catch {
+      if (child && child.parentNode && child.parentNode !== this) {
+        try {
+          return child.parentNode.removeChild(child) as T;
+        } catch {
+          // Node sudah dilepas dari DOM oleh ekstensi peramban
+        }
+      }
       return child;
     }
-    return originalRemoveChild.call(this, child) as T;
   };
 
   const originalInsertBefore = Node.prototype.insertBefore;
   Node.prototype.insertBefore = function <T extends Node>(newNode: T, referenceNode: Node | null): T {
-    if (referenceNode && referenceNode.parentNode !== this) {
-      return newNode;
+    try {
+      return originalInsertBefore.call(this, newNode, referenceNode) as T;
+    } catch {
+      if (referenceNode && referenceNode.parentNode && referenceNode.parentNode !== this) {
+        try {
+          return referenceNode.parentNode.insertBefore(newNode, referenceNode) as T;
+        } catch {
+          // Fallback ke appendChild jika posisi reference sudah invalid
+        }
+      }
+      try {
+        return this.appendChild(newNode) as T;
+      } catch {
+        return newNode;
+      }
     }
-    return originalInsertBefore.call(this, newNode, referenceNode) as T;
   };
 }
 
@@ -139,6 +159,10 @@ void createInertiaApp({
     return App;
   },
   setup({ el, App: InertiaApp, props }) {
-    createRoot(el).render(<InertiaApp {...props} />);
+    const rootContainer = el as HTMLElement & { _reactRootContainer?: ReturnType<typeof createRoot> };
+    if (!rootContainer._reactRootContainer) {
+      rootContainer._reactRootContainer = createRoot(el);
+    }
+    rootContainer._reactRootContainer.render(<InertiaApp {...props} />);
   },
 });

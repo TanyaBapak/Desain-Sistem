@@ -352,30 +352,32 @@ function AppContent({
 
   if (showLogin && !authenticatedUser) {
     return (
-      <>
+      <div key="portal-login-root" className="w-full min-h-screen">
         <Head title="Masuk" />
         <UnifiedLoginPage status={registrationStatus} csrfToken={csrfToken} />
-      </>
+      </div>
     );
   }
 
   if (showInstitutionRegistration && !authenticatedUser && registrationOptions) {
     return (
-      <React.Suspense fallback={loading}>
-        <Head title="Pendaftaran Lembaga Vokasi" />
-        <InstitutionRegistrationPage
-          provinces={registrationOptions.provinces}
-          districts={registrationOptions.districts}
-          sectors={registrationOptions.sectors}
-          countries={registrationOptions.countries}
-        />
-      </React.Suspense>
+      <div key="portal-institution-reg-root" className="w-full min-h-screen">
+        <React.Suspense fallback={loading}>
+          <Head title="Pendaftaran Lembaga Vokasi" />
+          <InstitutionRegistrationPage
+            provinces={registrationOptions.provinces}
+            districts={registrationOptions.districts}
+            sectors={registrationOptions.sectors}
+            countries={registrationOptions.countries}
+          />
+        </React.Suspense>
+      </div>
     );
   }
 
   if (!authenticatedUser) {
     return (
-      <>
+      <div key="portal-landing-root" className="w-full min-h-screen">
         <Head title="Platform Monitoring SMK Go Global" />
         <KemendagriLandingPage
           kpiSummary={landingKpiSummary}
@@ -383,7 +385,7 @@ function AppContent({
           trainingSectors={trainingCatalog?.sectors ?? []}
           publicCommandCenter={publicCommandCenter}
         />
-      </>
+      </div>
     );
   }
 

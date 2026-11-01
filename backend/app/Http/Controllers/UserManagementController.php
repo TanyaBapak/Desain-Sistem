@@ -355,9 +355,8 @@ class UserManagementController extends Controller
             'Akun Super Admin tidak dapat dijalankan melalui fitur login sebagai.',
         );
 
-        if ($user->status !== 'Aktif') {
-            $user->update(['status' => 'Aktif']);
-        }
+        abort_if($user->status !== 'Aktif', 422, 'Tidak dapat login sebagai akun yang tidak aktif.');
+        abort_if((bool) $user->mfa_enabled, 403, 'Akun dengan autentikasi ganda (MFA) aktif tidak dapat dijalankan melalui fitur login sebagai.');
 
         $hasRole = $user->roles()->exists()
             || DB::table('model_has_roles')->where('model_id', $user->id)->exists();

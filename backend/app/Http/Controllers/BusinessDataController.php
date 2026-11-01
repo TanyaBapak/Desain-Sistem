@@ -1505,6 +1505,21 @@ class BusinessDataController extends Controller
             $id = DB::table($table)->whereRaw("LOWER({$column}) LIKE ?", ['%'.mb_strtolower($clean).'%'])->value('id');
         }
         if (! $id) {
+            // Cek kecocokan bagian split jika input mengandung slash/pemisah (mis. 'Manufaktur / Pengelasan')
+            $parts = array_filter(array_map('trim', preg_split('/[\/,]/', $value)));
+            foreach ($parts as $part) {
+                if ($part !== '') {
+                    $id = DB::table($table)->whereRaw("LOWER({$column}) = ?", [mb_strtolower($part)])->value('id');
+                    if (! $id) {
+                        $id = DB::table($table)->whereRaw("? LIKE CONCAT('%', LOWER({$column}), '%')", [mb_strtolower($part)])->value('id');
+                    }
+                    if ($id) {
+                        break;
+                    }
+                }
+            }
+        }
+        if (! $id) {
             throw ValidationException::withMessages([
                 $field => "Nilai {$field} tidak ditemukan. Pilih salah satu nilai dari data referensi.",
             ]);

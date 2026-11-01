@@ -275,15 +275,44 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
     return () => window.clearInterval(intervalId);
   }, []);
 
-  const vocationalCount = kpiSummary.metrics.find(
-    (metric) => metric.key === "activeVocationalInstitutions",
-  )?.value;
+  // Metrik Dinamis Alur 4 Pilar
   const candidateCount =
     kpiSummary.metrics.find((metric) => metric.key === "registeredJobSeekers")?.value ??
     publicCommandCenter?.national?.candidatesCount ??
-    563;
-  const supplyTarget = 12600;
-  const formattedTarget = supplyTarget.toLocaleString("id-ID");
+    0;
+  const candidateTarget =
+    kpiSummary.metrics.find((metric) => metric.key === "registeredJobSeekers")?.target ??
+    12600;
+  const candidatePercent = Math.min(
+    100,
+    Math.round((candidateCount / (candidateTarget || 1)) * 100),
+  );
+
+  const programCount =
+    kpiSummary.metrics.find((metric) => metric.key === "activeTrainingPrograms")?.value ??
+    publicCommandCenter?.national?.programsCount ??
+    0;
+  const programTarget =
+    kpiSummary.metrics.find((metric) => metric.key === "activeTrainingPrograms")?.target ??
+    630;
+  const programPercent = Math.min(
+    100,
+    Math.round((programCount / (programTarget || 1)) * 100),
+  );
+
+  const vocationalCount =
+    kpiSummary.metrics.find((metric) => metric.key === "activeVocationalInstitutions")?.value ??
+    publicCommandCenter?.national?.providersCount ??
+    0;
+
+  const demandCount =
+    kpiSummary.metrics.find((metric) => metric.key === "validatedDemandCount")?.value ??
+    publicCommandCenter?.national?.demandsCount ??
+    0;
+  const targetCountryCount = projection.countries.length > 0 ? projection.countries.length : 4;
+  const targetCountryNames = projection.countries.length > 0
+    ? projection.countries.slice(0, 3).map((c) => c.name).join(", ") + (projection.countries.length > 3 ? "…" : "")
+    : "Turki, Jepang, Korea…";
   const sectorOccupations = Object.fromEntries(trainingSectors.map((sector) => {
     if (sector.occupations && sector.occupations.length > 0) {
       return [sector.name, sector.occupations.map((occupation) => occupation.title)];
@@ -551,13 +580,15 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
                     {/* Informasi Ketercapaian & Progres */}
                     <div className="mt-2.5 bg-slate-900/90 rounded-lg p-2 border border-slate-700/60">
                       <div className="flex items-center justify-between text-[11px] font-bold">
-                        <span className="text-emerald-400 tabular-nums">30%</span>
-                        <span className="text-slate-200 tabular-nums">3.834 / 12.600</span>
+                        <span className="text-emerald-400 tabular-nums">{candidatePercent}%</span>
+                        <span className="text-slate-200 tabular-nums">
+                          {candidateCount.toLocaleString("id-ID")} / {candidateTarget.toLocaleString("id-ID")}
+                        </span>
                       </div>
                       <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-slate-800">
                         <div
                           className="h-full rounded-full bg-emerald-500 transition-all duration-500"
-                          style={{ width: "30%" }}
+                          style={{ width: `${Math.max(candidateCount > 0 ? 3 : 0, Math.min(100, candidatePercent))}%` }}
                         />
                       </div>
                     </div>
@@ -565,10 +596,10 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
 
                   <div className="mt-2.5 pt-2 border-t border-slate-700/60 flex items-center justify-between text-xs">
                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                      Target: 12.600:
+                      Target: {candidateTarget.toLocaleString("id-ID")}
                     </span>
                     <span className="text-xs font-black text-emerald-400 tabular-nums">
-                      12.600 Peserta
+                      {candidateCount.toLocaleString("id-ID")} Peserta
                     </span>
                   </div>
 
@@ -600,18 +631,29 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
                       Bahasa · Teknis · Sertifikasi
                     </p>
 
-                    <div className="mt-2.5 bg-slate-900/90 rounded-lg p-2 border border-slate-700/60 text-[11px] text-slate-400 flex items-center justify-between">
-                      <span>Kurikulum Target</span>
-                      <span className="text-indigo-300 font-bold">5 Sektor Unggulan</span>
+                    {/* Informasi Ketercapaian & Progres */}
+                    <div className="mt-2.5 bg-slate-900/90 rounded-lg p-2 border border-slate-700/60">
+                      <div className="flex items-center justify-between text-[11px] font-bold">
+                        <span className="text-indigo-400 tabular-nums">{programPercent}%</span>
+                        <span className="text-slate-200 tabular-nums">
+                          {programCount.toLocaleString("id-ID")} / {programTarget.toLocaleString("id-ID")}
+                        </span>
+                      </div>
+                      <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-slate-800">
+                        <div
+                          className="h-full rounded-full bg-indigo-500 transition-all duration-500"
+                          style={{ width: `${Math.max(programCount > 0 ? 3 : 0, Math.min(100, programPercent))}%` }}
+                        />
+                      </div>
                     </div>
                   </div>
 
                   <div className="mt-2.5 pt-2 border-t border-slate-700/60 flex items-center justify-between text-xs">
                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                      Target: 630 Kelas:
+                      Target: {programTarget.toLocaleString("id-ID")} Kelas
                     </span>
-                    <span className="text-xs font-black text-blue-300 tabular-nums">
-                      630 Kelas (5 Sektor)
+                    <span className="text-xs font-black text-indigo-300 tabular-nums">
+                      {programCount.toLocaleString("id-ID")} Kelas Aktif
                     </span>
                   </div>
 
@@ -654,7 +696,7 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
                       Vokasi Ber-Suplai:
                     </span>
                     <span className="text-xs font-black text-amber-300 tabular-nums">
-                      {vocationalCount?.toLocaleString("id-ID") ?? "8"} Vokasi Ber-Suplai
+                      {vocationalCount.toLocaleString("id-ID")} Lembaga Vokasi
                     </span>
                   </div>
 
@@ -694,10 +736,10 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
 
                   <div className="mt-2.5 pt-2 border-t border-slate-700/60 flex items-center justify-between text-xs">
                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                      Target: 4 Negara:
+                      Target & Permintaan:
                     </span>
                     <span className="text-xs font-black text-cyan-300 tabular-nums">
-                      4 Negara (Turki, Jepang...)
+                      {demandCount.toLocaleString("id-ID")} Order ({targetCountryCount} Negara)
                     </span>
                   </div>
                 </article>

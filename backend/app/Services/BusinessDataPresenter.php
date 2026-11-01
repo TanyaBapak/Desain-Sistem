@@ -1347,7 +1347,7 @@ class BusinessDataPresenter
             $needsApprovals = $loadAll || in_array($tab, ['approvals'], true);
             $needsMonitoring = $loadAll || in_array($tab, ['sippmi-monitoring', 'matching', 'modul-e'], true);
             $needsAuditLogs = $loadAll || in_array($tab, ['audit'], true);
-            $needsReports = $loadAll || in_array($tab, ['reports', 'overview', 'dashboard'], true);
+            $needsReports = $loadAll || in_array($tab, ['reports', 'overview', 'dashboard', 'sippmi-monitoring'], true);
 
             $nationalLpkCount = $isOverview ? $this->nationalLpkCount() : 0;
 
@@ -1540,7 +1540,7 @@ class BusinessDataPresenter
 
     private function candidateMatches(?string $role, User $user): array
     {
-        if (! in_array($role, ['super_admin', 'task_force', 'directorate_admin', 'bp3mi_admin', 'placement_officer'], true)) {
+        if (! in_array($role, ['super_admin', 'task_force', 'directorate_admin', 'bp3mi_admin', 'placement_officer', 'institution_admin', 'training_operator'], true)) {
             return [];
         }
 
@@ -1558,6 +1558,13 @@ class BusinessDataPresenter
             ->whereRaw(
                 'matching_runs.id = (SELECT latest_run.id FROM matching_runs AS latest_run WHERE latest_run.job_demand_id = candidate_matches.job_demand_id ORDER BY latest_run.created_at DESC, latest_run.run_date DESC, latest_run.id DESC LIMIT 1)',
             );
+
+        if (in_array($role, ['institution_admin', 'training_operator'], true)) {
+            $scope = $this->resolveInstitutionScope($user);
+            if (! empty($scope['ids'])) {
+                $query->whereIn('job_seekers.institution_id', $scope['ids']);
+            }
+        }
 
         if ($this->bp3miScope->hasActiveAreaFilter($user)) {
             $this->bp3miScope->applyToJobSeekers($query, $user);
@@ -1624,11 +1631,36 @@ class BusinessDataPresenter
             $namePatterns[] = $user->organization;
         }
 
+        // 3. Fallback Khusus Lembaga/Operator: jika belum terhubung, bind ke institusi demo atau institusi aktif
+        if (! $inst && in_array($user->primaryRole()?->name, ['institution_admin', 'training_operator'], true)) {
+            if (str_contains((string) $user->username, 'demo')) {
+                $inst = DB::table('institutions')->where('id', 'VOC-DEMO-001')->first();
+            }
+            if (! $inst) {
+                $inst = DB::table('institutions')->where('status', 'Aktif')->orderBy('id')->first();
+            }
+            if ($inst) {
+                $institutionIds[] = (string) $inst->id;
+                $namePatterns[] = $inst->name;
+                DB::table('users')->where('id', $user->id)->update(['institution_id' => $inst->id]);
+            }
+        }
+
         // Flag legacy dinamis berbasis data riil institusi (bukan nama personil atau substring arbitrer)
         $instStr = strtolower(($inst?->name ?? '') . ' ' . ($inst?->id ?? '') . ' ' . ($user->organization ?? ''));
         $isVictoria = str_contains($instStr, 'victoria');
         $isOmega = str_contains($instStr, 'omega');
         $isIndonusa = str_contains($instStr, 'indonusa');
+
+        if ($isOmega && ! in_array('Omega', $namePatterns, true)) {
+            $namePatterns[] = 'Omega';
+        }
+        if ($isIndonusa && ! in_array('Indonusa', $namePatterns, true)) {
+            $namePatterns[] = 'Indonusa';
+        }
+        if ($isVictoria && ! in_array('Victoria', $namePatterns, true)) {
+            $namePatterns[] = 'Victoria';
+        }
 
         return [
             'ids' => array_values(array_unique(array_filter($institutionIds))),
@@ -1642,7 +1674,7 @@ class BusinessDataPresenter
 
     private function candidates(?string $role, User $user): array
     {
-        if (! in_array($role, ['super_admin', 'leadership', 'task_force', 'province_admin', 'district_admin', 'institution_admin', 'verifier', 'directorate_admin', 'bp3mi_admin', 'placement_officer'], true)) {
+        if (! in_array($role, ['super_admin', 'leadership', 'task_force', 'province_admin', 'district_admin', 'institution_admin', 'training_operator', 'verifier', 'directorate_admin', 'bp3mi_admin', 'placement_officer'], true)) {
             return [];
         }
 
@@ -1650,7 +1682,7 @@ class BusinessDataPresenter
             ->whereNull('deleted_at')
             ->when($role === 'province_admin', fn ($query) => $query->where('job_seekers.province_id', $user->province_id))
             ->when($role === 'district_admin', fn ($query) => $query->where('job_seekers.district_id', $user->district_id))
-            ->when($role === 'institution_admin', function ($query) use ($user) {
+            ->when(in_array($role, ['institution_admin', 'training_operator'], true), function ($query) use ($user) {
                 $scope = $this->resolveInstitutionScope($user);
                 $query->where(function ($q) use ($scope, $user) {
                     $hasCondition = false;
@@ -1861,7 +1893,7 @@ class BusinessDataPresenter
             ->leftJoin('provinces', 'provinces.id', '=', 'institutions.province_id')
             ->leftJoin('districts', 'districts.id', '=', 'institutions.district_id')
             ->where('institutions.status', 'Aktif')
-            ->when($role === 'institution_admin', function ($q) use ($user) {
+            ->when(in_array($role, ['institution_admin', 'training_operator'], true), function ($q) use ($user) {
                 $scope = $this->resolveInstitutionScope($user);
                 $q->where(function ($qq) use ($scope, $user) {
                     $hasCond = false;
@@ -2060,7 +2092,7 @@ class BusinessDataPresenter
 
     private function allocations(?string $role, User $user): array
     {
-        if (! in_array($role, ['super_admin', 'task_force', 'directorate_admin', 'bp3mi_admin', 'placement_officer'], true)) {
+        if (! in_array($role, ['super_admin', 'task_force', 'directorate_admin', 'bp3mi_admin', 'placement_officer', 'institution_admin', 'training_operator'], true)) {
             return [];
         }
 
@@ -2088,6 +2120,12 @@ class BusinessDataPresenter
             ->leftJoin('institutions', 'institutions.id', '=', 'program_allocations.institution_id')
             ->leftJoin('provinces', 'provinces.id', '=', 'institutions.province_id')
             ->whereNull('program_allocations.deleted_at')
+            ->when(in_array($role, ['institution_admin', 'training_operator'], true), function ($q) use ($user) {
+                $scope = $this->resolveInstitutionScope($user);
+                if (! empty($scope['ids'])) {
+                    $q->whereIn('program_allocations.institution_id', $scope['ids']);
+                }
+            })
             ->when($this->bp3miScope->hasActiveAreaFilter($user), function ($q) use ($user, &$candidateIds, $allCandidateCounts) {
                 $candidateIds = $candidateIds->filter(
                     fn (array $ids, $allocationId): bool => $ids !== []

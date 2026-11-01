@@ -62,7 +62,9 @@ class Bp3miScope
                 return null;
             }
             if (! is_string($requestedCode) || ! isset(self::BP3MI_ASSIGNMENT[$requestedCode])) {
-                return $request->hasSession() ? $request->session()->get($sessionKey, null) : null;
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'bp3mi_area' => 'Wilayah BP3MI tidak valid.',
+                ]);
             }
 
             if ($request->hasSession()) {
