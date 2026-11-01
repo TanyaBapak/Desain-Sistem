@@ -75,25 +75,25 @@ export const AuditLogView: React.FC<AuditLogViewProps> = ({ initialLogs }) => {
   const getActionBadge = (type: AuditActionType | string) => {
     switch (type) {
       case 'PERSETUJUAN':
-        return <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">Persetujuan</span>;
+        return <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800">Persetujuan</span>;
       case 'VERIFIKASI':
-        return <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-800 border border-blue-300">Verifikasi</span>;
+        return <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-800 border border-blue-300 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800">Verifikasi</span>;
       case 'INPUT_DATA':
-        return <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-cyan-100 text-cyan-800 border border-cyan-300">Input Data</span>;
+        return <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-cyan-100 text-cyan-800 border border-cyan-300 dark:bg-cyan-950/60 dark:text-cyan-300 dark:border-cyan-800">Input Data</span>;
       case 'UPDATE_DATA':
-        return <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300">Pembaruan Data</span>;
+        return <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800">Pembaruan Data</span>;
       case 'HAPUS_DATA':
-        return <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-300">Hapus Data</span>;
+        return <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-300 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-800">Hapus Data</span>;
       case 'ALOKASI_MATCHING':
-        return <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-100 text-indigo-800 border border-indigo-300">Alokasi Matching</span>;
+        return <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-100 text-indigo-800 border border-indigo-300 dark:bg-indigo-950/60 dark:text-indigo-300 dark:border-indigo-800">Alokasi Matching</span>;
       case 'REVISI':
-        return <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-800 border border-purple-300">Minta Revisi</span>;
+        return <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-800 border border-purple-300 dark:bg-purple-950/60 dark:text-purple-300 dark:border-purple-800">Minta Revisi</span>;
       case 'PENOLAKAN':
-        return <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-300">Penolakan</span>;
+        return <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-300 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-800">Penolakan</span>;
       case 'AKUN_HAK_AKSES':
-        return <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300">Hak Akses / Sesi</span>;
+        return <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800">Hak Akses / Sesi</span>;
       default:
-        return <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-800 border border-slate-300">{type}</span>;
+        return <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-800 border border-slate-300 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700">{type}</span>;
     }
   };
 
@@ -163,7 +163,7 @@ export const AuditLogView: React.FC<AuditLogViewProps> = ({ initialLogs }) => {
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 sm:p-5 border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="relative flex-1 max-w-md">
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
@@ -171,7 +171,7 @@ export const AuditLogView: React.FC<AuditLogViewProps> = ({ initialLogs }) => {
             placeholder="Cari aktor, entitas, ID, field, atau alasan..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            className="w-full pl-9 pr-3 py-2 text-xs bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none"
           />
         </div>
 
@@ -179,7 +179,7 @@ export const AuditLogView: React.FC<AuditLogViewProps> = ({ initialLogs }) => {
           <select
             value={filterAction}
             onChange={(e) => setFilterAction(e.target.value)}
-            className="text-xs border border-slate-300 rounded-xl px-3 py-2 bg-slate-50 font-bold text-slate-700 focus:outline-none"
+            className="text-xs border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 bg-slate-50 dark:bg-slate-800 font-bold text-slate-700 dark:text-slate-200 focus:outline-none"
           >
             <option value="ALL">Semua Jenis Aksi</option>
             <option value="UPDATE_DATA">Pembaruan Data (Update)</option>
@@ -196,10 +196,10 @@ export const AuditLogView: React.FC<AuditLogViewProps> = ({ initialLogs }) => {
       </div>
 
       {/* Audit Log Entries Table */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-xs text-left border-collapse">
-            <thead className="bg-slate-100 text-slate-700 font-extrabold border-b border-slate-200">
+            <thead className="bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-200 font-extrabold border-b border-slate-200 dark:border-slate-800">
               <tr>
                 <th className="py-3 px-4">Waktu (WIB)</th>
                 <th className="py-3 px-3">Aktor & Peran</th>
@@ -210,10 +210,10 @@ export const AuditLogView: React.FC<AuditLogViewProps> = ({ initialLogs }) => {
                 <th className="py-3 px-3 text-right">Terminal IP</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 font-normal text-slate-700">
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-normal text-slate-700 dark:text-slate-300">
               {filteredLogs.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-10 text-center text-slate-400">
+                  <td colSpan={7} className="py-10 text-center text-slate-400 dark:text-slate-500">
                     Tidak ditemukan catatan audit log yang cocok dengan filter pencarian.
                   </td>
                 </tr>
@@ -224,16 +224,16 @@ export const AuditLogView: React.FC<AuditLogViewProps> = ({ initialLogs }) => {
                   const isIdentical = hasOld && hasNew && log.oldValue === log.newValue;
 
                   return (
-                    <tr key={log.id} className="hover:bg-slate-50/80 transition">
-                      <td className="py-3.5 px-4 whitespace-nowrap text-slate-600 font-mono text-[11px]">
+                    <tr key={log.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition">
+                      <td className="py-3.5 px-4 whitespace-nowrap text-slate-600 dark:text-slate-400 font-mono text-[11px]">
                         <div>{log.timestamp}</div>
-                        <span className="text-[10px] text-slate-400">#{log.id}</span>
+                        <span className="text-[10px] text-slate-400 dark:text-slate-500">#{log.id}</span>
                       </td>
 
                       <td className="py-3.5 px-3">
-                        <div className="font-extrabold text-slate-900">{log.actorName}</div>
-                        <div className="text-[10px] text-slate-500">{log.actorRole}</div>
-                        <div className="text-[10px] text-indigo-600 font-semibold mt-0.5">{log.scope}</div>
+                        <div className="font-extrabold text-slate-900 dark:text-slate-100">{log.actorName}</div>
+                        <div className="text-[10px] text-slate-500 dark:text-slate-400">{log.actorRole}</div>
+                        <div className="text-[10px] text-indigo-600 dark:text-indigo-400 font-semibold mt-0.5">{log.scope}</div>
                       </td>
 
                       <td className="py-3.5 px-3 whitespace-nowrap">
@@ -241,56 +241,56 @@ export const AuditLogView: React.FC<AuditLogViewProps> = ({ initialLogs }) => {
                       </td>
 
                       <td className="py-3.5 px-4">
-                        <div className="font-bold text-slate-800">{log.entity}</div>
-                        <div className="text-[11px] font-mono text-slate-500">{log.entityId}</div>
+                        <div className="font-bold text-slate-800 dark:text-slate-200">{log.entity}</div>
+                        <div className="text-[11px] font-mono text-slate-500 dark:text-slate-400">{log.entityId}</div>
                       </td>
 
                       <td className="py-3.5 px-4 min-w-[200px]">
                         {log.fieldChanged || hasOld || hasNew ? (
                           <div className="space-y-1">
                             {log.fieldChanged && (
-                              <span className="text-[10px] font-mono text-slate-400 block">
+                              <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500 block">
                                 Field: {log.fieldChanged}
                               </span>
                             )}
                             <div className="flex items-center gap-1.5 text-[11px] flex-wrap">
                               {hasOld && hasNew && !isIdentical ? (
                                 <>
-                                  <span className="px-1.5 py-0.5 rounded bg-rose-50 text-rose-700 border border-rose-200 line-through">
+                                  <span className="px-1.5 py-0.5 rounded bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 line-through">
                                     {log.oldValue}
                                   </span>
                                   <ArrowRight className="w-3 h-3 text-slate-400 shrink-0" />
-                                  <span className="px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold">
+                                  <span className="px-1.5 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 font-bold">
                                     {log.newValue}
                                   </span>
                                 </>
                               ) : isIdentical ? (
-                                <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200 font-medium">
+                                <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 font-medium">
                                   {log.newValue}
                                 </span>
                               ) : hasNew ? (
-                                <span className="px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold">
+                                <span className="px-1.5 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 font-bold">
                                   {log.newValue}
                                 </span>
                               ) : hasOld ? (
-                                <span className="px-1.5 py-0.5 rounded bg-rose-50 text-rose-700 border border-rose-200 line-through">
+                                <span className="px-1.5 py-0.5 rounded bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 line-through">
                                   {log.oldValue}
                                 </span>
                               ) : (
-                                <span className="text-slate-400 text-[11px]">—</span>
+                                <span className="text-slate-400 dark:text-slate-500 text-[11px]">—</span>
                               )}
                             </div>
                           </div>
                         ) : (
-                          <span className="text-slate-400 text-[11px]">—</span>
+                          <span className="text-slate-400 dark:text-slate-500 text-[11px]">—</span>
                         )}
                       </td>
 
-                      <td className="py-3.5 px-4 text-xs text-slate-600 max-w-xs leading-relaxed">
+                      <td className="py-3.5 px-4 text-xs text-slate-600 dark:text-slate-300 max-w-xs leading-relaxed">
                         {log.justificationReason}
                       </td>
 
-                      <td className="py-3.5 px-3 text-right whitespace-nowrap font-mono text-[11px] text-slate-400">
+                      <td className="py-3.5 px-3 text-right whitespace-nowrap font-mono text-[11px] text-slate-400 dark:text-slate-500">
                         {log.ipAddress}
                       </td>
                     </tr>

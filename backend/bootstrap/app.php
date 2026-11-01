@@ -31,8 +31,14 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->respond(function (Response $response, Throwable $exception, Request $request) {
             $status = $response->getStatusCode();
 
-            // Tangani sesi habis (401 Unauthenticated, 419 CSRF Token Mismatch / Expired, atau 403 saat sesi hilang)
-            if (in_array($status, [401, 419], true) || ($status === 403 && ! auth()->check())) {
+            // Tangani sesi habis atau akses ditolak (401 Unauthenticated, 403 Forbidden, 419 CSRF Token Mismatch / Expired)
+            if (in_array($status, [401, 403, 419], true)) {
+                if (auth()->check() && $status === 403) {
+                    \Illuminate\Support\Facades\Auth::guard('web')->logout();
+                    $request->session()->invalidate();
+                    $request->session()->regenerateToken();
+                }
+
                 if ($request->expectsJson() && ! $request->header('X-Inertia')) {
                     return response()->json([
                         'message' => 'Sesi Anda telah berakhir. Silakan masuk kembali.',

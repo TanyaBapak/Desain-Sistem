@@ -4,17 +4,12 @@ import axios from "axios";
 import App from "../backend/resources/js/Pages/App";
 import './index.css';
 
-// Auto-redirect ke login bila sesi habis (401, 419, atau 403 unauthenticated)
+// Auto-redirect ke login bila sesi habis atau akses ditolak (401, 403, 419)
 axios.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response && [401, 419].includes(error.response.status)) {
+    if (error.response && [401, 403, 419].includes(error.response.status)) {
       window.location.href = "/login";
-    } else if (error.response && error.response.status === 403) {
-      const msg = String(error.response.data?.message || "").toLowerCase();
-      if (msg.includes("unauthenticated") || msg.includes("csrf") || msg.includes("sesi")) {
-        window.location.href = "/login";
-      }
     }
     return Promise.reject(error);
   }
