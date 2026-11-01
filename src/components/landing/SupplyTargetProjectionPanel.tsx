@@ -239,7 +239,7 @@ export function SupplyTargetProjectionPanel({
               Data Suplai Penempatan Negara Target
             </h3>
             <p className="text-xs sm:text-sm text-muted-foreground">
-              Informasi kuota target suplai penempatan tenaga kerja untuk 4 negara target utama (Turki, Malaysia, Korea Selatan, dan Jepang: 2.000) berdasarkan pilihan negara, sektor jabatan, daerah asal, dan sumber data pendaftaran.
+              Informasi kuota target suplai penempatan tenaga kerja untuk 4 negara target utama (Turki, Malaysia, Korea Selatan, dan Jepang) berdasarkan pilihan negara, sektor jabatan, daerah asal, dan sumber data pendaftaran.
             </p>
           </div>
 
@@ -253,7 +253,7 @@ export function SupplyTargetProjectionPanel({
                 <span className="text-2xl sm:text-3xl font-black text-blue-600 dark:text-blue-400 tabular-nums">
                   {stats.totalSlots.toLocaleString("id-ID")}
                 </span>
-                <span className="text-xs text-muted-foreground font-medium">Slot Target</span>
+                <span className="text-xs text-muted-foreground font-medium">Target</span>
               </div>
             </div>
             <div className="h-8 w-px bg-border mx-1" />
@@ -289,7 +289,7 @@ export function SupplyTargetProjectionPanel({
             >
               {countriesOptions.map((c) => (
                 <option key={c} value={c}>
-                  {c === "Jepang" ? "Jepang (Suplai: 2.000)" : c}
+                  {c}
                 </option>
               ))}
             </select>
@@ -413,7 +413,7 @@ export function SupplyTargetProjectionPanel({
                   <th className="py-2.5 px-3">Negara Target</th>
                   <th className="py-2.5 px-3">Sektor</th>
                   <th className="py-2.5 px-3">Jabatan Kerja</th>
-                  <th className="py-2.5 px-3 text-right">Target Suplai (Slot)</th>
+                  <th className="py-2.5 px-3 text-right">Target Suplai</th>
                   <th className="py-2.5 px-3">Daerah Asal</th>
                   <th className="py-2.5 px-3">Sumber Data</th>
                   <th className="py-2.5 px-3 text-center">Tahun</th>

@@ -1388,7 +1388,7 @@ const demandTree = (): TreeNode[] => [
           lf("P to P (Private to Private Resmi)", { a: 7570, b: 2200, c: 5370, d: 1050 }, [
             ["Negara Tujuan", "Turki"],
             ["Sektor & Jabatan", "Hospitality · Housekeeping & Room Attendant"],
-            ["Jumlah Kebutuhan", "7.570 Slot Pekerja"],
+            ["Jumlah Kebutuhan", "7.570 Pekerja"],
             ["Skema Penempatan", "P to P (Private to Private Resmi)"],
             ["Pemberi Kerja / Asosiasi", "Asosiasi Perhotelan Antalya & Istanbul"],
             ["Masa Kontrak", "2 Tahun (Dapat Diperpanjang)"],
@@ -1396,7 +1396,7 @@ const demandTree = (): TreeNode[] => [
           lf("Perseorangan / Mandiri Terverifikasi", { a: 450, b: 200, c: 250, d: 50 }, [
             ["Negara Tujuan", "Turki"],
             ["Sektor & Jabatan", "Hospitality · Housekeeping Attendant"],
-            ["Jumlah Kebutuhan", "450 Slot Pekerja"],
+            ["Jumlah Kebutuhan", "450 Pekerja"],
             ["Skema Penempatan", "Perseorangan / Mandiri Resmi Kemnaker"],
             ["Masa Kontrak", "2 Tahun"],
           ]),
@@ -1408,7 +1408,7 @@ const demandTree = (): TreeNode[] => [
           lf("P to P (Private to Private Resmi)", { a: 1460, b: 420, c: 1040, d: 280 }, [
             ["Negara Tujuan", "Turki"],
             ["Sektor & Jabatan", "Hospitality · Spa Therapist CIBTAC"],
-            ["Jumlah Kebutuhan", "1.460 Slot Pekerja"],
+            ["Jumlah Kebutuhan", "1.460 Pekerja"],
             ["Skema Penempatan", "P to P (Private to Private Resmi)"],
             ["Lokasi Kerja", "Bodrum, Izmir & Antalya Resort"],
             ["Masa Kontrak", "2 Tahun"],
@@ -1421,7 +1421,7 @@ const demandTree = (): TreeNode[] => [
           lf("P to P (Private to Private Resmi)", { a: 2600, b: 850, c: 1750, d: 450 }, [
             ["Negara Tujuan", "Turki"],
             ["Sektor & Jabatan", "Hospitality · Food & Beverage Waiter"],
-            ["Jumlah Kebutuhan", "2.600 Slot Pekerja"],
+            ["Jumlah Kebutuhan", "2.600 Pekerja"],
             ["Skema Penempatan", "P to P (Private to Private Resmi)"],
             ["Kategori Proyek", "Hotel Bintang 5 & Restoran Internasional"],
             ["Masa Kontrak", "2 Tahun"],
@@ -1434,7 +1434,7 @@ const demandTree = (): TreeNode[] => [
           lf("UKPS (Untuk Kepentingan Perusahaan Sendiri)", { a: 720, b: 280, c: 440, d: 120 }, [
             ["Negara Tujuan", "Turki"],
             ["Sektor & Jabatan", "Hospitality · Public Area Cleaner"],
-            ["Jumlah Kebutuhan", "720 Slot Pekerja"],
+            ["Jumlah Kebutuhan", "720 Pekerja"],
             ["Skema Penempatan", "UKPS (Perusahaan Jasa Fasilitas Mandiri)"],
             ["Masa Kontrak", "2 Tahun"],
           ]),
@@ -1446,7 +1446,7 @@ const demandTree = (): TreeNode[] => [
           lf("P to P (Private to Private Resmi)", { a: 40, b: 18, c: 22, d: 10 }, [
             ["Negara Tujuan", "Turki"],
             ["Sektor & Jabatan", "Hospitality · Commis Cook"],
-            ["Jumlah Kebutuhan", "40 Slot Pekerja"],
+            ["Jumlah Kebutuhan", "40 Pekerja"],
             ["Skema Penempatan", "P to P (Private to Private Resmi)"],
             ["Masa Kontrak", "2 Tahun"],
           ]),
@@ -1463,7 +1463,7 @@ const demandTree = (): TreeNode[] => [
           lf("P to P (SSW Tokutei Ginou)", { a: 540, b: 210, c: 330, d: 110 }, [
             ["Negara Tujuan", "Jepang"],
             ["Sektor & Jabatan", "Kesehatan · Caregiver Kaigo SSW"],
-            ["Jumlah Kebutuhan", "540 Slot Pekerja"],
+            ["Jumlah Kebutuhan", "540 Pekerja"],
             ["Skema Penempatan", "P to P (Specified Skilled Worker / Tokutei Ginou)"],
             ["Standar Kompetensi", "SSW Kaigo & JLPT N4 / JFT-Basic"],
             ["Masa Kontrak", "5 Tahun"],
@@ -1471,7 +1471,7 @@ const demandTree = (): TreeNode[] => [
           lf("G to G (EPA Kerjasama Pemerintah)", { a: 350, b: 140, c: 210, d: 80 }, [
             ["Negara Tujuan", "Jepang"],
             ["Sektor & Jabatan", "Kesehatan · Nurse & Caregiver EPA"],
-            ["Jumlah Kebutuhan", "350 Slot Pekerja"],
+            ["Jumlah Kebutuhan", "350 Pekerja"],
             ["Skema Penempatan", "G to G (Indonesia-Japan Economic Partnership)"],
             ["Penyelenggara", "BP2MI & JICWELS Jepang"],
             ["Masa Kontrak", "3-5 Tahun"],
@@ -1479,7 +1479,7 @@ const demandTree = (): TreeNode[] => [
           lf("Magang Jepang (TITP / Ginou Jisshusei)", { a: 280, b: 110, c: 170, d: 60 }, [
             ["Negara Tujuan", "Jepang"],
             ["Sektor & Jabatan", "Kesehatan · Caregiver Magang Teknis"],
-            ["Jumlah Kebutuhan", "280 Slot Peserta"],
+            ["Jumlah Kebutuhan", "280 Peserta"],
             ["Skema Penempatan", "Magang Jepang (TITP Lembaga Pengirim Resmi)"],
             ["Masa Kontrak", "3 Tahun"],
           ]),
@@ -1491,14 +1491,14 @@ const demandTree = (): TreeNode[] => [
           lf("Magang Jepang (TITP / Ginou Jisshusei)", { a: 300, b: 110, c: 190, d: 60 }, [
             ["Negara Tujuan", "Jepang"],
             ["Sektor & Jabatan", "Manufaktur · Welder GMAW & Operator Bubut"],
-            ["Jumlah Kebutuhan", "300 Slot Peserta"],
+            ["Jumlah Kebutuhan", "300 Peserta"],
             ["Skema Penempatan", "Magang Jepang (TITP Pengiriman Resmi)"],
             ["Masa Kontrak", "3 Tahun"],
           ]),
           lf("P to P (SSW Tokutei Ginou)", { a: 220, b: 85, c: 135, d: 45 }, [
             ["Negara Tujuan", "Jepang"],
             ["Sektor & Jabatan", "Manufaktur · Precision Machining SSW"],
-            ["Jumlah Kebutuhan", "220 Slot Pekerja"],
+            ["Jumlah Kebutuhan", "220 Pekerja"],
             ["Skema Penempatan", "P to P (Specified Skilled Worker)"],
             ["Masa Kontrak", "5 Tahun"],
           ]),
@@ -1510,7 +1510,7 @@ const demandTree = (): TreeNode[] => [
           lf("Magang Jepang (TITP / Ginou Jisshusei)", { a: 180, b: 70, c: 110, d: 35 }, [
             ["Negara Tujuan", "Jepang"],
             ["Sektor & Jabatan", "Konstruksi · Scaffolder & Interior Finishing"],
-            ["Jumlah Kebutuhan", "180 Slot Peserta"],
+            ["Jumlah Kebutuhan", "180 Peserta"],
             ["Skema Penempatan", "Magang Jepang (TITP Konstruksi)"],
             ["Masa Kontrak", "3 Tahun"],
           ]),
@@ -1522,7 +1522,7 @@ const demandTree = (): TreeNode[] => [
           lf("Magang Jepang (TITP / Ginou Jisshusei)", { a: 40, b: 15, c: 25, d: 10 }, [
             ["Negara Tujuan", "Jepang"],
             ["Sektor & Jabatan", "Fisherman & Pertanian · Pertanian Modern"],
-            ["Jumlah Kebutuhan", "40 Slot Peserta"],
+            ["Jumlah Kebutuhan", "40 Peserta"],
             ["Skema Penempatan", "Magang Jepang (TITP Pertanian)"],
             ["Masa Kontrak", "3 Tahun"],
           ]),
@@ -1539,7 +1539,7 @@ const demandTree = (): TreeNode[] => [
           lf("G to P (Government to Private)", { a: 4120, b: 1400, c: 2720, d: 590 }, [
             ["Negara Tujuan", "Malaysia"],
             ["Sektor & Jabatan", "Kesehatan · Caregiver Lansia Resmi"],
-            ["Jumlah Kebutuhan", "4.120 Slot Pekerja"],
+            ["Jumlah Kebutuhan", "4.120 Pekerja"],
             ["Skema Penempatan", "G to P (Government to Private Kerjasama)"],
             ["Masa Kontrak", "2 Tahun"],
           ]),
@@ -1551,7 +1551,7 @@ const demandTree = (): TreeNode[] => [
           lf("P to P (Private to Private Resmi)", { a: 1200, b: 420, c: 780, d: 180 }, [
             ["Negara Tujuan", "Malaysia"],
             ["Sektor & Jabatan", "Hospitality · Hotel Reception & Service"],
-            ["Jumlah Kebutuhan", "1.200 Slot Pekerja"],
+            ["Jumlah Kebutuhan", "1.200 Pekerja"],
             ["Skema Penempatan", "P to P (Private to Private Resmi)"],
             ["Masa Kontrak", "2 Tahun"],
           ]),
@@ -1563,7 +1563,7 @@ const demandTree = (): TreeNode[] => [
           lf("UKPS (Untuk Kepentingan Perusahaan Sendiri)", { a: 2260, b: 780, c: 1480, d: 350 }, [
             ["Negara Tujuan", "Malaysia"],
             ["Sektor & Jabatan", "Manufaktur · Operator Perakitan Elektronik"],
-            ["Jumlah Kebutuhan", "2.260 Slot Pekerja"],
+            ["Jumlah Kebutuhan", "2.260 Pekerja"],
             ["Skema Penempatan", "UKPS (Perusahaan Multinasional Sendiri)"],
             ["Masa Kontrak", "2 Tahun"],
           ]),
@@ -1575,7 +1575,7 @@ const demandTree = (): TreeNode[] => [
           lf("P to P (Private to Private Resmi)", { a: 2400, b: 920, c: 1480, d: 410 }, [
             ["Negara Tujuan", "Malaysia"],
             ["Sektor & Jabatan", "Fisherman / Agro · Plantation Operator"],
-            ["Jumlah Kebutuhan", "2.400 Slot Pekerja"],
+            ["Jumlah Kebutuhan", "2.400 Pekerja"],
             ["Skema Penempatan", "P to P (Private to Private Resmi)"],
             ["Masa Kontrak", "2 Tahun"],
           ]),
@@ -1592,14 +1592,14 @@ const demandTree = (): TreeNode[] => [
           lf("G to G (EPS - Employment Permit System)", { a: 1500, b: 620, c: 880, d: 290 }, [
             ["Negara Tujuan", "Korea Selatan"],
             ["Sektor & Jabatan", "Manufaktur · Industri Berat & Otomotif"],
-            ["Jumlah Kebutuhan", "1.500 Slot Pekerja"],
+            ["Jumlah Kebutuhan", "1.500 Pekerja"],
             ["Skema Penempatan", "G to G (EPS HRD Korea & Kemnaker)"],
             ["Masa Kontrak", "3 Tahun (Visa E-9)"],
           ]),
           lf("P to P (Visa Profesional E-7)", { a: 300, b: 130, c: 170, d: 70 }, [
             ["Negara Tujuan", "Korea Selatan"],
             ["Sektor & Jabatan", "Manufaktur · Welder Shipbuilding 3G/6G"],
-            ["Jumlah Kebutuhan", "300 Slot Pekerja"],
+            ["Jumlah Kebutuhan", "300 Pekerja"],
             ["Skema Penempatan", "P to P (Visa Tenaga Profesional Khusus E-7)"],
             ["Masa Kontrak", "3 Tahun"],
           ]),
@@ -1611,7 +1611,7 @@ const demandTree = (): TreeNode[] => [
           lf("P to P (Private to Private Resmi)", { a: 600, b: 220, c: 380, d: 110 }, [
             ["Negara Tujuan", "Korea Selatan"],
             ["Sektor & Jabatan", "Fisherman · ABK Kapal Ikan Korea Selatan"],
-            ["Jumlah Kebutuhan", "600 Slot Pekerja"],
+            ["Jumlah Kebutuhan", "600 Pekerja"],
             ["Skema Penempatan", "P to P (Private to Private Resmi)"],
             ["Masa Kontrak", "2 Tahun (Visa E-10)"],
           ]),
@@ -1623,7 +1623,7 @@ const demandTree = (): TreeNode[] => [
           lf("G to G (EPS - Employment Permit System)", { a: 40, b: 18, c: 22, d: 10 }, [
             ["Negara Tujuan", "Korea Selatan"],
             ["Sektor & Jabatan", "Manufaktur · Operator Cetakan Logam"],
-            ["Jumlah Kebutuhan", "40 Slot Pekerja"],
+            ["Jumlah Kebutuhan", "40 Pekerja"],
             ["Skema Penempatan", "G to G (EPS HRD Korea)"],
             ["Masa Kontrak", "3 Tahun"],
           ]),
@@ -1675,7 +1675,7 @@ function buildRealTrees(): Record<PillarKey, PillarConfig> {
       t: "4. Siap Permintaan",
       lv: ["Negara Tujuan", "Sektor & Jabatan", "Skema & Kebutuhan Penempatan"],
       k: [
-        ["a", "Jumlah Kebutuhan (Slot)"],
+        ["a", "Jumlah Kebutuhan"],
         ["b", "Terisi"],
         ["c", "Sisa Kebutuhan"],
         ["d", "Tahap Proses"],

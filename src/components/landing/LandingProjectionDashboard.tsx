@@ -80,7 +80,7 @@ export function LandingProjectionDashboard({ projection }: LandingProjectionDash
               Data Suplai Penempatan Negara Target
             </h2>
             <p className="text-sm text-muted-foreground">
-              Pemetaan data target suplai penempatan tenaga kerja ke negara tujuan (termasuk suplai Jepang: 2.000, Turki: 5.000, Malaysia: 5.000, dll.) berdasarkan pilihan negara, sektor jabatan, daerah asal, dan sumber data pendaftaran.
+              Pemetaan data target suplai penempatan tenaga kerja ke 4 negara target utama berdasarkan pilihan negara, sektor jabatan, daerah asal, dan sumber data pendaftaran.
             </p>
           </div>
           <label className="flex shrink-0 flex-col gap-1.5 text-sm font-medium">

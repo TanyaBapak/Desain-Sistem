@@ -135,7 +135,7 @@ export function PillarTimelineFlow({
       icon: Globe2,
       metricLabel: "Target: 4 Negara",
       metricValue: actualDemands > 0
-        ? `${uniqueCountries} Mitra (${totalDemandQuota.toLocaleString("id-ID")} Slot)`
+        ? `${uniqueCountries} Mitra (${totalDemandQuota.toLocaleString("id-ID")} Pekerja)`
         : "4 Negara (Turki, Jepang...)",
       status: "ready",
       colorClass: "text-amber-600 dark:text-amber-400 border-amber-500/40 bg-amber-500/10",
