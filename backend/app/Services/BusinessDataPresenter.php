@@ -559,9 +559,9 @@ class BusinessDataPresenter
 
             $candidateEducation = rescue(fn () => DB::table('job_seekers')
                 ->whereNull('deleted_at')
-                ->select('last_education as label')
+                ->select('education_level as label')
                 ->selectRaw('COUNT(*) as count')
-                ->groupBy('last_education')
+                ->groupBy('education_level')
                 ->orderByDesc('count')
                 ->get()
                 ->map(fn (object $row): array => [

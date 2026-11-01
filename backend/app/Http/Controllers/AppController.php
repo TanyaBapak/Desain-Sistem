@@ -51,9 +51,7 @@ class AppController extends Controller
             \Log::warning('AppController bp3miScope warning: ' . $e->getMessage());
         }
 
-        $partialData = array_filter(array_map('trim', explode(',', (string) $request->header('X-Inertia-Partial-Data', ''))));
-        $isPartialForOtherProps = !empty($partialData) && !in_array('businessData', $partialData, true);
-        $needsBusinessData = !in_array($tab, ['rbac', 'targets'], true) && !$isPartialForOtherProps;
+        $needsBusinessData = !in_array($tab, ['rbac', 'targets'], true);
 
         if ($needsBusinessData) {
             try {
