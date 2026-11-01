@@ -1572,13 +1572,13 @@ class BusinessDataPresenter
             if ($inst) {
                 $namePatterns[] = $inst->name;
                 $instLower = strtolower($inst->name . ' ' . $inst->id);
-                if (stripos($instLower, 'victoria') !== false || stripos($instLower, 'arief') !== false) {
+                if (stripos($instLower, 'victoria') !== false) {
                     $isVictoria = true;
                 }
-                if (stripos($instLower, 'omega') !== false || stripos($instLower, 'eko') !== false) {
+                if (stripos($instLower, 'omega') !== false) {
                     $isOmega = true;
                 }
-                if (stripos($instLower, 'indonusa') !== false || stripos($instLower, 'suci') !== false || str_contains($instLower, '@sippmi.co') || str_ends_with($instLower, 'sippmi.co')) {
+                if (stripos($instLower, 'indonusa') !== false || str_contains($instLower, '@sippmi.co') || str_ends_with($instLower, 'sippmi.co')) {
                     $isIndonusa = true;
                 }
                 if (stripos($instLower, 'duta') !== false) {
