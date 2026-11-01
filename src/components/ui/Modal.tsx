@@ -8,6 +8,7 @@ interface ModalProps {
   subtitle?: string;
   children: React.ReactNode;
   maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl';
+  zIndex?: string;
 }
 
 export const Modal: React.FC<ModalProps> = ({
@@ -17,6 +18,7 @@ export const Modal: React.FC<ModalProps> = ({
   subtitle,
   children,
   maxWidth = '2xl',
+  zIndex = 'z-[100]',
 }) => {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -45,7 +47,7 @@ export const Modal: React.FC<ModalProps> = ({
   }[maxWidth];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-foreground/30 p-4 backdrop-blur-sm animate-fade-in">
+    <div className={`fixed inset-0 ${zIndex} flex items-center justify-center overflow-y-auto bg-black/60 dark:bg-black/80 p-4 backdrop-blur-sm animate-fade-in`}>
       <div
         className={`my-8 w-full ${maxWidthClass} transform overflow-hidden rounded-2xl border border-border bg-card text-card-foreground shadow-2xl transition-all`}
         onClick={(e) => e.stopPropagation()}

@@ -1149,29 +1149,31 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
   };
 
   return (
-    <Dialog open={Boolean(type)} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="flex w-[calc(100%-2rem)] max-w-2xl max-h-[calc(100dvh-2rem)] flex-col gap-4 overflow-hidden p-4 sm:p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl">
-        <DialogHeader className="space-y-1">
-          <DialogTitle className="text-lg font-bold text-foreground">
-            {getTitle()}
-          </DialogTitle>
-          <DialogDescription className="text-xs text-muted-foreground">
-            Data statistik Command Center Task Force SMK Go Global
-          </DialogDescription>
-        </DialogHeader>
+    <>
+      <Dialog open={Boolean(type)} onOpenChange={(open) => !open && onClose()}>
+        <DialogContent className="flex w-[calc(100%-2rem)] max-w-2xl max-h-[calc(100dvh-2rem)] flex-col gap-4 overflow-hidden p-4 sm:p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl">
+          <DialogHeader className="space-y-1">
+            <DialogTitle className="text-lg font-bold text-foreground">
+              {getTitle()}
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              Data statistik Command Center Task Force SMK Go Global
+            </DialogDescription>
+          </DialogHeader>
 
-        <div className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain pr-1">
-          {renderContent()}
-        </div>
+          <div className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain pr-1">
+            {renderContent()}
+          </div>
 
-        <div className="flex shrink-0 justify-end border-t border-border pt-2">
-          <Button type="button" variant="outline" size="sm" onClick={onClose}>
-            Tutup
-          </Button>
-        </div>
-      </DialogContent>
+          <div className="flex shrink-0 justify-end border-t border-border pt-2">
+            <Button type="button" variant="outline" size="sm" onClick={onClose}>
+              Tutup
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
-      {/* Candidate Profile Detail Modal */}
+      {/* Candidate Profile Detail Modal di luar Dialog utama agar selalu berada di layer terdepan */}
       {selectedCandidateForDetail && (
         <CandidateDetailModal
           candidate={selectedCandidateForDetail}
@@ -1179,6 +1181,6 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
           onClose={() => setSelectedCandidateForDetail(null)}
         />
       )}
-    </Dialog>
+    </>
   );
 };
