@@ -78,14 +78,26 @@ export function DashboardDemandTab({
 
       {/* 4 Quantitative Demand Metrics */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="p-4">
-          <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider block">
-            Permintaan Terverifikasi
-          </span>
-          <div className="text-2xl font-bold text-foreground mt-1 tabular-nums">
-            {demands.length.toLocaleString("id-ID")}
+        <Card className="p-4 space-y-2">
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-muted-foreground font-medium uppercase tracking-wider block">
+              Permintaan Terverifikasi
+            </span>
+            <span className="text-amber-600 dark:text-amber-400 font-semibold tabular-nums">
+              {fillPercentage}% terpenuhi
+            </span>
           </div>
-          <span className="text-[11px] text-muted-foreground mt-1 block">Paket kerja aktif</span>
+          <div className="text-2xl font-bold text-foreground tabular-nums">
+            {demands.length.toLocaleString("id-ID")}
+            <span className="text-sm font-medium text-muted-foreground ml-1.5">Paket Kerja</span>
+          </div>
+          <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+            <div
+              className="h-full rounded-full bg-amber-500 transition-all"
+              style={{ width: `${Math.min(100, Math.max(3, fillPercentage))}%` }}
+            />
+          </div>
+          <span className="text-[11px] text-muted-foreground block">Target 4 Negara Mitra Utama</span>
         </Card>
 
         <Card className="p-4">

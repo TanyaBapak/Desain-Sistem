@@ -44,6 +44,7 @@ Sebuah tugas dianggap **selesai** hanya jika semua ini terpenuhi:
 - Jangan melakukan refactor besar yang tidak diminta. Catat sebagai saran saja.
 
 ### 0.5 Larangan keras
+- **DILARANG KERAS menjalankan `php artisan migrate:refresh`, `migrate:fresh`, `migrate:reset`, `db:wipe`, atau migrasi destruktif apapun yang terjadi!** Data database dan riwayat migrasi tidak boleh di-drop atau dihapus ulang dalam kondisi apa pun tanpa pengecualian. Perubahan skema/data hanya boleh menggunakan migrasi baru (`php artisan migrate`) yang bersifat non-destruktif dan backward-compatible.
 - Jangan commit atau menulis file `.env`, kunci API, token, atau kredensial.
 - Jangan menghapus data atau migrasi destruktif tanpa konfirmasi.
 - Jangan menonaktifkan aturan lint/TypeScript demi "supaya jalan".

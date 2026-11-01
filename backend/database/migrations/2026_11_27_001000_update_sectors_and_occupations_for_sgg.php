@@ -58,10 +58,7 @@ return new class extends Migration
             );
         }
 
-        // 2. Remove obsolete placeholder occupations
-        DB::table('occupations')->whereIn('id', ['OCC-AT-01', 'OCC-HS-01'])->delete();
-
-        // 3. Upsert detailed occupations
+        // 2. Upsert detailed occupations
         $occupations = [
             // Hospitality
             ['OCC-HOSP-01', 'SECT-HOSP', 'Spa Therapist', 'HOSP-SPA', 'Standar terapi spa dan relaksasi', ['spa', 'spa therapist', 'therapist']],
@@ -104,7 +101,31 @@ return new class extends Migration
             );
         }
 
-        // 4. Update landing placement targets
+        // 3. Reassign references before removing obsolete placeholder occupations.
+        //    Program housekeeping diarahkan ke jabatan Housekeeping yang baru,
+        //    sedangkan jabatan otomotif lama tidak punya padanan di katalog baru
+        //    sehingga relasinya dikosongkan (kolom occupation_id nullable).
+        DB::table('training_programs')
+            ->where('occupation_id', 'OCC-HS-01')
+            ->update(['occupation_id' => 'OCC-HOSP-02']);
+        DB::table('training_programs')
+            ->where('occupation_id', 'OCC-AT-01')
+            ->update(['occupation_id' => null]);
+        DB::table('job_demands')
+            ->where('occupation_id', 'OCC-HS-01')
+            ->update(['occupation_id' => 'OCC-HOSP-02']);
+
+        // 4. Remove obsolete placeholder occupations that are no longer referenced.
+        DB::table('occupations')
+            ->whereIn('id', ['OCC-AT-01', 'OCC-HS-01'])
+            ->whereNotExists(function ($query): void {
+                $query->select(DB::raw(1))
+                    ->from('job_demands')
+                    ->whereColumn('job_demands.occupation_id', 'occupations.id');
+            })
+            ->delete();
+
+        // 5. Update landing placement targets
         DB::table('landing_placement_targets')
             ->where('sector_name', 'Agriculture')
             ->update(['sector_name' => 'Fisherman']);

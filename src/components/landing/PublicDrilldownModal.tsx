@@ -809,21 +809,6 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
         }
         return (
           <div className="space-y-4">
-            <div className="rounded-xl border border-border bg-muted/40 p-4">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                  <Building2 className="h-5 w-5" />
-                </div>
-                <div>
-                  <h4 className="text-sm font-bold text-foreground">
-                    {type === "peserta" ? "Pilih Lembaga Vokasi Calon Peserta" : "Lembaga Vokasi Mitra"} — {scopeName}
-                  </h4>
-                  <p className="text-xs text-muted-foreground">
-                    Klik pada nama lembaga untuk melihat rincian calon peserta (nama, target negara, sektor, & jabatan)
-                  </p>
-                </div>
-              </div>
-            </div>
             {renderInstitutionList(verifiedInstitutions)}
           </div>
         );
@@ -846,21 +831,6 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
                   <ArrowLeft className="mr-1.5 h-4 w-4" aria-hidden="true" />
                   Kembali ke daftar jabatan ({selectedSector})
                 </Button>
-
-                <div className="rounded-xl border border-border bg-muted/40 p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div>
-                    <h4 className="text-sm font-bold text-foreground flex items-center gap-2">
-                      <Users className="h-4 w-4 text-primary" />
-                      Daftar Calon Peserta — {selectedOccupation}
-                    </h4>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      Sektor {selectedSector} · Menampilkan data peserta riil yang terdaftar beserta lembaga vokasi asalnya.
-                    </p>
-                  </div>
-                  <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 shrink-0 self-start sm:self-auto font-bold tabular-nums">
-                    {matchingCandidates.length} Peserta Terdaftar
-                  </Badge>
-                </div>
 
                 {/* Search Box */}
                 {matchingCandidates.length > 2 && (
@@ -973,14 +943,6 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
                   <ArrowLeft className="mr-2 h-4 w-4" aria-hidden="true" />
                   Kembali ke daftar sektor
                 </Button>
-                <div className="rounded-xl border border-border bg-muted/40 p-4">
-                  <h4 className="text-sm font-bold text-foreground">
-                    Jabatan sektor {selectedSector}
-                  </h4>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    Pilih jabatan untuk melihat lembaga vokasi yang mendukungnya.
-                  </p>
-                </div>
                 {(sectorOccupations[selectedSector] ?? []).length > 0 ? (
                   <div className="space-y-2">
                     {(sectorOccupations[selectedSector] ?? []).map((occupation) => (
@@ -1007,22 +969,6 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
               </>
             ) : (
               <>
-                <div className="rounded-xl border border-border bg-muted/40 p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                      <GraduationCap className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-bold text-foreground">
-                        Sektor Program Pelatihan dari Target Negara
-                      </h4>
-                      <p className="text-xs text-muted-foreground">
-                        Pilih sektor untuk melihat jabatan, lalu lembaga vokasi.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
                 {sectors.length === 0 ? (
                   <p className="rounded-lg border border-dashed border-border p-5 text-center text-sm text-muted-foreground">
                     Belum ada sektor yang terdaftar pada target negara.
@@ -1072,22 +1018,6 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
                 <span>Kembali ke sebaran provinsi</span>
               </Button>
 
-              <div className="rounded-xl border border-border bg-muted/40 p-3.5 space-y-1">
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <h4 className="text-sm font-bold text-foreground">
-                      Lembaga Vokasi — {selectedProvinceForLpk}
-                    </h4>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      Pilih salah satu lembaga vokasi di bawah untuk melihat rincian calon peserta (nama, negara target, sektor, & jabatan)
-                    </p>
-                  </div>
-                  <Badge variant="outline" className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 border-emerald-500/20 bg-emerald-500/10 shrink-0">
-                    {provinceInstitutions.length} Lembaga
-                  </Badge>
-                </div>
-              </div>
-
               {renderInstitutionList(provinceInstitutions)}
             </div>
           );
@@ -1095,22 +1025,6 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
 
         return (
           <div className="space-y-4">
-            <div className="rounded-xl border border-border bg-muted/40 p-4">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                  <Globe2 className="h-5 w-5" />
-                </div>
-                <div>
-                  <h4 className="text-sm font-bold text-foreground">
-                    Sebaran Lembaga Terdaftar Nasional per Provinsi
-                  </h4>
-                  <p className="text-xs text-muted-foreground">
-                    Cakupan 38 Provinsi di Seluruh Indonesia · Klik salah satu provinsi untuk melihat rincian lembaga vokasi
-                  </p>
-                </div>
-              </div>
-            </div>
-
             <div className="rounded-lg border border-border">
               <div className="p-2 divide-y divide-border/60">
                 {(nationalLpkList.length > 0
@@ -1173,22 +1087,6 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
       case "alokasi":
         return (
           <div className="space-y-4">
-            <div className="rounded-xl border border-border bg-muted/40 p-4">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                  <Workflow className="h-5 w-5" />
-                </div>
-                <div>
-                  <h4 className="text-sm font-bold text-foreground">
-                    Alokasi Penempatan Batch & Tracking
-                  </h4>
-                  <p className="text-xs text-muted-foreground">
-                    Proses alokasi batch pelatihan terverifikasi ke permintaan pemberi kerja luar negeri
-                  </p>
-                </div>
-              </div>
-            </div>
-
             <div className="rounded-lg border border-border p-4 bg-card space-y-3">
               <div className="flex items-center justify-between text-xs pb-2 border-b border-border">
                 <span className="font-semibold text-foreground">Tahapan Alokasi Aktif</span>

@@ -99,14 +99,26 @@ export function DashboardVokasiTab({
 
       {/* 4 Quantitative Vokasi Metrics */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="p-4">
-          <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider block">
-            Lembaga Wilayah
-          </span>
-          <div className="text-2xl font-bold text-foreground mt-1 tabular-nums">
-            {providers.length.toLocaleString("id-ID")}
+        <Card className="p-4 space-y-2">
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-muted-foreground font-medium uppercase tracking-wider block">
+              Lembaga Wilayah
+            </span>
+            <span className="text-emerald-600 dark:text-emerald-400 font-semibold tabular-nums">
+              {Math.round((providers.length / 2382) * 100)}% tercapai
+            </span>
           </div>
-          <span className="text-[11px] text-muted-foreground mt-1 block">Lingkup {scopeName}</span>
+          <div className="text-2xl font-bold text-foreground tabular-nums">
+            {providers.length.toLocaleString("id-ID")}
+            <span className="text-sm font-medium text-muted-foreground ml-1.5">/ 2.382 Vokasi</span>
+          </div>
+          <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+            <div
+              className="h-full rounded-full bg-emerald-500 transition-all"
+              style={{ width: `${Math.min(100, Math.max(3, Math.round((providers.length / 2382) * 100)))}%` }}
+            />
+          </div>
+          <span className="text-[11px] text-muted-foreground block">Target Kesiapan Vokasi Mitra</span>
         </Card>
 
         <Card className="p-4">

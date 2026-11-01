@@ -62,6 +62,26 @@ export function DashboardOverviewTab({
     [programs]
   );
 
+  // Target diselaraskan dengan Landing Page SMK Go Global:
+  // 1. Supply: 12.600 Calon Peserta
+  // 2. Program Pelatihan: 630 Kelas (5 Sektor)
+  // 3. Lembaga & Vokasi: 2.382 Vokasi
+  // 4. Demand: 4 Negara Mitra (Turki, Jepang, Malaysia, Korea)
+  const TARGET_SUPPLY = 12600;
+  const TARGET_PROGRAM_CLASSES = 630;
+  const TARGET_VOKASI = 2382;
+  const TARGET_DEMAND_COUNTRIES = 4;
+
+  const supplyAchievementPct = Math.round((candidates.length / TARGET_SUPPLY) * 100);
+  const programAchievementPct = Math.round((programs.length / TARGET_PROGRAM_CLASSES) * 100);
+  const vokasiAchievementPct = Math.round((providers.length / TARGET_VOKASI) * 100);
+
+  const uniqueDemandCountries = React.useMemo(() => {
+    const set = new Set(demands.map((d) => d.country).filter(Boolean));
+    return set.size || (demands.length > 0 ? Math.min(demands.length, 4) : 0);
+  }, [demands]);
+  const demandAchievementPct = Math.round((uniqueDemandCountries / TARGET_DEMAND_COUNTRIES) * 100);
+
   const handleStageSelect = (stageId: string) => {
     switch (stageId) {
       case "supply":
@@ -98,6 +118,8 @@ export function DashboardOverviewTab({
           desc="Pencari kerja terdata di sistem"
           badge={`${readyCandidatesCount} Siap`}
           icon={Users}
+          progressPercent={supplyAchievementPct}
+          progressLabel={`${candidates.length.toLocaleString("id-ID")} / ${TARGET_SUPPLY.toLocaleString("id-ID")} Target (${supplyAchievementPct}%)`}
           onOpenPage={() => onSelectTab("supply")}
           pageActionLabel="Buka Tab Supply"
           onDrilldown={() => onOpenDrilldown("peserta")}
@@ -112,6 +134,8 @@ export function DashboardOverviewTab({
           desc="Katalog kurikulum kejuruan"
           badge={`${totalTrainingQuota} Kuota`}
           icon={GraduationCap}
+          progressPercent={programAchievementPct}
+          progressLabel={`${programs.length.toLocaleString("id-ID")} / ${TARGET_PROGRAM_CLASSES.toLocaleString("id-ID")} Target Kelas (${programAchievementPct}%)`}
           onOpenPage={() => onSelectTab("program")}
           pageActionLabel="Buka Tab Program"
           onDrilldown={() => onOpenDrilldown("program")}
@@ -126,8 +150,8 @@ export function DashboardOverviewTab({
           desc={`Mitra diklat lingkup ${scopeName}`}
           badge={`${registeredVokasiCount} Terverifikasi`}
           icon={Building2}
-          progressPercent={providers.length > 0 ? (registeredVokasiCount / providers.length) * 100 : 0}
-          progressLabel={`${registeredVokasiCount} / ${providers.length} Terverifikasi`}
+          progressPercent={vokasiAchievementPct}
+          progressLabel={`${providers.length.toLocaleString("id-ID")} / ${TARGET_VOKASI.toLocaleString("id-ID")} Target Vokasi (${vokasiAchievementPct}%)`}
           onOpenPage={() => onSelectTab("vokasi")}
           pageActionLabel="Buka Tab Vokasi"
           onDrilldown={() => onOpenDrilldown("lembaga")}
@@ -142,6 +166,8 @@ export function DashboardOverviewTab({
           desc="Seluruh wilayah Indonesia"
           badge="38 Provinsi"
           icon={Building2}
+          progressPercent={100}
+          progressLabel={`${nationalLpkCount.toLocaleString("id-ID")} LPK Nasional (38 Provinsi)`}
           onOpenPage={() => onSelectTab("vokasi")}
           pageActionLabel="Lihat Sebaran LPK"
           onDrilldown={() => onOpenDrilldown("national_lpk")}
@@ -156,6 +182,8 @@ export function DashboardOverviewTab({
           desc="Order kebutuhan pekerja migran"
           badge={`${totalDemandQuota} Slot`}
           icon={Globe2}
+          progressPercent={demandAchievementPct}
+          progressLabel={`${uniqueDemandCountries} / ${TARGET_DEMAND_COUNTRIES} Target Negara (${totalDemandQuota.toLocaleString("id-ID")} Slot)`}
           onOpenPage={() => onSelectTab("demand")}
           pageActionLabel="Buka Tab Demand"
           onDrilldown={() => onOpenDrilldown("demand")}
@@ -170,6 +198,8 @@ export function DashboardOverviewTab({
           desc="Batch yang telah dialokasikan"
           badge="Tahap 4"
           icon={Workflow}
+          progressPercent={Math.min(100, Math.round((allocations.length / Math.max(demands.length, 1)) * 100))}
+          progressLabel={`${allocations.length.toLocaleString("id-ID")} Batch Teralokasi`}
           onOpenPage={() => onSelectTab("matching")}
           pageActionLabel="Buka Tab Matching"
           onDrilldown={() => onOpenDrilldown("alokasi")}
