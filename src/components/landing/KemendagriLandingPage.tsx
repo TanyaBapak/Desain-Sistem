@@ -436,7 +436,7 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
 
         <div className="max-w-7xl mx-auto relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
           {/* Left Text Presentation */}
-          <div className="lg:col-span-8 space-y-4">
+          <div className="lg:col-span-5 space-y-4">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-600/20 border border-red-500/40 text-red-300 text-xs font-bold uppercase tracking-wider">
               <ShieldCheck className="w-4 h-4 text-red-400" />
               <span>PROGRAM PRIORITAS NASIONAL</span>
@@ -446,15 +446,15 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
               SMK GO GLOBAL
             </h2>
 
-            <p className="text-sm sm:text-base text-slate-300 max-w-2xl leading-relaxed">
-              Task force SMK Go Global 2026
+            <p className="text-sm sm:text-base text-slate-300 leading-relaxed">
+              Task force SMK Go Global 2026. Ekosistem terpadu akselerasi dan pemantauan penyiapan tenaga kerja terampil internasional lulusan SMK dan vokasi Indonesia.
             </p>
 
             {/* Quick Action Button Group: SSO */}
-            <div className="flex flex-wrap items-center gap-3 pt-3">
+            <div className="flex flex-wrap items-center gap-3 pt-2">
               <button
                 onClick={() => openLoginPage()}
-                className="px-6 py-3.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs uppercase tracking-wider shadow-lg shadow-blue-600/20 transition flex items-center gap-2"
+                className="px-5 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs uppercase tracking-wider shadow-lg shadow-blue-600/20 transition flex items-center gap-2"
               >
                 <Compass className="w-4 h-4" />
                 <span>Masuk Sistem Terpadu (SSO)</span>
@@ -462,169 +462,198 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
               </button>
               <a
                 href="/lembaga/daftar"
-                className="flex items-center gap-2 rounded-xl border border-slate-600 bg-slate-900/70 px-5 py-3.5 text-xs font-extrabold uppercase tracking-wider text-white transition hover:border-blue-400 hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="flex items-center gap-2 rounded-xl border border-slate-600 bg-slate-900/70 px-4 py-3 text-xs font-extrabold uppercase tracking-wider text-white transition hover:border-blue-400 hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <Building2 className="h-4 w-4" aria-hidden="true" />
-                <span>Daftar SMK Go Internasional - AC</span>
+                <span>Daftar SMK Go Internasional</span>
                 <ChevronRight className="h-4 w-4" aria-hidden="true" />
               </a>
+            </div>
+
+            {/* Indikator Pilar Cepat */}
+            <div className="pt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11px] text-slate-400 font-medium">
+              <span className="flex items-center gap-1.5">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                Integrasi Dukcapil & Kemendikbud
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="h-1.5 w-1.5 rounded-full bg-blue-400" />
+                Kurikulum Standar Industri Global
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
+                Monitoring 38 Provinsi
+              </span>
             </div>
           </div>
 
           {/* Right program overview card */}
-          <div className="lg:col-span-4 bg-slate-900/90 border border-slate-800 rounded-2xl p-6 shadow-2xl backdrop-blur-md space-y-4">
-            <div className="border-b border-slate-800 pb-3">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-blue-400 block">
-                INFORMASI PROGRAM
+          <div className="lg:col-span-7 bg-slate-900/95 border border-slate-800 rounded-2xl p-5 sm:p-6 shadow-2xl backdrop-blur-md space-y-3.5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 border-b border-slate-800 pb-2.5">
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-blue-400 block">
+                  INFORMASI PROGRAM
+                </span>
+                <h3 className="text-base font-bold text-white">
+                  Alur 4 Pilar: Siap Latih hingga Siap Permintaan
+                </h3>
+              </div>
+              <span className="text-[11px] font-medium text-slate-400">
+                Pembaruan Nasional Terpadu
               </span>
-              <h3 className="text-base font-bold text-white mt-0.5">
-                Alur 4 Pilar: Siap Latih hingga Siap Permintaan
-              </h3>
             </div>
 
-            <div className="space-y-3 text-xs">
-              <article className="rounded-xl border border-slate-700/60 bg-slate-800/80 p-3">
+            {/* Baris 1: Pilar 1, 3, dan 4 dalam Grid 3 Kolom Kompak */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
+              {/* Pilar 1 */}
+              <article className="rounded-xl border border-slate-700/60 bg-slate-800/80 p-2.5 flex flex-col justify-between">
                 <div className="flex items-center justify-between">
-                  <span className="block font-bold uppercase text-slate-400">1. Siap Latih / Suplai Tersedia</span>
-                  <span className="text-[11px] font-semibold text-emerald-400 tabular-nums">
+                  <span className="font-bold uppercase text-[10px] text-slate-400 truncate">1. Siap Latih</span>
+                  <span className="text-[10px] font-bold text-emerald-400 tabular-nums">
                     {Math.round(((candidateCount || 0) / supplyTarget) * 100)}%
                   </span>
                 </div>
-                <p className="mt-1 text-2xl font-extrabold tabular-nums text-white">
-                  <span className="text-emerald-400 font-extrabold">
-                    {(candidateCount || 0).toLocaleString("id-ID")}
-                  </span>
-                  <span className="text-slate-300 font-medium text-lg"> / {formattedTarget}</span>
-                </p>
-                <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-700/80">
-                  <div
-                    className="h-full rounded-full bg-emerald-500 transition-all duration-500"
-                    style={{
-                      width: `${Math.min(100, Math.max(2, Math.round(((candidateCount || 0) / supplyTarget) * 100))) }%`,
-                    }}
-                  />
-                </div>
-              </article>
-
-              <article className="rounded-xl border border-slate-700/60 bg-slate-800/80 p-3.5 space-y-3">
-                <div className="flex flex-col gap-2">
-                  <div className="flex items-center justify-between">
-                    <span className="block font-bold uppercase tracking-wider text-[11px] text-slate-300">
-                      2. Siap Program (Kurikulum Diklat)
+                <div className="mt-1">
+                  <p className="text-base font-extrabold tabular-nums text-white">
+                    <span className="text-emerald-400 font-extrabold">
+                      {(candidateCount || 0).toLocaleString("id-ID")}
                     </span>
-                    <span className="text-[10px] font-semibold text-blue-400">
-                      Dual-Track Terpadu
-                    </span>
-                  </div>
-                  {/* Pilihan Negara */}
-                  <div className="grid grid-cols-4 gap-1 rounded-lg bg-slate-900/90 p-1 border border-slate-700/70">
-                    {PILLAR_COUNTRY_PROGRAMS.map((item) => {
-                      const isActive = item.country === selectedProgramCountry;
-                      return (
-                        <button
-                          key={item.country}
-                          type="button"
-                          onClick={() => setSelectedProgramCountry(item.country)}
-                          className={`px-1.5 py-1 text-[11px] font-bold rounded-md transition-all text-center truncate ${
-                            isActive
-                              ? "bg-blue-600 text-white shadow-xs"
-                              : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
-                          }`}
-                          title={`Lihat kurikulum diklat negara ${item.country}`}
-                        >
-                          {item.country}
-                        </button>
-                      );
-                    })}
+                    <span className="text-slate-400 font-medium text-xs"> / {formattedTarget}</span>
+                  </p>
+                  <div className="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-slate-700/80">
+                    <div
+                      className="h-full rounded-full bg-emerald-500 transition-all duration-500"
+                      style={{
+                        width: `${Math.min(100, Math.max(2, Math.round(((candidateCount || 0) / supplyTarget) * 100)))}%`,
+                      }}
+                    />
                   </div>
                 </div>
-
-                {/* Daftar Sektor & Kurikulum Dual-Track */}
-                {(() => {
-                  const activeConfig =
-                    PILLAR_COUNTRY_PROGRAMS.find((p) => p.country === selectedProgramCountry) ??
-                    PILLAR_COUNTRY_PROGRAMS[0];
-                  return (
-                    <div className="space-y-2 pt-1">
-                      {activeConfig.sectors.map((sec) => (
-                        <div
-                          key={sec.sector}
-                          className="rounded-lg bg-slate-900/70 border border-slate-700/60 p-2.5 space-y-2"
-                        >
-                          <div className="flex items-center justify-between border-b border-slate-800 pb-1.5 text-xs">
-                            <span className="font-extrabold text-blue-300">
-                              Sektor {sec.sector}
-                            </span>
-                            <span className="text-[10px] font-medium text-slate-400">
-                              Target {activeConfig.country}
-                            </span>
-                          </div>
-
-                          <div className="space-y-1.5 text-xs">
-                            {sec.tracks.map((tr) => (
-                              <div
-                                key={tr.type}
-                                className="flex flex-col gap-1 rounded-md bg-slate-800/80 border border-slate-700/50 p-2 text-slate-200"
-                              >
-                                <div className="flex items-center justify-between gap-1.5">
-                                  <div className="flex items-center gap-1.5 min-w-0">
-                                    <span
-                                      className={`px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider shrink-0 ${
-                                        tr.type === "teknis"
-                                          ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
-                                          : "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30"
-                                      }`}
-                                    >
-                                      {tr.type === "teknis" ? "Teknis" : "Bahasa"}
-                                    </span>
-                                    <span className="font-semibold text-white truncate text-[11px]">
-                                      {tr.title}
-                                    </span>
-                                  </div>
-                                  <span className="shrink-0 text-[10px] font-bold tabular-nums px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30">
-                                    {tr.jp} JP
-                                  </span>
-                                </div>
-                                <div className="flex items-center justify-between text-[10px] text-slate-400 tabular-nums pt-0.5">
-                                  <span>Mulai: <strong className="text-slate-300 font-semibold">{tr.startDate}</strong></span>
-                                  <span>Selesai: <strong className="text-slate-300 font-semibold">{tr.finishDate}</strong></span>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  );
-                })()}
               </article>
 
-              <article className="rounded-xl border border-slate-700/60 bg-slate-800/80 p-3">
-                <span className="block font-bold uppercase text-slate-400">3. Siap Vokasi (Ber-Suplai)</span>
-                <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 font-semibold text-white">
-                  <span>
-                    Jumlah kelas: <span className="tabular-nums">630</span>
-                  </span>
-                  <span>
-                    Vokasi ber-suplai:{" "}
-                    <span className="tabular-nums">
-                      {vocationalCount?.toLocaleString("id-ID") ?? "8"}
+              {/* Pilar 3 */}
+              <article className="rounded-xl border border-slate-700/60 bg-slate-800/80 p-2.5 flex flex-col justify-between">
+                <span className="font-bold uppercase text-[10px] text-slate-400 truncate">3. Siap Vokasi</span>
+                <div className="mt-1 space-y-0.5 font-semibold text-white text-xs">
+                  <div className="flex justify-between">
+                    <span className="text-slate-400 text-[11px]">Jumlah Kelas:</span>
+                    <span className="tabular-nums font-bold text-blue-300">630</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400 text-[11px]">Vokasi Siap:</span>
+                    <span className="tabular-nums font-bold text-emerald-300">
+                      {vocationalCount?.toLocaleString("id-ID") ?? "1.707"}
                     </span>
-                  </span>
+                  </div>
                 </div>
               </article>
 
-              <article className="rounded-xl border border-slate-700/60 bg-slate-800/80 p-3">
-                <span className="block font-bold uppercase text-slate-400">4. Siap Permintaan (Demand Luar Negeri)</span>
-                <ul className="mt-2 flex flex-wrap gap-x-3 gap-y-1.5 text-slate-200">
-                  {DEMAND_COUNTRIES.map((country) => (
-                    <li key={country} className="before:mr-1.5 before:content-['•']">
-                      {country}
-                    </li>
-                  ))}
-                </ul>
+              {/* Pilar 4 */}
+              <article className="rounded-xl border border-slate-700/60 bg-slate-800/80 p-2.5 flex flex-col justify-between">
+                <span className="font-bold uppercase text-[10px] text-slate-400 truncate">4. Siap Permintaan</span>
+                <div className="mt-1">
+                  <div className="text-[11px] font-bold text-cyan-300">4 Negara Sasaran</div>
+                  <div className="mt-0.5 text-[10px] text-slate-300 truncate">
+                    Turki · Malaysia · Korea · Jepang
+                  </div>
+                </div>
               </article>
             </div>
+
+            {/* Baris 2: Pilar 2 (Siap Program: Kurikulum Diklat Dual-Track) */}
+            <article className="rounded-xl border border-slate-700/60 bg-slate-800/80 p-3 space-y-2.5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="font-bold uppercase tracking-wider text-[11px] text-slate-300">
+                    2. Siap Program (Kurikulum Diklat)
+                  </span>
+                  <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                    Dual-Track
+                  </span>
+                </div>
+
+                {/* Pilihan Negara - Lega & Tanpa Terpotong */}
+                <div className="inline-flex rounded-lg bg-slate-900/90 p-0.5 border border-slate-700/70">
+                  {PILLAR_COUNTRY_PROGRAMS.map((item) => {
+                    const isActive = item.country === selectedProgramCountry;
+                    return (
+                      <button
+                        key={item.country}
+                        type="button"
+                        onClick={() => setSelectedProgramCountry(item.country)}
+                        className={`px-2.5 py-1 text-[11px] font-bold rounded-md transition-all text-center whitespace-nowrap ${
+                          isActive
+                            ? "bg-blue-600 text-white shadow-xs"
+                            : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
+                        }`}
+                        title={`Lihat kurikulum diklat negara ${item.country}`}
+                      >
+                        {item.country}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Daftar Sektor dalam Grid 2 Kolom Berdampingan */}
+              {(() => {
+                const activeConfig =
+                  PILLAR_COUNTRY_PROGRAMS.find((p) => p.country === selectedProgramCountry) ??
+                  PILLAR_COUNTRY_PROGRAMS[0];
+                return (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                    {activeConfig.sectors.map((sec) => (
+                      <div
+                        key={sec.sector}
+                        className="rounded-lg bg-slate-900/70 border border-slate-700/60 p-2.5 space-y-1.5 flex flex-col justify-between"
+                      >
+                        <div className="flex items-center justify-between border-b border-slate-800 pb-1 text-xs">
+                          <span className="font-extrabold text-blue-300">
+                            Sektor {sec.sector}
+                          </span>
+                          <span className="text-[10px] font-medium text-slate-400">
+                            {activeConfig.country}
+                          </span>
+                        </div>
+
+                        <div className="space-y-1.5">
+                          {sec.tracks.map((tr) => (
+                            <div
+                              key={tr.type}
+                              className="rounded-md bg-slate-800/80 border border-slate-700/50 p-1.5 text-slate-200 space-y-0.5"
+                            >
+                              <div className="flex items-center justify-between gap-1.5">
+                                <div className="flex items-center gap-1.5 min-w-0">
+                                  <span
+                                    className={`px-1.5 py-0.2 rounded text-[8px] font-black uppercase tracking-wider shrink-0 ${
+                                      tr.type === "teknis"
+                                        ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                                        : "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30"
+                                    }`}
+                                  >
+                                    {tr.type === "teknis" ? "Teknis" : "Bahasa"}
+                                  </span>
+                                  <span className="font-semibold text-white truncate text-[11px]">
+                                    {tr.title}
+                                  </span>
+                                </div>
+                                <span className="shrink-0 text-[9px] font-bold tabular-nums px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                                  {tr.jp} JP
+                                </span>
+                              </div>
+                              <div className="flex items-center justify-between text-[9px] text-slate-400 tabular-nums">
+                                <span>Mulai: <strong className="text-slate-300 font-semibold">{tr.startDate}</strong></span>
+                                <span>Selesai: <strong className="text-slate-300 font-semibold">{tr.finishDate}</strong></span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
+            </article>
           </div>
         </div>
       </section>
