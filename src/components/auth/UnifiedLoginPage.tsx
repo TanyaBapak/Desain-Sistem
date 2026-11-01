@@ -15,13 +15,15 @@ import { LOGO_URL } from "@/lib/assets";
 
 export function UnifiedLoginPage({ status }: { status?: string | null }) {
   useEffect(() => {
-    useAppStore.getState().resetToDefaultData();
-    useAppStore.setState({
-      currentUser: null,
-      currentRole: "taskforce",
-      isAuthenticated: false,
-      businessDataLoaded: false,
-    });
+    if (useAppStore.getState().isAuthenticated) {
+      useAppStore.getState().resetToDefaultData();
+      useAppStore.setState({
+        currentUser: null,
+        currentRole: "taskforce",
+        isAuthenticated: false,
+        businessDataLoaded: false,
+      });
+    }
   }, []);
 
   const [showPassword, setShowPassword] = useState(false);

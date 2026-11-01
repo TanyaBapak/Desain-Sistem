@@ -5,11 +5,9 @@ import { NAV_ITEMS } from "@/lib/sidebar-items";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { KemendagriLandingPage } from "@/components/landing/KemendagriLandingPage";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
+import { UnifiedLoginPage } from "@/components/auth/UnifiedLoginPage";
 
-// Lazy-loaded tab & auth components to dramatically reduce initial bundle size
-const UnifiedLoginPage = React.lazy(() =>
-  import("@/components/auth/UnifiedLoginPage").then((m) => ({ default: m.UnifiedLoginPage }))
-);
+// Lazy-loaded tab & registration components to optimize bundle size
 const InstitutionRegistrationPage = React.lazy(() =>
   import("@/pages/InstitutionRegistrationPage").then((m) => ({ default: m.InstitutionRegistrationPage }))
 );
@@ -343,10 +341,10 @@ function AppContent({
 
   if (showLogin && !authenticatedUser) {
     return (
-      <React.Suspense fallback={loading}>
+      <>
         <Head title="Masuk" />
         <UnifiedLoginPage status={registrationStatus} />
-      </React.Suspense>
+      </>
     );
   }
 
