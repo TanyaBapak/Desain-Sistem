@@ -52,6 +52,52 @@ interface CountryProgramPillar {
   sectors: SectorProgramItem[];
 }
 
+interface EcosystemFlowStep {
+  stage: string;
+  tag: string;
+  title: string;
+  description: string;
+  actors: string;
+}
+
+const ECOSYSTEM_FLOW_STEPS: EcosystemFlowStep[] = [
+  {
+    stage: "1",
+    tag: "Hulu",
+    title: "Penjaringan Talenta",
+    description: "Pendataan calon peserta lulusan SMK dan pencari kerja terverifikasi NIK Dukcapil.",
+    actors: "SMK & Disnaker Wilayah",
+  },
+  {
+    stage: "2",
+    tag: "Diklat",
+    title: "Pelatihan Dual-Track",
+    description: "Penguatan kompetensi kejuruan teknis dan kecakapan bahasa sesuai negara sasaran.",
+    actors: "Lembaga Vokasi / Balai Diklat",
+  },
+  {
+    stage: "3",
+    tag: "Standarisasi",
+    title: "Uji Sertifikasi Global",
+    description: "Uji kompetensi BNSP, sertifikasi industri, dan lisensi bahasa resmi (JLPT/TOPIK).",
+    actors: "LSP & Lembaga Akreditasi",
+  },
+  {
+    stage: "4",
+    tag: "Matching",
+    title: "Penjodohan & Dokumen",
+    description: "Sinkronisasi profil dengan kuota demand luar negeri, paspor, visa kerja, dan medical check.",
+    actors: "Task Force & Mitra Demand",
+  },
+  {
+    stage: "5",
+    tag: "Hilir",
+    title: "Penempatan & Monitoring",
+    description: "Keberangkatan resmi, pemantauan kontrak, perlindungan hak, serta evaluasi berkala.",
+    actors: "BP3MI & Perwakilan RI",
+  },
+];
+
 const PILLAR_COUNTRY_PROGRAMS: CountryProgramPillar[] = [
   {
     country: "Turki",
@@ -654,6 +700,71 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
                 );
               })()}
             </article>
+          </div>
+        </div>
+
+        {/* 4.1. ALUR EKOSISTEM SMK GO GLOBAL: HULU KE HILIR (Rantai Proses Terpadu) */}
+        <div className="mt-8 pt-6 border-t border-slate-800/80 max-w-7xl mx-auto space-y-3.5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-blue-400 block">
+                RANTAI PROSES TERPADU
+              </span>
+              <h4 className="text-sm sm:text-base font-extrabold text-white">
+                Alur Ekosistem SMK Go Global: Hulu ke Hilir
+              </h4>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Rantai proses terpadu dari penjaringan talenta hingga penempatan luar negeri.
+              </p>
+            </div>
+            <div className="inline-flex items-center gap-2 self-start sm:self-auto rounded-full bg-blue-950/60 border border-blue-800/60 px-3 py-1 text-[11px] font-bold text-blue-300">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              Siklus 5 Tahapan Terintegrasi
+            </div>
+          </div>
+
+          {/* Stepper Grid 5 Tahapan Horizontal */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5">
+            {ECOSYSTEM_FLOW_STEPS.map((step, idx) => (
+              <div
+                key={step.title}
+                className="group relative rounded-xl border border-slate-800/90 bg-slate-900/80 p-3 flex flex-col justify-between hover:border-slate-700 hover:bg-slate-900 transition shadow-sm"
+              >
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between gap-1.5">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-blue-400">
+                      Tahap {idx + 1}
+                    </span>
+                    <span
+                      className={`px-1.5 py-0.2 rounded text-[9px] font-bold uppercase tracking-wider ${
+                        step.tag === 'Hulu'
+                          ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                          : step.tag === 'Hilir'
+                          ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30'
+                          : 'bg-slate-800 text-slate-300 border border-slate-700'
+                      }`}
+                    >
+                      {step.tag}
+                    </span>
+                  </div>
+
+                  <h5 className="text-xs font-bold text-white group-hover:text-blue-300 transition-colors leading-snug">
+                    {step.title}
+                  </h5>
+
+                  <p className="text-[11px] text-slate-400 leading-relaxed">
+                    {step.description}
+                  </p>
+                </div>
+
+                <div className="mt-3 pt-2 border-t border-slate-800/70 text-[10px] flex items-center justify-between gap-1">
+                  <span className="text-slate-500 font-medium">Aktor:</span>
+                  <span className="text-slate-300 font-semibold truncate text-right">
+                    {step.actors}
+                  </span>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </section>
