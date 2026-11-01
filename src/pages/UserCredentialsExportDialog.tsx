@@ -172,7 +172,7 @@ export function UserCredentialsExportDialog({
                   <strong className="text-foreground">membuatkan password sementara baru</strong> dan langsung menyimpannya ke database.
                 </p>
                 <p className="text-muted-foreground text-[11px]">
-                  * Akun Super Admin Anda saat ini tidak akan diubah password-nya demi keamanan.
+                  * Seluruh akun dengan peran Super Admin (termasuk akun Anda) secara otomatis dikecualikan dari proses export dan password-nya tidak akan disentuh demi keamanan sistem.
                 </p>
               </div>
             </div>

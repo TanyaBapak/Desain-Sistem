@@ -404,9 +404,15 @@ class UserManagementController extends Controller
             ->with('roles')
             ->where('id', '!=', $admin->id);
 
-        // Jangan pernah mereset akun sesama super_admin
-        $query->whereDoesntHave('roles', function ($q) {
+        // Jangan pernah menyertakan atau mereset akun super_admin (baik diri sendiri maupun super admin lainnya)
+        $query->whereDoesntHave('roles', function ($q): void {
             $q->where('name', 'super_admin');
+        })->whereNotExists(function ($sub): void {
+            $sub->select(DB::raw(1))
+                ->from('model_has_roles')
+                ->join('roles', 'roles.id', '=', 'model_has_roles.role_id')
+                ->whereColumn('model_has_roles.model_id', 'users.id')
+                ->where('roles.name', 'super_admin');
         });
 
         if (is_array($userIds) && count($userIds) > 0) {
