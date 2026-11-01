@@ -53,7 +53,6 @@ export function match4Country(name: string): (typeof TARGET_4_COUNTRIES)[number]
 export interface TargetCountryConfig {
   name: (typeof TARGET_4_COUNTRIES)[number];
   code: string;
-  flag: string;
   tag: string;
   keySectors: string;
   colorClass: string;
@@ -66,7 +65,6 @@ export const TARGET_COUNTRIES_CONFIG: Record<(typeof TARGET_4_COUNTRIES)[number]
   Turki: {
     name: "Turki",
     code: "TR",
-    flag: "🇹🇷",
     tag: "Hospitality & Spa",
     keySectors: "Perhotelan · Spa Therapist · F&B Service",
     colorClass: "text-rose-600 dark:text-rose-400 bg-rose-500/10",
@@ -77,7 +75,6 @@ export const TARGET_COUNTRIES_CONFIG: Record<(typeof TARGET_4_COUNTRIES)[number]
   Jepang: {
     name: "Jepang",
     code: "JP",
-    flag: "🇯🇵",
     tag: "Kaigo & Welder",
     keySectors: "Caregiver Lansia · Welder · Pertanian",
     colorClass: "text-blue-600 dark:text-blue-400 bg-blue-500/10",
@@ -88,7 +85,6 @@ export const TARGET_COUNTRIES_CONFIG: Record<(typeof TARGET_4_COUNTRIES)[number]
   Malaysia: {
     name: "Malaysia",
     code: "MY",
-    flag: "🇲🇾",
     tag: "SMT & Perkebunan",
     keySectors: "Elektronika SMT · F&B · Mekanisasi Sawit",
     colorClass: "text-emerald-600 dark:text-emerald-400 bg-emerald-500/10",
@@ -99,7 +95,6 @@ export const TARGET_COUNTRIES_CONFIG: Record<(typeof TARGET_4_COUNTRIES)[number]
   "Korea Selatan": {
     name: "Korea Selatan",
     code: "KR",
-    flag: "🇰🇷",
     tag: "Permesinan & Galangan",
     keySectors: "Operator CNC · Welder FCAW · ABK",
     colorClass: "text-amber-600 dark:text-amber-400 bg-amber-500/10",
@@ -377,9 +372,14 @@ export function SupplyTargetProjectionPanel({
                 <div>
                   <div className="flex items-center justify-between gap-2 mb-2">
                     <div className="flex items-center gap-2">
-                      <span className="text-2xl" role="img" aria-label={countryKey}>
-                        {conf.flag}
-                      </span>
+                      <div
+                        className={cn(
+                          "flex h-7 w-7 items-center justify-center rounded-lg text-xs font-bold transition-transform group-hover:scale-110",
+                          conf.colorClass
+                        )}
+                      >
+                        <Globe2 className="h-4 w-4" />
+                      </div>
                       <span className="text-sm font-black text-foreground group-hover:text-primary transition-colors">
                         {conf.name}
                       </span>
@@ -431,8 +431,7 @@ export function SupplyTargetProjectionPanel({
                 ) : (
                   <>
                     Rincian Penempatan:{" "}
-                    <span className="text-primary font-black">{selectedCountry}</span>{" "}
-                    ({TARGET_COUNTRIES_CONFIG[selectedCountry as (typeof TARGET_4_COUNTRIES)[number]]?.flag})
+                    <span className="text-primary font-black">{selectedCountry}</span>
                   </>
                 )}
               </span>
