@@ -12,9 +12,25 @@ import {
 } from "lucide-react";
 import { LOGO_URL } from "@/lib/assets";
 
-export function UnifiedLoginPage({ status }: { status?: string | null }) {
+interface UnifiedLoginPageProps {
+  status?: string | null;
+  csrfToken?: string;
+}
+
+export function UnifiedLoginPage({ status, csrfToken: initialCsrfToken }: UnifiedLoginPageProps) {
   const [showPassword, setShowPassword] = useState(false);
+
+  const getCsrfToken = (): string => {
+    if (initialCsrfToken) return initialCsrfToken;
+    if (typeof document !== "undefined") {
+      const meta = document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement | null;
+      if (meta?.content) return meta.content;
+    }
+    return "";
+  };
+
   const { data, setData, post, processing, errors } = useForm({
+    _token: getCsrfToken(),
     identifier: "",
     password: "",
     remember: false,
@@ -22,6 +38,10 @@ export function UnifiedLoginPage({ status }: { status?: string | null }) {
 
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    const currentToken = getCsrfToken();
+    if (currentToken && data._token !== currentToken) {
+      setData("_token", currentToken);
+    }
     // Ganti entri riwayat /login agar tombol Kembali tidak memulihkan
     // halaman login dari cache saat sesi sudah aktif.
     post("/login", { replace: true });

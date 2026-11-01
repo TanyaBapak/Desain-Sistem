@@ -109,6 +109,7 @@ interface AppProps {
   currentTab: string;
   isRoot: boolean;
   showLogin: boolean;
+  csrfToken?: string;
   showInstitutionRegistration?: boolean;
   registrationStatus?: string | null;
   registrationOptions?: {
@@ -236,6 +237,7 @@ function AppContent({
   currentTab,
   isRoot,
   showLogin,
+  csrfToken,
   showInstitutionRegistration,
   registrationStatus,
   registrationOptions,
@@ -352,7 +354,7 @@ function AppContent({
     return (
       <>
         <Head title="Masuk" />
-        <UnifiedLoginPage status={registrationStatus} />
+        <UnifiedLoginPage status={registrationStatus} csrfToken={csrfToken} />
       </>
     );
   }

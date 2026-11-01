@@ -25,6 +25,7 @@ class AuthenticatedSessionController extends Controller
             'isRoot' => true,
             'showLogin' => true,
             'registrationStatus' => session('status'),
+            'csrfToken' => csrf_token(),
         ]);
     }
 
@@ -65,17 +66,18 @@ class AuthenticatedSessionController extends Controller
             : ($accessibleTabs[0] ?? 'overview');
 
         $intended = $request->session()->pull('url.intended');
-        if ($intended) {
+        $targetTab = $defaultTab;
+        if ($intended && is_string($intended) && ! str_contains($intended, '/login')) {
             // Batasi intended URL: hanya arahkan jika user memiliki izin pada tab yang dituju
             if (preg_match('#/app/([a-zA-Z0-9_-]+)#', $intended, $matches)) {
-                $targetTab = $matches[1];
-                if (in_array($targetTab, $accessibleTabs, true)) {
-                    return redirect()->to($intended);
+                $candidateTab = $matches[1];
+                if (in_array($candidateTab, $accessibleTabs, true)) {
+                    $targetTab = $candidateTab;
                 }
             }
         }
 
-        return redirect()->route('app.show', $defaultTab);
+        return redirect()->route('app.show', $targetTab);
     }
 
     public function destroy(Request $request): RedirectResponse
@@ -84,6 +86,6 @@ class AuthenticatedSessionController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return redirect()->route('home');
+        return redirect()->route('login');
     }
 }

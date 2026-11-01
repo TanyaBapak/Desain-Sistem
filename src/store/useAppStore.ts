@@ -402,15 +402,18 @@ export const useAppStore = create<AppState>((set, get) => ({
       viewMode: 'app',
     }),
   logout: () => {
-    get().resetToDefaultData();
-    set({
-      currentUser: null,
-      currentRole: 'taskforce',
-      isAuthenticated: false,
-      businessDataLoaded: false,
-    });
     router.post('/logout', {}, {
-      onFinish: () => {
+      preserveState: false,
+      onSuccess: () => {
+        get().resetToDefaultData();
+        set({
+          currentUser: null,
+          currentRole: 'taskforce',
+          isAuthenticated: false,
+          businessDataLoaded: false,
+        });
+      },
+      onError: () => {
         window.location.href = '/login';
       },
     });
