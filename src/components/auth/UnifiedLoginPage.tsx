@@ -1,6 +1,5 @@
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useState } from "react";
 import { useForm, router } from "@inertiajs/react";
-import { useAppStore } from "@/store/useAppStore";
 import {
   ArrowLeft,
   ArrowRight,
@@ -14,18 +13,6 @@ import {
 import { LOGO_URL } from "@/lib/assets";
 
 export function UnifiedLoginPage({ status }: { status?: string | null }) {
-  useEffect(() => {
-    if (useAppStore.getState().isAuthenticated) {
-      useAppStore.getState().resetToDefaultData();
-      useAppStore.setState({
-        currentUser: null,
-        currentRole: "taskforce",
-        isAuthenticated: false,
-        businessDataLoaded: false,
-      });
-    }
-  }, []);
-
   const [showPassword, setShowPassword] = useState(false);
   const { data, setData, post, processing, errors } = useForm({
     identifier: "",
@@ -35,7 +22,9 @@ export function UnifiedLoginPage({ status }: { status?: string | null }) {
 
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    post("/login");
+    // Ganti entri riwayat /login agar tombol Kembali tidak memulihkan
+    // halaman login dari cache saat sesi sudah aktif.
+    post("/login", { replace: true });
   };
 
   return (

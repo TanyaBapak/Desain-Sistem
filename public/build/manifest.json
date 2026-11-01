@@ -10,55 +10,55 @@
     "src": "../public/logo.png"
   },
   "../src/components/approvals/ApprovalWorkflowView.tsx": {
-    "file": "assets/ApprovalWorkflowView-DVb9Ja0z.js",
+    "file": "assets/ApprovalWorkflowView-CyCpHxHD.js",
     "name": "ApprovalWorkflowView",
     "src": "../src/components/approvals/ApprovalWorkflowView.tsx",
     "isDynamicEntry": true,
     "imports": [
-      "_vendor-framework-qPIPfdh6.js",
+      "_vendor-framework-DS1CgQeA.js",
       "resources/js/app.tsx",
-      "_vendor-lucide-CgQeHvUB.js",
-      "_vendor-radix-B8L_jgAb.js"
+      "_vendor-lucide-DZ50kmRD.js",
+      "_vendor-radix-CK3Dx6co.js"
     ]
   },
   "../src/components/audit/AuditLogView.tsx": {
-    "file": "assets/AuditLogView-Cw7hvG0F.js",
+    "file": "assets/AuditLogView-Fvg3vpa1.js",
     "name": "AuditLogView",
     "src": "../src/components/audit/AuditLogView.tsx",
     "isDynamicEntry": true,
     "imports": [
-      "_vendor-framework-qPIPfdh6.js",
+      "_vendor-framework-DS1CgQeA.js",
       "resources/js/app.tsx",
-      "_vendor-lucide-CgQeHvUB.js",
-      "_vendor-radix-B8L_jgAb.js"
+      "_vendor-lucide-DZ50kmRD.js",
+      "_vendor-radix-CK3Dx6co.js"
     ]
   },
   "../src/components/matching/MatchingEngineView.tsx": {
-    "file": "assets/MatchingEngineView-B1APcp_7.js",
+    "file": "assets/MatchingEngineView-BqUpUWe4.js",
     "name": "MatchingEngineView",
     "src": "../src/components/matching/MatchingEngineView.tsx",
     "isDynamicEntry": true,
     "imports": [
-      "_vendor-framework-qPIPfdh6.js",
+      "_vendor-framework-DS1CgQeA.js",
       "resources/js/app.tsx",
-      "_vendor-lucide-CgQeHvUB.js",
-      "_DeleteConfirmModal-DFDwEIUM.js",
-      "_vendor-radix-B8L_jgAb.js"
+      "_vendor-lucide-DZ50kmRD.js",
+      "_DeleteConfirmModal-DG8y1YtA.js",
+      "_vendor-radix-CK3Dx6co.js"
     ]
   },
   "../src/components/modul-a/SupplyTable.tsx": {
-    "file": "assets/SupplyTable-BmikJUO_.js",
+    "file": "assets/SupplyTable-Biwv4wBO.js",
     "name": "SupplyTable",
     "src": "../src/components/modul-a/SupplyTable.tsx",
     "isDynamicEntry": true,
     "imports": [
-      "_vendor-framework-qPIPfdh6.js",
+      "_vendor-framework-DS1CgQeA.js",
       "resources/js/app.tsx",
       "_bp3mi-VUrMP8yP.js",
-      "_card-DNS5aeB3.js",
-      "_vendor-lucide-CgQeHvUB.js",
-      "_DeleteConfirmModal-DFDwEIUM.js",
-      "_vendor-radix-B8L_jgAb.js"
+      "_card-JM2bvFwA.js",
+      "_vendor-lucide-DZ50kmRD.js",
+      "_DeleteConfirmModal-DG8y1YtA.js",
+      "_vendor-radix-CK3Dx6co.js"
     ],
     "dynamicImports": [
       "../node_modules/.pnpm/xlsx@0.18.5/node_modules/xlsx/xlsx.mjs",
@@ -67,173 +67,173 @@
     ]
   },
   "../src/components/modul-b/TrainingProgramsView.tsx": {
-    "file": "assets/TrainingProgramsView-hgUU1KUs.js",
+    "file": "assets/TrainingProgramsView-Btw3pt-A.js",
     "name": "TrainingProgramsView",
     "src": "../src/components/modul-b/TrainingProgramsView.tsx",
     "isDynamicEntry": true,
     "imports": [
-      "_vendor-framework-qPIPfdh6.js",
+      "_vendor-framework-DS1CgQeA.js",
       "resources/js/app.tsx",
-      "_vendor-lucide-CgQeHvUB.js",
-      "_DeleteConfirmModal-DFDwEIUM.js",
-      "_vendor-radix-B8L_jgAb.js"
+      "_vendor-lucide-DZ50kmRD.js",
+      "_DeleteConfirmModal-DG8y1YtA.js",
+      "_vendor-radix-CK3Dx6co.js"
     ]
   },
   "../src/components/modul-c/ProvidersView.tsx": {
-    "file": "assets/ProvidersView-Chyb2emu.js",
+    "file": "assets/ProvidersView-FBKzAkly.js",
     "name": "ProvidersView",
     "src": "../src/components/modul-c/ProvidersView.tsx",
     "isDynamicEntry": true,
     "imports": [
-      "_vendor-framework-qPIPfdh6.js",
+      "_vendor-framework-DS1CgQeA.js",
       "_bp3mi-VUrMP8yP.js",
       "resources/js/app.tsx",
-      "_vendor-lucide-CgQeHvUB.js",
-      "_DeleteConfirmModal-DFDwEIUM.js",
-      "_vendor-radix-B8L_jgAb.js"
+      "_vendor-lucide-DZ50kmRD.js",
+      "_DeleteConfirmModal-DG8y1YtA.js",
+      "_vendor-radix-CK3Dx6co.js"
     ]
   },
   "../src/components/modul-d/GlobalDemandsView.tsx": {
-    "file": "assets/GlobalDemandsView-DMuyP6Su.js",
+    "file": "assets/GlobalDemandsView-DhCIAhoc.js",
     "name": "GlobalDemandsView",
     "src": "../src/components/modul-d/GlobalDemandsView.tsx",
     "isDynamicEntry": true,
     "imports": [
-      "_vendor-framework-qPIPfdh6.js",
+      "_vendor-framework-DS1CgQeA.js",
       "resources/js/app.tsx",
-      "_vendor-lucide-CgQeHvUB.js",
-      "_DeleteConfirmModal-DFDwEIUM.js",
-      "_vendor-radix-B8L_jgAb.js"
+      "_vendor-lucide-DZ50kmRD.js",
+      "_DeleteConfirmModal-DG8y1YtA.js",
+      "_vendor-radix-CK3Dx6co.js"
     ]
   },
   "../src/components/reports/ReportsView.tsx": {
-    "file": "assets/ReportsView-wC-h5L-u.js",
+    "file": "assets/ReportsView-dBuYdBqn.js",
     "name": "ReportsView",
     "src": "../src/components/reports/ReportsView.tsx",
     "isDynamicEntry": true,
     "imports": [
-      "_vendor-framework-qPIPfdh6.js",
-      "_InstitutionDirectory-Bp-rmSug.js",
+      "_vendor-framework-DS1CgQeA.js",
+      "_InstitutionDirectory-DaZVEMVE.js",
       "resources/js/app.tsx",
-      "_vendor-lucide-CgQeHvUB.js",
-      "_card-DNS5aeB3.js",
-      "_vendor-radix-B8L_jgAb.js"
+      "_vendor-lucide-DZ50kmRD.js",
+      "_card-JM2bvFwA.js",
+      "_vendor-radix-CK3Dx6co.js"
     ]
   },
   "../src/pages/DashboardPage.tsx": {
-    "file": "assets/DashboardPage-EVAypz31.js",
+    "file": "assets/DashboardPage-Cj2BudFD.js",
     "name": "DashboardPage",
     "src": "../src/pages/DashboardPage.tsx",
     "isDynamicEntry": true,
     "imports": [
-      "_vendor-framework-qPIPfdh6.js",
+      "_vendor-framework-DS1CgQeA.js",
       "resources/js/app.tsx",
       "_stakeholder-roles-BT0SLx9T.js",
-      "_InstitutionDirectory-Bp-rmSug.js",
-      "_vendor-lucide-CgQeHvUB.js",
-      "_card-DNS5aeB3.js",
-      "_vendor-radix-B8L_jgAb.js"
+      "_InstitutionDirectory-DaZVEMVE.js",
+      "_vendor-lucide-DZ50kmRD.js",
+      "_card-JM2bvFwA.js",
+      "_vendor-radix-CK3Dx6co.js"
     ]
   },
   "../src/pages/InstitutionRegistrationPage.tsx": {
-    "file": "assets/InstitutionRegistrationPage-ClOr-h3m.js",
+    "file": "assets/InstitutionRegistrationPage-BdZWkJSF.js",
     "name": "InstitutionRegistrationPage",
     "src": "../src/pages/InstitutionRegistrationPage.tsx",
     "isDynamicEntry": true,
     "imports": [
-      "_vendor-framework-qPIPfdh6.js",
+      "_vendor-framework-DS1CgQeA.js",
       "resources/js/app.tsx",
-      "_vendor-lucide-CgQeHvUB.js",
-      "_vendor-radix-B8L_jgAb.js"
+      "_vendor-lucide-DZ50kmRD.js",
+      "_vendor-radix-CK3Dx6co.js"
     ]
   },
   "../src/pages/RoleManagementPage.tsx": {
-    "file": "assets/RoleManagementPage-CIIOyDYm.js",
+    "file": "assets/RoleManagementPage-DX_inCij.js",
     "name": "RoleManagementPage",
     "src": "../src/pages/RoleManagementPage.tsx",
     "isDynamicEntry": true,
     "imports": [
-      "_vendor-framework-qPIPfdh6.js",
+      "_vendor-framework-DS1CgQeA.js",
       "resources/js/app.tsx",
-      "_table-BNeqAi4b.js",
-      "_card-DNS5aeB3.js",
+      "_table-7Xqbkon7.js",
+      "_card-JM2bvFwA.js",
       "_stakeholder-roles-BT0SLx9T.js",
-      "_vendor-lucide-CgQeHvUB.js",
-      "_vendor-radix-B8L_jgAb.js"
+      "_vendor-lucide-DZ50kmRD.js",
+      "_vendor-radix-CK3Dx6co.js"
     ]
   },
   "../src/pages/SippmiMonitoringPage.tsx": {
-    "file": "assets/SippmiMonitoringPage-CJyTU3PU.js",
+    "file": "assets/SippmiMonitoringPage-DrQqZYev.js",
     "name": "SippmiMonitoringPage",
     "src": "../src/pages/SippmiMonitoringPage.tsx",
     "isDynamicEntry": true,
     "imports": [
-      "_vendor-framework-qPIPfdh6.js",
+      "_vendor-framework-DS1CgQeA.js",
       "resources/js/app.tsx",
-      "_card-DNS5aeB3.js",
-      "_table-BNeqAi4b.js",
-      "_vendor-lucide-CgQeHvUB.js",
-      "_vendor-radix-B8L_jgAb.js"
+      "_card-JM2bvFwA.js",
+      "_table-7Xqbkon7.js",
+      "_vendor-lucide-DZ50kmRD.js",
+      "_vendor-radix-CK3Dx6co.js"
     ]
   },
   "../src/pages/TargetManagementPage.tsx": {
-    "file": "assets/TargetManagementPage-DAOUA83u.js",
+    "file": "assets/TargetManagementPage-CVsmQVA_.js",
     "name": "TargetManagementPage",
     "src": "../src/pages/TargetManagementPage.tsx",
     "isDynamicEntry": true,
     "imports": [
-      "_vendor-framework-qPIPfdh6.js",
+      "_vendor-framework-DS1CgQeA.js",
       "resources/js/app.tsx",
-      "_card-DNS5aeB3.js",
-      "_vendor-radix-B8L_jgAb.js",
-      "_vendor-lucide-CgQeHvUB.js"
+      "_card-JM2bvFwA.js",
+      "_vendor-radix-CK3Dx6co.js",
+      "_vendor-lucide-DZ50kmRD.js"
     ]
   },
   "../src/pages/UserManagementPage.tsx": {
-    "file": "assets/UserManagementPage-BWk60L-3.js",
+    "file": "assets/UserManagementPage-D39UDg0h.js",
     "name": "UserManagementPage",
     "src": "../src/pages/UserManagementPage.tsx",
     "isDynamicEntry": true,
     "imports": [
-      "_vendor-framework-qPIPfdh6.js",
+      "_vendor-framework-DS1CgQeA.js",
       "resources/js/app.tsx",
-      "_card-DNS5aeB3.js",
-      "_DeleteConfirmModal-DFDwEIUM.js",
-      "_vendor-lucide-CgQeHvUB.js",
-      "_vendor-radix-B8L_jgAb.js"
+      "_card-JM2bvFwA.js",
+      "_DeleteConfirmModal-DG8y1YtA.js",
+      "_vendor-lucide-DZ50kmRD.js",
+      "_vendor-radix-CK3Dx6co.js"
     ],
     "dynamicImports": [
       "../node_modules/.pnpm/xlsx@0.18.5/node_modules/xlsx/xlsx.mjs"
     ]
   },
-  "_DeleteConfirmModal-DFDwEIUM.js": {
-    "file": "assets/DeleteConfirmModal-DFDwEIUM.js",
+  "_DeleteConfirmModal-DG8y1YtA.js": {
+    "file": "assets/DeleteConfirmModal-DG8y1YtA.js",
     "name": "DeleteConfirmModal",
     "imports": [
-      "_vendor-framework-qPIPfdh6.js",
+      "_vendor-framework-DS1CgQeA.js",
       "resources/js/app.tsx",
-      "_vendor-lucide-CgQeHvUB.js"
+      "_vendor-lucide-DZ50kmRD.js"
     ]
   },
-  "_InstitutionDirectory-Bp-rmSug.js": {
-    "file": "assets/InstitutionDirectory-Bp-rmSug.js",
+  "_InstitutionDirectory-DaZVEMVE.js": {
+    "file": "assets/InstitutionDirectory-DaZVEMVE.js",
     "name": "InstitutionDirectory",
     "imports": [
-      "_vendor-framework-qPIPfdh6.js",
-      "_card-DNS5aeB3.js",
+      "_vendor-framework-DS1CgQeA.js",
+      "_card-JM2bvFwA.js",
       "resources/js/app.tsx",
-      "_vendor-lucide-CgQeHvUB.js"
+      "_vendor-lucide-DZ50kmRD.js"
     ]
   },
   "_bp3mi-VUrMP8yP.js": {
     "file": "assets/bp3mi-VUrMP8yP.js",
     "name": "bp3mi"
   },
-  "_card-DNS5aeB3.js": {
-    "file": "assets/card-DNS5aeB3.js",
+  "_card-JM2bvFwA.js": {
+    "file": "assets/card-JM2bvFwA.js",
     "name": "card",
     "imports": [
-      "_vendor-framework-qPIPfdh6.js",
+      "_vendor-framework-DS1CgQeA.js",
       "resources/js/app.tsx"
     ]
   },
@@ -241,41 +241,41 @@
     "file": "assets/stakeholder-roles-BT0SLx9T.js",
     "name": "stakeholder-roles"
   },
-  "_table-BNeqAi4b.js": {
-    "file": "assets/table-BNeqAi4b.js",
+  "_table-7Xqbkon7.js": {
+    "file": "assets/table-7Xqbkon7.js",
     "name": "table",
     "imports": [
-      "_vendor-framework-qPIPfdh6.js",
+      "_vendor-framework-DS1CgQeA.js",
       "resources/js/app.tsx"
     ]
   },
-  "_vendor-framework-qPIPfdh6.js": {
-    "file": "assets/vendor-framework-qPIPfdh6.js",
+  "_vendor-framework-DS1CgQeA.js": {
+    "file": "assets/vendor-framework-DS1CgQeA.js",
     "name": "vendor-framework"
   },
-  "_vendor-lucide-CgQeHvUB.js": {
-    "file": "assets/vendor-lucide-CgQeHvUB.js",
+  "_vendor-lucide-DZ50kmRD.js": {
+    "file": "assets/vendor-lucide-DZ50kmRD.js",
     "name": "vendor-lucide",
     "imports": [
-      "_vendor-framework-qPIPfdh6.js"
+      "_vendor-framework-DS1CgQeA.js"
     ]
   },
-  "_vendor-radix-B8L_jgAb.js": {
-    "file": "assets/vendor-radix-B8L_jgAb.js",
+  "_vendor-radix-CK3Dx6co.js": {
+    "file": "assets/vendor-radix-CK3Dx6co.js",
     "name": "vendor-radix",
     "imports": [
-      "_vendor-framework-qPIPfdh6.js"
+      "_vendor-framework-DS1CgQeA.js"
     ]
   },
   "resources/js/app.tsx": {
-    "file": "assets/app-DkLvZS0l.js",
+    "file": "assets/app-DBj5bjCg.js",
     "name": "app",
     "src": "resources/js/app.tsx",
     "isEntry": true,
     "imports": [
-      "_vendor-framework-qPIPfdh6.js",
-      "_vendor-lucide-CgQeHvUB.js",
-      "_vendor-radix-B8L_jgAb.js"
+      "_vendor-framework-DS1CgQeA.js",
+      "_vendor-lucide-DZ50kmRD.js",
+      "_vendor-radix-CK3Dx6co.js"
     ],
     "dynamicImports": [
       "../src/pages/InstitutionRegistrationPage.tsx",

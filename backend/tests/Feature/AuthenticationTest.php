@@ -55,7 +55,8 @@ class AuthenticationTest extends TestCase
                 ->where('auth.user.roleName', 'district_admin')
                 ->missing('auth.user.nip'));
 
-        $this->get('/app/rbac')->assertForbidden();
+        // Tab yang tidak diizinkan dialihkan ke tab pertama yang boleh diakses.
+        $this->get('/app/rbac')->assertRedirect('/app/modul-a');
     }
 
     public function test_login_accepts_email_identifier_and_logout_invalidates_session(): void

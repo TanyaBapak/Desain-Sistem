@@ -33,18 +33,18 @@ class RoleAccessTest extends TestCase
 
         $this->actingAs($leadership)->get('/app/dashboard')->assertOk();
         $this->actingAs($leadership)->get('/app/sippmi-monitoring')->assertOk();
-        $this->actingAs($leadership)->get('/app/audit')->assertForbidden();
+        $this->actingAs($leadership)->get('/app/audit')->assertRedirect('/app/dashboard');
         $this->actingAs($leadership)->post('/business-data/candidates', [])->assertForbidden();
 
         $auditor = $this->userWithRole('auditor');
         $this->actingAs($auditor)->get('/app/reports')->assertOk();
         $this->actingAs($auditor)->get('/app/sippmi-monitoring')->assertOk();
-        $this->actingAs($auditor)->get('/app/modul-a')->assertForbidden();
-        $this->actingAs($auditor)->get('/app/audit')->assertForbidden();
+        $this->actingAs($auditor)->get('/app/modul-a')->assertRedirect('/app/reports');
+        $this->actingAs($auditor)->get('/app/audit')->assertRedirect('/app/reports');
 
-        $this->actingAs($this->userWithRole('institution_admin'))->get('/app/sippmi-monitoring')->assertForbidden();
-        $this->actingAs($this->userWithRole('directorate_admin'))->get('/app/sippmi-monitoring')->assertForbidden();
-        $this->actingAs($this->userWithRole('province_admin'))->get('/app/sippmi-monitoring')->assertForbidden();
+        $this->actingAs($this->userWithRole('institution_admin'))->get('/app/sippmi-monitoring')->assertRedirect('/app/modul-a');
+        $this->actingAs($this->userWithRole('directorate_admin'))->get('/app/sippmi-monitoring')->assertRedirect('/app/dashboard');
+        $this->actingAs($this->userWithRole('province_admin'))->get('/app/sippmi-monitoring')->assertRedirect('/app/modul-a');
     }
 
     public function test_public_landing_combines_manual_target_with_approved_processed_quota(): void
@@ -82,11 +82,11 @@ class RoleAccessTest extends TestCase
 
         $this->actingAs($superAdmin)->get('/app/rbac')->assertOk();
         $this->actingAs($superAdmin)->get('/app/targets')->assertOk();
-        $this->actingAs($superAdmin)->get('/app/modul-a')->assertForbidden();
+        $this->actingAs($superAdmin)->get('/app/modul-a')->assertRedirect('/app/rbac');
         $this->actingAs($superAdmin)->post('/business-data/candidates', [])->assertForbidden();
 
         $leadership = $this->userWithRole('leadership');
-        $this->actingAs($leadership)->get('/app/targets')->assertForbidden();
+        $this->actingAs($leadership)->get('/app/targets')->assertRedirect('/app/dashboard');
     }
 
     public function test_leadership_dashboard_includes_database_aggregates_without_personal_data(): void
@@ -225,7 +225,7 @@ class RoleAccessTest extends TestCase
         }
 
         foreach (['modul-d', 'matching', 'approvals', 'rbac'] as $tab) {
-            $this->actingAs($institutionAdmin)->get("/app/{$tab}")->assertForbidden();
+            $this->actingAs($institutionAdmin)->get("/app/{$tab}")->assertRedirect('/app/modul-a');
         }
     }
 

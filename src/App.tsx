@@ -268,37 +268,48 @@ function AppContent({
   })();
 
   useLayoutEffect(() => {
-    if (authenticatedUser) {
-      setAuthenticatedUser(
-        {
-          id: authenticatedUser.id,
-          name: authenticatedUser.name,
-          email: authenticatedUser.email,
-          roleName: authenticatedUser.roleName,
-          role: authenticatedUser.frontendRole,
-          roleTitle: authenticatedUser.roleTitle,
-          badge: authenticatedUser.badge ?? undefined,
-          bp3miCode: authenticatedUser.bp3miCode,
-          bp3miAssignments: authenticatedUser.bp3miAssignments,
-          organization: authenticatedUser.organization,
-          scope: authenticatedUser.scope,
-          mfaEnabled: authenticatedUser.mfaEnabled,
-          mfaVerified: false,
-          loginTimestamp: "",
-          ipAddress: "",
-          avatarInitials: authenticatedUser.avatarInitials ?? undefined,
-        },
-        authenticatedUser.frontendRole,
-        authenticatedUser.scope,
-      );
+    // Status autentikasi selalu mengikuti props server. Ini mencegah state
+    // klien lama tetap dianggap login saat sesi sudah berakhir.
+    if (!authenticatedUser) {
+      useAppStore.getState().resetToDefaultData();
+      useAppStore.setState({
+        currentUser: null,
+        currentRole: "taskforce",
+        isAuthenticated: false,
+        businessDataLoaded: false,
+      });
+      return;
     }
+
+    setAuthenticatedUser(
+      {
+        id: authenticatedUser.id,
+        name: authenticatedUser.name,
+        email: authenticatedUser.email,
+        roleName: authenticatedUser.roleName,
+        role: authenticatedUser.frontendRole,
+        roleTitle: authenticatedUser.roleTitle,
+        badge: authenticatedUser.badge ?? undefined,
+        bp3miCode: authenticatedUser.bp3miCode,
+        bp3miAssignments: authenticatedUser.bp3miAssignments,
+        organization: authenticatedUser.organization,
+        scope: authenticatedUser.scope,
+        mfaEnabled: authenticatedUser.mfaEnabled,
+        mfaVerified: false,
+        loginTimestamp: "",
+        ipAddress: "",
+        avatarInitials: authenticatedUser.avatarInitials ?? undefined,
+      },
+      authenticatedUser.frontendRole,
+      authenticatedUser.scope,
+    );
 
     if (businessData) {
       setBusinessData({
         ...businessData,
         approvalRequests: businessData.approvalRequests,
       });
-    } else if (authenticatedUser) {
+    } else {
       useAppStore.setState({ businessDataLoaded: true });
     }
   }, [businessData, setBusinessData, authenticatedUser, setAuthenticatedUser]);

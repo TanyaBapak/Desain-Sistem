@@ -23,7 +23,8 @@ class AppServiceProvider extends ServiceProvider
     {
         // Dilarang keras menjalankan migrate:refresh, migrate:fresh, migrate:reset, db:wipe, dsb.
         // Data dan tabel database tidak boleh dihapus/di-drop ulang dalam kondisi apapun.
-        DB::prohibitDestructiveCommands(true);
+        // Pengecualian hanya untuk test suite yang memakai database SQLite in-memory.
+        DB::prohibitDestructiveCommands(! $this->app->runningUnitTests());
 
         if (
             $this->app->environment('production') ||

@@ -1540,7 +1540,7 @@ class BusinessDataPresenter
 
     private function candidateMatches(?string $role, User $user): array
     {
-        if (! in_array($role, ['super_admin', 'task_force', 'directorate_admin'], true)) {
+        if (! in_array($role, ['super_admin', 'task_force', 'directorate_admin', 'bp3mi_admin', 'placement_officer'], true)) {
             return [];
         }
 
@@ -1642,7 +1642,7 @@ class BusinessDataPresenter
 
     private function candidates(?string $role, User $user): array
     {
-        if (! in_array($role, ['super_admin', 'leadership', 'task_force', 'province_admin', 'district_admin', 'institution_admin', 'verifier'], true)) {
+        if (! in_array($role, ['super_admin', 'leadership', 'task_force', 'province_admin', 'district_admin', 'institution_admin', 'verifier', 'directorate_admin', 'bp3mi_admin', 'placement_officer'], true)) {
             return [];
         }
 
@@ -1763,7 +1763,7 @@ class BusinessDataPresenter
 
     private function programs(?string $role, User $user): array
     {
-        if (! in_array($role, ['super_admin', 'leadership', 'task_force', 'directorate_admin', 'institution_admin', 'training_operator', 'verifier'], true)) {
+        if (! in_array($role, ['super_admin', 'leadership', 'task_force', 'directorate_admin', 'institution_admin', 'training_operator', 'verifier', 'bp3mi_admin', 'placement_officer'], true)) {
             return [];
         }
 
@@ -1847,7 +1847,7 @@ class BusinessDataPresenter
 
     private function providers(?string $role, User $user): array
     {
-        if (! in_array($role, ['super_admin', 'leadership', 'task_force', 'directorate_admin', 'institution_admin', 'verifier'], true)) {
+        if (! in_array($role, ['super_admin', 'leadership', 'task_force', 'directorate_admin', 'institution_admin', 'verifier', 'bp3mi_admin', 'placement_officer'], true)) {
             return [];
         }
 
@@ -2005,7 +2005,7 @@ class BusinessDataPresenter
 
     private function demands(?string $role, User $user): array
     {
-        if (! in_array($role, ['super_admin', 'leadership', 'task_force', 'directorate_admin', 'demand_admin', 'verifier'], true)) {
+        if (! in_array($role, ['super_admin', 'leadership', 'task_force', 'directorate_admin', 'demand_admin', 'verifier', 'bp3mi_admin', 'placement_officer'], true)) {
             return [];
         }
 
@@ -2014,7 +2014,7 @@ class BusinessDataPresenter
             ->leftJoin('countries', 'countries.id', '=', 'job_demands.country_id')
             ->leftJoin('sectors', 'sectors.id', '=', 'job_demands.sector_id')
             ->leftJoin('occupations', 'occupations.id', '=', 'job_demands.occupation_id')
-            ->where('job_demands.verification_status', '!=', 'Draft')
+            ->when(! in_array($role, ['super_admin', 'task_force', 'demand_admin'], true), fn ($q) => $q->where('job_demands.verification_status', '!=', 'Draft'))
             ->when($role === 'demand_admin', fn ($q) => $q->where('job_demands.employer_id', $user->employer_id ?? ''))
             ->when($this->bp3miScope->hasActiveAreaFilter($user), fn ($q) => $this->bp3miScope->applyToJobDemands($q, $user));
 
@@ -2060,7 +2060,7 @@ class BusinessDataPresenter
 
     private function allocations(?string $role, User $user): array
     {
-        if (! in_array($role, ['super_admin', 'task_force', 'directorate_admin'], true)) {
+        if (! in_array($role, ['super_admin', 'task_force', 'directorate_admin', 'bp3mi_admin', 'placement_officer'], true)) {
             return [];
         }
 
@@ -2688,7 +2688,7 @@ class BusinessDataPresenter
 
     private function monitoring(?string $role, User $user, array $filters): array
     {
-        if (! in_array($role, ['super_admin', 'task_force', 'leadership', 'auditor'], true)) {
+        if (! in_array($role, ['super_admin', 'task_force', 'leadership', 'auditor', 'directorate_admin', 'bp3mi_admin', 'placement_officer'], true)) {
             return [];
         }
 

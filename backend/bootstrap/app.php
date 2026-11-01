@@ -5,6 +5,7 @@ use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use App\Http\Middleware\HandleInertiaRequests;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -31,10 +32,22 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->respond(function (Response $response, Throwable $exception, Request $request) {
             $status = $response->getStatusCode();
 
-            // Tangani sesi habis atau akses ditolak (401 Unauthenticated, 403 Forbidden, 419 CSRF Token Mismatch / Expired)
-            if (in_array($status, [401, 403, 419], true)) {
-                if (auth()->check() && $status === 403) {
-                    \Illuminate\Support\Facades\Auth::guard('web')->logout();
+            // 403 berarti pengguna tidak berhak atas tindakan tersebut.
+            // Jangan hapus sesi: pengguna tetap login dan cukup menerima pesan.
+            if ($status === 403) {
+                if ($request->expectsJson()) {
+                    return response()->json([
+                        'message' => 'Anda tidak memiliki akses untuk tindakan ini.',
+                    ], 403);
+                }
+
+                return $response;
+            }
+
+            // 401/419 menandakan sesi tidak valid atau kedaluwarsa.
+            if (in_array($status, [401, 419], true)) {
+                if (Auth::check()) {
+                    Auth::guard('web')->logout();
                     $request->session()->invalidate();
                     $request->session()->regenerateToken();
                 }

@@ -1,15 +1,28 @@
 import { createInertiaApp, router } from "@inertiajs/react";
 import { createRoot } from "react-dom/client";
 import axios from "axios";
+import { toast } from "sonner";
 import App from "../backend/resources/js/Pages/App";
 import './index.css';
 
-// Auto-redirect ke login bila sesi habis atau akses ditolak (401, 403, 419)
+const ACCESS_DENIED_MESSAGE = "Anda tidak memiliki akses untuk tindakan ini.";
+
+function redirectToLoginIfNeeded(): void {
+  if (window.location.pathname !== "/login") {
+    window.location.href = "/login";
+  }
+}
+
+// 401/419 berarti sesi berakhir. 403 berarti pengguna tidak berhak atas
+// tindakan tersebut, jadi cukup tampilkan pesan tanpa mengeluarkan sesi.
 axios.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response && [401, 403, 419].includes(error.response.status)) {
-      window.location.href = "/login";
+    const status: number | undefined = error.response?.status;
+    if (status === 401 || status === 419) {
+      redirectToLoginIfNeeded();
+    } else if (status === 403) {
+      toast.error(ACCESS_DENIED_MESSAGE);
     }
     return Promise.reject(error);
   }
@@ -17,9 +30,15 @@ axios.interceptors.response.use(
 
 router.on("invalid", (event) => {
   const status = event.detail.response.status;
-  if (status === 401 || status === 419 || status === 403) {
+  if (status === 401 || status === 419) {
     event.preventDefault();
-    window.location.href = "/login";
+    redirectToLoginIfNeeded();
+    return;
+  }
+
+  if (status === 403) {
+    event.preventDefault();
+    toast.error(ACCESS_DENIED_MESSAGE);
   }
 });
 
