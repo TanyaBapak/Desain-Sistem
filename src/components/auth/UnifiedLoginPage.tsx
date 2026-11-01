@@ -1,5 +1,6 @@
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { useForm, router } from "@inertiajs/react";
+import { useAppStore } from "@/store/useAppStore";
 import {
   ArrowLeft,
   ArrowRight,
@@ -13,6 +14,16 @@ import {
 import { LOGO_URL } from "@/lib/assets";
 
 export function UnifiedLoginPage({ status }: { status?: string | null }) {
+  useEffect(() => {
+    useAppStore.getState().resetToDefaultData();
+    useAppStore.setState({
+      currentUser: null,
+      currentRole: "taskforce",
+      isAuthenticated: false,
+      businessDataLoaded: false,
+    });
+  }, []);
+
   const [showPassword, setShowPassword] = useState(false);
   const { data, setData, post, processing, errors } = useForm({
     identifier: "",

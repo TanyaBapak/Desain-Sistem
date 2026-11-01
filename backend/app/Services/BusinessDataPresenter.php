@@ -1332,28 +1332,56 @@ class BusinessDataPresenter
         $cacheKey = $this->cacheKey($user, $role, $filters);
 
         return Cache::remember($cacheKey, 30, function () use ($role, $user, $filters): array {
-            $nationalLpkCount = $this->nationalLpkCount();
+            $tab = $filters['tab'] ?? null;
+
+            // Jika $tab null (misal dipanggil tanpa konteks tab rute), muat semua untuk kompatibilitas
+            $loadAll = $tab === null;
+
+            $isOverview = $loadAll || in_array($tab, ['overview', 'dashboard', 'reports'], true);
+            $needsCandidates = $loadAll || in_array($tab, ['modul-a', 'matching', 'modul-e', 'dashboard', 'overview'], true);
+            $needsPrograms = $loadAll || in_array($tab, ['modul-b', 'matching', 'modul-e', 'dashboard', 'overview'], true);
+            $needsProviders = $loadAll || in_array($tab, ['modul-c', 'matching', 'modul-e', 'dashboard', 'overview'], true);
+            $needsDemands = $loadAll || in_array($tab, ['modul-d', 'matching', 'modul-e', 'dashboard', 'overview'], true);
+            $needsMatches = $loadAll || in_array($tab, ['matching', 'modul-e'], true);
+            $needsAllocations = $loadAll || in_array($tab, ['matching', 'modul-e', 'dashboard', 'overview'], true);
+            $needsApprovals = $loadAll || in_array($tab, ['approvals'], true);
+            $needsMonitoring = $loadAll || in_array($tab, ['sippmi-monitoring', 'matching', 'modul-e'], true);
+            $needsAuditLogs = $loadAll || in_array($tab, ['audit'], true);
+            $needsReports = $loadAll || in_array($tab, ['reports', 'overview', 'dashboard'], true);
+
+            $nationalLpkCount = $isOverview ? $this->nationalLpkCount() : 0;
 
             return [
-                'candidates' => $this->candidates($role, $user),
-                'programs' => $this->programs($role, $user),
-                'providers' => $this->providers($role, $user),
-                'demands' => $this->demands($role, $user),
-                'candidateMatches' => $this->candidateMatches($role, $user),
-                'allocations' => $this->allocations($role, $user),
+                'candidates' => $needsCandidates ? $this->candidates($role, $user) : [],
+                'programs' => $needsPrograms ? $this->programs($role, $user) : [],
+                'providers' => $needsProviders ? $this->providers($role, $user) : [],
+                'demands' => $needsDemands ? $this->demands($role, $user) : [],
+                'candidateMatches' => $needsMatches ? $this->candidateMatches($role, $user) : [],
+                'allocations' => $needsAllocations ? $this->allocations($role, $user) : [],
                 'nationalLpkCount' => $nationalLpkCount,
-                'nationalLpkByProvince' => $this->nationalLpkByProvince(),
-                'reportSummary' => $this->reportSummary(
+                'nationalLpkByProvince' => $isOverview ? $this->nationalLpkByProvince() : [],
+                'reportSummary' => $needsReports ? $this->reportSummary(
                     $role,
                     $user,
                     $nationalLpkCount,
-                ),
-                'approvalRequests' => $this->approvalRequests($role, $user, $filters),
-                'approvalPagination' => $this->approvalPagination($role, $user, $filters),
-                'approvalCounts' => $this->approvalCounts($role, $user, $filters),
-                'approvalFilters' => $this->approvalFilters($filters),
-                'monitoring' => $this->monitoring($role, $user, $filters),
-                'auditLogs' => $this->auditLogs($role, $user),
+                ) : null,
+                'approvalRequests' => $needsApprovals ? $this->approvalRequests($role, $user, $filters) : [],
+                'approvalPagination' => $needsApprovals ? $this->approvalPagination($role, $user, $filters) : [
+                    'currentPage' => 1,
+                    'lastPage' => 1,
+                    'perPage' => 25,
+                    'total' => 0,
+                ],
+                'approvalCounts' => $needsApprovals ? $this->approvalCounts($role, $user, $filters) : [],
+                'approvalFilters' => $needsApprovals ? $this->approvalFilters($filters) : [
+                    'status' => 'ALL',
+                    'type' => 'ALL',
+                    'search' => '',
+                    'page' => 1,
+                    'perPage' => 25,
+                ],
+                'monitoring' => $needsMonitoring ? $this->monitoring($role, $user, $filters) : null,
+                'auditLogs' => $needsAuditLogs ? $this->auditLogs($role, $user) : [],
                 'options' => [
                     'provinces' => DB::table('provinces')->orderBy('name')->get(['id', 'name']),
                     'districts' => DB::table('districts')->orderBy('name')->get(['id', 'province_id', 'name']),

@@ -61,6 +61,7 @@ export interface AppState {
     providers: VocationalProvider[];
     demands: GlobalDemand[];
     approvalRequests?: DataApprovalRequest[];
+    approvalPagination?: { currentPage: number; lastPage: number; perPage: number; total: number };
     allocations?: ProgramAllocationDecision[];
     auditLogs?: AuditLogEntry[];
     options: {
@@ -247,77 +248,97 @@ export const useAppStore = create<AppState>((set, get) => ({
   businessDataLoaded: false,
   businessOptions: { provinces: [], districts: [], sectors: [], occupations: [], countries: [], institutions: [] },
   setBusinessData: (data) => set((state) => {
-    const incomingCandidates = Array.isArray(data.candidates) ? data.candidates : [];
-    const candidates = incomingCandidates.map((c: any) => ({
-      ...c,
-      id: String(c.id ?? ''),
-      fullName: c.fullName || 'Tanpa Nama',
-      nik: c.nik || '',
-      provinsi: c.provinsi || '',
-      kabupatenKota: c.kabupatenKota || '',
-      educationLevel: c.educationLevel || 'SMK',
-      major: c.major || '',
-      institutionName: c.institutionName || '',
-      sourceType: c.sourceType || 'Disnaker Pemda',
-      skills: Array.isArray(c.skills) ? c.skills : [],
-      languageProficiency: Array.isArray(c.languageProficiency) ? c.languageProficiency : [],
-      preferredCountry: Array.isArray(c.preferredCountry) ? c.preferredCountry : [],
-      preferredJobRole: Array.isArray(c.preferredJobRole) ? c.preferredJobRole : [],
-      preferredSectors: Array.isArray(c.preferredSectors) ? c.preferredSectors : [],
-      certifications: Array.isArray(c.certifications) ? c.certifications : [],
-      workExperiences: Array.isArray(c.workExperiences) ? c.workExperiences : [],
-    }));
-    const incomingPrograms = Array.isArray(data.programs) ? data.programs : [];
-    const programs = incomingPrograms.map((p: any) => ({
-      ...p,
-      id: String(p.id ?? ''),
-      title: p.title || p.name || '',
-      programType: p.programType || 'Teknis Terpadu',
-      targetSector: p.targetSector || '',
-      targetJobRole: p.targetJobRole || '',
-      targetCountry: p.targetCountry || '',
-      certificationTarget: p.certificationTarget || '',
-      curriculumOutline: Array.isArray(p.curriculumOutline) ? p.curriculumOutline : [],
-      availableOccupations: Array.isArray(p.availableOccupations) ? p.availableOccupations : [],
-    }));
-    const incomingProviders = Array.isArray(data.providers) ? data.providers : [];
-    const providers = incomingProviders.map((pr: any) => ({
-      ...pr,
-      id: String(pr.id ?? ''),
-      name: pr.name || 'Lembaga Vokasi',
-      providerType: pr.providerType || 'LPK',
-      provinsi: pr.provinsi || '',
-      kabupatenKota: pr.kabupatenKota || '',
-      supportedSectors: Array.isArray(pr.supportedSectors) ? pr.supportedSectors : [],
-      supportedCountries: Array.isArray(pr.supportedCountries) ? pr.supportedCountries : [],
-      offerings: Array.isArray(pr.offerings) ? pr.offerings : [],
-    }));
-    const incomingDemands = Array.isArray(data.demands) && data.demands.length > 0 ? data.demands : mockDemand;
-    const demands = incomingDemands.map((d: any) => ({
-      ...d,
-      id: String(d.id ?? ''),
-      employerName: d.employerName || '',
-      country: d.country || '',
-      targetSector: d.targetSector || '',
-      targetJobRole: d.targetJobRole || '',
-      requiredCertifications: Array.isArray(d.requiredCertifications) ? d.requiredCertifications : [],
-      requiredLanguages: Array.isArray(d.requiredLanguages) ? d.requiredLanguages : [],
-    }));
+    const hasIncomingCandidates = Array.isArray(data.candidates) && data.candidates.length > 0;
+    const candidates = hasIncomingCandidates
+      ? data.candidates.map((c: any) => ({
+          ...c,
+          id: String(c.id ?? ''),
+          fullName: c.fullName || 'Tanpa Nama',
+          nik: c.nik || '',
+          provinsi: c.provinsi || '',
+          kabupatenKota: c.kabupatenKota || '',
+          educationLevel: c.educationLevel || 'SMK',
+          major: c.major || '',
+          institutionName: c.institutionName || '',
+          sourceType: c.sourceType || 'Disnaker Pemda',
+          skills: Array.isArray(c.skills) ? c.skills : [],
+          languageProficiency: Array.isArray(c.languageProficiency) ? c.languageProficiency : [],
+          preferredCountry: Array.isArray(c.preferredCountry) ? c.preferredCountry : [],
+          preferredJobRole: Array.isArray(c.preferredJobRole) ? c.preferredJobRole : [],
+          preferredSectors: Array.isArray(c.preferredSectors) ? c.preferredSectors : [],
+          certifications: Array.isArray(c.certifications) ? c.certifications : [],
+          workExperiences: Array.isArray(c.workExperiences) ? c.workExperiences : [],
+        }))
+      : state.candidates;
+
+    const hasIncomingPrograms = Array.isArray(data.programs) && data.programs.length > 0;
+    const programs = hasIncomingPrograms
+      ? data.programs.map((p: any) => ({
+          ...p,
+          id: String(p.id ?? ''),
+          title: p.title || p.name || '',
+          programType: p.programType || 'Teknis Terpadu',
+          targetSector: p.targetSector || '',
+          targetJobRole: p.targetJobRole || '',
+          targetCountry: p.targetCountry || '',
+          certificationTarget: p.certificationTarget || '',
+          curriculumOutline: Array.isArray(p.curriculumOutline) ? p.curriculumOutline : [],
+          availableOccupations: Array.isArray(p.availableOccupations) ? p.availableOccupations : [],
+        }))
+      : state.programs;
+
+    const hasIncomingProviders = Array.isArray(data.providers) && data.providers.length > 0;
+    const providers = hasIncomingProviders
+      ? data.providers.map((pr: any) => ({
+          ...pr,
+          id: String(pr.id ?? ''),
+          name: pr.name || 'Lembaga Vokasi',
+          providerType: pr.providerType || 'LPK',
+          provinsi: pr.provinsi || '',
+          kabupatenKota: pr.kabupatenKota || '',
+          supportedSectors: Array.isArray(pr.supportedSectors) ? pr.supportedSectors : [],
+          supportedCountries: Array.isArray(pr.supportedCountries) ? pr.supportedCountries : [],
+          offerings: Array.isArray(pr.offerings) ? pr.offerings : [],
+        }))
+      : state.providers;
+
+    const hasIncomingDemands = Array.isArray(data.demands) && data.demands.length > 0;
+    const demands = hasIncomingDemands
+      ? data.demands.map((d: any) => ({
+          ...d,
+          id: String(d.id ?? ''),
+          employerName: d.employerName || '',
+          country: d.country || '',
+          targetSector: d.targetSector || '',
+          targetJobRole: d.targetJobRole || '',
+          requiredCertifications: Array.isArray(d.requiredCertifications) ? d.requiredCertifications : [],
+          requiredLanguages: Array.isArray(d.requiredLanguages) ? d.requiredLanguages : [],
+        }))
+      : (state.demands.length > 0 ? state.demands : mockDemand);
+
+    const hasIncomingApprovals = Array.isArray(data.approvalRequests) && data.approvalRequests.length > 0;
+    const approvalRequests = hasIncomingApprovals
+      ? data.approvalRequests
+      : (data.approvalRequests !== undefined && data.approvalPagination?.total === 0 ? [] : state.approvalRequests);
+
+    const hasIncomingAllocations = Array.isArray(data.allocations) && data.allocations.length > 0;
+    const allocations = hasIncomingAllocations ? data.allocations : state.allocations;
+
     return {
       candidates,
       programs,
       providers,
       demands,
-      approvalRequests: data.approvalRequests ?? [],
-      allocations: data.allocations ?? [],
+      approvalRequests,
+      allocations,
       auditLogs: Array.isArray(data.auditLogs) && data.auditLogs.length > 0 ? data.auditLogs : state.auditLogs,
       businessOptions: {
-        provinces: Array.isArray(data.options?.provinces) ? data.options.provinces : (state.businessOptions?.provinces ?? []),
-        districts: Array.isArray(data.options?.districts) ? data.options.districts : (state.businessOptions?.districts ?? []),
-        sectors: Array.isArray(data.options?.sectors) ? data.options.sectors : (state.businessOptions?.sectors ?? []),
-        occupations: Array.isArray(data.options?.occupations) ? data.options.occupations : (state.businessOptions?.occupations ?? []),
-        countries: Array.isArray(data.options?.countries) ? data.options.countries : (state.businessOptions?.countries ?? []),
-        institutions: Array.isArray(data.options?.institutions) ? data.options.institutions : (state.businessOptions?.institutions ?? []),
+        provinces: Array.isArray(data.options?.provinces) && data.options.provinces.length > 0 ? data.options.provinces : (state.businessOptions?.provinces ?? []),
+        districts: Array.isArray(data.options?.districts) && data.options.districts.length > 0 ? data.options.districts : (state.businessOptions?.districts ?? []),
+        sectors: Array.isArray(data.options?.sectors) && data.options.sectors.length > 0 ? data.options.sectors : (state.businessOptions?.sectors ?? []),
+        occupations: Array.isArray(data.options?.occupations) && data.options.occupations.length > 0 ? data.options.occupations : (state.businessOptions?.occupations ?? []),
+        countries: Array.isArray(data.options?.countries) && data.options.countries.length > 0 ? data.options.countries : (state.businessOptions?.countries ?? []),
+        institutions: Array.isArray(data.options?.institutions) && data.options.institutions.length > 0 ? data.options.institutions : (state.businessOptions?.institutions ?? []),
       },
       businessDataLoaded: true,
       selectedCandidateIds: state.selectedCandidateIds.filter((id) => candidates.some((candidate) => candidate.id === id)),
@@ -380,7 +401,20 @@ export const useAppStore = create<AppState>((set, get) => ({
       currentScope: scope,
       viewMode: 'app',
     }),
-  logout: () => router.post('/logout'),
+  logout: () => {
+    get().resetToDefaultData();
+    set({
+      currentUser: null,
+      currentRole: 'taskforce',
+      isAuthenticated: false,
+      businessDataLoaded: false,
+    });
+    router.post('/logout', {}, {
+      onFinish: () => {
+        window.location.href = '/login';
+      },
+    });
+  },
 
   setCurrentTab: (tab) => {
     set({ currentTab: tab });

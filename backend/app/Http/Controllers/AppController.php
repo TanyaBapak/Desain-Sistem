@@ -57,18 +57,21 @@ class AppController extends Controller
             try {
                 $businessData = $businessDataPresenter->make(
                     $request->user(),
-                    $request->only([
-                        'candidatePage',
-                        'candidatePerPage',
-                        'candidateSource',
-                        'classPage',
-                        'classPerPage',
-                        'approvalPage',
-                        'approvalPerPage',
-                        'approvalStatus',
-                        'approvalType',
-                        'approvalSearch',
-                    ]),
+                    array_merge(
+                        $request->only([
+                            'candidatePage',
+                            'candidatePerPage',
+                            'candidateSource',
+                            'classPage',
+                            'classPerPage',
+                            'approvalPage',
+                            'approvalPerPage',
+                            'approvalStatus',
+                            'approvalType',
+                            'approvalSearch',
+                        ]),
+                        ['tab' => $tab]
+                    ),
                 );
             } catch (\Throwable $e) {
                 \Log::error('AppController businessData error: ' . $e->getMessage(), [

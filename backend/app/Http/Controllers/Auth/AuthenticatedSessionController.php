@@ -64,7 +64,18 @@ class AuthenticatedSessionController extends Controller
             ? $role->default_tab
             : ($accessibleTabs[0] ?? 'overview');
 
-        return redirect()->intended(route('app.show', $defaultTab));
+        $intended = $request->session()->pull('url.intended');
+        if ($intended) {
+            // Batasi intended URL: hanya arahkan jika user memiliki izin pada tab yang dituju
+            if (preg_match('#/app/([a-zA-Z0-9_-]+)#', $intended, $matches)) {
+                $targetTab = $matches[1];
+                if (in_array($targetTab, $accessibleTabs, true)) {
+                    return redirect()->to($intended);
+                }
+            }
+        }
+
+        return redirect()->route('app.show', $defaultTab);
     }
 
     public function destroy(Request $request): RedirectResponse

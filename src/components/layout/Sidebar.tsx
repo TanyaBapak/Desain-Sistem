@@ -1,5 +1,6 @@
 "use client";
 
+import React, { useState, useEffect } from "react";
 import { useAppStore } from "@/store/useAppStore";
 import { NAV_ITEMS, type SidebarSection } from "@/lib/sidebar-items";
 import { cn } from "@/lib/utils";
@@ -29,6 +30,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
   impersonationAdminName,
 }) => {
   const { currentScope, currentUser } = useAppStore();
+  const [pendingTab, setPendingTab] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    setPendingTab(null);
+  }, [currentTab]);
+
   const isSuperAdmin = currentUser?.roleName === "super_admin" || currentUser?.role === "superadmin";
 
   const navItems = NAV_ITEMS.filter((item) => {
@@ -97,10 +104,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
               {sectionItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = currentTab === item.id;
+                const isPending = pendingTab === item.id && !isActive;
                 return (
                   <button
                     key={item.id}
                     onClick={() => {
+                      if (currentTab !== item.id) {
+                        setPendingTab(item.id);
+                      }
                       onTabChange(item.id);
                       onMobileClose();
                     }}
@@ -108,13 +119,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       "flex w-full min-w-0 items-center gap-3 rounded-md border-l-2 px-3 py-2.5 text-left text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                       isActive
                         ? "border-primary bg-primary/10 text-primary"
+                        : isPending
+                        ? "border-primary/50 bg-primary/5 text-primary animate-pulse"
                         : "border-transparent text-muted-foreground hover:bg-secondary hover:text-foreground"
                     )}
                     aria-pressed={isActive}
                     title={compact ? item.label : undefined}
                   >
-                    <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
-                    {!compact && <span className="min-w-0 flex-1 truncate">{item.label}</span>}
+                    <Icon className={cn("h-4 w-4 shrink-0", isPending && "animate-spin text-primary")} aria-hidden="true" />
+                    {!compact && (
+                      <span className="min-w-0 flex-1 truncate flex items-center justify-between">
+                        <span className="truncate">{item.label}</span>
+                        {isPending && <span className="h-1.5 w-1.5 rounded-full bg-primary animate-ping" />}
+                      </span>
+                    )}
                   </button>
                 );
               })}
