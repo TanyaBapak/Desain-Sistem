@@ -21,6 +21,7 @@ class UserManagementController extends Controller
         $this->authorizeSuperAdmin($request);
 
         $roleFilter = $request->query('role');
+        $statusFilter = $request->query('status');
         $search = $request->query('search');
         $requestedPerPage = filter_var($request->query('per_page', 50), FILTER_VALIDATE_INT);
         $perPage = in_array($requestedPerPage, [15, 25, 50, 100], true)
@@ -34,6 +35,19 @@ class UserManagementController extends Controller
             $query->whereHas('roles', function ($q) use ($roleFilter): void {
                 $q->where('name', $roleFilter);
             });
+        }
+
+        if ($statusFilter && $statusFilter !== 'all') {
+            if ($statusFilter === 'unverified') {
+                $query->where(function ($q): void {
+                    $q->where('status', '!=', 'Aktif')
+                        ->orWhereNull('email_verified_at');
+                });
+            } elseif ($statusFilter === 'verified') {
+                $query->where('status', 'Aktif');
+            } elseif (in_array($statusFilter, ['Aktif', 'Nonaktif', 'Ditangguhkan'], true)) {
+                $query->where('status', $statusFilter);
+            }
         }
 
         if ($search && trim((string) $search) !== '') {
@@ -55,6 +69,8 @@ class UserManagementController extends Controller
             'username' => $user->username,
             'email' => $user->email,
             'status' => $user->status,
+            'isVerified' => $user->status === 'Aktif' || !is_null($user->email_verified_at),
+            'emailVerifiedAt' => $user->email_verified_at ? $user->email_verified_at->format('d/m/Y H:i') : null,
             'scopeName' => $user->scope_name,
             'scopeLevel' => $user->scope_level,
             'roleName' => $user->roles?->first()?->name ?? '',
@@ -72,6 +88,12 @@ class UserManagementController extends Controller
             'total' => $users->total(),
             'perPage' => $users->perPage(),
             'selectedRole' => (string) ($roleFilter ?? ''),
+            'selectedStatus' => (string) ($statusFilter ?? ''),
+            'unverifiedCount' => User::query()->where(function ($q): void {
+                $q->where('status', '!=', 'Aktif')
+                    ->orWhereNull('email_verified_at');
+            })->count(),
+            'activeCount' => User::query()->where('status', 'Aktif')->count(),
             'search' => (string) ($search ?? ''),
             'roles' => rescue(fn () => Role::query()
                 ->where('name', '!=', 'super_admin')
@@ -304,7 +326,11 @@ class UserManagementController extends Controller
 
         DB::transaction(function () use ($request, $user, $data): void {
             $oldStatus = $user->status;
-            $user->update(['status' => $data['status']]);
+            $updatePayload = ['status' => $data['status']];
+            if ($data['status'] === 'Aktif' && is_null($user->email_verified_at)) {
+                $updatePayload['email_verified_at'] = now();
+            }
+            $user->update($updatePayload);
             $this->writeAudit($request, $user, "Status akun diubah dari {$oldStatus} menjadi {$data['status']}.");
         });
 

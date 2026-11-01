@@ -4,6 +4,8 @@ export interface ManagedUser {
   username: string;
   email: string;
   status: string;
+  isVerified?: boolean;
+  emailVerifiedAt?: string | null;
   scopeName: string;
   scopeLevel: string;
   roleName: string;
@@ -21,6 +23,9 @@ export interface UserManagementData {
   total: number;
   perPage: number;
   selectedRole?: string;
+  selectedStatus?: string;
+  unverifiedCount?: number;
+  activeCount?: number;
   search?: string;
   roles: { name: string; title: string }[];
   filterRoles?: { name: string; title: string }[];

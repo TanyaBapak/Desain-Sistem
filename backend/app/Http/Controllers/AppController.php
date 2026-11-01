@@ -51,26 +51,34 @@ class AppController extends Controller
             \Log::warning('AppController bp3miScope warning: ' . $e->getMessage());
         }
 
-        try {
-            $businessData = $businessDataPresenter->make(
-                $request->user(),
-                $request->only([
-                    'candidatePage',
-                    'candidatePerPage',
-                    'candidateSource',
-                    'classPage',
-                    'classPerPage',
-                    'approvalPage',
-                    'approvalPerPage',
-                    'approvalStatus',
-                    'approvalType',
-                    'approvalSearch',
-                ]),
-            );
-        } catch (\Throwable $e) {
-            \Log::error('AppController businessData error: ' . $e->getMessage(), [
-                'trace' => $e->getTraceAsString(),
-            ]);
+        $partialData = array_filter(array_map('trim', explode(',', (string) $request->header('X-Inertia-Partial-Data', ''))));
+        $isPartialForOtherProps = !empty($partialData) && !in_array('businessData', $partialData, true);
+        $needsBusinessData = !in_array($tab, ['rbac', 'targets'], true) && !$isPartialForOtherProps;
+
+        if ($needsBusinessData) {
+            try {
+                $businessData = $businessDataPresenter->make(
+                    $request->user(),
+                    $request->only([
+                        'candidatePage',
+                        'candidatePerPage',
+                        'candidateSource',
+                        'classPage',
+                        'classPerPage',
+                        'approvalPage',
+                        'approvalPerPage',
+                        'approvalStatus',
+                        'approvalType',
+                        'approvalSearch',
+                    ]),
+                );
+            } catch (\Throwable $e) {
+                \Log::error('AppController businessData error: ' . $e->getMessage(), [
+                    'trace' => $e->getTraceAsString(),
+                ]);
+                $businessData = [];
+            }
+        } else {
             $businessData = [];
         }
 
