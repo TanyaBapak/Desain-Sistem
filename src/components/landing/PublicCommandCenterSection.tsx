@@ -7,7 +7,7 @@ import {
   PublicDrilldownModal,
   PublicDrilldownType,
 } from "@/components/landing/PublicDrilldownModal";
-import { PublicSystemMetrics } from "@/components/landing/PublicSystemMetrics";
+import { CascadingFlyout } from "@/components/shared/CascadingFlyout";
 import { PillarTimelineFlow } from "@/components/shared/PillarTimelineFlow";
 import { PillarKey } from "@/components/shared/CascadingFlyoutData";
 
@@ -136,8 +136,13 @@ export const PublicCommandCenterSection: React.FC<PublicCommandCenterSectionProp
           onSelectStage={handleTimelineStageSelect}
         />
 
-        {/* Tampilan Perhitungan Data Aktual yang Ada di Sistem Task Force */}
-        <PublicSystemMetrics onOpenDrilldown={setActiveDrilldown} />
+        {/* Guidance Instruction */}
+        <div className="text-xs sm:text-sm text-muted-foreground">
+          Klik card untuk membuka data · klik item baris untuk menelusuri tingkat berikutnya secara bertahap
+        </div>
+
+        {/* 1. Cascading Flyout 4 Pillars Component */}
+        <CascadingFlyout onOpenDrilldownModal={handleOpenDrilldownFromFlyout} />
 
         {/* Bagian Kanal Asal / Sumber Pendaftaran & Kesenjangan Supply vs Demand di-hidden sesuai permintaan */}
       </div>
