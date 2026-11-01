@@ -1,7 +1,32 @@
-import { createInertiaApp } from "@inertiajs/react";
+import { createInertiaApp, router } from "@inertiajs/react";
 import { createRoot } from "react-dom/client";
+import axios from "axios";
 import App from "../backend/resources/js/Pages/App";
 import './index.css';
+
+// Auto-redirect ke login bila sesi habis (401, 419, atau 403 unauthenticated)
+axios.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response && [401, 419].includes(error.response.status)) {
+      window.location.href = "/login";
+    } else if (error.response && error.response.status === 403) {
+      const msg = String(error.response.data?.message || "").toLowerCase();
+      if (msg.includes("unauthenticated") || msg.includes("csrf") || msg.includes("sesi")) {
+        window.location.href = "/login";
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
+router.on("invalid", (event) => {
+  const status = event.detail.response.status;
+  if (status === 401 || status === 419 || status === 403) {
+    event.preventDefault();
+    window.location.href = "/login";
+  }
+});
 
 // Guard against third-party DOM mutations (Google Translate, password managers, browser extensions)
 if (typeof Node === "function" && Node.prototype) {

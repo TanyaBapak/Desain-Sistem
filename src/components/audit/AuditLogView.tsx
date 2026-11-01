@@ -45,7 +45,7 @@ export const AuditLogView: React.FC<AuditLogViewProps> = ({ initialLogs }) => {
         const timeStr = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB';
         setLastSyncedTime(timeStr);
         if (showToast) {
-          toast.success(`Jejak audit berhasil disinkronkan (${res.data.total ?? res.data.data.length} rekaman).`);
+          toast.success(`Log audit berhasil dimuat ulang (${res.data.total ?? res.data.data.length} rekaman).`);
         }
       }
     } catch {
@@ -136,7 +136,7 @@ export const AuditLogView: React.FC<AuditLogViewProps> = ({ initialLogs }) => {
           {lastSyncedTime && (
             <div className="flex items-center gap-1.5 text-[11px] text-emerald-400 pt-1 font-mono">
               <CheckCircle2 className="w-3.5 h-3.5" />
-              <span>Tersinkronisasi otomatis dengan basis data: {lastSyncedTime}</span>
+              <span>Data log terbaru diperbarui: {lastSyncedTime}</span>
             </div>
           )}
         </div>
@@ -146,10 +146,10 @@ export const AuditLogView: React.FC<AuditLogViewProps> = ({ initialLogs }) => {
             onClick={() => syncAuditLogs(true)}
             disabled={isSyncing}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition disabled:opacity-50"
-            title="Muat ulang jejak audit terbaru dari database"
+            title="Muat ulang log audit terbaru dari server"
           >
             <RotateCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin text-blue-400' : ''}`} />
-            <span>{isSyncing ? 'Sinkronisasi...' : 'Sinkronkan Database'}</span>
+            <span>{isSyncing ? 'Memuat Ulang...' : 'Segarkan Log'}</span>
           </button>
 
           <button
