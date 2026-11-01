@@ -387,10 +387,7 @@ function AppContent({
     );
   }
 
-  if (!businessDataLoaded) {
-    return loading;
-  }
-
+  // Shell AdminLayout tetap terpasang secara stabil tanpa re-mount di root.
   let page: React.ReactNode;
   switch (activeTab) {
     case "dashboard":
@@ -564,7 +561,7 @@ function AppContent({
         impersonationAdminName={auth.impersonation?.adminName ?? null}
       >
         <React.Suspense fallback={loading}>
-          {page}
+          {!businessDataLoaded && !businessData ? loading : page}
         </React.Suspense>
       </AdminLayout>
     </>

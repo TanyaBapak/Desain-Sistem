@@ -5,6 +5,26 @@ import { toast } from "sonner";
 import App from "../backend/resources/js/Pages/App";
 import './index.css';
 
+// Proteksi DOM reconciliation React 18 dari manipulasi eksternal
+// (Google Translate, ekstensi peramban, maupun transisi unmount cepat).
+if (typeof window !== "undefined" && typeof Node === "function" && Node.prototype) {
+  const originalRemoveChild = Node.prototype.removeChild;
+  Node.prototype.removeChild = function <T extends Node>(child: T): T {
+    if (child.parentNode !== this) {
+      return child;
+    }
+    return originalRemoveChild.call(this, child) as T;
+  };
+
+  const originalInsertBefore = Node.prototype.insertBefore;
+  Node.prototype.insertBefore = function <T extends Node>(newNode: T, referenceNode: Node | null): T {
+    if (referenceNode && referenceNode.parentNode !== this) {
+      return newNode;
+    }
+    return originalInsertBefore.call(this, newNode, referenceNode) as T;
+  };
+}
+
 const ACCESS_DENIED_MESSAGE = "Anda tidak memiliki akses untuk tindakan ini.";
 
 function redirectToLoginIfNeeded(): void {

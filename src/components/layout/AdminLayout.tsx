@@ -37,14 +37,14 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
           collapsed ? "lg:pl-16" : "lg:pl-72"
         )}
       >
-        {mobileSidebarOpen && (
+        {mobileSidebarOpen ? (
           <button
             type="button"
             className="fixed inset-x-0 bottom-0 top-16 z-30 bg-foreground/30 lg:hidden"
             aria-label="Tutup navigasi"
             onClick={() => setMobileSidebarOpen(false)}
           />
-        )}
+        ) : null}
         <Sidebar
           currentTab={currentTab}
           onTabChange={handleTabChange}
