@@ -18,8 +18,8 @@ interface DashboardDemandTabProps {
 }
 
 export function DashboardDemandTab({
-  demands,
-  demandByCountry,
+  demands = [],
+  demandByCountry = [],
   onOpenDrilldown,
   onNavigateModulD,
 }: DashboardDemandTabProps) {

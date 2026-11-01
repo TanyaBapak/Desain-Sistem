@@ -15,9 +15,9 @@ interface DashboardMatchingTabProps {
 }
 
 export function DashboardMatchingTab({
-  candidates,
-  demands,
-  allocations,
+  candidates = [],
+  demands = [],
+  allocations = [],
   onOpenDrilldown,
   onNavigateMatching,
   onNavigateSippmi,

@@ -42,15 +42,15 @@ export function calculateDashboardBreakdowns(
 
   const demandByCountry = new Map<string, { demandCount: number; quota: number; filledQuota: number }>();
 
-  demands.forEach((demand) => {
-    const country = demand.country || "Belum ditentukan";
-    const current = demandByCountry.get(country) ?? { demandCount: 0, quota: 0, filledQuota: 0 };
-    demandByCountry.set(country, {
-      demandCount: current.demandCount + 1,
-      quota: current.quota + demand.requiredQuota,
-      filledQuota: current.filledQuota + demand.filledQuota,
+    demands.forEach((demand) => {
+      const country = demand.country || "Belum ditentukan";
+      const current = demandByCountry.get(country) ?? { demandCount: 0, quota: 0, filledQuota: 0 };
+      demandByCountry.set(country, {
+        demandCount: current.demandCount + 1,
+        quota: current.quota + (Number(demand.requiredQuota) || 0),
+        filledQuota: current.filledQuota + (Number(demand.filledQuota) || 0),
+      });
     });
-  });
 
   return {
     candidateLifecycle: countBy(candidates, (candidate) => candidate.lifecycleStatus ?? "Belum ditentukan"),

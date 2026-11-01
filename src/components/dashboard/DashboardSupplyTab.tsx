@@ -22,9 +22,9 @@ const lifecycleLabels: Record<string, string> = {
 };
 
 export function DashboardSupplyTab({
-  candidates,
-  candidatesByProvince,
-  candidateLifecycle,
+  candidates = [],
+  candidatesByProvince = [],
+  candidateLifecycle = [],
   onOpenDrilldown,
   onNavigateModulA,
 }: DashboardSupplyTabProps) {

@@ -28,12 +28,12 @@ interface DashboardOverviewTabProps {
 }
 
 export function DashboardOverviewTab({
-  candidates,
-  programs,
-  providers,
-  demands,
-  allocations,
-  nationalLpkCount,
+  candidates = [],
+  programs = [],
+  providers = [],
+  demands = [],
+  allocations = [],
+  nationalLpkCount = 0,
   scopeName = "Wilayah Anda",
   stakeholder,
   roleTitle,

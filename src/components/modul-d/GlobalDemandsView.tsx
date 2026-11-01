@@ -42,12 +42,18 @@ export const GlobalDemandsView: React.FC = () => {
 
   const filteredDemands = useMemo(() => {
     return demands.filter((d) => {
+      const jobTitle = (d.jobTitle || '').toLowerCase();
+      const employerName = (d.employerName || '').toLowerCase();
+      const languageLevel = (d.requiredLanguageLevel || '').toLowerCase();
+      const skills = Array.isArray(d.requiredSkills) ? d.requiredSkills : [];
+      const search = searchDemand.toLowerCase();
+
       const matchSearch =
         !searchDemand ||
-        d.jobTitle.toLowerCase().includes(searchDemand.toLowerCase()) ||
-        d.employerName.toLowerCase().includes(searchDemand.toLowerCase()) ||
-        d.requiredSkills.some((s) => s.toLowerCase().includes(searchDemand.toLowerCase())) ||
-        d.requiredLanguageLevel.toLowerCase().includes(searchDemand.toLowerCase());
+        jobTitle.includes(search) ||
+        employerName.includes(search) ||
+        skills.some((s) => (s || '').toLowerCase().includes(search)) ||
+        languageLevel.includes(search);
 
       const matchCountry =
         filterDemandCountry === 'ALL' || d.country === filterDemandCountry;

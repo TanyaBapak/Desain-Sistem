@@ -12,7 +12,7 @@ interface DashboardProgramTabProps {
 }
 
 export function DashboardProgramTab({
-  programs,
+  programs = [],
   onOpenDrilldown,
   onNavigateModulB,
 }: DashboardProgramTabProps) {

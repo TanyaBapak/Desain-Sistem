@@ -27,13 +27,13 @@ interface DashboardVokasiTabProps {
 }
 
 export function DashboardVokasiTab({
-  providers,
-  nationalLpkCount,
+  providers = [],
+  nationalLpkCount = 0,
   institutionsByProvince = [],
   lpkByProvince = [],
   nationalLpkByProvince = [],
-  institutionsByEvokasiStatus,
-  institutionDirectory,
+  institutionsByEvokasiStatus = [],
+  institutionDirectory = [],
   scopeName = "Wilayah Anda",
   onOpenDrilldown,
   onOpenNationalDrilldown,

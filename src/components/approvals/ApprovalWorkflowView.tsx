@@ -44,16 +44,15 @@ interface ApprovalWorkflowViewProps {
 }
 
 export const ApprovalWorkflowView: React.FC<ApprovalWorkflowViewProps> = ({
-  approvalRequests,
-  pagination,
-  counts,
-  filters,
+  approvalRequests = [],
+  pagination = { currentPage: 1, lastPage: 1, perPage: 25, total: 0 },
+  counts = {},
+  filters = { status: "ALL", type: "ALL", search: "", page: 1, perPage: 25 },
   canReview,
 }) => {
-
-  const [filterStatus, setFilterStatus] = useState(filters.status);
-  const [filterType, setFilterType] = useState(filters.type);
-  const [searchQuery, setSearchQuery] = useState(filters.search);
+  const [filterStatus, setFilterStatus] = useState(filters.status || "ALL");
+  const [filterType, setFilterType] = useState(filters.type || "ALL");
+  const [searchQuery, setSearchQuery] = useState(filters.search || "");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [confirmBulkApproval, setConfirmBulkApproval] = useState(false);
 

@@ -77,13 +77,13 @@ export function SippmiMonitoringPage({ monitoring }: SippmiMonitoringPageProps) 
 
   const filteredCandidates = candidates;
 
-  const updateCandidatePage = (page: number, perPage = monitoring.candidatePagination.perPage) => {
+  const updateCandidatePage = (page: number, perPage = monitoring.candidatePagination?.perPage ?? 25) => {
     router.get("/app/sippmi-monitoring", {
       candidateSource: selectedSubdomain,
       candidatePage: page,
       candidatePerPage: perPage,
-      classPage: monitoring.classPagination.currentPage,
-      classPerPage: monitoring.classPagination.perPage,
+      classPage: monitoring.classPagination?.currentPage ?? 1,
+      classPerPage: monitoring.classPagination?.perPage ?? 25,
     }, {
       only: ["businessData"],
       preserveState: true,
@@ -97,9 +97,9 @@ export function SippmiMonitoringPage({ monitoring }: SippmiMonitoringPageProps) 
     router.get("/app/sippmi-monitoring", {
       candidateSource: source,
       candidatePage: 1,
-      candidatePerPage: monitoring.candidatePagination.perPage,
-      classPage: monitoring.classPagination.currentPage,
-      classPerPage: monitoring.classPagination.perPage,
+      candidatePerPage: monitoring.candidatePagination?.perPage ?? 25,
+      classPage: monitoring.classPagination?.currentPage ?? 1,
+      classPerPage: monitoring.classPagination?.perPage ?? 25,
     }, {
       only: ["businessData"],
       preserveState: true,
@@ -108,11 +108,11 @@ export function SippmiMonitoringPage({ monitoring }: SippmiMonitoringPageProps) 
     });
   };
 
-  const updateClassPage = (page: number, perPage = monitoring.classPagination.perPage) => {
+  const updateClassPage = (page: number, perPage = monitoring.classPagination?.perPage ?? 25) => {
     router.get("/app/sippmi-monitoring", {
       candidateSource: selectedSubdomain,
-      candidatePage: monitoring.candidatePagination.currentPage,
-      candidatePerPage: monitoring.candidatePagination.perPage,
+      candidatePage: monitoring.candidatePagination?.currentPage ?? 1,
+      candidatePerPage: monitoring.candidatePagination?.perPage ?? 25,
       classPage: page,
       classPerPage: perPage,
     }, {

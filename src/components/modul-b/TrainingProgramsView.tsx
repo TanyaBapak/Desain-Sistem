@@ -49,12 +49,13 @@ export const TrainingProgramsView: React.FC = () => {
 
   const filteredPrograms = useMemo(() => {
     return programs.filter((p) => {
+      const search = searchProgram.toLowerCase();
       const matchSearch =
         !searchProgram ||
-        p.title.toLowerCase().includes(searchProgram.toLowerCase()) ||
-        p.targetSector.toLowerCase().includes(searchProgram.toLowerCase()) ||
-        p.targetJobRole.toLowerCase().includes(searchProgram.toLowerCase()) ||
-        p.certificationTarget.toLowerCase().includes(searchProgram.toLowerCase());
+        (p.title || '').toLowerCase().includes(search) ||
+        (p.targetSector || '').toLowerCase().includes(search) ||
+        (p.targetJobRole || '').toLowerCase().includes(search) ||
+        (p.certificationTarget || '').toLowerCase().includes(search);
 
       const matchType =
         filterProgramType === 'ALL' ||

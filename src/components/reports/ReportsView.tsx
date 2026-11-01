@@ -33,12 +33,12 @@ interface ReportsViewProps {
 
 export function ReportsView({ summary, isAuditor, title = 'Laporan' }: ReportsViewProps) {
   const metrics: { label: string; value: number; icon: React.ElementType }[] = [
-    { label: 'Pencari kerja terdaftar', value: summary.candidateCount, icon: Users },
-    { label: 'Siap penempatan', value: summary.readyCandidateCount, icon: BarChart3 },
-    { label: 'Program pelatihan aktif', value: summary.programCount, icon: GraduationCap },
-    { label: 'Lembaga vokasi aktif', value: summary.institutionCount, icon: Building2 },
-    { label: 'Lembaga terdaftar nasional', value: summary.nationalLpkCount, icon: Building2 },
-    { label: 'Permintaan tervalidasi', value: summary.demandCount, icon: BriefcaseBusiness },
+    { label: 'Pencari kerja terdaftar', value: summary?.candidateCount ?? 0, icon: Users },
+    { label: 'Siap penempatan', value: summary?.readyCandidateCount ?? 0, icon: BarChart3 },
+    { label: 'Program pelatihan aktif', value: summary?.programCount ?? 0, icon: GraduationCap },
+    { label: 'Lembaga vokasi aktif', value: summary?.institutionCount ?? 0, icon: Building2 },
+    { label: 'Lembaga terdaftar nasional', value: summary?.nationalLpkCount ?? 0, icon: Building2 },
+    { label: 'Permintaan tervalidasi', value: summary?.demandCount ?? 0, icon: BriefcaseBusiness },
   ];
 
   return (
