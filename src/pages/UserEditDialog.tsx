@@ -25,10 +25,32 @@ interface UserEditDialogProps {
   districts: { id: string; province_id: string; name: string }[];
   institutions: { id: string; name: string }[];
   employers: { id: string; name: string }[];
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  trigger?: React.ReactNode | null;
 }
 
-export function UserEditDialog({ user, roles, provinces, districts, institutions, employers }: UserEditDialogProps) {
-  const [open, setOpen] = useState(false);
+export function UserEditDialog({
+  user,
+  roles,
+  provinces,
+  districts,
+  institutions,
+  employers,
+  open: controlledOpen,
+  onOpenChange: controlledOnOpenChange,
+  trigger,
+}: UserEditDialogProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isControlled = controlledOpen !== undefined;
+  const open = isControlled ? controlledOpen : internalOpen;
+  const setOpen = (val: boolean) => {
+    if (isControlled) {
+      controlledOnOpenChange?.(val);
+    } else {
+      setInternalOpen(val);
+    }
+  };
   const form = useForm({
     name: user.name,
     username: user.username,
@@ -85,9 +107,13 @@ export function UserEditDialog({ user, roles, provinces, districts, institutions
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <Button type="button" variant="outline" size="sm" onClick={() => setOpen(true)}>
-        <Pencil className="mr-2 h-4 w-4" />Edit
-      </Button>
+      {trigger !== null && (
+        trigger ?? (
+          <Button type="button" variant="outline" size="sm" onClick={() => setOpen(true)}>
+            <Pencil className="mr-2 h-4 w-4" />Edit
+          </Button>
+        )
+      )}
       <DialogContent className="max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Edit Pengguna</DialogTitle>

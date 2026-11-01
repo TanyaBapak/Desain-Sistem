@@ -270,7 +270,7 @@ export function UserManagementPage({ adminUsers, currentUserId }: UserManagement
                     <th className="p-3 font-medium">Peran</th>
                     <th className="p-3 font-medium">Lingkup</th>
                     <th className="p-3 font-medium">Status & Verifikasi</th>
-                    <th className="p-3 text-right font-medium">Aksi</th>
+                    <th className="p-3 text-right font-medium w-[140px] whitespace-nowrap">Aksi</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">

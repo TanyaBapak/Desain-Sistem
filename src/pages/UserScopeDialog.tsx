@@ -8,10 +8,28 @@ import type { ManagedUser, UserManagementData } from "@/pages/user-management-ty
 interface UserScopeDialogProps {
   user: ManagedUser;
   data: UserManagementData;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  trigger?: React.ReactNode | null;
 }
 
-export function UserScopeDialog({ user, data }: UserScopeDialogProps) {
-  const [open, setOpen] = useState(false);
+export function UserScopeDialog({
+  user,
+  data,
+  open: controlledOpen,
+  onOpenChange: controlledOnOpenChange,
+  trigger,
+}: UserScopeDialogProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isControlled = controlledOpen !== undefined;
+  const open = isControlled ? controlledOpen : internalOpen;
+  const setOpen = (val: boolean) => {
+    if (isControlled) {
+      controlledOnOpenChange?.(val);
+    } else {
+      setInternalOpen(val);
+    }
+  };
   const form = useForm({
     scopeLevel: user.scopeLevel || (user.districtId ? "kabupaten" : user.provinceId ? "provinsi" : "national"),
     provinceId: user.provinceId ?? "",
@@ -42,10 +60,14 @@ export function UserScopeDialog({ user, data }: UserScopeDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <Button type="button" variant="outline" size="sm" onClick={() => setOpen(true)}>
-        <MapPinned className="mr-2 h-4 w-4" />
-        Edit lingkup
-      </Button>
+      {trigger !== null && (
+        trigger ?? (
+          <Button type="button" variant="outline" size="sm" onClick={() => setOpen(true)}>
+            <MapPinned className="mr-2 h-4 w-4" />
+            Edit lingkup
+          </Button>
+        )
+      )}
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Edit lingkup pengguna</DialogTitle>
