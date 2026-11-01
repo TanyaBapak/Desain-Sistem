@@ -888,20 +888,55 @@ const supplyTree = (): TreeNode[] => [
 
 /* =========================================================================
    2. PROGRAM PELATIHAN / SIAP PROGRAM
-   Disusun sesuai alur: Per Negara > Per Sektor > Per Jabatan
+   Disusun sesuai alur: Per Negara > Per Sektor > Program Bahasa · Teknis · Sertifikasi
    ========================================================================= */
 const trainingTree = (): TreeNode[] => [
   {
     name: "Turki",
     ch: [
       {
-        name: "Hospitality",
+        name: "Hospitality & Pariwisata",
         ch: [
-          lf("Housekeeping & Public Area Attendant", { a: 45, b: 18, c: 27, d: 490 }, [["Negara", "Turki"], ["Sektor", "Hospitality"], ["Jabatan", "Housekeeping & Room Attendant"], ["Durasi", "260 JP"], ["Standar", "SKKNI / Hotel Bintang 5"]]),
-          lf("Spa Therapist & Wellness Holistik", { a: 38, b: 15, c: 23, d: 420 }, [["Negara", "Turki"], ["Sektor", "Hospitality"], ["Jabatan", "Spa Therapist"], ["Durasi", "360 JP"], ["Standar", "CIBTAC / CIDESCO"]]),
-          lf("Food & Beverage Service (Waiter / Waitress)", { a: 32, b: 12, c: 20, d: 350 }, [["Negara", "Turki"], ["Sektor", "Hospitality"], ["Jabatan", "F&B Waiter"], ["Durasi", "240 JP"], ["Standar", "Resort & Hotel Bintang"]]),
-          lf("General Cleaner & Facility Service", { a: 22, b: 9, c: 13, d: 240 }, [["Negara", "Turki"], ["Sektor", "Hospitality"], ["Jabatan", "Public Area Cleaner"], ["Durasi", "200 JP"], ["Standar", "Tata Graha Internasional"]]),
-          lf("Commis Chef & Culinary Preparation", { a: 18, b: 7, c: 11, d: 190 }, [["Negara", "Turki"], ["Sektor", "Hospitality"], ["Jabatan", "Commis Cook"], ["Durasi", "320 JP"], ["Standar", "HACCP & Continental Cuisine"]]),
+          lf("Program Bahasa · Bahasa Turki Dasar & English Hospitality", { a: 40, b: 18, c: 160, d: 420 }, [
+            ["Negara Tujuan", "Turki"],
+            ["Sektor", "Hospitality"],
+            ["Rumpun Kurikulum", "Program Bahasa"],
+            ["Kurikulum", "Bahasa Turki Percakapan Sehari-hari & English for Hotel Service"],
+            ["Durasi Jam Pelajaran", "160 JP"],
+            ["Standar Kelulusan", "Level A2 Turki & English Test 80+"],
+          ]),
+          lf("Teknis · Housekeeping & Tata Graha Resort Internasional", { a: 45, b: 20, c: 260, d: 480 }, [
+            ["Negara Tujuan", "Turki"],
+            ["Sektor", "Hospitality"],
+            ["Rumpun Kurikulum", "Teknis"],
+            ["Materi Praktek", "Room Attendant, Public Area Cleaning, Laundry & Chemical Safety"],
+            ["Durasi Jam Pelajaran", "260 JP"],
+            ["Standar Industri", "Standard Resort Bintang 5 Antalya & Bodrum"],
+          ]),
+          lf("Teknis · Food & Beverage Service (Waiter / Waitress)", { a: 35, b: 15, c: 240, d: 360 }, [
+            ["Negara Tujuan", "Turki"],
+            ["Sektor", "Hospitality"],
+            ["Rumpun Kurikulum", "Teknis"],
+            ["Materi Praktek", "Table Set-up, Banquet Service, Barista & POS System"],
+            ["Durasi Jam Pelajaran", "240 JP"],
+            ["Standar Industri", "Fine Dining & Resort F&B Service"],
+          ]),
+          lf("Teknis · Spa Therapist & Balinese Wellness", { a: 30, b: 12, c: 320, d: 310 }, [
+            ["Negara Tujuan", "Turki"],
+            ["Sektor", "Hospitality"],
+            ["Rumpun Kurikulum", "Teknis"],
+            ["Materi Praktek", "Anatomi Fisiologi, Balinese Massage, Reflexology & Hydrotherapy"],
+            ["Durasi Jam Pelajaran", "320 JP"],
+            ["Standar Industri", "Resort Wellness Center & CIBTAC"],
+          ]),
+          lf("Sertifikasi · Uji Kompetensi CIBTAC & SKKNI Perhotelan", { a: 42, b: 18, c: 80, d: 450 }, [
+            ["Negara Tujuan", "Turki"],
+            ["Sektor", "Hospitality"],
+            ["Rumpun Kurikulum", "Sertifikasi"],
+            ["Skema Sertifikasi", "CIBTAC International & BNSP Level III Perhotelan"],
+            ["Durasi Jam Pelajaran", "80 JP"],
+            ["Lembaga Sertifikasi", "LSP Pariwisata & CIBTAC UK"],
+          ]),
         ],
       },
     ],
@@ -910,49 +945,98 @@ const trainingTree = (): TreeNode[] => [
     name: "Jepang",
     ch: [
       {
-        name: "Kesehatan",
+        name: "Kesehatan / Caregiver",
         ch: [
-          lf("Caregiver Perawat Lansia Kaigo (SSW)", { a: 52, b: 22, c: 30, d: 580 }, [["Negara", "Jepang"], ["Sektor", "Kesehatan"], ["Jabatan", "Kaigo Fukushishi (Caregiver)"], ["Durasi", "520 JP"], ["Standar", "SSW Kaigo & JLPT N4"]]),
-          lf("Nursing Home Specialist & Caretaker", { a: 35, b: 14, c: 21, d: 390 }, [["Negara", "Jepang"], ["Sektor", "Kesehatan"], ["Jabatan", "Elderly Care Assistant"], ["Durasi", "480 JP"], ["Standar", "Tokutei Ginou Kaigo"]]),
+          lf("Program Bahasa · Bahasa Jepang N4 & Istilah Kaigo", { a: 55, b: 25, c: 200, d: 560 }, [
+            ["Negara Tujuan", "Jepang"],
+            ["Sektor", "Kesehatan"],
+            ["Rumpun Kurikulum", "Program Bahasa"],
+            ["Materi Kurikulum", "Tata Bahasa N4, Huruf Kanji Kaigo, Percakapan Lansia"],
+            ["Durasi Jam Pelajaran", "200 JP"],
+            ["Standar Kelulusan", "JLPT Level N4 / JFT-Basic A2"],
+          ]),
+          lf("Teknis · Praktik Asuhan Caregiver & Pemindahan Pasien", { a: 50, b: 22, c: 320, d: 520 }, [
+            ["Negara Tujuan", "Jepang"],
+            ["Sektor", "Kesehatan"],
+            ["Rumpun Kurikulum", "Teknis"],
+            ["Materi Praktek", "Bed-Making, Transfer Pasien, Nutrisi Lansia, K3 Panti Wreda"],
+            ["Durasi Jam Pelajaran", "320 JP"],
+            ["Standar Industri", "Standar Kaigo Fukushishi Jepang"],
+          ]),
+          lf("Sertifikasi · Uji SSW Kaigo (Tokutei Ginou) & BNSP", { a: 48, b: 20, c: 80, d: 510 }, [
+            ["Negara Tujuan", "Jepang"],
+            ["Sektor", "Kesehatan"],
+            ["Rumpun Kurikulum", "Sertifikasi"],
+            ["Skema Sertifikasi", "Nursing Care Skills Evaluation Test (SSW) & Kaigo Japanese Test"],
+            ["Durasi Jam Pelajaran", "80 JP"],
+            ["Lembaga Uji", "Prometric Japan & LSP Kesehatan Indonesia"],
+          ]),
         ],
       },
       {
-        name: "Manufaktur",
+        name: "Manufaktur & Pengelasan",
         ch: [
-          lf("Operator Mesin Bubut CNC & Milling", { a: 36, b: 15, c: 21, d: 410 }, [["Negara", "Jepang"], ["Sektor", "Manufaktur"], ["Jabatan", "Machining / CNC Operator"], ["Durasi", "320 JP"], ["Standar", "JIS B 6331 Presisi"]]),
-          lf("Teknik Fabrikasi Logam & Welder JIS", { a: 30, b: 12, c: 18, d: 340 }, [["Negara", "Jepang"], ["Sektor", "Manufaktur"], ["Jabatan", "Welder Presisi"], ["Durasi", "360 JP"], ["Standar", "JIS Z 3801 Pengelasan"]]),
-          lf("Molding & Injection Produksi Presisi", { a: 24, b: 10, c: 14, d: 260 }, [["Negara", "Jepang"], ["Sektor", "Manufaktur"], ["Jabatan", "Plastic Molding Operator"], ["Durasi", "280 JP"], ["Standar", "Standar Industri Jepang"]]),
+          lf("Program Bahasa · Bahasa Jepang Industri & K3 Manufaktur", { a: 40, b: 18, c: 160, d: 430 }, [
+            ["Negara Tujuan", "Jepang"],
+            ["Sektor", "Manufaktur"],
+            ["Rumpun Kurikulum", "Program Bahasa"],
+            ["Materi Kurikulum", "Kosakata Bengkel 5S (Seiri, Seiton, Seiso, Seiketsu, Shitsuke)"],
+            ["Durasi Jam Pelajaran", "160 JP"],
+            ["Standar Kelulusan", "JLPT N4 / JFT-Basic & Komunikasi Kerja"],
+          ]),
+          lf("Teknis · Pemrograman Mesin CNC Bubut & Milling Presisi", { a: 35, b: 15, c: 280, d: 380 }, [
+            ["Negara Tujuan", "Jepang"],
+            ["Sektor", "Manufaktur"],
+            ["Rumpun Kurikulum", "Teknis"],
+            ["Materi Praktek", "G-Code / M-Code, Tooling Setup, Pengukuran Mikrometer Presisi"],
+            ["Durasi Jam Pelajaran", "280 JP"],
+            ["Standar Industri", "JIS B 6331 CNC Machining Center"],
+          ]),
+          lf("Teknis · Pengelasan Logam Presisi Welder SMAW/GMAW", { a: 32, b: 14, c: 260, d: 340 }, [
+            ["Negara Tujuan", "Jepang"],
+            ["Sektor", "Manufaktur"],
+            ["Rumpun Kurikulum", "Teknis"],
+            ["Materi Praktek", "Pengelasan Pelat Baja Presisi, Uji NDT Visual & Bending"],
+            ["Durasi Jam Pelajaran", "260 JP"],
+            ["Standar Industri", "JIS Z 3801 Japanese Welding Standard"],
+          ]),
+          lf("Sertifikasi · Uji SSW Manufaktur & Sertifikasi JIS Z 3801", { a: 38, b: 16, c: 80, d: 400 }, [
+            ["Negara Tujuan", "Jepang"],
+            ["Sektor", "Manufaktur"],
+            ["Rumpun Kurikulum", "Sertifikasi"],
+            ["Skema Sertifikasi", "Machine Processing SSW & JWES Japanese Welding Certification"],
+            ["Durasi Jam Pelajaran", "80 JP"],
+            ["Lembaga Uji", "Prometric / OTA Japan & LSP Logam Indonesia"],
+          ]),
         ],
       },
       {
         name: "Konstruksi",
         ch: [
-          lf("Teknologi Scaffolding & Finishing Bangunan", { a: 20, b: 8, c: 12, d: 220 }, [["Negara", "Jepang"], ["Sektor", "Konstruksi"], ["Jabatan", "Scaffolder & Formwork"], ["Durasi", "240 JP"], ["Standar", "K3 Konstruksi Jepang"]]),
-        ],
-      },
-    ],
-  },
-  {
-    name: "Malaysia",
-    ch: [
-      {
-        name: "Hospitality",
-        ch: [
-          lf("Front Office & Guest Service Attendant", { a: 28, b: 11, c: 17, d: 310 }, [["Negara", "Malaysia"], ["Sektor", "Hospitality"], ["Jabatan", "Front Desk Agent"], ["Durasi", "240 JP"], ["Standar", "Bahasa Inggris & PMS System"]]),
-          lf("Food & Beverage Captain & Waiter", { a: 26, b: 10, c: 16, d: 280 }, [["Negara", "Malaysia"], ["Sektor", "Hospitality"], ["Jabatan", "F&B Captain"], ["Durasi", "220 JP"], ["Standar", "Hospitality Malaysia"]]),
-        ],
-      },
-      {
-        name: "Manufaktur",
-        ch: [
-          lf("Perakitan Komponen Elektronik & Semikonduktor", { a: 34, b: 14, c: 20, d: 380 }, [["Negara", "Malaysia"], ["Sektor", "Manufaktur"], ["Jabatan", "Electronic Assembly Operator"], ["Durasi", "200 JP"], ["Standar", "SMT & ESD Safety"]]),
-          lf("Teknisi Mekatronika & Otomasi Industri", { a: 25, b: 10, c: 15, d: 270 }, [["Negara", "Malaysia"], ["Sektor", "Manufaktur"], ["Jabatan", "Mechatronics Technician"], ["Durasi", "300 JP"], ["Standar", "PLC & Pneumatik"]]),
-        ],
-      },
-      {
-        name: "Konstruksi",
-        ch: [
-          lf("Instalasi Listrik Industri & Gedung Bertingkat", { a: 22, b: 9, c: 13, d: 240 }, [["Negara", "Malaysia"], ["Sektor", "Konstruksi"], ["Jabatan", "Electrical Wireman"], ["Durasi", "260 JP"], ["Standar", "Suruhanjaya Tenaga"]]),
+          lf("Program Bahasa · Bahasa Jepang Konstruksi & Isyarat Kerja", { a: 25, b: 10, c: 140, d: 240 }, [
+            ["Negara Tujuan", "Jepang"],
+            ["Sektor", "Konstruksi"],
+            ["Rumpun Kurikulum", "Program Bahasa"],
+            ["Materi Kurikulum", "Kosakata Proyek, Anzen Daiichi (Safety First), Isyarat Crane"],
+            ["Durasi Jam Pelajaran", "140 JP"],
+            ["Standar Kelulusan", "JFT-Basic A2"],
+          ]),
+          lf("Teknis · Pemasangan Scaffolding Baja & Interior Finishing", { a: 22, b: 9, c: 240, d: 220 }, [
+            ["Negara Tujuan", "Jepang"],
+            ["Sektor", "Konstruksi"],
+            ["Rumpun Kurikulum", "Teknis"],
+            ["Materi Praktek", "Perancah Tubular, Formwork Beton, K3 Ketinggian & Harness"],
+            ["Durasi Jam Pelajaran", "240 JP"],
+            ["Standar Industri", "Standar K3 Konstruksi Jepang (JIS A 8951)"],
+          ]),
+          lf("Sertifikasi · Sertifikasi K3 Scaffolding & TITP Jepang", { a: 20, b: 8, c: 60, d: 210 }, [
+            ["Negara Tujuan", "Jepang"],
+            ["Sektor", "Konstruksi"],
+            ["Rumpun Kurikulum", "Sertifikasi"],
+            ["Skema Sertifikasi", "Scaffolding Safety Specialist & SSW Construction Test"],
+            ["Durasi Jam Pelajaran", "60 JP"],
+            ["Lembaga Uji", "JAC (Japan Construction Skill Test)"],
+          ]),
         ],
       },
     ],
@@ -961,17 +1045,132 @@ const trainingTree = (): TreeNode[] => [
     name: "Korea Selatan",
     ch: [
       {
-        name: "Manufaktur",
+        name: "Manufaktur & Galangan Kapal",
         ch: [
-          lf("Pengelasan Welder SMAW/FCAW Galangan Kapal", { a: 40, b: 16, c: 24, d: 450 }, [["Negara", "Korea Selatan"], ["Sektor", "Manufaktur"], ["Jabatan", "Shipyard Welder 3G/6G"], ["Durasi", "380 JP"], ["Standar", "AWS D1.1 / KR Class"]]),
-          lf("Operasi Mesin Press & Manufaktur Otomotif", { a: 32, b: 13, c: 19, d: 360 }, [["Negara", "Korea Selatan"], ["Sektor", "Manufaktur"], ["Jabatan", "Automotive Stamping Operator"], ["Durasi", "300 JP"], ["Standar", "EPS-TOPIK & KS Standard"]]),
+          lf("Program Bahasa · Bahasa Korea EPS-TOPIK Manufaktur", { a: 45, b: 20, c: 180, d: 460 }, [
+            ["Negara Tujuan", "Korea Selatan"],
+            ["Sektor", "Manufaktur"],
+            ["Rumpun Kurikulum", "Program Bahasa"],
+            ["Materi Kurikulum", "Tata Bahasa Hangeul, Istilah Pabrik, Soal EPS-TOPIK"],
+            ["Durasi Jam Pelajaran", "180 JP"],
+            ["Standar Kelulusan", "EPS-TOPIK Passing Grade 80+"],
+          ]),
+          lf("Teknis · Pengelasan Welder SMAW/FCAW Galangan Kapal 3G/6G", { a: 40, b: 18, c: 320, d: 420 }, [
+            ["Negara Tujuan", "Korea Selatan"],
+            ["Sektor", "Manufaktur"],
+            ["Rumpun Kurikulum", "Teknis"],
+            ["Materi Praktek", "Flux-Cored Arc Welding Plat Tebal, Pipa 6G, Uji Radiografi"],
+            ["Durasi Jam Pelajaran", "320 JP"],
+            ["Standar Industri", "AWS D1.1 / KR (Korean Register) Shipbuilding"],
+          ]),
+          lf("Teknis · Operator Stamping Press & Cetakan Logam Otomotif", { a: 32, b: 14, c: 260, d: 330 }, [
+            ["Negara Tujuan", "Korea Selatan"],
+            ["Sektor", "Manufaktur"],
+            ["Rumpun Kurikulum", "Teknis"],
+            ["Materi Praktek", "Mesin Press Hidrolik, Kalibrasi Cetakan, K3 Presisi Otomotif"],
+            ["Durasi Jam Pelajaran", "260 JP"],
+            ["Standar Industri", "Korean Standard KS B 4001"],
+          ]),
+          lf("Sertifikasi · Uji Sertifikasi AWS D1.1 / KR Class & Visa E-7", { a: 42, b: 18, c: 80, d: 440 }, [
+            ["Negara Tujuan", "Korea Selatan"],
+            ["Sektor", "Manufaktur"],
+            ["Rumpun Kurikulum", "Sertifikasi"],
+            ["Skema Sertifikasi", "AWS Welding Inspector Certification & Visa E-7 Professional"],
+            ["Durasi Jam Pelajaran", "80 JP"],
+            ["Lembaga Uji", "KR (Korean Register) & BNSP Logam"],
+          ]),
         ],
       },
       {
-        name: "Fisherman",
+        name: "Fisherman & Budidaya Laut",
         ch: [
-          lf("ABK Penangkapan Ikan Lepas Pantai (Fisherman)", { a: 28, b: 11, c: 17, d: 310 }, [["Negara", "Korea Selatan"], ["Sektor", "Fisherman"], ["Jabatan", "ABK Kapal Penangkap Ikan"], ["Durasi", "280 JP"], ["Standar", "BST-Fisheries Kemhub"]]),
-          lf("Budidaya Akuakultur Pesisir Laut", { a: 20, b: 8, c: 12, d: 220 }, [["Negara", "Korea Selatan"], ["Sektor", "Fisherman"], ["Jabatan", "Aquaculture Specialist"], ["Durasi", "220 JP"], ["Standar", "Budidaya Ikan & Kerang"]]),
+          lf("Program Bahasa · Bahasa Korea Maritim & Komunikasi Kapal", { a: 28, b: 12, c: 140, d: 300 }, [
+            ["Negara Tujuan", "Korea Selatan"],
+            ["Sektor", "Fisherman"],
+            ["Rumpun Kurikulum", "Program Bahasa"],
+            ["Materi Kurikulum", "Istilah Penangkapan Ikan, Keselamatan Pelayaran, Perintah Nakhoda"],
+            ["Durasi Jam Pelajaran", "140 JP"],
+            ["Standar Kelulusan", "EPS-TOPIK Perikanan"],
+          ]),
+          lf("Teknis · Penangkapan Ikan Lepas Pantai & Rawai Tuna", { a: 26, b: 11, c: 240, d: 280 }, [
+            ["Negara Tujuan", "Korea Selatan"],
+            ["Sektor", "Fisherman"],
+            ["Rumpun Kurikulum", "Teknis"],
+            ["Materi Praktek", "Pengoperasian Jaring Rawai, Cold Storage Ikan, Olah Gerak Kapal"],
+            ["Durasi Jam Pelajaran", "240 JP"],
+            ["Standar Industri", "STCW-F 95 Kemhub & Standar Maritim Korea"],
+          ]),
+          lf("Sertifikasi · Sertifikasi BST-Fisheries & Buku Pelaut Kemhub", { a: 25, b: 10, c: 60, d: 290 }, [
+            ["Negara Tujuan", "Korea Selatan"],
+            ["Sektor", "Fisherman"],
+            ["Rumpun Kurikulum", "Sertifikasi"],
+            ["Skema Sertifikasi", "Basic Safety Training Fisheries (BST-F) & Medical Certificate"],
+            ["Durasi Jam Pelajaran", "60 JP"],
+            ["Lembaga Uji", "Ditjen Hubla Kemenhub & Klinik Maritim Resmi"],
+          ]),
+        ],
+      },
+    ],
+  },
+  {
+    name: "Malaysia",
+    ch: [
+      {
+        name: "Hospitality & Pariwisata",
+        ch: [
+          lf("Program Bahasa · Professional English for Tourism & F&B", { a: 30, b: 12, c: 140, d: 320 }, [
+            ["Negara Tujuan", "Malaysia"],
+            ["Sektor", "Hospitality"],
+            ["Rumpun Kurikulum", "Program Bahasa"],
+            ["Materi Kurikulum", "English Conversation, Guest Handling, Phone Etiquette"],
+            ["Durasi Jam Pelajaran", "140 JP"],
+            ["Standar Kelulusan", "TOEIC Preparation 550+"],
+          ]),
+          lf("Teknis · Front Office, Resepsionis & Guest Service Agent", { a: 28, b: 11, c: 220, d: 290 }, [
+            ["Negara Tujuan", "Malaysia"],
+            ["Sektor", "Hospitality"],
+            ["Rumpun Kurikulum", "Teknis"],
+            ["Materi Praktek", "Opera PMS System, Check-in / Check-out, Concierge Service"],
+            ["Durasi Jam Pelajaran", "220 JP"],
+            ["Standar Industri", "Hotel Bintang 4/5 Malaysia Tourism Board"],
+          ]),
+          lf("Sertifikasi · Uji Kompetensi ASEAN Tourism Professional (CATC)", { a: 26, b: 10, c: 60, d: 280 }, [
+            ["Negara Tujuan", "Malaysia"],
+            ["Sektor", "Hospitality"],
+            ["Rumpun Kurikulum", "Sertifikasi"],
+            ["Skema Sertifikasi", "MRA on Tourism Professionals (ASEAN Toolboxes)"],
+            ["Durasi Jam Pelajaran", "60 JP"],
+            ["Lembaga Uji", "LSP Pariwisata Indonesia & Jabatan Pembangunan Kemahiran Malaysia"],
+          ]),
+        ],
+      },
+      {
+        name: "Manufaktur & Elektronik",
+        ch: [
+          lf("Program Bahasa · English for Industrial Communication", { a: 32, b: 14, c: 120, d: 360 }, [
+            ["Negara Tujuan", "Malaysia"],
+            ["Sektor", "Manufaktur"],
+            ["Rumpun Kurikulum", "Program Bahasa"],
+            ["Materi Kurikulum", "Standard Operating Procedure (SOP) Bahasa Inggris Teknis"],
+            ["Durasi Jam Pelajaran", "120 JP"],
+            ["Standar Kelulusan", "Komunikasi Industri Dasar"],
+          ]),
+          lf("Teknis · Perakitan Komponen Elektronik & SMT Assembly", { a: 30, b: 12, c: 200, d: 340 }, [
+            ["Negara Tujuan", "Malaysia"],
+            ["Sektor", "Manufaktur"],
+            ["Rumpun Kurikulum", "Teknis"],
+            ["Materi Praktek", "Surface Mount Technology, Solder IPC, Quality Control Semikonduktor"],
+            ["Durasi Jam Pelajaran", "200 JP"],
+            ["Standar Industri", "IPC-A-610 Electronics Assembly"],
+          ]),
+          lf("Sertifikasi · Sertifikasi ESD Safety & IPC Electronics", { a: 28, b: 11, c: 60, d: 330 }, [
+            ["Negara Tujuan", "Malaysia"],
+            ["Sektor", "Manufaktur"],
+            ["Rumpun Kurikulum", "Sertifikasi"],
+            ["Skema Sertifikasi", "Electrostatic Discharge (ESD) Specialist & BNSP Elektronika"],
+            ["Durasi Jam Pelajaran", "60 JP"],
+            ["Lembaga Uji", "LSP Elektronika & Lembaga Sertifikasi Industri"],
+          ]),
         ],
       },
     ],
@@ -980,16 +1179,32 @@ const trainingTree = (): TreeNode[] => [
     name: "Taiwan",
     ch: [
       {
-        name: "Kesehatan",
+        name: "Kesehatan / Caregiver",
         ch: [
-          lf("Caregiver / Caretaker Panti Lansia Formal", { a: 36, b: 15, c: 21, d: 400 }, [["Negara", "Taiwan"], ["Sektor", "Kesehatan"], ["Jabatan", "Caregiver Formal (MoHW)"], ["Durasi", "360 JP"], ["Standar", "Bahasa Mandarin & Standar MoHW"]]),
-          lf("Elderly Home Care Specialist", { a: 24, b: 10, c: 14, d: 270 }, [["Negara", "Taiwan"], ["Sektor", "Kesehatan"], ["Jabatan", "Home Caregiver"], ["Durasi", "320 JP"], ["Standar", "Perawatan Khusus Lansia"]]),
-        ],
-      },
-      {
-        name: "Manufaktur",
-        ch: [
-          lf("Operator Mesin Perkakas & Presisi Logam", { a: 28, b: 11, c: 17, d: 310 }, [["Negara", "Taiwan"], ["Sektor", "Manufaktur"], ["Jabatan", "Machine Tool Operator"], ["Durasi", "260 JP"], ["Standar", "Mandarin Teknis & Safety"]]),
+          lf("Program Bahasa · Bahasa Mandarin Caregiver (TOCFL A2)", { a: 38, b: 16, c: 180, d: 420 }, [
+            ["Negara Tujuan", "Taiwan"],
+            ["Sektor", "Kesehatan"],
+            ["Rumpun Kurikulum", "Program Bahasa"],
+            ["Materi Kurikulum", "Pinyin, Karakter Tradisional, Kosakata Medis & Perawatan Lansia"],
+            ["Durasi Jam Pelajaran", "180 JP"],
+            ["Standar Kelulusan", "TOCFL Level A2"],
+          ]),
+          lf("Teknis · Asuhan Keperawatan Lansia & Panti Wreda Formal", { a: 35, b: 14, c: 260, d: 390 }, [
+            ["Negara Tujuan", "Taiwan"],
+            ["Sektor", "Kesehatan"],
+            ["Rumpun Kurikulum", "Teknis"],
+            ["Materi Praktek", "Vital Signs, Bantuan Mobilitas, Higiene Pasien, Etika Budaya Taiwan"],
+            ["Durasi Jam Pelajaran", "260 JP"],
+            ["Standar Industri", "Standar Ministry of Health and Welfare (MoHW) Taiwan"],
+          ]),
+          lf("Sertifikasi · Sertifikasi Pelatihan Kemnaker & MoHW Taiwan", { a: 34, b: 13, c: 80, d: 380 }, [
+            ["Negara Tujuan", "Taiwan"],
+            ["Sektor", "Kesehatan"],
+            ["Rumpun Kurikulum", "Sertifikasi"],
+            ["Skema Sertifikasi", "Sertifikat Pelatihan Caregiver Resmi & Sertifikasi BNSP"],
+            ["Durasi Jam Pelajaran", "80 JP"],
+            ["Lembaga Uji", "Kemnaker RI & TETO Taiwan"],
+          ]),
         ],
       },
     ],
@@ -1507,11 +1722,11 @@ function buildRealTrees(): Record<PillarKey, PillarConfig> {
     },
     pel: {
       t: "2. Siap Program",
-      lv: ["Negara Tujuan", "Sektor Industri", "Jabatan Kerja"],
+      lv: ["Negara Tujuan", "Sektor Industri", "Program Bahasa · Teknis · Sertifikasi"],
       k: [
         ["a", "Jumlah Kelas"],
         ["b", "Kelas Berjalan"],
-        ["c", "Kelas Selesai"],
+        ["c", "Jam Pelajaran (JP)"],
         ["d", "Tersertifikasi"],
       ],
       tree: trainingTree,

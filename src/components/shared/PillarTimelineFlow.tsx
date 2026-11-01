@@ -95,9 +95,9 @@ export function PillarTimelineFlow({
       stepNumber: 2,
       pillarKey: "pel",
       title: "2. Siap Program",
-      subtitle: "Per Negara, Sektor & Jabatan",
+      subtitle: "Bahasa · Teknis · Sertifikasi",
       tag: "Standardisasi",
-      desc: "Pemetaan kurikulum pelatihan terstandar per negara tujuan, sektor industri, dan jabatan kerja (320-520 JP).",
+      desc: "Pelatihan terstruktur per negara tujuan yang mencakup Program Bahasa (N4/EPS/A2), keahlian Teknis, dan Sertifikasi kompetensi resmi.",
       icon: GraduationCap,
       metricLabel: "Target: 630 Kelas",
       metricValue: actualPrograms > 0

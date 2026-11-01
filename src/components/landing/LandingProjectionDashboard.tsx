@@ -1,7 +1,7 @@
 import { router } from "@inertiajs/react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { CountryProjectionCard } from "@/components/landing/CountryProjectionCard";
-import { Supply2000ProjectionPanel } from "@/components/landing/Supply2000ProjectionPanel";
+import { SupplyTargetProjectionPanel } from "@/components/landing/SupplyTargetProjectionPanel";
 
 export interface LandingProjectionSeries {
   name: string;
@@ -77,10 +77,10 @@ export function LandingProjectionDashboard({ projection }: LandingProjectionDash
               PROYEKSI INTERNASIONAL DAN SEKTOR
             </span>
             <h2 id="projection-heading" className="text-2xl font-black tracking-tight sm:text-3xl">
-              Target, capaian, dan proyeksi penempatan internasional
+              Data Suplai Penempatan Negara Target
             </h2>
             <p className="text-sm text-muted-foreground">
-              Pilih negara untuk melihat sektor, jabatan, dan target penempatan secara lebih rinci.
+              Pemetaan data target suplai penempatan tenaga kerja ke negara tujuan (termasuk suplai Jepang: 2.000, Turki: 5.000, Malaysia: 5.000, dll.) berdasarkan pilihan negara, sektor jabatan, daerah asal, dan sumber data pendaftaran.
             </p>
           </div>
           <label className="flex shrink-0 flex-col gap-1.5 text-sm font-medium">
@@ -101,8 +101,8 @@ export function LandingProjectionDashboard({ projection }: LandingProjectionDash
           </label>
         </div>
 
-        {/* Panel Penelusuran Siap Suplai 2.000 (Negara · Sektor Jabatan · Daerah Asal · Sumber Data) */}
-        <Supply2000ProjectionPanel participants={projection.participants} />
+        {/* Panel Penelusuran Suplai Negara Target (Negara · Sektor Jabatan · Daerah Asal · Sumber Data) */}
+        <SupplyTargetProjectionPanel projection={projection} />
 
         <CountryProjectionCard projection={projection} />
 
