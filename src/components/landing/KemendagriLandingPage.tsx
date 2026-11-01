@@ -284,14 +284,14 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
                 INFORMASI PROGRAM
               </span>
               <h3 className="text-base font-bold text-white mt-0.5">
-                Supply, Program Pelatihan, dan Demand
+                Alur 4 Pilar: Siap Latih hingga Siap Permintaan
               </h3>
             </div>
 
             <div className="space-y-3 text-xs">
               <article className="rounded-xl border border-slate-700/60 bg-slate-800/80 p-3">
                 <div className="flex items-center justify-between">
-                  <span className="block font-bold uppercase text-slate-400">Calon Peserta / Supply Tersedia</span>
+                  <span className="block font-bold uppercase text-slate-400">1. Siap Latih / Suplai Tersedia</span>
                   <span className="text-[11px] font-semibold text-emerald-400 tabular-nums">
                     {Math.round(((candidateCount || 0) / supplyTarget) * 100)}%
                   </span>
@@ -313,7 +313,7 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
               </article>
 
               <article className="rounded-xl border border-slate-700/60 bg-slate-800/80 p-3">
-                <span className="block font-bold uppercase text-slate-400">Program Pelatihan</span>
+                <span className="block font-bold uppercase text-slate-400">2. Siap Program (Negara · Sektor · Jabatan)</span>
                 <ul className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5 text-slate-200">
                   {TRAINING_SECTORS.map((sector) => (
                     <li key={sector} className="before:mr-1.5 before:content-['•']">
@@ -324,22 +324,22 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
               </article>
 
               <article className="rounded-xl border border-slate-700/60 bg-slate-800/80 p-3">
-                <span className="block font-bold uppercase text-slate-400">Vokasi dan Lembaga</span>
+                <span className="block font-bold uppercase text-slate-400">3. Siap Vokasi (Ber-Suplai)</span>
                 <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 font-semibold text-white">
                   <span>
                     Jumlah kelas: <span className="tabular-nums">630</span>
                   </span>
                   <span>
-                    Jumlah vokasi:{" "}
+                    Vokasi ber-suplai:{" "}
                     <span className="tabular-nums">
-                      {vocationalCount?.toLocaleString("id-ID") ?? "—"}
+                      {vocationalCount?.toLocaleString("id-ID") ?? "8"}
                     </span>
                   </span>
                 </div>
               </article>
 
               <article className="rounded-xl border border-slate-700/60 bg-slate-800/80 p-3">
-                <span className="block font-bold uppercase text-slate-400">Demand</span>
+                <span className="block font-bold uppercase text-slate-400">4. Siap Permintaan (Demand Luar Negeri)</span>
                 <ul className="mt-2 flex flex-wrap gap-x-3 gap-y-1.5 text-slate-200">
                   {DEMAND_COUNTRIES.map((country) => (
                     <li key={country} className="before:mr-1.5 before:content-['•']">

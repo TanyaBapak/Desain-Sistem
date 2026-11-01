@@ -62,15 +62,25 @@ export function PillarTimelineFlow({
     return set.size || (actualDemands > 0 ? Math.min(actualDemands, 4) : 0);
   }, [demands, actualDemands]);
 
+  const vokasiWithSupplyCount = useMemo(() => {
+    if (!candidates || candidates.length === 0) return 0;
+    const instSet = new Set<string>();
+    candidates.forEach((c) => {
+      const key = (c.institutionId || c.institutionName || "").trim().toLowerCase();
+      if (key) instSet.add(key);
+    });
+    return instSet.size;
+  }, [candidates]);
+
   const stages = useMemo<TimelineStage[]>(() => [
     {
       id: "supply",
       stepNumber: 1,
       pillarKey: "sup",
-      title: "1. Supply",
+      title: "1. Siap Latih",
       subtitle: "Calon Peserta Siap Latih",
       tag: "Penjaringan",
-      desc: "Penjaringan dari Disnaker, SMK, & BP3MI. Validasi NIK dan kesiapan latar belakang keahlian.",
+      desc: "Penjaringan talenta dari Disnaker, SMK, & Lembaga Vokasi. Validasi NIK dan kesiapan latar belakang keahlian calon peserta.",
       icon: Users,
       metricLabel: "Target: 12.600",
       metricValue: actualCandidates > 0
@@ -84,10 +94,10 @@ export function PillarTimelineFlow({
       id: "pelatihan",
       stepNumber: 2,
       pillarKey: "pel",
-      title: "2. Program Pelatihan",
-      subtitle: "Kurikulum & Pemenuhan JP",
+      title: "2. Siap Program",
+      subtitle: "Per Negara, Sektor & Jabatan",
       tag: "Standardisasi",
-      desc: "Pembelajaran terstruktur (320-400 JP), bahasa asing (N4/A2), dan sertifikasi kompetensi (SSW/JIS/BNSP).",
+      desc: "Pemetaan kurikulum pelatihan terstandar per negara tujuan, sektor industri, dan jabatan kerja (320-520 JP).",
       icon: GraduationCap,
       metricLabel: "Target: 630 Kelas",
       metricValue: actualPrograms > 0
@@ -101,15 +111,15 @@ export function PillarTimelineFlow({
       id: "vokasi",
       stepNumber: 3,
       pillarKey: "lpk",
-      title: "3. Vokasi dan Lembaga",
-      subtitle: "Kesiapan Balai e-Vokasi",
+      title: "3. Siap Vokasi",
+      subtitle: "Sesuai Vokasi Ber-Suplai",
       tag: "Fasilitas",
-      desc: "Verifikasi sarana bengkel kerja, instruktur berlisensi, akreditasi, dan kesiapan kapasitas kelas.",
+      desc: "Lembaga vokasi dan balai pelatihan terdaftar yang telah terhubung dan memiliki alokasi suplai calon peserta siap latih.",
       icon: Building2,
-      metricLabel: "Target: 2.382 Vokasi",
-      metricValue: actualProviders > 0
-        ? `${actualProviders.toLocaleString("id-ID")} (${Math.round((actualProviders / TARGET_VOKASI) * 100)}%)`
-        : "2.382 Vokasi",
+      metricLabel: "Vokasi Ber-Suplai",
+      metricValue: vokasiWithSupplyCount > 0
+        ? `${vokasiWithSupplyCount} Vokasi Ber-Suplai`
+        : "8 Vokasi Ber-Suplai",
       status: "ready",
       colorClass: "text-emerald-600 dark:text-emerald-400 border-emerald-500/40 bg-emerald-500/10",
       badgeBg: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30",
@@ -118,7 +128,7 @@ export function PillarTimelineFlow({
       id: "demand",
       stepNumber: 4,
       pillarKey: "dem",
-      title: "4. Demand",
+      title: "4. Siap Permintaan",
       subtitle: "Permintaan Luar Negeri",
       tag: "Order Kerja",
       desc: "Validasi kebutuhan pekerja migran resmi via G2G/P2P untuk 4 negara mitra: Turki, Jepang, Malaysia, Korea.",
@@ -131,7 +141,7 @@ export function PillarTimelineFlow({
       colorClass: "text-amber-600 dark:text-amber-400 border-amber-500/40 bg-amber-500/10",
       badgeBg: "bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30",
     },
-  ], [actualCandidates, actualPrograms, actualProviders, actualDemands, uniqueCountries, totalDemandQuota]);
+  ], [actualCandidates, actualPrograms, actualProviders, actualDemands, uniqueCountries, totalDemandQuota, vokasiWithSupplyCount]);
 
   const handleCardClick = (stage: TimelineStage) => {
     // Switch active stage and immediately open the full modal / drilldown
