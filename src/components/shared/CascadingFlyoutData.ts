@@ -998,35 +998,50 @@ const trainingTree = (): TreeNode[] => [
 
 /* =========================================================================
    3. SIAP VOKASI (Lembaga Vokasi yang Sudah Terhubung dengan Suplai Riil)
-   Diselaraskan dengan data lembaga yang telah memiliki calon peserta/suplai
+   Hierarki: Jenis Vokasi > Negara · Sektor · Jabatan > Lembaga Vokasi
+   Detail: Jumlah Suplai - Jumlah Kelas - Lokasi
    ========================================================================= */
 const institutionTree = (): TreeNode[] => [
   {
     name: "Perguruan Tinggi & Politeknik Vokasi",
     ch: [
       {
-        name: "Jawa Tengah",
+        name: "Jepang · Manufaktur · Operator CNC & Welder",
         ch: [
-          lf("Politeknik Indonusa Surakarta", { a: 147, b: 135, c: 180, d: 120 }, [
-            ["Jenis", "Politeknik Vokasi D3"],
-            ["Provinsi", "Jawa Tengah"],
-            ["Kabupaten / Kota", "Kota Surakarta"],
-            ["Suplai Riil Terdaftar", "147 Calon Peserta"],
+          lf("Politeknik Indonusa Surakarta", { a: 147, b: 6, c: 180, d: 120 }, [
+            ["Jenis Vokasi", "Perguruan Tinggi Vokasi / Politeknik D3"],
+            ["Negara · Sektor · Jabatan", "Jepang · Manufaktur · Operator CNC & Welder Presisi"],
+            ["Jumlah Suplai", "147 Calon Peserta"],
+            ["Jumlah Kelas", "6 Kelas Berjalan"],
+            ["Lokasi", "Kota Surakarta, Jawa Tengah"],
             ["Akreditasi", "Baik Sekali (BAN-PT)"],
-            ["Kompetensi Unggulan", "Teknik Mesin, Otomotif, Waiter, Farmasi"],
+            ["Sertifikasi", "BNSP Pengelasan 3G SMAW / JIS CNC"],
           ]),
         ],
       },
       {
-        name: "Jawa Barat",
+        name: "Turki · Hospitality · Food & Beverage Service",
         ch: [
-          lf("Budi Luhur Migrant Center", { a: 42, b: 38, c: 120, d: 36 }, [
-            ["Jenis", "Pusat Vokasi Migran"],
-            ["Provinsi", "Jawa Barat"],
-            ["Kabupaten / Kota", "Kota Bekasi"],
-            ["Suplai Riil Terdaftar", "42 Calon Peserta"],
-            ["Akreditasi", "A"],
-            ["Kompetensi Unggulan", "Caregiver Lansia, Teknologi Informasi"],
+          lf("Politeknik Indonusa Surakarta (Kampus Perhotelan)", { a: 25, b: 2, c: 60, d: 23 }, [
+            ["Jenis Vokasi", "Perguruan Tinggi Vokasi / Politeknik D3"],
+            ["Negara · Sektor · Jabatan", "Turki · Hospitality · Food & Beverage Waiter"],
+            ["Jumlah Suplai", "25 Calon Peserta"],
+            ["Jumlah Kelas", "2 Kelas Berjalan"],
+            ["Lokasi", "Kota Surakarta, Jawa Tengah"],
+            ["Kurikulum", "Standard International Hospitality F&B"],
+          ]),
+        ],
+      },
+      {
+        name: "Jerman · Kesehatan · Caregiver & Nursing Specialist",
+        ch: [
+          lf("Budi Luhur Migrant Center", { a: 42, b: 3, c: 120, d: 36 }, [
+            ["Jenis Vokasi", "Pusat Vokasi Migran Perguruan Tinggi"],
+            ["Negara · Sektor · Jabatan", "Jerman · Kesehatan · Caregiver Lansia & Nursing"],
+            ["Jumlah Suplai", "42 Calon Peserta"],
+            ["Jumlah Kelas", "3 Kelas Berjalan"],
+            ["Lokasi", "Kota Bekasi, Jawa Barat"],
+            ["Standar Bahasa", "Goethe Institut Level B1/B2"],
           ]),
         ],
       },
@@ -1036,62 +1051,67 @@ const institutionTree = (): TreeNode[] => [
     name: "LPK Swasta Terakreditasi Ber-Suplai",
     ch: [
       {
-        name: "Jawa Tengah",
+        name: "Turki · Hospitality · Housekeeping & Room Attendant",
         ch: [
-          lf("LPK Omega Hotel Academy", { a: 30, b: 28, c: 100, d: 26 }, [
-            ["Jenis", "LPK Perhotelan"],
-            ["Provinsi", "Jawa Tengah"],
-            ["Kabupaten / Kota", "Kabupaten Cilacap"],
-            ["Suplai Riil Terdaftar", "30 Calon Peserta"],
-            ["Akreditasi", "Terakreditasi A"],
-            ["Kompetensi Unggulan", "Hospitality, Housekeeping, F&B Waiter"],
-          ]),
-          lf("LPK Victoria Hotel School", { a: 28, b: 25, c: 90, d: 24 }, [
-            ["Jenis", "LPK Pariwisata & Kapal Pesiar"],
-            ["Provinsi", "Jawa Tengah"],
-            ["Kabupaten / Kota", "Kota Surakarta"],
-            ["Suplai Riil Terdaftar", "28 Calon Peserta"],
-            ["Akreditasi", "Terakreditasi A"],
-            ["Kompetensi Unggulan", "Hospitality & Cruise Ship Line"],
+          lf("LPK Omega Hotel Academy", { a: 30, b: 2, c: 100, d: 26 }, [
+            ["Jenis Vokasi", "LPK Swasta Terakreditasi"],
+            ["Negara · Sektor · Jabatan", "Turki · Hospitality · Housekeeping & Room Attendant"],
+            ["Jumlah Suplai", "30 Calon Peserta"],
+            ["Jumlah Kelas", "2 Kelas Berjalan"],
+            ["Lokasi", "Kabupaten Cilacap, Jawa Tengah"],
+            ["Akreditasi", "Terakreditasi A (LA-LPK)"],
           ]),
         ],
       },
       {
-        name: "Jawa Timur",
+        name: "Turki & Eropa · Hospitality · Spa Therapist",
         ch: [
-          lf("LPK Duta International Course", { a: 24, b: 22, c: 80, d: 20 }, [
-            ["Jenis", "LPK Bahasa & Vokasi"],
-            ["Provinsi", "Jawa Timur"],
-            ["Kabupaten / Kota", "Kabupaten Pacitan"],
-            ["Suplai Riil Terdaftar", "24 Calon Peserta"],
-            ["Akreditasi", "Terakreditasi B"],
-            ["Kompetensi Unggulan", "Bahasa Korea, Welder, Hospitality"],
+          lf("BATC (Bali Aviation & Tourism Center)", { a: 32, b: 2, c: 100, d: 28 }, [
+            ["Jenis Vokasi", "LPK Swasta Terakreditasi"],
+            ["Negara · Sektor · Jabatan", "Turki & Eropa · Hospitality · Spa Therapist"],
+            ["Jumlah Suplai", "32 Calon Peserta"],
+            ["Jumlah Kelas", "2 Kelas Berjalan"],
+            ["Lokasi", "Kota Denpasar, Bali"],
+            ["Standar Kompetensi", "CIBTAC & Balinese Wellness Expert"],
           ]),
         ],
       },
       {
-        name: "Jawa Barat",
+        name: "Korea Selatan · Manufaktur · Welder SMAW/FCAW",
         ch: [
-          lf("LPK DAEHWA", { a: 35, b: 30, c: 120, d: 28 }, [
-            ["Jenis", "LPK Manufaktur"],
-            ["Provinsi", "Jawa Barat"],
-            ["Kabupaten / Kota", "Kabupaten Karawang"],
-            ["Suplai Riil Terdaftar", "35 Calon Peserta"],
-            ["Akreditasi", "Terakreditasi A"],
-            ["Kompetensi Unggulan", "Welder 3G/6G, Bahasa Korea EPS"],
+          lf("LPK DAEHWA", { a: 35, b: 2, c: 120, d: 28 }, [
+            ["Jenis Vokasi", "LPK Swasta Terakreditasi"],
+            ["Negara · Sektor · Jabatan", "Korea Selatan · Manufaktur · Welder SMAW/FCAW"],
+            ["Jumlah Suplai", "35 Calon Peserta"],
+            ["Jumlah Kelas", "2 Kelas Berjalan"],
+            ["Lokasi", "Kabupaten Karawang, Jawa Barat"],
+            ["Standar", "AWS D1.1 & Bahasa Korea EPS-TOPIK"],
           ]),
         ],
       },
       {
-        name: "Bali",
+        name: "Malaysia · Hospitality · Front Desk & Cruise Line",
         ch: [
-          lf("BATC (Bali Aviation & Tourism Center)", { a: 32, b: 30, c: 100, d: 28 }, [
-            ["Jenis", "LPK Pariwisata"],
-            ["Provinsi", "Bali"],
-            ["Kabupaten / Kota", "Kota Denpasar"],
-            ["Suplai Riil Terdaftar", "32 Calon Peserta"],
-            ["Akreditasi", "Terakreditasi A"],
-            ["Kompetensi Unggulan", "Spa Therapist CIBTAC, Housekeeping"],
+          lf("LPK Victoria Hotel School", { a: 28, b: 2, c: 90, d: 24 }, [
+            ["Jenis Vokasi", "LPK Swasta Terakreditasi"],
+            ["Negara · Sektor · Jabatan", "Malaysia · Hospitality · Front Desk & Cruise Line"],
+            ["Jumlah Suplai", "28 Calon Peserta"],
+            ["Jumlah Kelas", "2 Kelas Berjalan"],
+            ["Lokasi", "Kota Surakarta, Jawa Tengah"],
+            ["Akreditasi", "Terakreditasi A (LA-LPK)"],
+          ]),
+        ],
+      },
+      {
+        name: "Korea Selatan · Manufaktur · Operasi Mesin Produksi",
+        ch: [
+          lf("LPK Duta International Course", { a: 24, b: 2, c: 80, d: 20 }, [
+            ["Jenis Vokasi", "LPK Swasta Terakreditasi"],
+            ["Negara · Sektor · Jabatan", "Korea Selatan · Manufaktur · Operasi Mesin Produksi"],
+            ["Jumlah Suplai", "24 Calon Peserta"],
+            ["Jumlah Kelas", "2 Kelas Berjalan"],
+            ["Lokasi", "Kabupaten Pacitan, Jawa Timur"],
+            ["Program", "Bahasa Korea & Manufaktur Industri"],
           ]),
         ],
       },
@@ -1101,36 +1121,71 @@ const institutionTree = (): TreeNode[] => [
     name: "SMK Pusat Keunggulan Ber-Suplai",
     ch: [
       {
-        name: "Jawa Barat",
+        name: "Jepang · Manufaktur · Teknik Otomasi & Mesin CNC",
         ch: [
-          lf("SMK Contoh Cibinong", { a: 1, b: 1, c: 40, d: 1 }, [
-            ["Jenis", "SMK PK Go Global"],
-            ["Provinsi", "Jawa Barat"],
-            ["Kabupaten / Kota", "Kabupaten Bogor"],
-            ["Suplai Riil Terdaftar", "1 Calon Peserta"],
-            ["Akreditasi", "A"],
-            ["Kompetensi Unggulan", "Teknik Mesin & Fabrikasi Logam"],
+          lf("SMK Tunas Harapan Pati", { a: 45, b: 3, c: 150, d: 38 }, [
+            ["Jenis Vokasi", "SMK Pusat Keunggulan (Go Global)"],
+            ["Negara · Sektor · Jabatan", "Jepang · Manufaktur · Teknik Otomasi & Mesin CNC"],
+            ["Jumlah Suplai", "45 Calon Peserta"],
+            ["Jumlah Kelas", "3 Kelas Berjalan"],
+            ["Lokasi", "Kabupaten Pati, Jawa Tengah"],
+            ["Standar Fasilitas", "Workshop CNC Presisi Terakreditasi A"],
           ]),
         ],
       },
       {
-        name: "Jawa Tengah",
+        name: "Jepang · Manufaktur · Teknik Pengelasan & Otomotif",
         ch: [
-          lf("SMK Tunas Harapan Pati", { a: 45, b: 40, c: 150, d: 38 }, [
-            ["Jenis", "SMK PK Go Global"],
-            ["Provinsi", "Jawa Tengah"],
-            ["Kabupaten / Kota", "Kabupaten Pati"],
-            ["Suplai Riil Terdaftar", "45 Calon Peserta"],
-            ["Akreditasi", "A"],
-            ["Kompetensi Unggulan", "Teknik Mesin & Otomasi Manufaktur"],
+          lf("SMK Muhammadiyah 04 Sukorejo Kendal", { a: 38, b: 2, c: 130, d: 32 }, [
+            ["Jenis Vokasi", "SMK Pusat Keunggulan (Go Global)"],
+            ["Negara · Sektor · Jabatan", "Jepang · Manufaktur · Teknik Pengelasan & Otomotif"],
+            ["Jumlah Suplai", "38 Calon Peserta"],
+            ["Jumlah Kelas", "2 Kelas Berjalan"],
+            ["Lokasi", "Kabupaten Kendal, Jawa Tengah"],
+            ["Sertifikasi", "LSP-P1 Kemendikbud & JIS Welding"],
           ]),
-          lf("SMK Muhammadiyah 04 Sukorejo Kendal", { a: 38, b: 35, c: 130, d: 32 }, [
-            ["Jenis", "SMK PK Go Global"],
-            ["Provinsi", "Jawa Tengah"],
-            ["Kabupaten / Kota", "Kabupaten Kendal"],
-            ["Suplai Riil Terdaftar", "38 Calon Peserta"],
-            ["Akreditasi", "A"],
-            ["Kompetensi Unggulan", "Teknik Pengelasan & Otomotif"],
+        ],
+      },
+      {
+        name: "Korea Selatan · Manufaktur · Fabrikasi Logam",
+        ch: [
+          lf("SMK Contoh Cibinong", { a: 1, b: 1, c: 40, d: 1 }, [
+            ["Jenis Vokasi", "SMK Pusat Keunggulan"],
+            ["Negara · Sektor · Jabatan", "Korea Selatan · Manufaktur · Fabrikasi Logam"],
+            ["Jumlah Suplai", "1 Calon Peserta"],
+            ["Jumlah Kelas", "1 Kelas Berjalan"],
+            ["Lokasi", "Kabupaten Bogor, Jawa Barat"],
+          ]),
+        ],
+      },
+    ],
+  },
+  {
+    name: "Balai Pelatihan Vokasi (BPVP / BLK-LN)",
+    ch: [
+      {
+        name: "Jepang · Manufaktur · Welder Bawah Air & CNC",
+        ch: [
+          lf("UPTD Solo Technopark", { a: 40, b: 2, c: 120, d: 35 }, [
+            ["Jenis Vokasi", "Balai Pelatihan Vokasi & Technopark"],
+            ["Negara · Sektor · Jabatan", "Jepang · Manufaktur · Welder Bawah Air & CNC"],
+            ["Jumlah Suplai", "40 Calon Peserta"],
+            ["Jumlah Kelas", "2 Kelas Berjalan"],
+            ["Lokasi", "Kota Surakarta, Jawa Tengah"],
+            ["Fasilitas", "Diving Tank Pengelasan & Lab CNC 5-Axis"],
+          ]),
+        ],
+      },
+      {
+        name: "Taiwan · Kesehatan · Caregiver Lansia Formal",
+        ch: [
+          lf("BLK-LN PRIMA DUTA SEJATI KENDAL", { a: 50, b: 3, c: 160, d: 42 }, [
+            ["Jenis Vokasi", "Balai Latihan Kerja Luar Negeri"],
+            ["Negara · Sektor · Jabatan", "Taiwan · Kesehatan · Caregiver Lansia Formal"],
+            ["Jumlah Suplai", "50 Calon Peserta"],
+            ["Jumlah Kelas", "3 Kelas Berjalan"],
+            ["Lokasi", "Kabupaten Kendal, Jawa Tengah"],
+            ["Standar Kurikulum", "Kemenaker & Standar MoHW Taiwan"],
           ]),
         ],
       },
@@ -1139,70 +1194,82 @@ const institutionTree = (): TreeNode[] => [
 ];
 
 /* =========================================================================
-   4. DEMAND (Permintaan Pekerja Luar Negeri - 41 Target Riil DB)
-   Diselaraskan dengan tabel `landing_placement_targets` database
+   4. SIAP PERMINTAAN (Permintaan Pekerja Luar Negeri & Skema Penempatan)
+   Hierarki: Per Negara > Sektor & Jabatan > Skema Penempatan & Kebutuhan
+   Skema: G to G, G to P, P to P, UKPS, Perseorangan, Mandiri, Magang Jepang
    ========================================================================= */
 const demandTree = (): TreeNode[] => [
   {
     name: "Turki",
     ch: [
       {
-        name: "Hospitality",
+        name: "Hospitality · Housekeeping Attendant",
         ch: [
-          lf("Housekeeping & Public Area Resort (Antalya & Istanbul)", { a: 8020, b: 2400, c: 5620, d: 1100 }, [["Negara", "Turki"], ["Sektor", "Hospitality"], ["Jabatan", "Housekeeping & Room Attendant"], ["Kontrak", "2 Tahun (Perpanjangan)"]]),
-          lf("Spa Therapist & Wellness Center (Bodrum & Izmir)", { a: 1460, b: 420, c: 1040, d: 280 }, [["Negara", "Turki"], ["Sektor", "Hospitality"], ["Jabatan", "Spa Therapist CIBTAC"], ["Kontrak", "2 Tahun"]]),
-          lf("Food & Beverage Waiter (Hotel & Restoran Bintang 5)", { a: 2600, b: 850, c: 1750, d: 450 }, [["Negara", "Turki"], ["Sektor", "Hospitality"], ["Jabatan", "Waiter / Captain Waiter"], ["Kontrak", "2 Tahun"]]),
-          lf("Cleaner & Facility Service", { a: 720, b: 280, c: 440, d: 120 }, [["Negara", "Turki"], ["Sektor", "Hospitality"], ["Jabatan", "General Cleaner"], ["Kontrak", "2 Tahun"]]),
-          lf("Cook & Chef Preparation (Kroasia, Bulgaria, Turki)", { a: 40, b: 18, c: 22, d: 10 }, [["Negara", "Turki / Balkan"], ["Sektor", "Hospitality"], ["Jabatan", "Commis Cook"], ["Kontrak", "2 Tahun"]]),
-        ],
-      },
-    ],
-  },
-  {
-    name: "Taiwan",
-    ch: [
-      {
-        name: "Kesehatan",
-        ch: [
-          lf("Caregiver / Caretaker Panti Lansia Formal", { a: 4900, b: 1650, c: 3250, d: 680 }, [["Negara", "Taiwan"], ["Sektor", "Kesehatan"], ["Jabatan", "Caregiver Lansia / Panti Wreda"], ["Kontrak", "3 Tahun"]]),
-          lf("Nursing Home Caregiver (MoHW Taiwan)", { a: 1620, b: 540, c: 1080, d: 260 }, [["Negara", "Taiwan"], ["Sektor", "Kesehatan"], ["Jabatan", "Nursing Home Attendant"], ["Kontrak", "3 Tahun"]]),
-        ],
-      },
-      {
-        name: "Manufaktur",
-        ch: [
-          lf("Operation Production Fabrikasi Elektronik & Komponen", { a: 3200, b: 1200, c: 2000, d: 520 }, [["Negara", "Taiwan"], ["Sektor", "Manufaktur"], ["Jabatan", "Operator Produksi Presisi"], ["Kontrak", "3 Tahun"]]),
+          lf("P to P (Private to Private Resmi)", { a: 7570, b: 2200, c: 5370, d: 1050 }, [
+            ["Negara Tujuan", "Turki"],
+            ["Sektor & Jabatan", "Hospitality · Housekeeping & Room Attendant"],
+            ["Jumlah Kebutuhan", "7.570 Slot Pekerja"],
+            ["Skema Penempatan", "P to P (Private to Private Resmi)"],
+            ["Pemberi Kerja / Asosiasi", "Asosiasi Perhotelan Antalya & Istanbul"],
+            ["Masa Kontrak", "2 Tahun (Dapat Diperpanjang)"],
+          ]),
+          lf("Perseorangan / Mandiri Terverifikasi", { a: 450, b: 200, c: 250, d: 50 }, [
+            ["Negara Tujuan", "Turki"],
+            ["Sektor & Jabatan", "Hospitality · Housekeeping Attendant"],
+            ["Jumlah Kebutuhan", "450 Slot Pekerja"],
+            ["Skema Penempatan", "Perseorangan / Mandiri Resmi Kemnaker"],
+            ["Masa Kontrak", "2 Tahun"],
+          ]),
         ],
       },
       {
-        name: "Fisherman",
+        name: "Hospitality · Spa Therapist & Wellness",
         ch: [
-          lf("Aquaculture & Perikanan Darat Intensif", { a: 500, b: 180, c: 320, d: 90 }, [["Negara", "Taiwan"], ["Sektor", "Fisherman"], ["Jabatan", "Aquaculture Specialist"], ["Kontrak", "3 Tahun"]]),
-          lf("Budidaya Tanaman Modern & Kehutanan", { a: 760, b: 260, c: 500, d: 130 }, [["Negara", "Taiwan"], ["Sektor", "Fisherman"], ["Jabatan", "Pertanian & Perkebunan Modern"], ["Kontrak", "3 Tahun"]]),
-          lf("ABK Penangkapan Ikan Lepas Pantai (ABK Fishermen)", { a: 120, b: 45, c: 75, d: 25 }, [["Negara", "Taiwan"], ["Sektor", "Fisherman"], ["Jabatan", "ABK Kapal Ikan Taiwan"], ["Kontrak", "2 Tahun"]]),
-        ],
-      },
-    ],
-  },
-  {
-    name: "Malaysia",
-    ch: [
-      {
-        name: "Kesehatan",
-        ch: [
-          lf("Elderly Caretaker & Home Nursing Specialist", { a: 4120, b: 1400, c: 2720, d: 590 }, [["Negara", "Malaysia"], ["Sektor", "Kesehatan"], ["Jabatan", "Elderly Caretaker Resmi"], ["Kontrak", "2 Tahun"]]),
+          lf("P to P (Private to Private Resmi)", { a: 1460, b: 420, c: 1040, d: 280 }, [
+            ["Negara Tujuan", "Turki"],
+            ["Sektor & Jabatan", "Hospitality · Spa Therapist CIBTAC"],
+            ["Jumlah Kebutuhan", "1.460 Slot Pekerja"],
+            ["Skema Penempatan", "P to P (Private to Private Resmi)"],
+            ["Lokasi Kerja", "Bodrum, Izmir & Antalya Resort"],
+            ["Masa Kontrak", "2 Tahun"],
+          ]),
         ],
       },
       {
-        name: "Manufaktur",
+        name: "Hospitality · Food & Beverage Waiter",
         ch: [
-          lf("Operation Production Pabrik Perakitan (Malaysia & Slowakia)", { a: 2260, b: 780, c: 1480, d: 350 }, [["Negara", "Malaysia / Slowakia"], ["Sektor", "Manufaktur"], ["Jabatan", "Perakitan Perakitan Mekanikal"], ["Kontrak", "2 Tahun"]]),
+          lf("P to P (Private to Private Resmi)", { a: 2600, b: 850, c: 1750, d: 450 }, [
+            ["Negara Tujuan", "Turki"],
+            ["Sektor & Jabatan", "Hospitality · Food & Beverage Waiter"],
+            ["Jumlah Kebutuhan", "2.600 Slot Pekerja"],
+            ["Skema Penempatan", "P to P (Private to Private Resmi)"],
+            ["Kategori Proyek", "Hotel Bintang 5 & Restoran Internasional"],
+            ["Masa Kontrak", "2 Tahun"],
+          ]),
         ],
       },
       {
-        name: "Fisherman",
+        name: "Hospitality · Cleaner & Facility Service",
         ch: [
-          lf("Plantation Worker Sawit Modern & Agro Perikanan", { a: 2400, b: 920, c: 1480, d: 410 }, [["Negara", "Malaysia"], ["Sektor", "Fisherman / Agro"], ["Jabatan", "Pekerja Terlatih Agrikultur"], ["Kontrak", "2 Tahun"]]),
+          lf("UKPS (Untuk Kepentingan Perusahaan Sendiri)", { a: 720, b: 280, c: 440, d: 120 }, [
+            ["Negara Tujuan", "Turki"],
+            ["Sektor & Jabatan", "Hospitality · Public Area Cleaner"],
+            ["Jumlah Kebutuhan", "720 Slot Pekerja"],
+            ["Skema Penempatan", "UKPS (Perusahaan Jasa Fasilitas Mandiri)"],
+            ["Masa Kontrak", "2 Tahun"],
+          ]),
+        ],
+      },
+      {
+        name: "Hospitality · Commis Chef Preparation",
+        ch: [
+          lf("P to P (Private to Private Resmi)", { a: 40, b: 18, c: 22, d: 10 }, [
+            ["Negara Tujuan", "Turki"],
+            ["Sektor & Jabatan", "Hospitality · Commis Cook"],
+            ["Jumlah Kebutuhan", "40 Slot Pekerja"],
+            ["Skema Penempatan", "P to P (Private to Private Resmi)"],
+            ["Masa Kontrak", "2 Tahun"],
+          ]),
         ],
       },
     ],
@@ -1211,21 +1278,127 @@ const demandTree = (): TreeNode[] => [
     name: "Jepang",
     ch: [
       {
-        name: "Kesehatan",
+        name: "Kesehatan · Caregiver Lansia Kaigo",
         ch: [
-          lf("Caregiver Kaigo SSW (Specified Skilled Worker)", { a: 540, b: 210, c: 330, d: 110 }, [["Negara", "Jepang"], ["Sektor", "Kesehatan"], ["Jabatan", "Caregiver SSW Level Pelaksana"], ["Kontrak", "5 Tahun (Visa SSW)"]]),
+          lf("P to P (SSW Tokutei Ginou)", { a: 540, b: 210, c: 330, d: 110 }, [
+            ["Negara Tujuan", "Jepang"],
+            ["Sektor & Jabatan", "Kesehatan · Caregiver Kaigo SSW"],
+            ["Jumlah Kebutuhan", "540 Slot Pekerja"],
+            ["Skema Penempatan", "P to P (Specified Skilled Worker / Tokutei Ginou)"],
+            ["Standar Kompetensi", "SSW Kaigo & JLPT N4 / JFT-Basic"],
+            ["Masa Kontrak", "5 Tahun"],
+          ]),
+          lf("G to G (EPA Kerjasama Pemerintah)", { a: 350, b: 140, c: 210, d: 80 }, [
+            ["Negara Tujuan", "Jepang"],
+            ["Sektor & Jabatan", "Kesehatan · Nurse & Caregiver EPA"],
+            ["Jumlah Kebutuhan", "350 Slot Pekerja"],
+            ["Skema Penempatan", "G to G (Indonesia-Japan Economic Partnership)"],
+            ["Penyelenggara", "BP2MI & JICWELS Jepang"],
+            ["Masa Kontrak", "3-5 Tahun"],
+          ]),
+          lf("Magang Jepang (TITP / Ginou Jisshusei)", { a: 280, b: 110, c: 170, d: 60 }, [
+            ["Negara Tujuan", "Jepang"],
+            ["Sektor & Jabatan", "Kesehatan · Caregiver Magang Teknis"],
+            ["Jumlah Kebutuhan", "280 Slot Peserta"],
+            ["Skema Penempatan", "Magang Jepang (TITP Lembaga Pengirim Resmi)"],
+            ["Masa Kontrak", "3 Tahun"],
+          ]),
         ],
       },
       {
-        name: "Manufaktur",
+        name: "Manufaktur · Operator CNC & Welder Presisi",
         ch: [
-          lf("Welder & Precision Machinery SSW", { a: 300, b: 110, c: 190, d: 60 }, [["Negara", "Jepang"], ["Sektor", "Manufaktur"], ["Jabatan", "Welder GMAW / GTAW SSW"], ["Kontrak", "5 Tahun (Visa SSW)"]]),
+          lf("Magang Jepang (TITP / Ginou Jisshusei)", { a: 300, b: 110, c: 190, d: 60 }, [
+            ["Negara Tujuan", "Jepang"],
+            ["Sektor & Jabatan", "Manufaktur · Welder GMAW & Operator Bubut"],
+            ["Jumlah Kebutuhan", "300 Slot Peserta"],
+            ["Skema Penempatan", "Magang Jepang (TITP Pengiriman Resmi)"],
+            ["Masa Kontrak", "3 Tahun"],
+          ]),
+          lf("P to P (SSW Tokutei Ginou)", { a: 220, b: 85, c: 135, d: 45 }, [
+            ["Negara Tujuan", "Jepang"],
+            ["Sektor & Jabatan", "Manufaktur · Precision Machining SSW"],
+            ["Jumlah Kebutuhan", "220 Slot Pekerja"],
+            ["Skema Penempatan", "P to P (Specified Skilled Worker)"],
+            ["Masa Kontrak", "5 Tahun"],
+          ]),
         ],
       },
       {
-        name: "Fisherman",
+        name: "Konstruksi · Scaffolding & Finishing Bangunan",
         ch: [
-          lf("Farmer & Modern Agriculture Worker", { a: 40, b: 15, c: 25, d: 10 }, [["Negara", "Jepang"], ["Sektor", "Fisherman / Pertanian"], ["Jabatan", "Pekerja Pertanian Modern"], ["Kontrak", "3 Tahun"]]),
+          lf("Magang Jepang (TITP / Ginou Jisshusei)", { a: 180, b: 70, c: 110, d: 35 }, [
+            ["Negara Tujuan", "Jepang"],
+            ["Sektor & Jabatan", "Konstruksi · Scaffolder & Interior Finishing"],
+            ["Jumlah Kebutuhan", "180 Slot Peserta"],
+            ["Skema Penempatan", "Magang Jepang (TITP Konstruksi)"],
+            ["Masa Kontrak", "3 Tahun"],
+          ]),
+        ],
+      },
+      {
+        name: "Fisherman & Pertanian · Modern Agriculture",
+        ch: [
+          lf("Magang Jepang (TITP / Ginou Jisshusei)", { a: 40, b: 15, c: 25, d: 10 }, [
+            ["Negara Tujuan", "Jepang"],
+            ["Sektor & Jabatan", "Fisherman & Pertanian · Pertanian Modern"],
+            ["Jumlah Kebutuhan", "40 Slot Peserta"],
+            ["Skema Penempatan", "Magang Jepang (TITP Pertanian)"],
+            ["Masa Kontrak", "3 Tahun"],
+          ]),
+        ],
+      },
+    ],
+  },
+  {
+    name: "Malaysia",
+    ch: [
+      {
+        name: "Kesehatan · Elderly Caretaker",
+        ch: [
+          lf("G to P (Government to Private)", { a: 4120, b: 1400, c: 2720, d: 590 }, [
+            ["Negara Tujuan", "Malaysia"],
+            ["Sektor & Jabatan", "Kesehatan · Caregiver Lansia Resmi"],
+            ["Jumlah Kebutuhan", "4.120 Slot Pekerja"],
+            ["Skema Penempatan", "G to P (Government to Private Kerjasama)"],
+            ["Masa Kontrak", "2 Tahun"],
+          ]),
+        ],
+      },
+      {
+        name: "Hospitality · Front Desk & Hotel Reception",
+        ch: [
+          lf("P to P (Private to Private Resmi)", { a: 1200, b: 420, c: 780, d: 180 }, [
+            ["Negara Tujuan", "Malaysia"],
+            ["Sektor & Jabatan", "Hospitality · Hotel Reception & Service"],
+            ["Jumlah Kebutuhan", "1.200 Slot Pekerja"],
+            ["Skema Penempatan", "P to P (Private to Private Resmi)"],
+            ["Masa Kontrak", "2 Tahun"],
+          ]),
+        ],
+      },
+      {
+        name: "Manufaktur · Perakitan Komponen Elektronik",
+        ch: [
+          lf("UKPS (Untuk Kepentingan Perusahaan Sendiri)", { a: 2260, b: 780, c: 1480, d: 350 }, [
+            ["Negara Tujuan", "Malaysia"],
+            ["Sektor & Jabatan", "Manufaktur · Operator Perakitan Elektronik"],
+            ["Jumlah Kebutuhan", "2.260 Slot Pekerja"],
+            ["Skema Penempatan", "UKPS (Perusahaan Multinasional Sendiri)"],
+            ["Masa Kontrak", "2 Tahun"],
+          ]),
+        ],
+      },
+      {
+        name: "Fisherman / Agro · Plantation Worker Sawit",
+        ch: [
+          lf("P to P (Private to Private Resmi)", { a: 2400, b: 920, c: 1480, d: 410 }, [
+            ["Negara Tujuan", "Malaysia"],
+            ["Sektor & Jabatan", "Fisherman / Agro · Plantation Operator"],
+            ["Jumlah Kebutuhan", "2.400 Slot Pekerja"],
+            ["Skema Penempatan", "P to P (Private to Private Resmi)"],
+            ["Masa Kontrak", "2 Tahun"],
+          ]),
         ],
       },
     ],
@@ -1234,16 +1407,82 @@ const demandTree = (): TreeNode[] => [
     name: "Korea Selatan",
     ch: [
       {
-        name: "Manufaktur",
+        name: "Manufaktur · Welder Galangan Kapal & Heavy Industry",
         ch: [
-          lf("Welder Galangan Kapal & Heavy Industry (E-7)", { a: 300, b: 130, c: 170, d: 70 }, [["Negara", "Korea Selatan"], ["Sektor", "Manufaktur"], ["Jabatan", "Welder Shipbuilding 3G/6G"], ["Kontrak", "3 Tahun (Visa E-7)"]]),
-          lf("Molding & Cetakan Logam Industri Presisi", { a: 40, b: 18, c: 22, d: 10 }, [["Negara", "Korea Selatan"], ["Sektor", "Manufaktur"], ["Jabatan", "Operator Cetakan Logam"], ["Kontrak", "3 Tahun"]]),
+          lf("G to G (EPS - Employment Permit System)", { a: 1500, b: 620, c: 880, d: 290 }, [
+            ["Negara Tujuan", "Korea Selatan"],
+            ["Sektor & Jabatan", "Manufaktur · Industri Berat & Otomotif"],
+            ["Jumlah Kebutuhan", "1.500 Slot Pekerja"],
+            ["Skema Penempatan", "G to G (EPS HRD Korea & Kemnaker)"],
+            ["Masa Kontrak", "3 Tahun (Visa E-9)"],
+          ]),
+          lf("P to P (Visa Profesional E-7)", { a: 300, b: 130, c: 170, d: 70 }, [
+            ["Negara Tujuan", "Korea Selatan"],
+            ["Sektor & Jabatan", "Manufaktur · Welder Shipbuilding 3G/6G"],
+            ["Jumlah Kebutuhan", "300 Slot Pekerja"],
+            ["Skema Penempatan", "P to P (Visa Tenaga Profesional Khusus E-7)"],
+            ["Masa Kontrak", "3 Tahun"],
+          ]),
         ],
       },
       {
-        name: "Fisherman",
+        name: "Fisherman · ABK Penangkapan Ikan Samudera",
         ch: [
-          lf("ABK Fishermen Perikanan Tangkap Samudera", { a: 600, b: 220, c: 380, d: 110 }, [["Negara", "Korea Selatan"], ["Sektor", "Fisherman"], ["Jabatan", "ABK Kapal Ikan Korea Selatan"], ["Kontrak", "2 Tahun"]]),
+          lf("P to P (Private to Private Resmi)", { a: 600, b: 220, c: 380, d: 110 }, [
+            ["Negara Tujuan", "Korea Selatan"],
+            ["Sektor & Jabatan", "Fisherman · ABK Kapal Ikan Korea Selatan"],
+            ["Jumlah Kebutuhan", "600 Slot Pekerja"],
+            ["Skema Penempatan", "P to P (Private to Private Resmi)"],
+            ["Masa Kontrak", "2 Tahun (Visa E-10)"],
+          ]),
+        ],
+      },
+      {
+        name: "Manufaktur · Operator Cetakan Logam Presisi",
+        ch: [
+          lf("G to G (EPS - Employment Permit System)", { a: 40, b: 18, c: 22, d: 10 }, [
+            ["Negara Tujuan", "Korea Selatan"],
+            ["Sektor & Jabatan", "Manufaktur · Operator Cetakan Logam"],
+            ["Jumlah Kebutuhan", "40 Slot Pekerja"],
+            ["Skema Penempatan", "G to G (EPS HRD Korea)"],
+            ["Masa Kontrak", "3 Tahun"],
+          ]),
+        ],
+      },
+    ],
+  },
+  {
+    name: "Taiwan",
+    ch: [
+      {
+        name: "Kesehatan · Caregiver Panti Lansia Formal",
+        ch: [
+          lf("P to P (Private to Private Resmi)", { a: 4900, b: 1650, c: 3250, d: 680 }, [
+            ["Negara Tujuan", "Taiwan"],
+            ["Sektor & Jabatan", "Kesehatan · Caregiver Panti Wreda Formal"],
+            ["Jumlah Kebutuhan", "4.900 Slot Pekerja"],
+            ["Skema Penempatan", "P to P (Private to Private Resmi)"],
+            ["Masa Kontrak", "3 Tahun"],
+          ]),
+          lf("Perseorangan / Mandiri Terverifikasi", { a: 620, b: 210, c: 410, d: 85 }, [
+            ["Negara Tujuan", "Taiwan"],
+            ["Sektor & Jabatan", "Kesehatan · Home Caregiver Lansia"],
+            ["Jumlah Kebutuhan", "620 Slot Pekerja"],
+            ["Skema Penempatan", "Perseorangan / Mandiri"],
+            ["Masa Kontrak", "3 Tahun"],
+          ]),
+        ],
+      },
+      {
+        name: "Manufaktur · Operator Pabrik Fabrikasi",
+        ch: [
+          lf("P to P (Private to Private Resmi)", { a: 3200, b: 1200, c: 2000, d: 520 }, [
+            ["Negara Tujuan", "Taiwan"],
+            ["Sektor & Jabatan", "Manufaktur · Operator Produksi Elektronik"],
+            ["Jumlah Kebutuhan", "3.200 Slot Pekerja"],
+            ["Skema Penempatan", "P to P (Private to Private Resmi)"],
+            ["Masa Kontrak", "3 Tahun"],
+          ]),
         ],
       },
     ],
@@ -1279,23 +1518,23 @@ function buildRealTrees(): Record<PillarKey, PillarConfig> {
     },
     lpk: {
       t: "3. Siap Vokasi",
-      lv: ["Jenis Lembaga", "Provinsi", "Lembaga Vokasi Ber-Suplai"],
+      lv: ["Jenis Vokasi", "Negara · Sektor · Jabatan", "Lembaga Vokasi"],
       k: [
-        ["a", "Suplai Calon Peserta"],
-        ["b", "Lolos Seleksi"],
+        ["a", "Jumlah Suplai"],
+        ["b", "Jumlah Kelas"],
         ["c", "Kapasitas Latih"],
-        ["d", "Siap Penempatan"],
+        ["d", "Siap Ditempatkan"],
       ],
       tree: institutionTree,
     },
     dem: {
       t: "4. Siap Permintaan",
-      lv: ["Negara Tujuan", "Sektor Industri", "Pemberi Kerja / Proyek"],
+      lv: ["Negara Tujuan", "Sektor & Jabatan", "Skema & Kebutuhan Penempatan"],
       k: [
-        ["a", "Negara Mitra"],
+        ["a", "Jumlah Kebutuhan (Slot)"],
         ["b", "Terisi"],
-        ["c", "Sisa Kuota"],
-        ["d", "Tahap Seleksi"],
+        ["c", "Sisa Kebutuhan"],
+        ["d", "Tahap Proses"],
       ],
       tree: demandTree,
     },

@@ -1,6 +1,7 @@
 import { router } from "@inertiajs/react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { CountryProjectionCard } from "@/components/landing/CountryProjectionCard";
+import { Supply2000ProjectionPanel } from "@/components/landing/Supply2000ProjectionPanel";
 
 export interface LandingProjectionSeries {
   name: string;
@@ -99,6 +100,9 @@ export function LandingProjectionDashboard({ projection }: LandingProjectionDash
             </select>
           </label>
         </div>
+
+        {/* Panel Penelusuran Siap Suplai 2.000 (Negara · Sektor Jabatan · Daerah Asal · Sumber Data) */}
+        <Supply2000ProjectionPanel participants={projection.participants} />
 
         <CountryProjectionCard projection={projection} />
 
