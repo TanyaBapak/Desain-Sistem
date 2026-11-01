@@ -1255,7 +1255,7 @@ function buildRealTrees(): Record<PillarKey, PillarConfig> {
       tree: trainingTree,
     },
     lpk: {
-      t: "3. Lembaga dan Vokasi",
+      t: "3. Vokasi dan Lembaga",
       lv: ["Jenis lembaga", "Provinsi", "Lembaga Vokasi"],
       k: [
         ["a", "Jumlah Vokasi"],
@@ -1281,7 +1281,7 @@ function buildRealTrees(): Record<PillarKey, PillarConfig> {
   // Sesuaikan angka total di kartu utama dengan data di header timeline:
   // 1. Supply: 12.600 Peserta
   // 2. Program Pelatihan: 630 Kelas
-  // 3. Lembaga dan Vokasi: 2.382 Vokasi
+  // 3. Vokasi dan Lembaga: 2.382 Vokasi
   // 4. Demand: 4 Negara Mitra
   const HEADER_TARGETS: Record<PillarKey, number> = {
     sup: 12600,

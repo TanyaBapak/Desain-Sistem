@@ -101,7 +101,7 @@ export function PillarTimelineFlow({
       id: "vokasi",
       stepNumber: 3,
       pillarKey: "lpk",
-      title: "3. Lembaga dan Vokasi",
+      title: "3. Vokasi dan Lembaga",
       subtitle: "Kesiapan Balai e-Vokasi",
       tag: "Fasilitas",
       desc: "Verifikasi sarana bengkel kerja, instruktur berlisensi, akreditasi, dan kesiapan kapasitas kelas.",

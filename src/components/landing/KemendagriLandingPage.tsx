@@ -284,14 +284,14 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
                 INFORMASI PROGRAM
               </span>
               <h3 className="text-base font-bold text-white mt-0.5">
-                Suplai, Pelatihan, dan Permintaan
+                Supply, Program Pelatihan, dan Demand
               </h3>
             </div>
 
             <div className="space-y-3 text-xs">
               <article className="rounded-xl border border-slate-700/60 bg-slate-800/80 p-3">
                 <div className="flex items-center justify-between">
-                  <span className="block font-bold uppercase text-slate-400">Calon Peserta / Suplai Tersedia</span>
+                  <span className="block font-bold uppercase text-slate-400">Calon Peserta / Supply Tersedia</span>
                   <span className="text-[11px] font-semibold text-emerald-400 tabular-nums">
                     {Math.round(((candidateCount || 0) / supplyTarget) * 100)}%
                   </span>
@@ -324,7 +324,7 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
               </article>
 
               <article className="rounded-xl border border-slate-700/60 bg-slate-800/80 p-3">
-                <span className="block font-bold uppercase text-slate-400">Vokasi</span>
+                <span className="block font-bold uppercase text-slate-400">Vokasi dan Lembaga</span>
                 <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 font-semibold text-white">
                   <span>
                     Jumlah kelas: <span className="tabular-nums">630</span>
@@ -339,7 +339,7 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
               </article>
 
               <article className="rounded-xl border border-slate-700/60 bg-slate-800/80 p-3">
-                <span className="block font-bold uppercase text-slate-400">Permintaan</span>
+                <span className="block font-bold uppercase text-slate-400">Demand</span>
                 <ul className="mt-2 flex flex-wrap gap-x-3 gap-y-1.5 text-slate-200">
                   {DEMAND_COUNTRIES.map((country) => (
                     <li key={country} className="before:mr-1.5 before:content-['•']">
