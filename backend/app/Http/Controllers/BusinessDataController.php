@@ -271,12 +271,14 @@ class BusinessDataController extends Controller
                     }
                     if (! empty($scope['patterns'])) {
                         foreach ($scope['patterns'] as $pat) {
-                            $like = '%'.str_replace('%', '', (string) $pat).'%';
-                            if ($hasCond) {
-                                $qq->orWhere('institutions.name', 'LIKE', $like);
-                            } else {
-                                $qq->where('institutions.name', 'LIKE', $like);
-                                $hasCond = true;
+                            $clean = trim((string) $pat);
+                            if ($clean !== '') {
+                                if ($hasCond) {
+                                    $qq->orWhere('institutions.name', $clean);
+                                } else {
+                                    $qq->where('institutions.name', $clean);
+                                    $hasCond = true;
+                                }
                             }
                         }
                     }
@@ -456,14 +458,19 @@ class BusinessDataController extends Controller
                     }
                     if (! empty($scope['patterns'])) {
                         foreach ($scope['patterns'] as $pattern) {
-                            $likeStr = '%'.str_replace('%', '', $pattern).'%';
-                            if ($hasCondition) {
-                                $q->orWhere('job_seekers.institution_name', 'LIKE', $likeStr);
-                            } else {
-                                $q->where('job_seekers.institution_name', 'LIKE', $likeStr);
-                                $hasCondition = true;
+                            $clean = trim((string) $pattern);
+                            if ($clean !== '') {
+                                if ($hasCondition) {
+                                    $q->orWhere('job_seekers.institution_name', $clean);
+                                } else {
+                                    $q->where('job_seekers.institution_name', $clean);
+                                    $hasCondition = true;
+                                }
                             }
                         }
+                    }
+                    if (! empty($user->id)) {
+                        $q->orWhere('job_seekers.created_by', (string) $user->id);
                     }
                     if (! $hasCondition) {
                         $q->where('job_seekers.institution_id', $user->institution_id ?? '');

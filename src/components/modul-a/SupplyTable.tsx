@@ -102,16 +102,6 @@ export const SupplyTable: React.FC = () => {
   const [pageSize, setPageSize] = useState(100);
 
   const connectedFeederName = useMemo(() => {
-    const userStr = `${currentUser?.name || ''} ${currentUser?.organization || ''} ${currentUser?.email || ''}`.toLowerCase();
-    if (userStr.includes('omega') || userStr.includes('eko priyono') || userStr.includes('omegahotelacademy')) {
-      return 'LPK Omega Hotel Academy';
-    }
-    if (userStr.includes('indonusa') || userStr.includes('suci purwandari') || userStr.includes('poltekindonusa') || userStr.includes('sippmi.co')) {
-      return 'Politeknik Indonusa Surakarta';
-    }
-    if (userStr.includes('victoria') || userStr.includes('arief prasetya') || userStr.includes('victoriahotelschool')) {
-      return 'LPK Victoria Hotel School';
-    }
     return currentUser?.organization || currentUser?.name || currentScope.name || 'Lembaga Vokasi';
   }, [currentUser, currentScope]);
 

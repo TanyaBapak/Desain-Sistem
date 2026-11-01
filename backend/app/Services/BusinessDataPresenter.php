@@ -1562,144 +1562,53 @@ class BusinessDataPresenter
     {
         $institutionIds = array_filter([(string) $user->institution_id]);
         $namePatterns = [];
-        $isVictoria = false;
-        $isOmega = false;
-        $isIndonusa = false;
-        $isDuta = false;
+        $inst = null;
 
+        // 1. Prioritas Utama: Cari berdasarkan institution_id resmi pengguna di database
         if (! empty($user->institution_id)) {
             $inst = DB::table('institutions')->where('id', $user->institution_id)->first();
             if ($inst) {
                 $namePatterns[] = $inst->name;
-                $instLower = strtolower($inst->name . ' ' . $inst->id);
-                if (stripos($instLower, 'victoria') !== false) {
-                    $isVictoria = true;
-                }
-                if (stripos($instLower, 'omega') !== false) {
-                    $isOmega = true;
-                }
-                if (stripos($instLower, 'indonusa') !== false || str_contains($instLower, '@sippmi.co') || str_ends_with($instLower, 'sippmi.co')) {
-                    $isIndonusa = true;
-                }
-                if (stripos($instLower, 'duta') !== false) {
-                    $isDuta = true;
-                }
             }
         }
 
-        $userAttrs = [
-            $user->organization ?? '',
-            $user->scope_name ?? '',
-            $user->name ?? '',
-            $user->email ?? '',
-        ];
-        if (! empty($user->organization)) {
+        // 2. Fallback Otomatis: Jika institution_id belum terisi, cocokkan secara sah via email atau nama organisasi
+        if (! $inst) {
+            if (! empty($user->email)) {
+                $inst = DB::table('institutions')->where('email', $user->email)->first();
+            }
+            if (! $inst && ! empty($user->organization)) {
+                $inst = DB::table('institutions')
+                    ->whereRaw('LOWER(name) = ?', [mb_strtolower(trim($user->organization))])
+                    ->orWhere('name', $user->organization)
+                    ->first();
+            }
+
+            if ($inst) {
+                $institutionIds[] = (string) $inst->id;
+                $namePatterns[] = $inst->name;
+                // Auto-sync foreign key institution_id ke user agar konsisten seterusnya
+                DB::table('users')->where('id', $user->id)->update(['institution_id' => $inst->id]);
+            }
+        }
+
+        if (! empty($user->organization) && ! in_array($user->organization, $namePatterns, true)) {
             $namePatterns[] = $user->organization;
         }
-        if (! empty($user->email)) {
-            $emailInsts = DB::table('institutions')->where('email', $user->email)->pluck('id')->all();
-            $institutionIds = array_unique(array_merge($institutionIds, $emailInsts));
-        }
-        foreach ($userAttrs as $attr) {
-            if ($attr === '') {
-                continue;
-            }
-            if (stripos($attr, 'victoria') !== false || stripos($attr, 'arief') !== false) {
-                $isVictoria = true;
-            }
-            if (stripos($attr, 'omega') !== false || stripos($attr, 'eko priyono') !== false || stripos($attr, 'omegahotelacademy') !== false) {
-                $isOmega = true;
-            }
-            $attrLower = strtolower($attr);
-            if (stripos($attr, 'indonusa') !== false || stripos($attr, 'suci') !== false || stripos($attr, 'purwandari') !== false || str_contains($attrLower, '@sippmi.co') || str_ends_with($attrLower, 'sippmi.co')) {
-                $isIndonusa = true;
-            }
-            if (stripos($attr, 'duta') !== false) {
-                $isDuta = true;
-            }
-        }
 
-        // Context check: If user's district is Surakarta (3372) and is institution admin
-        if (! $isVictoria && ! $isIndonusa && ! empty($user->district_id) && in_array((string) $user->district_id, ['3372', 'Kota Surakarta'], true)) {
-            $userText = strtolower(($user->name ?? '') . ' ' . ($user->organization ?? '') . ' ' . ($user->email ?? ''));
-            if (str_contains($userText, 'suci') || str_contains($userText, 'indonusa') || str_contains($userText, 'politeknik')) {
-                $isIndonusa = true;
-            } else {
-                $isVictoria = true;
-            }
-        }
-
-        if ($isVictoria) {
-            $victoriaInsts = DB::table('institutions')
-                ->where(function ($q) {
-                    $q->where('name', 'LIKE', '%Victoria%')
-                        ->orWhere('id', 'LIKE', '%victoria%');
-                })
-                ->pluck('id')
-                ->all();
-            $institutionIds = array_unique(array_merge($institutionIds, $victoriaInsts, ['sippmi-victoria-hotel-school']));
-            $namePatterns[] = 'Victoria';
-            $namePatterns[] = 'VictoriaHotelSchool';
-            $namePatterns[] = 'LPK Victoria Hotel School';
-        }
-
-        if ($isOmega) {
-            $omegaInsts = DB::table('institutions')
-                ->where(function ($q) {
-                    $q->where('name', 'LIKE', '%Omega%')
-                        ->orWhere('id', 'LIKE', '%omega%');
-                })
-                ->pluck('id')
-                ->all();
-            $institutionIds = array_unique(array_merge($institutionIds, $omegaInsts, ['sippmi-omega-hotel-academy']));
-            $namePatterns[] = 'Omega';
-            $namePatterns[] = 'OmegaHotelAcademy';
-            $namePatterns[] = 'LPK Omega Hotel Academy';
-            $namePatterns[] = 'omegahotelacademy.sippmi.com';
-        }
-
-        if ($isIndonusa) {
-            $indonusaInsts = DB::table('institutions')
-                ->where(function ($q) {
-                    $q->where('name', 'LIKE', '%Indonusa%')
-                        ->orWhere('id', 'LIKE', '%indonusa%')
-                        ->orWhere('name', 'LIKE', '%Politeknik Indonusa%');
-                })
-                ->pluck('id')
-                ->all();
-            $institutionIds = array_unique(array_merge($institutionIds, $indonusaInsts, ['sippmi-politeknik-indonusa']));
-            $namePatterns[] = 'Indonusa';
-            $namePatterns[] = 'Politeknik Indonusa';
-            $namePatterns[] = 'Politeknik Indonusa Surakarta';
-            $namePatterns[] = 'sippmi.co';
-        }
-
-        if ($isDuta) {
-            $dutaInsts = DB::table('institutions')
-                ->where('name', 'LIKE', '%Duta%')
-                ->pluck('id')
-                ->all();
-            $institutionIds = array_unique(array_merge($institutionIds, $dutaInsts));
-            $namePatterns[] = 'Duta';
-        }
-
-        foreach ($namePatterns as $p) {
-            $clean = trim(preg_replace('/^(lpk|lkp|smk|balai|politeknik)\s+/i', '', $p));
-            if (strlen($clean) >= 4) {
-                $matched = DB::table('institutions')
-                    ->where('name', 'LIKE', '%'.$clean.'%')
-                    ->pluck('id')
-                    ->all();
-                $institutionIds = array_unique(array_merge($institutionIds, $matched));
-            }
-        }
+        // Flag legacy dinamis berbasis data riil institusi (bukan nama personil atau substring arbitrer)
+        $instStr = strtolower(($inst?->name ?? '') . ' ' . ($inst?->id ?? '') . ' ' . ($user->organization ?? ''));
+        $isVictoria = str_contains($instStr, 'victoria');
+        $isOmega = str_contains($instStr, 'omega');
+        $isIndonusa = str_contains($instStr, 'indonusa');
 
         return [
-            'ids' => array_values(array_filter($institutionIds)),
+            'ids' => array_values(array_unique(array_filter($institutionIds))),
             'patterns' => array_values(array_unique(array_filter($namePatterns))),
             'isVictoria' => $isVictoria,
             'isOmega' => $isOmega,
             'isIndonusa' => $isIndonusa,
+            'institution' => $inst,
         ];
     }
 
@@ -1723,14 +1632,19 @@ class BusinessDataPresenter
                     }
                     if (! empty($scope['patterns'])) {
                         foreach ($scope['patterns'] as $pattern) {
-                            $likeStr = '%'.str_replace('%', '', $pattern).'%';
-                            if ($hasCondition) {
-                                $q->orWhere('job_seekers.institution_name', 'LIKE', $likeStr);
-                            } else {
-                                $q->where('job_seekers.institution_name', 'LIKE', $likeStr);
-                                $hasCondition = true;
+                            $clean = trim((string) $pattern);
+                            if ($clean !== '') {
+                                if ($hasCondition) {
+                                    $q->orWhere('job_seekers.institution_name', $clean);
+                                } else {
+                                    $q->where('job_seekers.institution_name', $clean);
+                                    $hasCondition = true;
+                                }
                             }
                         }
+                    }
+                    if (! empty($user->id)) {
+                        $q->orWhere('job_seekers.created_by', (string) $user->id);
                     }
                     if (! $hasCondition) {
                         $q->where('job_seekers.institution_id', $user->institution_id ?? '');
@@ -1844,12 +1758,14 @@ class BusinessDataPresenter
                         }
                         if (! empty($scope['patterns'])) {
                             foreach ($scope['patterns'] as $pattern) {
-                                $likeStr = '%'.str_replace('%', '', $pattern).'%';
-                                if ($hasCondition) {
-                                    $q->orWhere('institutions.name', 'LIKE', $likeStr);
-                                } else {
-                                    $q->where('institutions.name', 'LIKE', $likeStr);
-                                    $hasCondition = true;
+                                $clean = trim((string) $pattern);
+                                if ($clean !== '') {
+                                    if ($hasCondition) {
+                                        $q->orWhere('institutions.name', $clean);
+                                    } else {
+                                        $q->where('institutions.name', $clean);
+                                        $hasCondition = true;
+                                    }
                                 }
                             }
                         }
@@ -1927,12 +1843,14 @@ class BusinessDataPresenter
                     }
                     if (! empty($scope['patterns'])) {
                         foreach ($scope['patterns'] as $pat) {
-                            $like = '%'.str_replace('%', '', (string) $pat).'%';
-                            if ($hasCond) {
-                                $qq->orWhere('institutions.name', 'LIKE', $like);
-                            } else {
-                                $qq->where('institutions.name', 'LIKE', $like);
-                                $hasCond = true;
+                            $clean = trim((string) $pat);
+                            if ($clean !== '') {
+                                if ($hasCond) {
+                                    $qq->orWhere('institutions.name', $clean);
+                                } else {
+                                    $qq->where('institutions.name', $clean);
+                                    $hasCond = true;
+                                }
                             }
                         }
                     }
