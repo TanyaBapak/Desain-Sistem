@@ -34,6 +34,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   React.useEffect(() => {
     setPendingTab(null);
+    const unregister = router.on("finish", () => {
+      setPendingTab(null);
+    });
+    return () => unregister();
   }, [currentTab]);
 
   const isSuperAdmin = currentUser?.roleName === "super_admin" || currentUser?.role === "superadmin";

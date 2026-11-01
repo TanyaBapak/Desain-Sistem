@@ -268,42 +268,40 @@ function AppContent({
   })();
 
   useLayoutEffect(() => {
+    if (authenticatedUser) {
+      setAuthenticatedUser(
+        {
+          id: authenticatedUser.id,
+          name: authenticatedUser.name,
+          email: authenticatedUser.email,
+          roleName: authenticatedUser.roleName,
+          role: authenticatedUser.frontendRole,
+          roleTitle: authenticatedUser.roleTitle,
+          badge: authenticatedUser.badge ?? undefined,
+          bp3miCode: authenticatedUser.bp3miCode,
+          bp3miAssignments: authenticatedUser.bp3miAssignments,
+          organization: authenticatedUser.organization,
+          scope: authenticatedUser.scope,
+          mfaEnabled: authenticatedUser.mfaEnabled,
+          mfaVerified: false,
+          loginTimestamp: "",
+          ipAddress: "",
+          avatarInitials: authenticatedUser.avatarInitials ?? undefined,
+        },
+        authenticatedUser.frontendRole,
+        authenticatedUser.scope,
+      );
+    }
+
     if (businessData) {
       setBusinessData({
         ...businessData,
         approvalRequests: businessData.approvalRequests,
       });
+    } else if (authenticatedUser) {
+      useAppStore.setState({ businessDataLoaded: true });
     }
-  }, [businessData, setBusinessData]);
-
-  useEffect(() => {
-    if (!authenticatedUser) {
-      return;
-    }
-
-    setAuthenticatedUser(
-      {
-        id: authenticatedUser.id,
-        name: authenticatedUser.name,
-        email: authenticatedUser.email,
-        roleName: authenticatedUser.roleName,
-        role: authenticatedUser.frontendRole,
-        roleTitle: authenticatedUser.roleTitle,
-        badge: authenticatedUser.badge ?? undefined,
-        bp3miCode: authenticatedUser.bp3miCode,
-        bp3miAssignments: authenticatedUser.bp3miAssignments,
-        organization: authenticatedUser.organization,
-        scope: authenticatedUser.scope,
-        mfaEnabled: authenticatedUser.mfaEnabled,
-        mfaVerified: false,
-        loginTimestamp: "",
-        ipAddress: "",
-        avatarInitials: authenticatedUser.avatarInitials ?? undefined,
-      },
-      authenticatedUser.frontendRole,
-      authenticatedUser.scope,
-    );
-  }, [authenticatedUser, setAuthenticatedUser]);
+  }, [businessData, setBusinessData, authenticatedUser, setAuthenticatedUser]);
 
   useLayoutEffect(() => {
     if (activeTab !== "matching" && activeTab !== "modul-e") return;
@@ -417,6 +415,7 @@ function AppContent({
           setCurrentTab={setCurrentTab}
           nationalLpkCount={businessData?.nationalLpkCount ?? 0}
           nationalLpkByProvince={businessData?.nationalLpkByProvince}
+          accessibleTabs={authenticatedUser.accessibleTabs}
         />
       );
       break;
@@ -427,6 +426,7 @@ function AppContent({
           setCurrentTab={setCurrentTab}
           nationalLpkCount={businessData?.nationalLpkCount ?? 0}
           nationalLpkByProvince={businessData?.nationalLpkByProvince}
+          accessibleTabs={authenticatedUser.accessibleTabs}
         />
       );
       break;
