@@ -41,12 +41,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
   }, [currentTab]);
 
   const isSuperAdmin = currentUser?.roleName === "super_admin" || currentUser?.role === "superadmin";
+  const isTaskForce = currentUser?.roleName === "task_force" || currentUser?.role === "taskforce";
+
+  const effectiveAccessibleTabs = React.useMemo(() => {
+    const tabs = new Set(accessibleTabs);
+    if (isSuperAdmin || isTaskForce) {
+      tabs.add("modul-b");
+    }
+    return Array.from(tabs);
+  }, [accessibleTabs, isSuperAdmin, isTaskForce]);
 
   const navItems = NAV_ITEMS.filter((item) => {
     if (isSuperAdmin && item.section === "Ringkasan") {
       return false;
     }
-    return accessibleTabs.includes(item.id);
+    return effectiveAccessibleTabs.includes(item.id);
   });
   const compact = collapsed && !mobileOpen;
 
