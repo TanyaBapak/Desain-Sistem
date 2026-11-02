@@ -13,7 +13,9 @@ export interface ManagedUser {
   provinceId: string | null;
   districtId: string | null;
   institutionId: string | null;
+  institutionIds?: string[];
   institutionName?: string | null;
+  institutionNames?: string[];
   employerId: string | null;
 }
 

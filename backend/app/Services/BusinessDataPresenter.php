@@ -1628,6 +1628,14 @@ class BusinessDataPresenter
     public function resolveInstitutionScope(User $user): array
     {
         $institutionIds = array_filter([(string) $user->institution_id]);
+        if (! empty($user->institution_ids) && is_array($user->institution_ids)) {
+            foreach ($user->institution_ids as $extraId) {
+                if (! empty($extraId)) {
+                    $institutionIds[] = (string) $extraId;
+                }
+            }
+        }
+        $institutionIds = array_values(array_unique($institutionIds));
         $namePatterns = [];
         $inst = null;
 
@@ -1653,39 +1661,45 @@ class BusinessDataPresenter
             $namePatterns[] = 'Politeknik Indonusa Surakarta';
         }
 
-        // 1. Prioritas Utama: Cari berdasarkan institution_id resmi pengguna di database
-        if (! empty($user->institution_id)) {
-            $inst = DB::table('institutions')->where('id', $user->institution_id)->first();
-            if ($inst) {
-                $namePatterns[] = $inst->name;
+        // 1. Prioritas Utama: Cari berdasarkan institution_id dan institution_ids resmi pengguna di database
+        if (! empty($institutionIds)) {
+            $baseIds = $institutionIds;
+            foreach ($baseIds as $targetInstId) {
+                $targetInst = DB::table('institutions')->where('id', $targetInstId)->first();
+                if ($targetInst) {
+                    if (! $inst) {
+                        $inst = $targetInst;
+                    }
+                    $namePatterns[] = $targetInst->name;
 
-                // Temukan semua sibling IDs yang memiliki nama persis sama
-                $siblingIds = DB::table('institutions')
-                    ->where(function ($q) use ($inst) {
-                        $q->where('name', $inst->name)
-                            ->orWhereRaw('LOWER(name) = ?', [mb_strtolower($inst->name)]);
-                    })
-                    ->pluck('id')
-                    ->all();
-
-                foreach ($siblingIds as $sId) {
-                    $institutionIds[] = (string) $sId;
-                }
-
-                // Normalisasi core name (tanpa prefix LPK, LKP, SMK, BLKK, dll.) untuk menangkap variasi prefix
-                $coreName = trim(preg_replace('/^(lpk|lkp|smk|blkk|blkln|balai|politeknik|universitas)\.?\s+/i', '', $inst->name));
-                if (mb_strlen($coreName) >= 5) {
-                    $related = DB::table('institutions')
-                        ->where(function ($q) use ($coreName) {
-                            $q->where('name', 'LIKE', "%{$coreName}%")
-                                ->orWhereRaw('LOWER(name) LIKE ?', ['%' . mb_strtolower($coreName) . '%']);
+                    // Temukan semua sibling IDs yang memiliki nama persis sama
+                    $siblingIds = DB::table('institutions')
+                        ->where(function ($q) use ($targetInst) {
+                            $q->where('name', $targetInst->name)
+                                ->orWhereRaw('LOWER(name) = ?', [mb_strtolower($targetInst->name)]);
                         })
-                        ->when(! empty($inst->province_id), fn ($q) => $q->where('province_id', $inst->province_id))
-                        ->get(['id', 'name']);
+                        ->pluck('id')
+                        ->all();
 
-                    foreach ($related as $rel) {
-                        $institutionIds[] = (string) $rel->id;
-                        $namePatterns[] = $rel->name;
+                    foreach ($siblingIds as $sId) {
+                        $institutionIds[] = (string) $sId;
+                    }
+
+                    // Normalisasi core name (tanpa prefix LPK, LKP, SMK, BLKK, dll.) untuk menangkap variasi prefix
+                    $coreName = trim(preg_replace('/^(lpk|lkp|smk|blkk|blkln|balai|politeknik|universitas)\.?\s+/i', '', $targetInst->name));
+                    if (mb_strlen($coreName) >= 5) {
+                        $related = DB::table('institutions')
+                            ->where(function ($q) use ($coreName) {
+                                $q->where('name', 'LIKE', "%{$coreName}%")
+                                    ->orWhereRaw('LOWER(name) LIKE ?', ['%' . mb_strtolower($coreName) . '%']);
+                            })
+                            ->when(! empty($targetInst->province_id), fn ($q) => $q->where('province_id', $targetInst->province_id))
+                            ->get(['id', 'name']);
+
+                        foreach ($related as $rel) {
+                            $institutionIds[] = (string) $rel->id;
+                            $namePatterns[] = $rel->name;
+                        }
                     }
                 }
             }
@@ -1826,10 +1840,12 @@ class BusinessDataPresenter
                     $q->orWhere('created_by', $inst->name)
                         ->orWhere('created_by', 'LIKE', "%{$inst->name}%");
                 })
-                ->where(function ($q) use ($inst) {
+                ->where(function ($q) use ($inst, $institutionIds) {
                     $q->whereNull('institution_id')
-                        ->orWhere('institution_id', '!=', $inst->id)
-                        ->orWhere('institution_name', '!=', $inst->name);
+                        ->orWhere(function ($sub) use ($inst, $institutionIds) {
+                            $sub->where('institution_id', '!=', $inst->id)
+                                ->whereNotIn('institution_id', $institutionIds);
+                        });
                 })
                 ->update([
                     'institution_id' => $inst->id,

@@ -6,6 +6,14 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { InstitutionIdField } from "@/pages/InstitutionIdField";
 import type { ManagedUser, UserManagementData } from "@/pages/user-management-types";
 
+interface UserScopeFormData {
+  scopeLevel: string;
+  provinceId: string;
+  districtId: string;
+  institutionId: string;
+  institutionIds: string[];
+}
+
 interface UserScopeDialogProps {
   user: ManagedUser;
   data: UserManagementData;
@@ -31,11 +39,12 @@ export function UserScopeDialog({
       setInternalOpen(val);
     }
   };
-  const form = useForm({
+  const form = useForm<UserScopeFormData>({
     scopeLevel: user.scopeLevel || (user.institutionId ? "lembaga" : user.districtId ? "kabupaten" : user.provinceId ? "provinsi" : "national"),
     provinceId: user.provinceId ?? "",
     districtId: user.districtId ?? "",
     institutionId: user.institutionId ?? "",
+    institutionIds: user.institutionIds ? [...user.institutionIds] : (user.institutionId ? [user.institutionId] : []),
   });
   const isProvinceAdmin = user.roleName === "province_admin";
   const isDistrictAdmin = user.roleName === "district_admin";
@@ -49,6 +58,7 @@ export function UserScopeDialog({
         provinceId: user.provinceId ?? "",
         districtId: user.districtId ?? "",
         institutionId: user.institutionId ?? "",
+        institutionIds: user.institutionIds ? [...user.institutionIds] : (user.institutionId ? [user.institutionId] : []),
       });
     }
   }, [open, user]);
@@ -120,13 +130,18 @@ export function UserScopeDialog({
                 <InstitutionIdField
                   label="Pilih Lembaga & ID Vokasi"
                   value={form.data.institutionId}
+                  values={form.data.institutionIds}
                   onChange={(id) => form.setData("institutionId", id)}
+                  onChangeValues={(ids) => {
+                    form.setData("institutionIds", ids);
+                    form.setData("institutionId", ids[0] ?? "");
+                  }}
                   institutions={data?.institutions ?? []}
                   error={form.errors.institutionId}
                   required
                 />
                 <p className="text-xs text-muted-foreground">
-                  Setelah ID Vokasi disimpan, data calon peserta pada akun ini otomatis difilter sesuai data lembaganya.
+                  Pengguna dapat mengelola lebih dari 1 institusi (misal data INS dan CSV dari Politeknik Indonusa). Seluruh peserta dari institusi terpilih akan otomatis tampil di dashboard pengelola.
                 </p>
               </div>
             )}

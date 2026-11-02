@@ -16,7 +16,22 @@ interface EditableUser {
   provinceId: string | null;
   districtId: string | null;
   institutionId: string | null;
+  institutionIds?: string[] | null;
   employerId: string | null;
+}
+
+interface UserEditFormData {
+  name: string;
+  username: string;
+  email: string;
+  password: string;
+  role: string;
+  scopeName: string;
+  provinceId: string;
+  districtId: string;
+  institutionId: string;
+  institutionIds: string[];
+  employerId: string;
 }
 
 interface UserEditDialogProps {
@@ -52,7 +67,7 @@ export function UserEditDialog({
       setInternalOpen(val);
     }
   };
-  const form = useForm({
+  const form = useForm<UserEditFormData>({
     name: user.name,
     username: user.username,
     email: user.email,
@@ -62,6 +77,7 @@ export function UserEditDialog({
     provinceId: user.provinceId ?? "",
     districtId: user.districtId ?? "",
     institutionId: user.institutionId ?? "",
+    institutionIds: user.institutionIds ? [...user.institutionIds] : (user.institutionId ? [user.institutionId] : []),
     employerId: user.employerId ?? "",
   });
 
@@ -77,6 +93,7 @@ export function UserEditDialog({
         provinceId: user.provinceId ?? "",
         districtId: user.districtId ?? "",
         institutionId: user.institutionId ?? "",
+        institutionIds: user.institutionIds ? [...user.institutionIds] : (user.institutionId ? [user.institutionId] : []),
         employerId: user.employerId ?? "",
       });
     }
@@ -124,7 +141,11 @@ export function UserEditDialog({
           <Field label="Nama lengkap" error={form.errors.name}>
             <Input value={form.data.name} onChange={(event) => form.setData("name", event.target.value)} required />
           </Field>
-          <Field label="Nama pengguna" error={form.errors.username}>
+          <Field
+            label="Nama pengguna (username)"
+            error={form.errors.username}
+            hint="Gunakan huruf, angka, titik (.), strip (-), atau garis bawah (_)."
+          >
             <Input value={form.data.username} onChange={(event) => form.setData("username", event.target.value)} required />
           </Field>
           <Field label="Email" error={form.errors.email}>
@@ -158,7 +179,12 @@ export function UserEditDialog({
             <div className="sm:col-span-2">
               <InstitutionIdField
                 value={form.data.institutionId}
+                values={form.data.institutionIds}
                 onChange={(id) => form.setData("institutionId", id)}
+                onChangeValues={(ids) => {
+                  form.setData("institutionIds", ids);
+                  form.setData("institutionId", ids[0] ?? "");
+                }}
                 institutions={institutions ?? []}
                 error={form.errors.institutionId}
                 required
@@ -193,11 +219,12 @@ export function UserEditDialog({
 
 const selectClass = "h-10 w-full rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
-function Field({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
+function Field({ label, error, hint, children }: { label: string; error?: string; hint?: string; children: React.ReactNode }) {
   return (
     <label className="block space-y-1.5 text-sm font-medium">
       <span>{label}</span>
       {children}
+      {hint && !error && <span className="block text-xs font-normal text-muted-foreground">{hint}</span>}
       {error && <span role="alert" className="block text-xs font-normal text-destructive">{error}</span>}
     </label>
   );

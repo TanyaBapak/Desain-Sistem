@@ -88,7 +88,9 @@ class UserManagementController extends Controller
             'provinceId' => $user->province_id,
             'districtId' => $user->district_id,
             'institutionId' => $user->institution_id,
+            'institutionIds' => $user->allInstitutionIds(),
             'institutionName' => $user->institution_id ? ($institutionsMap[$user->institution_id] ?? $user->organization) : null,
+            'institutionNames' => array_values(array_filter(array_map(fn ($id) => $institutionsMap[$id] ?? null, $user->allInstitutionIds()))),
             'employerId' => $user->employer_id,
         ]);
 
@@ -181,7 +183,7 @@ class UserManagementController extends Controller
         $this->authorizeSuperAdmin($request);
         $data = $request->validate([
             'name' => ['required', 'string', 'max:150'],
-            'username' => ['required', 'string', 'max:100', 'alpha_dash', 'unique:users,username'],
+            'username' => ['required', 'string', 'min:3', 'max:100', 'regex:/^[a-zA-Z0-9._-]+$/', 'unique:users,username'],
             'email' => ['required', 'email', 'max:150', 'unique:users,email'],
             'password' => ['required', 'string', 'min:10', 'max:255'],
             'role' => ['required', Rule::exists('roles', 'name'), Rule::notIn(['super_admin'])],
@@ -189,12 +191,20 @@ class UserManagementController extends Controller
             'provinceId' => ['nullable', 'string', 'exists:provinces,id'],
             'districtId' => ['nullable', 'string', 'exists:districts,id'],
             'institutionId' => ['nullable', 'string', 'exists:institutions,id'],
+            'institutionIds' => ['nullable', 'array'],
+            'institutionIds.*' => ['string', 'exists:institutions,id'],
             'employerId' => ['nullable', 'string', 'exists:employers,id'],
-        ]);
+        ], $this->validationMessages());
         $scope = $this->resolveScope($data);
 
         DB::transaction(function () use ($request, $data, $scope): void {
-            $inst = ! empty($data['institutionId']) ? DB::table('institutions')->where('id', $data['institutionId'])->first() : null;
+            $allInstIds = array_values(array_unique(array_filter(array_merge(
+                (array) ($data['institutionId'] ?? []),
+                (array) ($data['institutionIds'] ?? [])
+            ))));
+            $primaryInstId = $data['institutionId'] ?? ($allInstIds[0] ?? null);
+            $inst = ! empty($primaryInstId) ? DB::table('institutions')->where('id', $primaryInstId)->first() : null;
+
             $attributes = [
                 'user_code' => 'USR-'.Str::upper(Str::random(10)),
                 'name' => $data['name'],
@@ -205,7 +215,8 @@ class UserManagementController extends Controller
                 'scope_name' => $scope['name'],
                 'province_id' => $data['provinceId'] ?? ($inst?->province_id ?? null),
                 'district_id' => $data['districtId'] ?? ($inst?->district_id ?? null),
-                'institution_id' => $data['institutionId'] ?? null,
+                'institution_id' => $primaryInstId,
+                'institution_ids' => ! empty($allInstIds) ? $allInstIds : null,
                 'organization' => $inst?->name ?? ($data['name'] ?? null),
                 'employer_id' => $data['employerId'] ?? null,
                 'status' => 'Aktif',
@@ -214,6 +225,9 @@ class UserManagementController extends Controller
             $user = User::query()->create($attributes);
             $role = Role::query()->where('name', $data['role'])->firstOrFail();
             $user->roles()->sync([$role->id]);
+            if (! empty($allInstIds)) {
+                app(CandidateInstitutionReconciliationService::class)->reconcileForUser($user);
+            }
             app(\App\Services\BusinessDataPresenter::class)->forgetAll();
             $this->writeAudit($request, $user, 'Pembuatan akun dan penetapan peran.');
         });
@@ -228,7 +242,7 @@ class UserManagementController extends Controller
 
         $data = $request->validate([
             'name' => ['required', 'string', 'max:150'],
-            'username' => ['required', 'string', 'max:100', 'alpha_dash', Rule::unique('users', 'username')->ignore($user->id)],
+            'username' => ['required', 'string', 'min:3', 'max:100', 'regex:/^[a-zA-Z0-9._-]+$/', Rule::unique('users', 'username')->ignore($user->id)],
             'email' => ['required', 'email', 'max:150', Rule::unique('users', 'email')->ignore($user->id)],
             'password' => ['nullable', 'string', 'min:10', 'max:255'],
             'role' => ['required', Rule::exists('roles', 'name'), Rule::notIn(['super_admin'])],
@@ -236,12 +250,20 @@ class UserManagementController extends Controller
             'provinceId' => ['nullable', 'string', 'exists:provinces,id'],
             'districtId' => ['nullable', 'string', 'exists:districts,id'],
             'institutionId' => ['nullable', 'string', 'exists:institutions,id'],
+            'institutionIds' => ['nullable', 'array'],
+            'institutionIds.*' => ['string', 'exists:institutions,id'],
             'employerId' => ['nullable', 'string', 'exists:employers,id'],
-        ]);
+        ], $this->validationMessages());
         $scope = $this->resolveScope($data);
 
         DB::transaction(function () use ($request, $user, $data, $scope): void {
-            $inst = ! empty($data['institutionId']) ? DB::table('institutions')->where('id', $data['institutionId'])->first() : null;
+            $allInstIds = array_values(array_unique(array_filter(array_merge(
+                (array) ($data['institutionId'] ?? []),
+                (array) ($data['institutionIds'] ?? [])
+            ))));
+            $primaryInstId = $data['institutionId'] ?? ($allInstIds[0] ?? null);
+            $inst = ! empty($primaryInstId) ? DB::table('institutions')->where('id', $primaryInstId)->first() : null;
+
             $attributes = [
                 'name' => $data['name'],
                 'username' => $data['username'],
@@ -250,7 +272,8 @@ class UserManagementController extends Controller
                 'scope_name' => $scope['name'],
                 'province_id' => $data['provinceId'] ?? ($inst?->province_id ?? null),
                 'district_id' => $data['districtId'] ?? ($inst?->district_id ?? null),
-                'institution_id' => $data['institutionId'] ?? null,
+                'institution_id' => $primaryInstId,
+                'institution_ids' => ! empty($allInstIds) ? $allInstIds : null,
                 'employer_id' => $data['employerId'] ?? null,
                 'avatar_initials' => Str::upper(Str::substr($data['name'], 0, 2)),
             ];
@@ -264,7 +287,7 @@ class UserManagementController extends Controller
             $user->update($attributes);
             $role = Role::query()->where('name', $data['role'])->firstOrFail();
             $user->roles()->sync([$role->id]);
-            if (! empty($user->institution_id)) {
+            if (! empty($primaryInstId) || ! empty($allInstIds)) {
                 app(CandidateInstitutionReconciliationService::class)->reconcileForUser($user);
             }
             app(\App\Services\BusinessDataPresenter::class)->forget($user);
@@ -286,11 +309,13 @@ class UserManagementController extends Controller
         $data = $request->validate([
             'scopeLevel' => ['required', Rule::in(['national', 'provinsi', 'kabupaten', 'lembaga'])],
             'institutionId' => [
-                Rule::requiredIf($request->input('scopeLevel') === 'lembaga'),
+                Rule::requiredIf($request->input('scopeLevel') === 'lembaga' && empty($request->input('institutionIds'))),
                 'nullable',
                 'string',
                 'exists:institutions,id',
             ],
+            'institutionIds' => ['nullable', 'array'],
+            'institutionIds.*' => ['string', 'exists:institutions,id'],
             'provinceId' => [
                 Rule::requiredIf(in_array($request->input('scopeLevel'), ['provinsi', 'kabupaten'], true)),
                 'nullable',
@@ -303,7 +328,7 @@ class UserManagementController extends Controller
                 'string',
                 Rule::exists('districts', 'id')->where('province_id', $request->input('provinceId')),
             ],
-        ]);
+        ], $this->validationMessages());
         if ($role === 'province_admin' && $data['scopeLevel'] !== 'provinsi') {
             throw ValidationException::withMessages([
                 'scopeLevel' => 'Admin provinsi harus menggunakan lingkup provinsi.',
@@ -316,13 +341,22 @@ class UserManagementController extends Controller
         }
 
         if ($data['scopeLevel'] === 'lembaga') {
-            $inst = DB::table('institutions')->where('id', $data['institutionId'])->first();
+            $allInstIds = array_values(array_unique(array_filter(array_merge(
+                (array) ($data['institutionId'] ?? []),
+                (array) ($data['institutionIds'] ?? [])
+            ))));
+            $primaryInstId = $data['institutionId'] ?? ($allInstIds[0] ?? null);
+            $inst = ! empty($primaryInstId) ? DB::table('institutions')->where('id', $primaryInstId)->first() : null;
             $scopeName = $inst ? $inst->name : 'Lembaga Vokasi';
+            if (count($allInstIds) > 1) {
+                $scopeName .= ' (' . count($allInstIds) . ' institusi)';
+            }
             $attributes = [
                 'scope_level' => 'lembaga',
                 'scope_name' => $scopeName,
-                'institution_id' => $data['institutionId'],
-                'organization' => $scopeName,
+                'institution_id' => $primaryInstId,
+                'institution_ids' => ! empty($allInstIds) ? $allInstIds : null,
+                'organization' => $inst ? $inst->name : ($user->organization ?? $scopeName),
                 'province_id' => $inst?->province_id ?? null,
                 'district_id' => $inst?->district_id ?? null,
             ];
@@ -339,14 +373,15 @@ class UserManagementController extends Controller
                 'province_id' => $data['provinceId'] ?? null,
                 'district_id' => $isDistrictScope ? $data['districtId'] : null,
             ];
-            if ($request->has('institutionId') && empty($data['institutionId'])) {
+            if ($request->has('institutionId') && empty($data['institutionId']) && empty($data['institutionIds'])) {
                 $attributes['institution_id'] = null;
+                $attributes['institution_ids'] = null;
             }
         }
 
         DB::transaction(function () use ($request, $user, $scopeName, $attributes): void {
             $user->update($attributes);
-            if (! empty($user->institution_id)) {
+            if (! empty($user->institution_id) || ! empty($user->institution_ids)) {
                 app(CandidateInstitutionReconciliationService::class)->reconcileForUser($user);
             }
             app(\App\Services\BusinessDataPresenter::class)->forget($user);
@@ -705,5 +740,26 @@ class UserManagementController extends Controller
             'ip_address' => $request->ip() ?? '127.0.0.1',
             'created_at' => now(),
         ]);
+    }
+
+    private function validationMessages(): array
+    {
+        return [
+            'username.required' => 'Nama pengguna (username) wajib diisi.',
+            'username.min' => 'Nama pengguna minimal 3 karakter.',
+            'username.max' => 'Nama pengguna maksimal 100 karakter.',
+            'username.regex' => 'Nama pengguna hanya boleh berisi huruf, angka, titik (.), strip (-), dan garis bawah (_). Tidak boleh ada spasi atau simbol lain.',
+            'username.alpha_dash' => 'Nama pengguna hanya boleh berisi huruf, angka, strip (-), garis bawah (_), atau titik (.).',
+            'username.unique' => 'Nama pengguna ini sudah digunakan oleh akun lain.',
+            'name.required' => 'Nama lengkap wajib diisi.',
+            'email.required' => 'Alamat email wajib diisi.',
+            'email.email' => 'Alamat email tidak valid.',
+            'email.unique' => 'Alamat email ini sudah terdaftar di akun lain.',
+            'password.required' => 'Kata sandi wajib diisi.',
+            'password.min' => 'Kata sandi minimal 10 karakter.',
+            'role.required' => 'Peran pengguna wajib dipilih.',
+            'institutionId.exists' => 'Institusi vokasi yang dipilih tidak valid.',
+            'institutionIds.*.exists' => 'Salah satu institusi vokasi yang dipilih tidak valid.',
+        ];
     }
 }

@@ -22,11 +22,13 @@ class CandidateInstitutionReconciliationService
      */
     public function reconcileAll(bool $dryRun = false): array
     {
-        // 1. Ambil seluruh pengguna lembaga/vokasi yang memiliki institution_id
+        // 1. Ambil seluruh pengguna lembaga/vokasi yang memiliki institution_id atau institution_ids
         $users = DB::table('users')
-            ->whereNotNull('institution_id')
-            ->where('institution_id', '!=', '')
-            ->get(['id', 'username', 'name', 'organization', 'institution_id']);
+            ->where(function ($q) {
+                $q->whereNotNull('institution_id')->where('institution_id', '!=', '')
+                    ->orWhereNotNull('institution_ids');
+            })
+            ->get(['id', 'username', 'name', 'organization', 'institution_id', 'institution_ids']);
 
         $institutions = DB::table('institutions')
             ->pluck('name', 'id')
@@ -36,22 +38,39 @@ class CandidateInstitutionReconciliationService
         $totalReconciled = 0;
 
         foreach ($users as $user) {
-            $instId = (string) $user->institution_id;
-            $instName = $institutions[$instId] ?? null;
-            if (! $instName) {
-                continue;
+            $userInstIds = [];
+            if (! empty($user->institution_id)) {
+                $userInstIds[] = (string) $user->institution_id;
             }
-
-            $count = $this->reconcileForTarget($user, $instId, $instName, $dryRun);
-            if ($count > 0) {
-                if (! isset($details[$instId])) {
-                    $details[$instId] = [
-                        'name' => $instName,
-                        'count' => 0,
-                    ];
+            if (! empty($user->institution_ids)) {
+                $decoded = is_array($user->institution_ids) ? $user->institution_ids : json_decode((string) $user->institution_ids, true);
+                if (is_array($decoded)) {
+                    foreach ($decoded as $extraId) {
+                        if (! empty($extraId)) {
+                            $userInstIds[] = (string) $extraId;
+                        }
+                    }
                 }
-                $details[$instId]['count'] += $count;
-                $totalReconciled += $count;
+            }
+            $userInstIds = array_values(array_unique(array_filter($userInstIds)));
+
+            foreach ($userInstIds as $instId) {
+                $instName = $institutions[$instId] ?? null;
+                if (! $instName) {
+                    continue;
+                }
+
+                $count = $this->reconcileForTarget($user, $instId, $instName, $dryRun);
+                if ($count > 0) {
+                    if (! isset($details[$instId])) {
+                        $details[$instId] = [
+                            'name' => $instName,
+                            'count' => 0,
+                        ];
+                    }
+                    $details[$instId]['count'] += $count;
+                    $totalReconciled += $count;
+                }
             }
         }
 
@@ -135,23 +154,49 @@ class CandidateInstitutionReconciliationService
     public function reconcileForUser(User|int|string $user, bool $dryRun = false): int
     {
         $userObj = is_object($user) ? $user : DB::table('users')->where('id', $user)->first();
-        if (! $userObj || empty($userObj->institution_id)) {
+        if (! $userObj) {
             return 0;
         }
 
-        $inst = DB::table('institutions')->where('id', $userObj->institution_id)->first();
-        if (! $inst) {
+        $userInstIds = [];
+        if (! empty($userObj->institution_id)) {
+            $userInstIds[] = (string) $userObj->institution_id;
+        }
+        if (! empty($userObj->institution_ids)) {
+            $decoded = is_array($userObj->institution_ids) ? $userObj->institution_ids : json_decode((string) $userObj->institution_ids, true);
+            if (is_array($decoded)) {
+                foreach ($decoded as $extraId) {
+                    if (! empty($extraId)) {
+                        $userInstIds[] = (string) $extraId;
+                    }
+                }
+            }
+        }
+        $userInstIds = array_values(array_unique(array_filter($userInstIds)));
+
+        if (empty($userInstIds)) {
             return 0;
         }
 
-        $count = $this->reconcileForTarget($userObj, $inst->id, $inst->name, $dryRun);
+        $totalCount = 0;
+        foreach ($userInstIds as $instId) {
+            $inst = DB::table('institutions')->where('id', $instId)->first();
+            if (! $inst) {
+                continue;
+            }
 
-        if (! $dryRun && $count > 0) {
-            $this->syncInstitutionCountForId($inst->id);
+            $count = $this->reconcileForTarget($userObj, $inst->id, $inst->name, $dryRun);
+            if (! $dryRun && $count > 0) {
+                $this->syncInstitutionCountForId($inst->id);
+            }
+            $totalCount += $count;
+        }
+
+        if (! $dryRun && $totalCount > 0) {
             app(BusinessDataPresenter::class)->forgetAll();
         }
 
-        return $count;
+        return $totalCount;
     }
 
     /**

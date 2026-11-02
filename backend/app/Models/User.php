@@ -33,6 +33,7 @@ class User extends Authenticatable
         'bp3mi_code',
         'district_id',
         'institution_id',
+        'institution_ids',
         'employer_id',
         'mfa_enabled',
         'mfa_secret',
@@ -63,7 +64,25 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'mfa_enabled' => 'boolean',
+            'institution_ids' => 'array',
         ];
+    }
+
+    public function allInstitutionIds(): array
+    {
+        $ids = [];
+        if (! empty($this->institution_id)) {
+            $ids[] = (string) $this->institution_id;
+        }
+        if (! empty($this->institution_ids) && is_array($this->institution_ids)) {
+            foreach ($this->institution_ids as $id) {
+                if (! empty($id)) {
+                    $ids[] = (string) $id;
+                }
+            }
+        }
+
+        return array_values(array_unique(array_filter($ids)));
     }
 
     public function roles(): BelongsToMany

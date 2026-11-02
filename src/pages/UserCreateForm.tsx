@@ -17,6 +17,7 @@ export function UserCreateForm({ data }: { data: UserManagementData }) {
     provinceId: "",
     districtId: "",
     institutionId: "",
+    institutionIds: [] as string[],
     employerId: "",
   });
 
@@ -47,8 +48,18 @@ export function UserCreateForm({ data }: { data: UserManagementData }) {
           <Field label="Nama lengkap" error={form.errors.name}>
             <Input value={form.data.name} onChange={(event) => form.setData("name", event.target.value)} autoComplete="name" required />
           </Field>
-          <Field label="Nama pengguna" error={form.errors.username}>
-            <Input value={form.data.username} onChange={(event) => form.setData("username", event.target.value)} autoComplete="username" required />
+          <Field
+            label="Nama pengguna (username)"
+            error={form.errors.username}
+            hint="Gunakan huruf, angka, titik (.), strip (-), atau garis bawah (_). Contoh: nama.lembaga atau admin_vokasi"
+          >
+            <Input
+              value={form.data.username}
+              onChange={(event) => form.setData("username", event.target.value)}
+              autoComplete="username"
+              placeholder="mis. politeknik.indonusa"
+              required
+            />
           </Field>
           <Field label="Email" error={form.errors.email}>
             <Input type="email" value={form.data.email} onChange={(event) => form.setData("email", event.target.value)} autoComplete="email" required />
@@ -83,7 +94,12 @@ export function UserCreateForm({ data }: { data: UserManagementData }) {
             <div className="sm:col-span-2 lg:col-span-3">
               <InstitutionIdField
                 value={form.data.institutionId}
+                values={form.data.institutionIds}
                 onChange={(id) => form.setData("institutionId", id)}
+                onChangeValues={(ids) => {
+                  form.setData("institutionIds", ids);
+                  form.setData("institutionId", ids[0] ?? "");
+                }}
                 institutions={data?.institutions ?? []}
                 error={form.errors.institutionId}
                 required
@@ -119,11 +135,12 @@ export function UserCreateForm({ data }: { data: UserManagementData }) {
 
 const selectClass = "h-10 w-full rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
-function Field({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
+function Field({ label, error, hint, children }: { label: string; error?: string; hint?: string; children: React.ReactNode }) {
   return (
     <label className="block space-y-1.5 text-sm font-medium">
       <span>{label}</span>
       {children}
+      {hint && !error && <span className="block text-xs font-normal text-muted-foreground">{hint}</span>}
       {error && <span role="alert" className="block text-xs font-normal text-destructive">{error}</span>}
     </label>
   );

@@ -45,9 +45,14 @@ export function ManagedUserRow({ user, currentUserId, data }: { user: ManagedUse
         <div className="flex flex-col gap-1 items-start">
           <span className="font-medium text-foreground">{user.scopeName || "-"}</span>
           {user.institutionId ? (
-            <span className="inline-flex items-center gap-1 font-mono text-[11px] px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+            <span className="inline-flex items-center gap-1 font-mono text-[11px] px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200 dark:border-blue-800" title={user.institutionIds && user.institutionIds.length > 1 ? `Institusi: ${user.institutionIds.join(", ")}` : undefined}>
               <Building2 className="h-3 w-3" />
               ID: {user.institutionId}
+              {user.institutionIds && user.institutionIds.length > 1 && (
+                <span className="ml-1 text-[10px] font-sans font-semibold text-primary">
+                  (+{user.institutionIds.length - 1} lain)
+                </span>
+              )}
             </span>
           ) : (
             <span className="text-[11px] text-muted-foreground capitalize">

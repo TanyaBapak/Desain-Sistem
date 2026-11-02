@@ -526,6 +526,100 @@ class UserManagementTest extends TestCase
         }
     }
 
+    public function test_super_admin_can_assign_multiple_institutions_to_user_and_scope_candidates_from_all_institutions(): void
+    {
+        $this->seed(DemoDataSeeder::class);
+        $admin = $this->userWithRole('super_admin');
+        $user = $this->userWithRole('institution_admin', [
+            'username' => 'operator.multi.vokasi',
+            'email' => 'operator.multi@example.invalid',
+        ]);
+
+        // Buat institusi kedua untuk pengujian multi-institusi
+        $secondInstId = 'VOC-TEST-MULTI-002';
+        \Illuminate\Support\Facades\DB::table('institutions')->updateOrInsert(
+            ['id' => $secondInstId],
+            [
+                'name' => 'LPK Mitra Sejahtera',
+                'province_id' => '32',
+                'district_id' => '3201',
+                'status' => 'Aktif',
+                'verification_status' => 'Verified',
+                'accreditation' => 'A',
+                'evokasi_status' => 'Terverifikasi e-Vokasi',
+                'institution_type' => 'LPK',
+                'ownership_type' => 'Swasta',
+            ]
+        );
+
+        // Sisipkan kandidat untuk institusi kedua
+        \Illuminate\Support\Facades\DB::table('job_seekers')->insert([
+            'id' => 'JS-MULTI-TEST-001',
+            'registration_number' => 'REG-MULTI-TEST-001',
+            'nik' => '3201000000000099',
+            'full_name' => 'Peserta Uji Multi Institusi',
+            'gender' => 'L',
+            'province_id' => '32',
+            'district_id' => '3201',
+            'major' => 'Perhotelan',
+            'institution_id' => $secondInstId,
+            'institution_name' => 'LPK Mitra Sejahtera',
+            'source_type' => 'LPK',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        // Simpan multi-institusi via update scope
+        $this->actingAs($admin)->patch("/admin/users/{$user->id}/scope", [
+            'scopeLevel' => 'lembaga',
+            'institutionId' => 'VOC-DEMO-001',
+            'institutionIds' => ['VOC-DEMO-001', $secondInstId],
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $user->refresh();
+        $this->assertSame('VOC-DEMO-001', $user->institution_id);
+        $this->assertEquals(['VOC-DEMO-001', $secondInstId], $user->institution_ids);
+
+        // Verifikasi presenter mengembalikan kandidat dari KEDUA institusi
+        $presenter = app(\App\Services\BusinessDataPresenter::class);
+        $businessData = $presenter->make($user, ['tab' => 'modul-a']);
+        $candidateInstIds = array_column($businessData['candidates'], 'institutionId');
+        $this->assertContains('VOC-DEMO-001', $candidateInstIds);
+        $this->assertContains($secondInstId, $candidateInstIds);
+    }
+
+    public function test_username_accepts_dots_and_provides_friendly_indonesian_validation_message(): void
+    {
+        $this->seed(DemoDataSeeder::class);
+        $admin = $this->userWithRole('super_admin');
+
+        // 1. Username dengan titik (mis. nama.lembaga) harus diterima
+        $response = $this->actingAs($admin)->post('/admin/users', [
+            'name' => 'Pengguna Titik',
+            'username' => 'politeknik.indonusa.surakarta',
+            'email' => 'titik@example.invalid',
+            'password' => 'RahasiaKu123!',
+            'role' => 'institution_admin',
+            'institutionId' => 'VOC-DEMO-001',
+        ]);
+        $response->assertRedirect()->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('users', ['username' => 'politeknik.indonusa.surakarta']);
+
+        // 2. Username dengan spasi atau karakter ilegal harus ditolak dengan pesan Indonesia ramah
+        $invalidResponse = $this->actingAs($admin)->post('/admin/users', [
+            'name' => 'Pengguna Ilegal',
+            'username' => 'username dengan spasi',
+            'email' => 'ilegal@example.invalid',
+            'password' => 'RahasiaKu123!',
+            'role' => 'institution_admin',
+            'institutionId' => 'VOC-DEMO-001',
+        ]);
+        $invalidResponse->assertSessionHasErrors(['username']);
+        $errorMsg = session('errors')->first('username');
+        $this->assertStringContainsString('huruf, angka, titik (.), strip (-), dan garis bawah (_)', $errorMsg);
+        $this->assertStringNotContainsString('validation.alpha_dash', $errorMsg);
+    }
+
     private function userWithRole(string $roleName, array $attributes = []): User
     {
         $user = User::factory()->create($attributes);
