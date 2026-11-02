@@ -141,6 +141,7 @@ class BusinessDataPresenter
             (int) DB::table('training_classes')->count(),
             (int) DB::table('training_programs')
                 ->where('status', 'Aktif')
+                ->where('id', 'not like', 'BP2MI-PROG-%')
                 ->whereNotNull('total_jp')
                 ->where('total_jp', '>', 0)
                 ->count()
@@ -292,6 +293,7 @@ class BusinessDataPresenter
                 (int) DB::table('training_classes')->count(),
                 (int) DB::table('training_programs')
                     ->where('status', 'Aktif')
+                    ->where('id', 'not like', 'BP2MI-PROG-%')
                     ->whereNotNull('total_jp')
                     ->where('total_jp', '>', 0)
                     ->count()
@@ -2111,46 +2113,78 @@ class BusinessDataPresenter
             )
             ->when($this->bp3miScope->hasActiveAreaFilter($user), fn ($q) => $this->bp3miScope->applyToTrainingPrograms($q, $user));
 
+        $hasBp2miColumns = \Illuminate\Support\Facades\Schema::hasColumn('training_programs', 'projection_placement');
+
+        $selectColumns = [
+            'training_programs.id',
+            'training_programs.name',
+            'training_programs.program_type',
+            'sectors.name as sector_name',
+            'occupations.title as occupation_title',
+            'countries.name as country_name',
+            'training_programs.institution_id',
+            'institutions.name as institution_name',
+            'training_programs.total_jp',
+            'training_programs.certification_target',
+            'training_programs.cost_per_participant',
+            'training_programs.quota',
+            'training_programs.enrolled_count',
+            'training_programs.start_date',
+            'training_programs.end_date',
+            'training_programs.curriculum',
+        ];
+
+        if ($hasBp2miColumns) {
+            $selectColumns = array_merge($selectColumns, [
+                'training_programs.sector_label',
+                'training_programs.occupation_label',
+                'training_programs.projection_placement',
+                'training_programs.class_count',
+                'training_programs.technical_jp',
+                'training_programs.technical_certification_jp',
+                'training_programs.language_jp',
+                'training_programs.language_certification_jp',
+            ]);
+        }
+
         return $query
-            ->orderByRaw('CASE WHEN training_programs.total_jp IS NOT NULL AND training_programs.total_jp > 0 THEN 0 WHEN training_programs.start_date IS NOT NULL THEN 1 ELSE 2 END')
+            ->orderByRaw("CASE WHEN training_programs.id LIKE 'BP2MI-PROG-%' THEN 0 WHEN training_programs.total_jp IS NOT NULL AND training_programs.total_jp > 0 THEN 1 WHEN training_programs.start_date IS NOT NULL THEN 2 ELSE 3 END")
+            ->orderByRaw("CASE WHEN training_programs.id LIKE 'BP2MI-PROG-%' THEN training_programs.id ELSE '' END ASC")
             ->orderByDesc('training_programs.start_date')
             ->orderByDesc('training_programs.created_at')
-            ->get([
-                'training_programs.id',
-                'training_programs.name',
-                'training_programs.program_type',
-                'sectors.name as sector_name',
-                'occupations.title as occupation_title',
-                'countries.name as country_name',
-                'training_programs.institution_id',
-                'institutions.name as institution_name',
-                'training_programs.total_jp',
-                'training_programs.certification_target',
-                'training_programs.cost_per_participant',
-                'training_programs.quota',
-                'training_programs.enrolled_count',
-                'training_programs.start_date',
-                'training_programs.end_date',
-                'training_programs.curriculum',
-            ])
-            ->map(fn (object $row): array => [
-                'id' => $row->id,
-                'title' => $row->name,
-                'programType' => $row->program_type,
-                'targetSector' => $row->sector_name ?? '',
-                'targetJobRole' => $row->occupation_title ?? '',
-                'targetCountry' => $row->country_name ?? '',
-                'institutionId' => $row->institution_id ?? '',
-                'institutionName' => $row->institution_name ?? '',
-                'durationJP' => (int) $row->total_jp,
-                'certificationTarget' => $row->certification_target ?? '',
-                'estimatedCostPerParticipant' => (float) $row->cost_per_participant,
-                'quota' => (int) $row->quota,
-                'enrolledCount' => (int) $row->enrolled_count,
-                'scheduleStart' => $row->start_date ?? '',
-                'scheduleEnd' => $row->end_date ?? '',
-                'curriculumOutline' => $row->curriculum ? preg_split('/\r\n|\r|\n/', $row->curriculum) : [],
-            ])->all();
+            ->get($selectColumns)
+            ->map(function (object $row) use ($hasBp2miColumns): array {
+                $isBp2miTarget = str_starts_with((string) $row->id, 'BP2MI-PROG-');
+                $sectorLabel = $hasBp2miColumns && ! empty($row->sector_label) ? (string) $row->sector_label : ($row->sector_name ?? '');
+                $occupationLabel = $hasBp2miColumns && ! empty($row->occupation_label) ? (string) $row->occupation_label : ($row->occupation_title ?? '');
+                $projectionPlacement = $hasBp2miColumns && ! empty($row->projection_placement) ? (string) $row->projection_placement : ($row->country_name ?? '');
+
+                return [
+                    'id' => $row->id,
+                    'title' => $row->name,
+                    'programType' => $row->program_type,
+                    'targetSector' => $sectorLabel,
+                    'targetJobRole' => $occupationLabel,
+                    'targetCountry' => $projectionPlacement,
+                    'projectionPlacement' => $projectionPlacement,
+                    'isBp2miTarget' => $isBp2miTarget,
+                    'classCount' => $hasBp2miColumns && $row->class_count !== null ? (int) $row->class_count : null,
+                    'technicalJP' => $hasBp2miColumns && $row->technical_jp !== null ? (int) $row->technical_jp : null,
+                    'technicalCertificationJP' => $hasBp2miColumns && $row->technical_certification_jp !== null ? (int) $row->technical_certification_jp : null,
+                    'languageJP' => $hasBp2miColumns && $row->language_jp !== null ? (int) $row->language_jp : null,
+                    'languageCertificationJP' => $hasBp2miColumns && $row->language_certification_jp !== null ? (int) $row->language_certification_jp : null,
+                    'institutionId' => $row->institution_id ?? '',
+                    'institutionName' => $row->institution_name ?? ($isBp2miTarget ? 'Target Nasional BP2MI (Penyiapan Program)' : ''),
+                    'durationJP' => (int) $row->total_jp,
+                    'certificationTarget' => $row->certification_target ?? '',
+                    'estimatedCostPerParticipant' => (float) $row->cost_per_participant,
+                    'quota' => (int) $row->quota,
+                    'enrolledCount' => (int) $row->enrolled_count,
+                    'scheduleStart' => $row->start_date ?? '',
+                    'scheduleEnd' => $row->end_date ?? '',
+                    'curriculumOutline' => $row->curriculum ? preg_split('/\r\n|\r|\n/', $row->curriculum) : [],
+                ];
+            })->all();
     }
 
     private function providers(?string $role, User $user): array

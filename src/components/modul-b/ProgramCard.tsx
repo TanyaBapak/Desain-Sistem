@@ -162,21 +162,66 @@ export const ProgramCard: React.FC<ProgramCardProps> = ({
           <div className="flex items-center gap-2">
             <Clock className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
             <div>
-              <span className="text-slate-400 dark:text-slate-500 block text-[10px] uppercase">Durasi (JP)</span>
-              <span className="font-bold text-slate-800 dark:text-slate-200">{program.durationJP} Jam</span>
+              <span className="text-slate-400 dark:text-slate-500 block text-[10px] uppercase">Total Durasi (JP)</span>
+              <span className="font-bold text-slate-800 dark:text-slate-200 tabular-nums">{program.durationJP} JP</span>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <Coins className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-            <div>
-              <span className="text-slate-400 dark:text-slate-500 block text-[10px] uppercase">Biaya / Peserta</span>
-              <span className="font-bold text-emerald-700 dark:text-emerald-400">
-                {formatIDR(program.estimatedCostPerParticipant)}
+          {program.classCount ? (
+            <div className="flex items-center gap-2">
+              <Users className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+              <div>
+                <span className="text-slate-400 dark:text-slate-500 block text-[10px] uppercase">Target Kelas (@20)</span>
+                <span className="font-bold text-emerald-700 dark:text-emerald-400 tabular-nums">
+                  {program.classCount.toLocaleString('id-ID')} Kelas ({program.quota.toLocaleString('id-ID')} Org)
+                </span>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <Coins className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+              <div>
+                <span className="text-slate-400 dark:text-slate-500 block text-[10px] uppercase">Biaya / Peserta</span>
+                <span className="font-bold text-emerald-700 dark:text-emerald-400">
+                  {formatIDR(program.estimatedCostPerParticipant)}
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Rincian Komponen JP BP2MI */}
+        {(program.technicalJP != null ||
+          program.technicalCertificationJP != null ||
+          program.languageJP != null ||
+          program.languageCertificationJP != null) && (
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 pt-2 border-t border-slate-200/70 dark:border-slate-700/60 text-[11px]">
+            <div className="rounded-lg bg-white dark:bg-slate-900/70 border border-slate-200/70 dark:border-slate-700/60 px-2 py-1 text-center">
+              <span className="text-[9px] text-slate-400 uppercase block">JP Teknis</span>
+              <span className="font-bold text-slate-800 dark:text-slate-200 tabular-nums">
+                {program.technicalJP ? `${program.technicalJP} JP` : '-'}
+              </span>
+            </div>
+            <div className="rounded-lg bg-white dark:bg-slate-900/70 border border-slate-200/70 dark:border-slate-700/60 px-2 py-1 text-center">
+              <span className="text-[9px] text-slate-400 uppercase block">Sertif Teknis</span>
+              <span className="font-bold text-slate-800 dark:text-slate-200 tabular-nums">
+                {program.technicalCertificationJP ? `${program.technicalCertificationJP} JP` : '-'}
+              </span>
+            </div>
+            <div className="rounded-lg bg-white dark:bg-slate-900/70 border border-slate-200/70 dark:border-slate-700/60 px-2 py-1 text-center">
+              <span className="text-[9px] text-slate-400 uppercase block">JP Bahasa</span>
+              <span className="font-bold text-slate-800 dark:text-slate-200 tabular-nums">
+                {program.languageJP ? `${program.languageJP} JP` : '-'}
+              </span>
+            </div>
+            <div className="rounded-lg bg-white dark:bg-slate-900/70 border border-slate-200/70 dark:border-slate-700/60 px-2 py-1 text-center">
+              <span className="text-[9px] text-slate-400 uppercase block">Sertif Bahasa</span>
+              <span className="font-bold text-slate-800 dark:text-slate-200 tabular-nums">
+                {program.languageCertificationJP ? `${program.languageCertificationJP} JP` : '-'}
               </span>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Jadwal Pelaksanaan Pelatihan */}
         <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-200/70 dark:border-slate-700/60">

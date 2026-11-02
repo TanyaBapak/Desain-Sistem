@@ -61,6 +61,13 @@ export interface TrainingProgram {
   targetSector: string; // e.g. "Kesehatan", "Industri Manufaktur"
   targetJobRole: string; // e.g. "Caregiver / Kaigo", "Welder"
   targetCountry: string;
+  projectionPlacement?: string;
+  isBp2miTarget?: boolean;
+  classCount?: number | null;
+  technicalJP?: number | null;
+  technicalCertificationJP?: number | null;
+  languageJP?: number | null;
+  languageCertificationJP?: number | null;
   institutionId?: string;
   institutionName?: string;
   durationJP: number; // Jam Pelajaran, e.g. 320

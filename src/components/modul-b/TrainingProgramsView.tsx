@@ -3,12 +3,13 @@ import { useAppStore } from '../../store/useAppStore';
 import { router } from '@inertiajs/react';
 import { RefreshCw } from 'lucide-react';
 import { ProgramCard } from './ProgramCard';
+import { Bp2miTargetProgramsTable } from './Bp2miTargetProgramsTable';
 import { CurriculumModal } from './CurriculumModal';
 import { ProgramFormModal } from './ProgramFormModal';
 import { DeleteConfirmModal } from '../ui/DeleteConfirmModal';
 import { TrainingProgram } from '../../types';
 import { archiveBusinessData, saveBusinessData } from '../../lib/business-data';
-import { Search, GraduationCap, Award, BookOpen, Layers, Plus, Calendar, X, Save, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, GraduationCap, Award, BookOpen, Layers, Plus, Calendar, X, Save, ChevronLeft, ChevronRight, Table2, LayoutGrid } from 'lucide-react';
 import { toast } from 'sonner';
 
 export const TrainingProgramsView: React.FC = () => {
@@ -47,7 +48,8 @@ export const TrainingProgramsView: React.FC = () => {
   const [scheduleJpInput, setScheduleJpInput] = useState<string>('');
   const [savingSchedule, setSavingSchedule] = useState(false);
 
-  const [scheduleFilter, setScheduleFilter] = useState<'ALL' | 'SCHEDULED' | 'UNSCHEDULED'>('ALL');
+  const [scheduleFilter, setScheduleFilter] = useState<'BP2MI_TARGET' | 'ALL' | 'SCHEDULED' | 'UNSCHEDULED'>('BP2MI_TARGET');
+  const [displayMode, setDisplayMode] = useState<'table' | 'cards'>('table');
   const [currentPage, setCurrentPage] = useState(1);
   const perPage = 24;
 
@@ -107,8 +109,19 @@ export const TrainingProgramsView: React.FC = () => {
     'Pelatihan Bahasa',
   ];
 
+  const bp2miTargetPrograms = useMemo(
+    () => programs.filter((p) => p.isBp2miTarget || p.id.startsWith('BP2MI-PROG-')),
+    [programs],
+  );
+
   const activeScheduledCount = useMemo(
-    () => programs.filter((p) => (p.durationJP && p.durationJP > 0) || Boolean(p.scheduleStart)).length,
+    () =>
+      programs.filter(
+        (p) =>
+          !p.isBp2miTarget &&
+          !p.id.startsWith('BP2MI-PROG-') &&
+          ((p.durationJP && p.durationJP > 0) || Boolean(p.scheduleStart)),
+      ).length,
     [programs],
   );
 
@@ -120,6 +133,7 @@ export const TrainingProgramsView: React.FC = () => {
         (p.title || '').toLowerCase().includes(search) ||
         (p.targetSector || '').toLowerCase().includes(search) ||
         (p.targetJobRole || '').toLowerCase().includes(search) ||
+        (p.projectionPlacement || '').toLowerCase().includes(search) ||
         (p.certificationTarget || '').toLowerCase().includes(search) ||
         (p.institutionName || '').toLowerCase().includes(search);
 
@@ -129,13 +143,17 @@ export const TrainingProgramsView: React.FC = () => {
         p.programType === filterProgramType;
 
       const matchCountry =
-        filterProgramCountry === 'ALL' || p.targetCountry === filterProgramCountry;
+        filterProgramCountry === 'ALL' ||
+        p.targetCountry === filterProgramCountry ||
+        (p.projectionPlacement || '').toLowerCase().includes(filterProgramCountry.toLowerCase());
 
+      const isBp2mi = Boolean(p.isBp2miTarget || p.id.startsWith('BP2MI-PROG-'));
       const hasScheduleOrJp = Boolean(p.scheduleStart || p.scheduleEnd || (p.durationJP && p.durationJP > 0));
       const matchSchedule =
         scheduleFilter === 'ALL' ||
-        (scheduleFilter === 'SCHEDULED' && hasScheduleOrJp) ||
-        (scheduleFilter === 'UNSCHEDULED' && !hasScheduleOrJp);
+        (scheduleFilter === 'BP2MI_TARGET' && isBp2mi) ||
+        (scheduleFilter === 'SCHEDULED' && !isBp2mi && hasScheduleOrJp) ||
+        (scheduleFilter === 'UNSCHEDULED' && !isBp2mi && !hasScheduleOrJp);
 
       return matchSearch && matchType && matchCountry && matchSchedule;
     });
@@ -167,7 +185,14 @@ export const TrainingProgramsView: React.FC = () => {
 
         <div className="flex flex-wrap items-center gap-3">
           <div className="bg-slate-800/80 border border-slate-700 px-4 py-2.5 rounded-xl text-center">
-            <span className="text-[10px] text-slate-400 block font-bold uppercase">Kelas Berjalan (JP)</span>
+            <span className="text-[10px] text-slate-400 block font-bold uppercase">Target Penyiapan BP2MI</span>
+            <span className="text-xl font-extrabold text-emerald-400 tabular-nums">
+              {bp2miTargetPrograms.length} Program · 2.000 Kelas
+            </span>
+          </div>
+
+          <div className="bg-slate-800/80 border border-slate-700 px-4 py-2.5 rounded-xl text-center">
+            <span className="text-[10px] text-slate-400 block font-bold uppercase">Kelas Berjalan (LPK)</span>
             <span className="text-xl font-extrabold text-amber-400 tabular-nums">{activeScheduledCount} Kelas</span>
           </div>
 
@@ -224,20 +249,52 @@ export const TrainingProgramsView: React.FC = () => {
             })}
           </div>
 
-          {/* Target Country & Schedule Filter */}
+          {/* Target Country, Schedule Filter & View Mode */}
           <div className="flex flex-wrap items-center gap-2">
-            <label className="text-xs text-slate-500 dark:text-slate-400 font-semibold whitespace-nowrap">Jadwal:</label>
+            <div className="inline-flex rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 p-0.5">
+              <button
+                type="button"
+                onClick={() => setDisplayMode('table')}
+                className={`px-2.5 py-1 rounded-md text-xs font-bold inline-flex items-center gap-1 transition ${
+                  displayMode === 'table'
+                    ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                }`}
+              >
+                <Table2 className="w-3.5 h-3.5" />
+                <span>Tabel Target BP2MI</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setDisplayMode('cards')}
+                className={`px-2.5 py-1 rounded-md text-xs font-bold inline-flex items-center gap-1 transition ${
+                  displayMode === 'cards'
+                    ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                }`}
+              >
+                <LayoutGrid className="w-3.5 h-3.5" />
+                <span>Kartu Program</span>
+              </button>
+            </div>
+
+            <label className="text-xs text-slate-500 dark:text-slate-400 font-semibold whitespace-nowrap">Kelompok:</label>
             <select
               value={scheduleFilter}
               onChange={(e) => {
-                setScheduleFilter(e.target.value as 'ALL' | 'SCHEDULED' | 'UNSCHEDULED');
+                const next = e.target.value as 'BP2MI_TARGET' | 'ALL' | 'SCHEDULED' | 'UNSCHEDULED';
+                setScheduleFilter(next);
+                if (next !== 'BP2MI_TARGET') {
+                  setDisplayMode('cards');
+                }
                 setCurrentPage(1);
               }}
               className="text-xs py-1.5 px-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
             >
+              <option value="BP2MI_TARGET">Target Penyiapan BP2MI ({bp2miTargetPrograms.length} Program · 2.000 Kelas)</option>
+              <option value="SCHEDULED">Kelas Berjalan LPK ({activeScheduledCount} Kelas)</option>
               <option value="ALL">Semua Program ({programs.length.toLocaleString('id-ID')})</option>
-              <option value="SCHEDULED">Kelas Berjalan / Terjadwal ({activeScheduledCount})</option>
-              <option value="UNSCHEDULED">Belum Dijadwalkan</option>
+              <option value="UNSCHEDULED">Katalog Lainnya (Belum Dijadwalkan)</option>
             </select>
 
             <label className="text-xs text-slate-500 dark:text-slate-400 font-semibold whitespace-nowrap ml-1">Negara:</label>
@@ -273,26 +330,35 @@ export const TrainingProgramsView: React.FC = () => {
         </div>
       </div>
 
-      {/* Grid Program Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {paginatedPrograms.map((program) => (
-          <ProgramCard
-            key={program.id}
-            program={program}
-            onViewCurriculum={setActiveModalProgram}
-            onEditSchedule={canManageSchedule ? openScheduleModal : undefined}
-            onEditProgram={(p) => {
-              setProgramToEdit(p);
-              setFormMode('edit');
-              setIsFormOpen(true);
-            }}
-            onDeleteProgram={(p) => setDeletingProgram(p)}
-          />
-        ))}
-      </div>
+      {/* Table or Grid Program Cards */}
+      {displayMode === 'table' ? (
+        <Bp2miTargetProgramsTable
+          programs={filteredPrograms}
+          canManageSchedule={canManageSchedule}
+          onEditSchedule={canManageSchedule ? openScheduleModal : undefined}
+          onViewCurriculum={setActiveModalProgram}
+        />
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {paginatedPrograms.map((program) => (
+            <ProgramCard
+              key={program.id}
+              program={program}
+              onViewCurriculum={setActiveModalProgram}
+              onEditSchedule={canManageSchedule ? openScheduleModal : undefined}
+              onEditProgram={(p) => {
+                setProgramToEdit(p);
+                setFormMode('edit');
+                setIsFormOpen(true);
+              }}
+              onDeleteProgram={(p) => setDeletingProgram(p)}
+            />
+          ))}
+        </div>
+      )}
 
-      {/* Pagination Bar */}
-      {totalPages > 1 && (
+      {/* Pagination Bar (only in cards mode) */}
+      {displayMode === 'cards' && totalPages > 1 && (
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white dark:bg-slate-900 px-5 py-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 text-xs text-slate-600 dark:text-slate-400">
           <span>
             Menampilkan <strong>{(safePage - 1) * perPage + 1}</strong> –{' '}

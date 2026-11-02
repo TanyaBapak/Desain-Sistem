@@ -9,18 +9,21 @@ use Illuminate\Support\Facades\Schema;
 class ProgramPlacementTargetSeeder extends Seeder
 {
     /**
+     * 40 Baris Resmi BP2MI: "PENYIAPAN PROGRAM PELATIHAN"
+     * Total Target Keseluruhan: 40.000 Peserta | Total Kelas: 2.000 Kelas (@ 20 Org/Kls)
+     *
      * Format:
      * [sector_name, occupation_name, projection_placement, target, class_count, technical_jp, technical_certification_jp, language_jp, language_certification_jp, total_jp]
      */
     public const TARGETS = [
-        // 1. Kesehatan (Total Target: 11.600)
+        // 1. Kesehatan (Total Target: 11.600 | 580 Kelas)
         ['Kesehatan', 'Caregiver (lvl pelaksana)', 'Jepang (SSW)', 540, 27, 160, 20, 640, 20, 840],
         ['Kesehatan', 'Caregiver (lvl pelaksana)', 'Belanda, Singapura', 420, 21, 160, 20, 640, 20, 840],
         ['Kesehatan', 'Caregiver/Caretaker', 'Taiwan', 4900, 245, 260, 20, 640, 20, 940],
         ['Kesehatan', 'Elderly Caretaker', 'Malaysia', 4120, 206, 260, 20, 640, 20, 940],
         ['Kesehatan', 'Nursing Home', 'Taiwan (Nursing Home)', 1620, 81, 160, 20, 640, 20, 840],
 
-        // 2. Hospitality (Total Target: 13.140)
+        // 2. Hospitality (Total Target: 13.140 | 657 Kelas)
         ['Hospitality', 'Spa Therapist', 'Turki, Malaysia, Maladewa, Kuwait, Eropa Timur', 1460, 73, 180, 20, 640, 20, 860],
         ['Hospitality', 'Housekeeping', 'Turki, Eropa Timur, Arab Saudi', 8020, 401, 180, 20, 640, 20, 860],
         ['Hospitality', 'Cleaner', 'Turki, Eropa Timur, Arab Saudi, UAE, Malaysia, Brunei Darussalam', 720, 36, 40, 20, 640, 20, 720],
@@ -28,20 +31,19 @@ class ProgramPlacementTargetSeeder extends Seeder
         ['Hospitality', 'Waiter', 'Turki, Brunei Darussalam, Eropa Timur, UEA', 2600, 130, 180, 20, 640, 20, 860],
         ['Hospitality', 'Barista', 'Arab Saudi, Kuwait, UEA', 300, 15, 50, 20, 640, 20, 730],
 
-        // 3. Manufaktur (Total Target: 6.000)
+        // 3. Manufaktur (Total Target: 6.000 | 300 Kelas)
         ['Manufaktur', 'Welder', 'Korea Selatan', 300, 15, 160, 20, 640, 20, 840],
         ['Manufaktur', 'Welder', 'Qatar', 200, 10, 160, 20, 640, 20, 840],
         ['Manufaktur', 'Molding', 'Korea Selatan', 40, 2, 320, 20, 640, 20, 1000],
         ['Manufaktur', 'Operation Production', 'Taiwan', 3200, 160, 100, 20, 640, 20, 780],
         ['Manufaktur', 'Operation Production', 'Malaysia, Slowakia', 2260, 113, 100, 20, 640, 20, 780],
-        ['Manufaktur', 'Operation Production', 'Malaysia, Slovakia', 2260, 113, 100, 20, 640, 20, 780],
 
-        // 4. Transportasi (Total Target: 60)
+        // 4. Transportasi (Total Target: 60 | 3 Kelas)
         ['Transportasi', 'Driver', 'Jepang', 20, 1, 200, 20, 640, 20, 880],
         ['Transportasi', 'Bus Driver', 'Arab Saudi', 20, 1, 200, 20, 640, 20, 880],
         ['Transportasi', 'Truck Driver', 'Jepang', 20, 1, 160, 20, 640, 20, 840],
 
-        // 5. Agriculture / Fisherman (Total Target: 4.000)
+        // 5. Agriculture (Total Target: 4.000 | 200 Kelas)
         ['Agriculture', 'Plantation Worker Sawit', 'Malaysia/Papua Nugini', 2400, 120, 140, 20, 40, 20, 220],
         ['Agriculture', 'Peternakan', 'Taiwan', 300, 15, 140, 20, 640, 20, 820],
         ['Agriculture', 'Aquaculture', 'Taiwan', 500, 25, 140, 20, 640, 20, 820],
@@ -49,26 +51,25 @@ class ProgramPlacementTargetSeeder extends Seeder
         ['Agriculture', 'Farmer/Farming', 'Jepang', 40, 2, 140, 20, 640, 20, 820],
         ['Agriculture', 'Budidaya Tanaman/Agriculture', 'Taiwan', 500, 25, 140, 20, 640, 20, 820],
 
-        // 6. Bahasa (Total Target: 1.700)
+        // 6. Bahasa (Total Target: 1.700 | 85 Kelas)
         ['Bahasa', 'Bahasa Inggris', 'Eropa Timur, Malaysia, Singapur, Timur Tengah, Italia', 500, 25, null, null, 640, 20, 660],
         ['Bahasa', 'Bahasa Jerman', 'Jerman', 100, 5, null, null, 640, 20, 660],
         ['Bahasa', 'Bahasa Jepang', 'Jepang', 500, 25, null, null, 640, 20, 660],
         ['Bahasa', 'Bahasa Korea', 'Korea Selatan', 300, 15, null, null, 640, 20, 660],
         ['Bahasa', 'Bahasa Mandarin', 'Taiwan', 300, 15, null, null, 640, 20, 660],
 
-        // 7. Pelatihan dan Sertifikasi Teknis (Total Target: 2.000)
+        // 7. Pelatihan dan Sertifikasi Teknis (Total Target: 2.000 | 100 Kelas)
         ['Pelatihan dan Sertifikasi Teknis', 'Kesehatan', 'Jepang (SSW), Belanda, Singapura, Taiwan, Malaysia, Jerman, Brunei Darussalam', 700, 35, 260, 20, null, null, 280],
         ['Pelatihan dan Sertifikasi Teknis', 'Manufaktur', 'Korea Selatan, Qatar, Taiwan, Malaysia, Slowakia', 300, 15, 320, 20, null, null, 340],
         ['Pelatihan dan Sertifikasi Teknis', 'Hospitality', 'Turki, Malaysia, Maladewa, Kuwait, Eropa Timur, Arab Saudi, UEA, Brunei Darussalam, Kroasia, Bulgaria', 600, 30, 280, 20, null, null, 200],
         ['Pelatihan dan Sertifikasi Teknis', 'Konstruksi', 'Taiwan, Malaysia, Brunei Darussalam, Eropa Timur, Jerman', 400, 20, 320, 20, null, null, 340],
 
-        // 8. Sertifikasi Teknis (Total Target: 1.500)
+        // 8. Sertifikasi Teknis (Total Target: 1.500 | 75 Kelas)
         ['Sertifikasi Teknis', 'Kesehatan', 'Jepang (SSW), Belanda, Singapura, Taiwan, Malaysia, Jerman, Brunei Darussalam', 480, 24, null, 20, null, null, 20],
         ['Sertifikasi Teknis', 'Manufaktur', 'Korea Selatan, Qatar, Taiwan, Malaysia, Slowakia', 100, 5, null, 20, null, null, 20],
         ['Sertifikasi Teknis', 'Hospitality', 'Turki, Malaysia, Maladewa, Kuwait, Eropa Timur, Arab Saudi, UEA, Brunei Darussalam, Kroasia, Bulgaria', 400, 20, null, 20, null, null, 20],
         ['Sertifikasi Teknis', 'Agrikultur', 'Malaysia, Taiwan, Jepang', 300, 15, null, 20, null, null, 20],
         ['Sertifikasi Teknis', 'ABK Fishermen', 'Taiwan', 120, 6, null, 20, null, null, 20],
-        ['Sertifikasi Teknis', 'ABK Fishermen', 'Korea Selatan', 600, 30, null, 20, null, null, 20],
         ['Sertifikasi Teknis', 'ABK Niaga', 'Italia', 100, 5, null, 20, null, null, 20],
     ];
 
@@ -97,7 +98,7 @@ class ProgramPlacementTargetSeeder extends Seeder
         $now = now();
         $hasJpColumns = Schema::hasColumn('landing_placement_targets', 'total_jp');
 
-        foreach (self::TARGETS as [
+        foreach (self::TARGETS as $index => [
             $sectorName,
             $occupationName,
             $projectionPlacement,
@@ -123,15 +124,14 @@ class ProgramPlacementTargetSeeder extends Seeder
                 $payload['total_jp'] = $totalJp;
             }
 
-            // Perbarui baris existing baik yang menggunakan nama sektor Agriculture maupun Fisherman
             $updated = DB::table('landing_placement_targets')
                 ->where('year', $year)
                 ->whereIn('sector_name', $sectorName === 'Agriculture' ? ['Agriculture', 'Fisherman'] : [$sectorName])
                 ->where('occupation_name', $occupationName)
-                ->where('projection_placement', $projectionPlacement)
+                ->whereIn('projection_placement', $projectionPlacement === 'Malaysia, Slowakia' ? ['Malaysia, Slowakia', 'Malaysia, Slovakia'] : [$projectionPlacement])
                 ->update($payload);
 
-            if ($updated === 0 && $projectionPlacement !== 'Malaysia, Slovakia') {
+            if ($updated === 0) {
                 DB::table('landing_placement_targets')->insertOrIgnore([
                     'year' => $year,
                     'sector_name' => $sectorName,
@@ -141,9 +141,26 @@ class ProgramPlacementTargetSeeder extends Seeder
                     'created_at' => $now,
                 ]);
             }
+
+            if (Schema::hasTable('training_programs') && Schema::hasColumn('training_programs', 'projection_placement')) {
+                $programId = sprintf('BP2MI-PROG-%02d', $index + 1);
+                $this->upsertBp2miTrainingProgram(
+                    $programId,
+                    $sectorName,
+                    $occupationName,
+                    $projectionPlacement,
+                    $target,
+                    $classCount,
+                    $technicalJp,
+                    $technicalCertificationJp,
+                    $languageJp,
+                    $languageCertificationJp,
+                    $totalJp,
+                    $now
+                );
+            }
         }
 
-        // Pastikan baris Budidaya Tanaman/ Agriculture (dengan spasi setelah garis miring di DB) juga ter-update
         if ($hasJpColumns) {
             DB::table('landing_placement_targets')
                 ->where('year', $year)
@@ -165,6 +182,117 @@ class ProgramPlacementTargetSeeder extends Seeder
                     ->where('id', $programId)
                     ->update(['total_jp' => $totalJp]);
             }
+        }
+    }
+
+    public function upsertBp2miTrainingProgram(
+        string $programId,
+        string $sectorName,
+        string $occupationName,
+        string $projectionPlacement,
+        int $target,
+        int $classCount,
+        ?int $technicalJp,
+        ?int $technicalCertificationJp,
+        ?int $languageJp,
+        ?int $languageCertificationJp,
+        int $totalJp,
+        mixed $now
+    ): void {
+        $sectorId = match ($sectorName) {
+            'Kesehatan' => 'SECT-CARE',
+            'Hospitality' => 'SECT-HOSP',
+            'Manufaktur' => 'SECT-WELD',
+            'Agriculture' => 'SECT-AGRI',
+            'Transportasi', 'Pelatihan dan Sertifikasi Teknis', 'Sertifikasi Teknis' => 'SECT-AUTO',
+            default => null,
+        };
+
+        $occupationId = DB::table('occupations')
+            ->whereRaw('LOWER(title) = ?', [strtolower($occupationName)])
+            ->value('id');
+
+        $primaryCountryId = match (true) {
+            str_contains($projectionPlacement, 'Jepang') => 'JP',
+            str_contains($projectionPlacement, 'Korea') => 'KR',
+            str_contains($projectionPlacement, 'Turki') => 'TR',
+            str_contains($projectionPlacement, 'Malaysia') => 'MY',
+            default => null,
+        };
+
+        $programType = match ($sectorName) {
+            'Bahasa' => 'Pelatihan Bahasa',
+            'Pelatihan dan Sertifikasi Teknis' => 'Upskilling',
+            'Sertifikasi Teknis' => 'Reskilling',
+            default => 'Teknis Terpadu',
+        };
+
+        $certParts = [];
+        if ($technicalCertificationJp) {
+            $certParts[] = "Sertifikasi Teknis ({$technicalCertificationJp} JP)";
+        }
+        if ($languageCertificationJp) {
+            $certParts[] = "Sertifikasi Bahasa ({$languageCertificationJp} JP)";
+        }
+        $certificationTarget = $certParts !== []
+            ? implode(' + ', $certParts)
+            : 'Sertifikasi Kompetensi BNSP / Standar Negara Tujuan';
+
+        $syllabusLines = [
+            "Sektor: {$sectorName} — Jenis Jabatan: {$occupationName}",
+            "Proyeksi Penempatan: {$projectionPlacement}",
+            "Target Penyiapan: " . number_format($target, 0, ',', '.') . " Peserta ({$classCount} Kelas @ 20 Org/Kls)",
+        ];
+        if ($technicalJp !== null) {
+            $syllabusLines[] = "JP Pelatihan Teknis: {$technicalJp} JP";
+        }
+        if ($technicalCertificationJp !== null) {
+            $syllabusLines[] = "Sertifikasi Teknis: {$technicalCertificationJp} JP";
+        }
+        if ($languageJp !== null) {
+            $syllabusLines[] = "JP Bahasa: {$languageJp} JP";
+        }
+        if ($languageCertificationJp !== null) {
+            $syllabusLines[] = "Sertifikasi Bahasa: {$languageCertificationJp} JP";
+        }
+        $syllabusLines[] = "Total Jam Pelajaran: {$totalJp} JP";
+
+        $existing = DB::table('training_programs')->where('id', $programId)->first();
+
+        $values = [
+            'name' => "{$occupationName} — {$projectionPlacement}",
+            'program_type' => $programType,
+            'sector_id' => $sectorId,
+            'occupation_id' => $occupationId,
+            'target_country_id' => $primaryCountryId,
+            'sector_label' => $sectorName,
+            'occupation_label' => $occupationName,
+            'projection_placement' => $projectionPlacement,
+            'class_count' => $classCount,
+            'technical_jp' => $technicalJp,
+            'technical_certification_jp' => $technicalCertificationJp,
+            'language_jp' => $languageJp,
+            'language_certification_jp' => $languageCertificationJp,
+            'total_jp' => $totalJp,
+            'certification_target' => $certificationTarget,
+            'cost_per_participant' => $existing->cost_per_participant ?? 0,
+            'quota' => $target,
+            'enrolled_count' => $existing->enrolled_count ?? 0,
+            'start_date' => $existing->start_date ?? null,
+            'end_date' => $existing->end_date ?? null,
+            'curriculum' => implode("\n", $syllabusLines),
+            'status' => 'Aktif',
+            'updated_at' => $now,
+        ];
+
+        if ($existing) {
+            DB::table('training_programs')->where('id', $programId)->update($values);
+        } else {
+            DB::table('training_programs')->insert([
+                'id' => $programId,
+                ...$values,
+                'created_at' => $now,
+            ]);
         }
     }
 }
