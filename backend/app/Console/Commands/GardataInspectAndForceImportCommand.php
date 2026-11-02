@@ -179,6 +179,12 @@ class GardataInspectAndForceImportCommand extends Command
         } catch (Throwable $e) {
             $this->warn('   - Indonusa sync warning: ' . $e->getMessage());
         }
+        try {
+            $dutaResult = $syncService->ensureDutaCandidates(true);
+            $this->info("   - LPK Duta International Course: {$dutaResult['inserted']} baru, {$dutaResult['updated']} diperbarui.");
+        } catch (Throwable $e) {
+            $this->warn('   - Duta International sync warning: ' . $e->getMessage());
+        }
 
         // Tautkan akun pengguna lembaga ke institusi resminya dan perbarui scope_level
         $instRole = DB::table('roles')->where('name', 'institution_admin')->value('id');
@@ -200,7 +206,7 @@ class GardataInspectAndForceImportCommand extends Command
             ]);
 
         // 2. LPK Omega Hotel Academy
-        $omgId = $syncService->resolveOrCreateInstitution('LPK Omega Hotel Academy', '33', '3372');
+        $omgId = $syncService->resolveOrCreateInstitution('LPK Omega Hotel Academy', '33', '3301');
         DB::table('users')
             ->where(function ($q) {
                 $q->where('name', 'LIKE', '%Omega%')
@@ -231,7 +237,23 @@ class GardataInspectAndForceImportCommand extends Command
                 'scope_name' => 'Politeknik Indonusa Surakarta',
             ]);
 
-        // 4. Institut Kesehatan Rajawali
+        // 4. LPK Duta International Course
+        $dutaInstId = $syncService->resolveOrCreateInstitution('LPK Duta International Course', '35', '3501');
+        DB::table('users')
+            ->where(function ($q) {
+                $q->where('name', 'LIKE', '%Duta International%')
+                    ->orWhere('email', 'LIKE', '%dutainternational%')
+                    ->orWhere('organization', 'LIKE', '%Duta International%')
+                    ->orWhere('scope_name', 'LIKE', '%Duta International%');
+            })
+            ->update([
+                'institution_id' => $dutaInstId,
+                'organization' => 'LPK Duta International Course',
+                'scope_level' => 'lembaga',
+                'scope_name' => 'LPK Duta International Course',
+            ]);
+
+        // 5. Institut Kesehatan Rajawali
         $rajawaliId = $syncService->resolveOrCreateInstitution('Institut Kesehatan Rajawali', '32', '3273');
         DB::table('users')
             ->where(function ($q) {
