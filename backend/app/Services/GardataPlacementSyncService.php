@@ -236,6 +236,13 @@ class GardataPlacementSyncService
                         $result['recordsInserted'] += $indoResult['inserted'];
                         $result['recordsUpdated'] += $indoResult['updated'];
                     }
+
+                    $dutaCount = DB::table('job_seekers')->whereNull('deleted_at')->where('institution_name', 'LIKE', '%Duta International%')->count();
+                    if ($dutaCount === 0 || $force) {
+                        $dutaResult = $this->ensureDutaCandidates($force);
+                        $result['recordsInserted'] += $dutaResult['inserted'];
+                        $result['recordsUpdated'] += $dutaResult['updated'];
+                    }
                 }
             }
 
@@ -3791,6 +3798,501 @@ class GardataPlacementSyncService
         }
 
         return $candidates;
+    }
+
+    public function ensureDutaCandidates(bool $force = false): array
+    {
+        $this->ensureProvincesSeeded();
+
+        $institutionId = $this->resolveOrCreateInstitution('LPK Duta International Course', '35', '3501');
+
+        DB::table('institutions')->where('id', $institutionId)->update([
+            'name' => 'LPK Duta International Course',
+            'province_id' => '35',
+            'district_id' => '3501',
+            'institution_type' => 'LPK',
+            'ownership_type' => 'Swasta',
+            'accreditation' => 'A',
+            'status' => 'Aktif',
+            'verification_status' => 'Verified',
+            'evokasi_status' => 'Terverifikasi e-Vokasi',
+        ]);
+
+        $instRole = DB::table('roles')->where('name', 'institution_admin')->value('id');
+        $matchedUsers = DB::table('users')
+            ->where(function ($q) {
+                $q->where('name', 'LIKE', '%Duta International%')
+                    ->orWhere('email', 'LIKE', '%dutainternational%')
+                    ->orWhere('organization', 'LIKE', '%Duta International%')
+                    ->orWhere('scope_name', 'LIKE', '%Duta International%');
+            })
+            ->get();
+
+        if ($matchedUsers->isEmpty()) {
+            $newUserId = DB::table('users')->insertGetId([
+                'name' => 'LPK Duta International Course',
+                'username' => 'lpk_duta_international',
+                'email' => 'dutainternationalcourse.sippmi@gmail.com',
+                'password' => bcrypt('password'),
+                'organization' => 'LPK Duta International Course',
+                'scope_level' => 'lembaga',
+                'scope_name' => 'LPK Duta International Course',
+                'institution_id' => $institutionId,
+                'province_id' => '35',
+                'district_id' => '3501',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+            if ($instRole) {
+                DB::table('model_has_roles')->updateOrInsert(
+                    ['model_id' => $newUserId, 'model_type' => 'App\Models\User'],
+                    ['role_id' => $instRole]
+                );
+            }
+        } else {
+            foreach ($matchedUsers as $u) {
+                DB::table('users')->where('id', $u->id)->update([
+                    'institution_id' => $institutionId,
+                    'organization' => 'LPK Duta International Course',
+                    'scope_level' => 'lembaga',
+                    'scope_name' => 'LPK Duta International Course',
+                ]);
+
+                if ($instRole) {
+                    DB::table('model_has_roles')->updateOrInsert(
+                        ['model_id' => $u->id, 'model_type' => 'App\Models\User'],
+                        ['role_id' => $instRole]
+                    );
+                }
+            }
+        }
+
+        $candidates = [
+            [
+                'external_id' => 'DIC-CPMI-2026-001',
+                'nik' => '3501011504990001',
+                'name' => 'Wahyu Hidayat',
+                'gender' => 'L',
+                'education' => 'SMK',
+                'major' => 'Teknik Pengelasan (Welding)',
+                'expertise' => 'Welder SMAW & GMAW 3G/4G',
+                'skills' => ['Shielded Metal Arc Welding', 'Gas Metal Arc Welding', 'Blueprint Reading', 'Weld Inspection', 'Industrial Safety K3'],
+                'work_experiences' => [
+                    [
+                        'sector' => 'Manufaktur & Pengelasan',
+                        'role' => 'Junior Welder Fabricator',
+                        'durationYears' => 2,
+                        'companyName' => 'Bengkel Konstruksi Baja Pacitan',
+                        'description' => 'Melakukan pengelasan struktur baja dan fabrikasi komponen industri sesuai standar ISO 9606-1.',
+                    ],
+                ],
+                'certifications' => [
+                    ['name' => 'Sertifikat BNSP Welder 3G/4G SMAW', 'issuer' => 'LSP Logam Mesin Indonesia', 'issueYear' => 2025, 'validUntil' => '2028-09-10'],
+                    ['name' => 'Sertifikasi K3 Pengelasan Kemenaker RI', 'issuer' => 'Kementerian Ketenagakerjaan RI', 'issueYear' => 2025, 'validUntil' => '2028-11-20'],
+                ],
+                'languages' => [
+                    ['language' => 'Jepang', 'testName' => 'JLPT / JFT-Basic', 'score' => 'N4 (Pass)', 'level' => 'Dasar Mahir'],
+                ],
+                'preferred_countries' => ['Jepang', 'Korea Selatan'],
+                'preferred_roles' => ['Welder Specialist', 'Fabrication Worker'],
+                'batch_name' => 'Batch 1 - Tokutei Ginou Manufaktur Jepang',
+            ],
+            [
+                'external_id' => 'DIC-CPMI-2026-002',
+                'nik' => '3501025508010002',
+                'name' => 'Dwi Lestari Rahayu',
+                'gender' => 'P',
+                'education' => 'D3',
+                'major' => 'Keperawatan & Caregiver Lansia',
+                'expertise' => 'Kaigo / Elderly Care Specialist',
+                'skills' => ['Bedside Care', 'Vital Signs Monitoring', 'Transfer & Mobility Assistance', 'Hygiene Care', 'Nutritional Support'],
+                'work_experiences' => [
+                    [
+                        'sector' => 'Kesehatan & Caregiver',
+                        'role' => 'Caregiver Magang Panti Jompo',
+                        'durationYears' => 1.5,
+                        'companyName' => 'Panti Wreda Asih Sejahtera',
+                        'description' => 'Mendampingi aktivitas harian lansia, pemberian makan, mobilitas kursi roda, dan pencatatan kondisi kesehatan berkala.',
+                    ],
+                ],
+                'certifications' => [
+                    ['name' => 'Nursing Care Skills Evaluation Test (Caregiver SSW)', 'issuer' => 'Prometric Japan', 'issueYear' => 2025, 'validUntil' => '2029-01-15'],
+                    ['name' => 'Nursing Care Japanese Evaluation Test', 'issuer' => 'Prometric Japan', 'issueYear' => 2025, 'validUntil' => '2029-01-15'],
+                ],
+                'languages' => [
+                    ['language' => 'Jepang', 'testName' => 'JFT-Basic A2 / JLPT N4', 'score' => 'A2 Certified', 'level' => 'Komunikasi Kerja'],
+                ],
+                'preferred_countries' => ['Jepang'],
+                'preferred_roles' => ['Caregiver Lansia (Kaigo)', 'Home Care Assistant'],
+                'batch_name' => 'Batch 1 - Tokutei Ginou Kaigo Caregiver Jepang',
+            ],
+            [
+                'external_id' => 'DIC-CPMI-2026-003',
+                'nik' => '3501032107000003',
+                'name' => 'Agus Tri Santoso',
+                'gender' => 'L',
+                'education' => 'SMK',
+                'major' => 'Teknik Pemesinan & Otomasi',
+                'expertise' => 'Operator Mesin CNC Milling & Bubut',
+                'skills' => ['CNC Milling Setup', 'G-Code Programming', 'Precision Measurement (Micrometer & Caliper)', 'Quality Inspection'],
+                'work_experiences' => [
+                    [
+                        'sector' => 'Manufaktur & Pengelasan',
+                        'role' => 'Operator CNC',
+                        'durationYears' => 2,
+                        'companyName' => 'PT Surya Presisi Logam Mandiri',
+                        'description' => 'Mengoperasikan mesin CNC bubut dan milling untuk komponen presisi alat berat dan otomotif.',
+                    ],
+                ],
+                'certifications' => [
+                    ['name' => 'Sertifikasi BNSP Operator Mesin Bubut CNC', 'issuer' => 'LSP Logam Mesin', 'issueYear' => 2025, 'validUntil' => '2028-12-05'],
+                ],
+                'languages' => [
+                    ['language' => 'Jepang', 'testName' => 'JLPT', 'score' => 'N4', 'level' => 'Komunikasi Kerja'],
+                ],
+                'preferred_countries' => ['Jepang', 'Taiwan'],
+                'preferred_roles' => ['Operator CNC', 'Teknisi Manufaktur'],
+                'batch_name' => 'Batch 1 - Tokutei Ginou Manufaktur Jepang',
+            ],
+            [
+                'external_id' => 'DIC-CPMI-2026-004',
+                'nik' => '3501046203020004',
+                'name' => 'Siti Nurjanah',
+                'gender' => 'P',
+                'education' => 'SMK',
+                'major' => 'Tata Boga & Food Processing',
+                'expertise' => 'Food Processing Operator',
+                'skills' => ['Food Sanitation HACCP', 'Assembly Line Packaging', 'Food Preservation', 'Raw Material Sorting'],
+                'work_experiences' => [
+                    [
+                        'sector' => 'Manufaktur Makanan',
+                        'role' => 'Operator Produksi Makanan Olahan',
+                        'durationYears' => 1,
+                        'companyName' => 'CV Sumber Rasa Alami Pacitan',
+                        'description' => 'Menjalankan proses pengemasan vakum dan sterilisasi makanan olahan berstandar higienitas pangan.',
+                    ],
+                ],
+                'certifications' => [
+                    ['name' => 'Food Service Industry Skills Assessment Test (SSW)', 'issuer' => 'OTAFF Japan', 'issueYear' => 2025, 'validUntil' => '2029-02-28'],
+                ],
+                'languages' => [
+                    ['language' => 'Jepang', 'testName' => 'JFT-Basic', 'score' => 'Pass', 'level' => 'Dasar Mahir'],
+                ],
+                'preferred_countries' => ['Jepang'],
+                'preferred_roles' => ['Food Processing Worker', 'Food Packaging Specialist'],
+                'batch_name' => 'Batch 2 - Pengolahan Makanan & Minuman Jepang',
+            ],
+            [
+                'external_id' => 'DIC-CPMI-2026-005',
+                'nik' => '3501051911980005',
+                'name' => 'Eko Bambang Suherman',
+                'gender' => 'L',
+                'education' => 'SMK',
+                'major' => 'Teknik Konstruksi Bangunan',
+                'expertise' => 'Scaffolding & Rebar Worker',
+                'skills' => ['Scaffolding Erection & Dismantling', 'Rebar Tying & Bending', 'Site Safety Compliance', 'Formwork Installation'],
+                'work_experiences' => [
+                    [
+                        'sector' => 'Konstruksi & Infrastruktur',
+                        'role' => 'Pekerja Konstruksi Bangunan',
+                        'durationYears' => 2.5,
+                        'companyName' => 'PT Karya Graha Pacitan',
+                        'description' => 'Pemasangan perancah (scaffolding) dan perakitan besi beton untuk pembangunan gedung bertingkat.',
+                    ],
+                ],
+                'certifications' => [
+                    ['name' => 'Sertifikat K3 Teknisi Perancah (Scaffolding)', 'issuer' => 'Kemenaker RI', 'issueYear' => 2025, 'validUntil' => '2028-08-15'],
+                ],
+                'languages' => [
+                    ['language' => 'Korea', 'testName' => 'EPS-TOPIK', 'score' => '170 / 200', 'level' => 'Menengah'],
+                ],
+                'preferred_countries' => ['Korea Selatan', 'Jepang'],
+                'preferred_roles' => ['Konstruksi Bangunan', 'Pekerja Perancah Scaffolder'],
+                'batch_name' => 'Batch 2 - Konstruksi & Infrastruktur Korea Selatan',
+            ],
+            [
+                'external_id' => 'DIC-CPMI-2026-006',
+                'nik' => '3501064812000006',
+                'name' => 'Rina Astuti',
+                'gender' => 'P',
+                'education' => 'D3',
+                'major' => 'Keperawatan Medis',
+                'expertise' => 'Perawat Klinis & Pendamping Lansia',
+                'skills' => ['Vital Sign Assessment', 'Medication Administration Support', 'Geriatric Nursing', 'Rehabilitation Exercise'],
+                'work_experiences' => [
+                    [
+                        'sector' => 'Kesehatan & Caregiver',
+                        'role' => 'Perawat Klinik Lansia',
+                        'durationYears' => 2,
+                        'companyName' => 'Klinik Pratama Husada Pacitan',
+                        'description' => 'Pemberian asuhan keperawatan lansia, fisioterapi ringan, dan pemantauan obat harian.',
+                    ],
+                ],
+                'certifications' => [
+                    ['name' => 'STR Tenaga Keperawatan Indonesia', 'issuer' => 'KTKI Kemenkes RI', 'issueYear' => 2024, 'validUntil' => '2029-12-31'],
+                    ['name' => 'SSW Nursing Care Skill Test', 'issuer' => 'Prometric', 'issueYear' => 2025, 'validUntil' => '2029-03-10'],
+                ],
+                'languages' => [
+                    ['language' => 'Jepang', 'testName' => 'JLPT', 'score' => 'N4', 'level' => 'Komunikasi Kerja'],
+                ],
+                'preferred_countries' => ['Jepang'],
+                'preferred_roles' => ['Caregiver Lansia (Kaigo)', 'Assistant Nurse'],
+                'batch_name' => 'Batch 1 - Tokutei Ginou Kaigo Caregiver Jepang',
+            ],
+            [
+                'external_id' => 'DIC-CPMI-2026-007',
+                'nik' => '3501070505010007',
+                'name' => 'Bayu Anggoro Saputro',
+                'gender' => 'L',
+                'education' => 'SMK',
+                'major' => 'Teknik Kendaraan Ringan Otomotif',
+                'expertise' => 'Teknisi Servis Mesin & Chasis',
+                'skills' => ['Engine Tune-up & Overhaul', 'Brake System Servicing', 'Electrical Wiring Troubleshooting', 'Tire Balancing & Alignment'],
+                'work_experiences' => [
+                    [
+                        'sector' => 'Otomotif & Transportasi',
+                        'role' => 'Mekanik Bengkel Mobil',
+                        'durationYears' => 1.5,
+                        'companyName' => 'Bengkel Resmi Pacitan Motor',
+                        'description' => 'Melakukan perawatan berkala, perbaikan transmisi manual dan otomatis, serta perbaikan sistem pendingin mesin.',
+                    ],
+                ],
+                'certifications' => [
+                    ['name' => 'Sertifikat BNSP Teknisi Otomotif Roda 4', 'issuer' => 'LSP Otomotif Indonesia', 'issueYear' => 2025, 'validUntil' => '2028-07-22'],
+                ],
+                'languages' => [
+                    ['language' => 'Jepang', 'testName' => 'JFT-Basic', 'score' => 'Pass', 'level' => 'Dasar Mahir'],
+                ],
+                'preferred_countries' => ['Jepang', 'Taiwan'],
+                'preferred_roles' => ['Automobile Maintenance Technician', 'Pekerja Perakitan Otomotif'],
+                'batch_name' => 'Batch 1 - Tokutei Ginou Manufaktur Jepang',
+            ],
+            [
+                'external_id' => 'DIC-CPMI-2026-008',
+                'nik' => '3501085106020008',
+                'name' => 'Tri Wahyuni',
+                'gender' => 'P',
+                'education' => 'SMK',
+                'major' => 'Perhotelan & Restoran',
+                'expertise' => 'Food & Beverage Service / Waitress',
+                'skills' => ['Table Service & Table Setting', 'Customer Care & Greeting', 'Food Safety Protocol', 'POS Billing System'],
+                'work_experiences' => [
+                    [
+                        'sector' => 'Tourism, Travel, dan Hospitality',
+                        'role' => 'Waitress Restoran Hotel',
+                        'durationYears' => 1,
+                        'companyName' => 'Hotel Pantai Teleng Ria Pacitan',
+                        'description' => 'Melayani tamu internasional dan domestik, pesanan hidangan, dan menjaga higienitas area makan tamu.',
+                    ],
+                ],
+                'certifications' => [
+                    ['name' => 'Sertifikasi BNSP Waiter / Waitress', 'issuer' => 'LSP Pariwisata', 'issueYear' => 2025, 'validUntil' => '2028-10-18'],
+                ],
+                'languages' => [
+                    ['language' => 'Inggris', 'testName' => 'TOEIC', 'score' => '550', 'level' => 'Conversational'],
+                    ['language' => 'Jepang', 'testName' => 'JLPT', 'score' => 'N4', 'level' => 'Komunikasi Kerja'],
+                ],
+                'preferred_countries' => ['Jepang', 'Uni Emirat Arab'],
+                'preferred_roles' => ['Hotel Waitress', 'Food & Beverage Attendant'],
+                'batch_name' => 'Batch 3 - Perhotelan & Restoran Internasional',
+            ],
+            [
+                'external_id' => 'DIC-CPMI-2026-009',
+                'nik' => '3501092809990009',
+                'name' => 'Fajar Nugroho',
+                'gender' => 'L',
+                'education' => 'SMK',
+                'major' => 'Pertanian & Agroteknologi Modern',
+                'expertise' => 'Teknisi Green House & Hidroponik',
+                'skills' => ['Hydroponic Nutrient Formulation', 'Greenhouse Climate Control', 'Pest Management IPM', 'Post-Harvest Sorting & Packing'],
+                'work_experiences' => [
+                    [
+                        'sector' => 'Pertanian Modern',
+                        'role' => 'Pengelola Green House Hidroponik',
+                        'durationYears' => 2,
+                        'companyName' => 'Kebun Sayur Hidroponik Pacitan',
+                        'description' => 'Manajemen nutrisi tanaman selada dan tomat hidroponik, pemantauan sensor suhu, dan pengemasan produk ekspor lokal.',
+                    ],
+                ],
+                'certifications' => [
+                    ['name' => 'Sertifikat BNSP Pertanian Organik & Hidroponik', 'issuer' => 'LSP Pertanian Nusantara', 'issueYear' => 2025, 'validUntil' => '2028-11-30'],
+                    ['name' => 'Agriculture Skills Assessment Test (SSW)', 'issuer' => 'ASAT Japan', 'issueYear' => 2025, 'validUntil' => '2029-04-15'],
+                ],
+                'languages' => [
+                    ['language' => 'Jepang', 'testName' => 'JLPT', 'score' => 'N4', 'level' => 'Komunikasi Kerja'],
+                ],
+                'preferred_countries' => ['Jepang', 'Korea Selatan'],
+                'preferred_roles' => ['Pekerja Pertanian Modern Greenhouse', 'Teknisi Agrikultur'],
+                'batch_name' => 'Batch 3 - Pertanian Modern Greenhouse Jepang',
+            ],
+            [
+                'external_id' => 'DIC-CPMI-2026-010',
+                'nik' => '3501101402010010',
+                'name' => 'Galih Surya Kencana',
+                'gender' => 'L',
+                'education' => 'SMK',
+                'major' => 'Teknik Elektro Industri',
+                'expertise' => 'Pemasangan Panel & Instalasi PLC',
+                'skills' => ['PLC Ladder Programming', 'Industrial Control Panel Wiring', 'Electrical Troubleshooting', 'Motor Drive Maintenance'],
+                'work_experiences' => [
+                    [
+                        'sector' => 'Manufaktur & Pengelasan',
+                        'role' => 'Teknisi Panel Listrik Industri',
+                        'durationYears' => 1.5,
+                        'companyName' => 'CV Mandiri Elektrik Pacitan',
+                        'description' => 'Pemasangan instalasi panel kontrol 3 fasa, wiring relay, dan pemeliharaan motor penggerak konveyor pabrik.',
+                    ],
+                ],
+                'certifications' => [
+                    ['name' => 'Sertifikasi BNSP Teknisi Otomasi Industri', 'issuer' => 'LSP Elektronika Nasional', 'issueYear' => 2025, 'validUntil' => '2028-06-12'],
+                ],
+                'languages' => [
+                    ['language' => 'Korea', 'testName' => 'EPS-TOPIK', 'score' => '165 / 200', 'level' => 'Menengah'],
+                ],
+                'preferred_countries' => ['Korea Selatan', 'Taiwan'],
+                'preferred_roles' => ['Teknisi Listrik Industri', 'Pekerja Elektronika Manufaktur'],
+                'batch_name' => 'Batch 2 - Manufaktur Elektronika Korea Selatan',
+            ],
+        ];
+
+        $now = now();
+        $inserted = 0;
+        $updated = 0;
+
+        foreach ($candidates as $cand) {
+            try {
+                $candidateId = 'GD-'.Str::upper(substr(hash('sha256', 'dutainternationalcourse:'.$cand['external_id']), 0, 24));
+                $existing = DB::table('job_seekers')->where('id', $candidateId)->first();
+
+                $attributes = [
+                    'registration_number' => 'GDT-DIC-'.Str::upper(substr(hash('sha256', $cand['external_id']), 0, 16)),
+                    'nik' => $cand['nik'],
+                    'full_name' => $cand['name'],
+                    'gender' => $cand['gender'],
+                    'province_id' => '35',
+                    'district_id' => '3501',
+                    'education_level' => $cand['education'],
+                    'institution_name' => 'LPK Duta International Course',
+                    'institution_id' => $institutionId,
+                    'major' => $cand['major'],
+                    'source_type' => 'Lembaga Vokasi',
+                    'source_reference' => $cand['external_id'],
+                    'external_source' => 'gardata',
+                    'external_id' => $cand['external_id'],
+                    'readiness_status' => 'Ready for Placement',
+                    'verification_status' => 'Verified',
+                    'lifecycle_status' => 'APPROVED',
+                    'preferred_countries' => json_encode($cand['preferred_countries']),
+                    'preferred_job_roles' => json_encode($cand['preferred_roles']),
+                    'created_by' => 'LPK Duta International Course',
+                    'updated_at' => $now,
+                ];
+
+                if ($existing) {
+                    DB::table('job_seekers')->where('id', $candidateId)->update($attributes);
+                    $updated++;
+                } else {
+                    $nikCollision = DB::table('job_seekers')->where('nik', $cand['nik'])->first();
+                    if ($nikCollision) {
+                        DB::table('job_seekers')->where('id', $nikCollision->id)->update($attributes);
+                        $candidateId = $nikCollision->id;
+                        $updated++;
+                    } else {
+                        DB::table('job_seekers')->insert([
+                            'id' => $candidateId,
+                            ...$attributes,
+                            'created_at' => $now,
+                        ]);
+                        $inserted++;
+                    }
+                }
+
+                // Skills
+                foreach ($cand['skills'] as $skillName) {
+                    DB::table('job_seeker_skills')->updateOrInsert(
+                        ['job_seeker_id' => $candidateId, 'skill_name' => $skillName],
+                        ['certified' => true]
+                    );
+                }
+
+                // Languages
+                foreach ($cand['languages'] as $lang) {
+                    DB::table('job_seeker_languages')->updateOrInsert(
+                        ['job_seeker_id' => $candidateId, 'language' => $lang['language']],
+                        [
+                            'test_name' => $lang['testName'],
+                            'score' => $lang['score'],
+                            'level' => $lang['level'],
+                        ]
+                    );
+                }
+
+                // Experiences
+                foreach ($cand['work_experiences'] as $exp) {
+                    DB::table('job_seeker_work_experiences')->updateOrInsert(
+                        [
+                            'job_seeker_id' => $candidateId,
+                            'company_name' => $exp['companyName'],
+                            'role' => $exp['role'],
+                        ],
+                        [
+                            'sector' => $exp['sector'],
+                            'duration_years' => $exp['durationYears'],
+                            'description' => $exp['description'],
+                        ]
+                    );
+                }
+
+                // Certifications
+                foreach ($cand['certifications'] as $cert) {
+                    DB::table('job_seeker_certifications')->updateOrInsert(
+                        [
+                            'job_seeker_id' => $candidateId,
+                            'name' => $cert['name'],
+                        ],
+                        [
+                            'issuer' => $cert['issuer'],
+                            'issue_year' => $cert['issueYear'],
+                            'valid_until' => $cert['validUntil'],
+                        ]
+                    );
+                }
+
+                // Sync training record
+                DB::table('external_training_records')->updateOrInsert(
+                    [
+                        'external_source' => 'gardata',
+                        'external_batch_id' => 'DIC-BATCH-2026-1',
+                        'job_seeker_id' => $candidateId,
+                    ],
+                    [
+                        'class_code' => 'DIC-VOC-PACITAN-2026',
+                        'batch_name' => $cand['batch_name'],
+                        'sector_name' => 'Bahasa & Vokasi Luar Negeri',
+                        'program_name' => 'Pelatihan Terpadu Bahasa & Kejuruan SSW Luar Negeri',
+                        'start_date' => '2026-01-15',
+                        'end_date' => '2026-07-15',
+                        'target_jp' => 450,
+                        'achieved_jp' => 450,
+                        'completion_percentage' => 100.0,
+                        'status' => 'GRADUATED',
+                        'verified_reports_count' => 14,
+                        'updated_at' => $now,
+                        'created_at' => $now,
+                    ]
+                );
+            } catch (Throwable $e) {
+                Log::warning("Duta International Course candidate {$cand['external_id']} sync warning: {$e->getMessage()}");
+            }
+        }
+
+        $this->invalidateBusinessDataCache();
+
+        return [
+            'inserted' => $inserted,
+            'updated' => $updated,
+            'skipped' => 0,
+        ];
     }
 }
 

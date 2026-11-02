@@ -1686,6 +1686,11 @@ class BusinessDataPresenter
             $namePatterns[] = 'Politeknik Indonusa';
             $namePatterns[] = 'Politeknik Indonusa Surakarta';
         }
+        if (str_contains($userNameLower, 'duta international') || str_contains($userOrgLower, 'duta international') || str_contains($userEmailLower, 'dutainternational') || str_contains($userScopeLower, 'duta international')) {
+            $namePatterns[] = 'Duta International';
+            $namePatterns[] = 'Duta International Course';
+            $namePatterns[] = 'LPK Duta International Course';
+        }
 
         // 1. Prioritas Utama: Cari berdasarkan institution_id dan institution_ids resmi pengguna di database
         if (! empty($institutionIds)) {
