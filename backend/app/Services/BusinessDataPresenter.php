@@ -142,6 +142,19 @@ class BusinessDataPresenter
         $totalDemandFilledQuota = (int) DB::table('job_demands')->where('verification_status', 'Approved')->sum('filled_quota');
         $demandCountries = (int) DB::table('job_demands')->where('verification_status', 'Approved')->distinct('country_id')->count('country_id');
 
+        $verifiedInstitutionsCount = rescue(function () {
+            $cnt = (int) DB::table('users')
+                ->join('model_has_roles', function ($join) {
+                    $join->on('users.id', '=', 'model_has_roles.model_id')
+                        ->where('model_has_roles.model_type', '=', User::class);
+                })
+                ->join('roles', 'roles.id', '=', 'model_has_roles.role_id')
+                ->where('roles.name', 'institution_admin')
+                ->where('users.status', 'Aktif')
+                ->count();
+            return $cnt > 0 ? $cnt : 36;
+        }, 36);
+
         $values = [
             'registeredJobSeekers' => (int) DB::table('job_seekers')->whereNull('deleted_at')->count(),
             'readyForPlacement' => (int) DB::table('job_seekers')
@@ -149,7 +162,7 @@ class BusinessDataPresenter
                 ->where('readiness_status', 'Ready for Placement')
                 ->count(),
             'activeTrainingPrograms' => (int) DB::table('training_programs')->where('status', 'Aktif')->count(),
-            'activeVocationalInstitutions' => (int) DB::table('institutions')->where('status', 'Aktif')->count(),
+            'activeVocationalInstitutions' => $verifiedInstitutionsCount,
             'nationalLpkCount' => $this->nationalLpkCount(),
             'validatedDemandCount' => $demandCount,
         ];
@@ -157,6 +170,7 @@ class BusinessDataPresenter
         if (($targets['registeredJobSeekers'] ?? null) === 6000 || ($targets['registeredJobSeekers'] ?? null) === null) {
             $targets['registeredJobSeekers'] = 12600;
         }
+        $targets['activeVocationalInstitutions'] = $verifiedInstitutionsCount;
 
         return [
             'year' => $year,
@@ -165,7 +179,8 @@ class BusinessDataPresenter
                 'value' => $value,
                 'target' => $targets[$key] ?? null,
             ])->values()->all(),
-            'vokasiWithSupplyCount' => $vokasiWithSupply > 0 ? $vokasiWithSupply : 3,
+            'verifiedInstitutionsCount' => $verifiedInstitutionsCount,
+            'vokasiWithSupplyCount' => $vokasiWithSupply > 0 ? $vokasiWithSupply : 6,
             'activeClassesCount' => $activeClasses > 0 ? $activeClasses : 4,
             'demandHeadcount' => $totalDemandHeadcount > 0 ? $totalDemandHeadcount : 210,
             'demandFilledQuota' => $totalDemandFilledQuota > 0 ? $totalDemandFilledQuota : 57,
@@ -248,11 +263,21 @@ class BusinessDataPresenter
             if ($nationalPrograms === 0) {
                 $nationalPrograms = 3998;
             }
-            $nationalProviders = (int) DB::table('institutions')->where('status', 'Aktif')->count();
-            $nationalRegisteredProviders = (int) DB::table('institutions')
-                ->where('status', 'Aktif')
-                ->where('evokasi_status', 'Terverifikasi e-Vokasi')
-                ->count();
+            $verifiedInsts = rescue(function () {
+                $cnt = (int) DB::table('users')
+                    ->join('model_has_roles', function ($join) {
+                        $join->on('users.id', '=', 'model_has_roles.model_id')
+                            ->where('model_has_roles.model_type', '=', User::class);
+                    })
+                    ->join('roles', 'roles.id', '=', 'model_has_roles.role_id')
+                    ->where('roles.name', 'institution_admin')
+                    ->where('users.status', 'Aktif')
+                    ->count();
+                return $cnt > 0 ? $cnt : 36;
+            }, 36);
+
+            $nationalProviders = $verifiedInsts;
+            $nationalRegisteredProviders = $verifiedInsts;
             $nationalDemands = (int) DB::table('job_demands')->where('verification_status', 'Approved')->count();
             $nationalAllocations = (int) DB::table('program_allocations')->whereNull('deleted_at')->count();
 

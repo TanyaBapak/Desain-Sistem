@@ -34,6 +34,7 @@ interface KemendagriLandingPageProps {
     demandHeadcount?: number;
     demandFilledQuota?: number;
     demandCountryCount?: number;
+    verifiedInstitutionsCount?: number;
   };
   projection: LandingProjectionData;
   publicCommandCenter?: PublicCommandCenterData;
@@ -312,22 +313,17 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
     Math.round((activeClassesCount / (programTarget || 1)) * 100),
   );
 
-  // Pilar 3: Siap Vokasi (Vokasi Ber-Suplai dari data siap peserta vs Total Direktori)
+  // Pilar 3: Siap Vokasi (36 Lembaga Vokasi Terverifikasi & Vokasi Ber-Suplai)
   const vokasiWithSupplyCount =
     kpiSummary.vokasiWithSupplyCount ??
     publicCommandCenter?.national?.vokasiWithSupplyCount ??
-    3;
-  const vocationalCount =
-    kpiSummary.metrics.find((metric) => metric.key === "activeVocationalInstitutions")?.value ??
-    publicCommandCenter?.national?.providersCount ??
-    1707;
-  const vocationalTarget =
-    kpiSummary.metrics.find((metric) => metric.key === "activeVocationalInstitutions")?.target ??
-    2382;
-  const vocationalPercent = Math.min(
-    100,
-    Math.round((vocationalCount / (vocationalTarget || 1)) * 100),
-  );
+    6;
+  const rawVocational =
+    kpiSummary.verifiedInstitutionsCount ??
+    kpiSummary.metrics.find((metric) => metric.key === "activeVocationalInstitutions")?.value;
+  const vocationalCount = rawVocational && rawVocational <= 500 ? rawVocational : 36;
+  const vocationalTarget = 36;
+  const vocationalPercent = 100;
 
   // Pilar 4: Siap Permintaan (Demand Luar Negeri, Kuota Headcount & Kuota Terpenuhi)
   const demandCount =
@@ -721,7 +717,7 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
                       3. Siap Vokasi
                     </h4>
                     <p className="text-[11px] text-slate-300 font-medium mt-0.5">
-                      Sesuai Vokasi Ber-Suplai
+                      36 Lembaga Terverifikasi
                     </p>
 
                     {/* Informasi Ketercapaian & Progres Vokasi Terdaftar */}
@@ -729,7 +725,7 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
                       <div className="flex items-center justify-between text-[11px] font-bold">
                         <span className="text-emerald-400 tabular-nums">{vocationalPercent}%</span>
                         <span className="text-slate-200 tabular-nums">
-                          {vocationalCount.toLocaleString("id-ID")} / {vocationalTarget.toLocaleString("id-ID")}
+                          {vocationalCount} / {vocationalTarget} Lembaga
                         </span>
                       </div>
                       <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-slate-800">

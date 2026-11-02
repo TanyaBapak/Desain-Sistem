@@ -1664,7 +1664,7 @@ function buildRealTrees(): Record<PillarKey, PillarConfig> {
       t: "3. Siap Vokasi",
       lv: ["Jenis Vokasi", "Negara · Sektor · Jabatan", "Lembaga Vokasi"],
       k: [
-        ["a", "Jumlah Suplai"],
+        ["a", "Lembaga Terverifikasi"],
         ["b", "Jumlah Kelas"],
         ["c", "Kapasitas Latih"],
         ["d", "Siap Ditempatkan"],
@@ -1692,7 +1692,7 @@ function buildRealTrees(): Record<PillarKey, PillarConfig> {
   const HEADER_TARGETS: Record<PillarKey, number> = {
     sup: 12600,
     pel: 630,
-    lpk: 8,
+    lpk: 36,
     dem: 4,
   };
 

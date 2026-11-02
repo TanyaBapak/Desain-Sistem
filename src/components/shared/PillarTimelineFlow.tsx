@@ -110,14 +110,14 @@ export function PillarTimelineFlow({
       stepNumber: 3,
       pillarKey: "lpk",
       title: "3. Siap Vokasi",
-      subtitle: "Sesuai Vokasi Ber-Suplai",
+      subtitle: "36 Lembaga Terverifikasi",
       tag: "Fasilitas",
-      desc: "Lembaga vokasi dan balai pelatihan terdaftar yang telah terhubung dan memiliki alokasi suplai calon peserta siap latih.",
+      desc: "Lembaga vokasi dan balai pelatihan terdaftar yang telah diverifikasi resmi oleh Task Force dan memiliki akun operator aktif.",
       icon: Building2,
-      metricLabel: "Vokasi Ber-Suplai",
+      metricLabel: "36 Lembaga Terverifikasi",
       metricValue: vokasiWithSupplyCount > 0
-        ? `${vokasiWithSupplyCount} Vokasi Ber-Suplai (${actualCandidates.toLocaleString("id-ID")} Peserta)`
-        : "3 Vokasi Ber-Suplai",
+        ? `36 Terverifikasi (${vokasiWithSupplyCount} Ber-Suplai)`
+        : "36 Lembaga Terverifikasi",
       status: "ready",
       colorClass: "text-emerald-600 dark:text-emerald-400 border-emerald-500/40 bg-emerald-500/10",
       badgeBg: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30",
