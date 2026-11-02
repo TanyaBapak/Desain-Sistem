@@ -613,23 +613,27 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
                       Calon Peserta Siap Latih
                     </p>
 
-                    {/* Informasi Ketercapaian & Progres */}
-                    <div className="mt-2.5 bg-slate-900/90 rounded-lg p-2 border border-slate-700/60">
-                      <div className="flex items-center justify-between text-[11px] font-bold">
-                        <span className="text-emerald-400 tabular-nums">{candidatePercent}%</span>
-                        <span className="text-slate-200 tabular-nums">
-                          {candidateCount.toLocaleString("id-ID")} / {candidateTarget.toLocaleString("id-ID")}
-                        </span>
+                    {/* Informasi Rincian Peserta Siap Latih */}
+                    <div className="mt-2.5 bg-slate-900/90 rounded-lg p-2.5 border border-slate-700/60 space-y-1.5 text-[11px]">
+                      <div className="flex items-center justify-between text-slate-200">
+                        <span>Peserta Terdata:</span>
+                        <strong className="text-emerald-400 font-extrabold tabular-nums">{candidateCount.toLocaleString("id-ID")}</strong>
                       </div>
-                      <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-slate-800">
-                        <div
-                          className="h-full rounded-full bg-emerald-500 transition-all duration-500"
-                          style={{ width: `${Math.max(candidateCount > 0 ? 3 : 0, Math.min(100, candidatePercent))}%` }}
-                        />
+                      <div className="flex items-center justify-between text-slate-200">
+                        <span>Target Nasional:</span>
+                        <strong className="text-slate-300 font-extrabold tabular-nums">{candidateTarget.toLocaleString("id-ID")}</strong>
                       </div>
-                      <div className="mt-1.5 pt-1 border-t border-slate-800/80 flex items-center justify-between text-[9px] text-slate-300">
-                        <span>Sebaran: 38 Provinsi</span>
-                        <span className="text-blue-400 font-bold">Terpadu Dukcapil</span>
+                      <div className="flex items-center justify-between text-slate-200">
+                        <span>Capaian Penjaringan:</span>
+                        <strong className="text-blue-400 font-extrabold tabular-nums">{candidatePercent}%</strong>
+                      </div>
+                      <div className="flex items-center justify-between text-slate-200">
+                        <span>Sebaran Wilayah:</span>
+                        <strong className="text-cyan-400 font-extrabold tabular-nums">38 Provinsi</strong>
+                      </div>
+                      <div className="flex items-center justify-between text-slate-200 pt-1 border-t border-slate-800">
+                        <span>Validasi Dukcapil:</span>
+                        <strong className="text-emerald-400 font-extrabold tabular-nums">100% Valid</strong>
                       </div>
                     </div>
                   </div>
@@ -671,30 +675,34 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
                       1.159 Peserta di 5 Sektor
                     </p>
 
-                    {/* Informasi Ketercapaian & Progres 5 Sektor Riil */}
-                    <div className="mt-2.5 bg-slate-900/90 rounded-lg p-2 border border-slate-700/60">
-                      <div className="flex items-center justify-between text-[11px] font-bold">
-                        <span className="text-indigo-400">100%</span>
-                        <span className="text-slate-200 tabular-nums">
-                          1.159 / 1.159 Peserta
-                        </span>
+                    {/* Rincian Eksplisit 5 Sektor Prioritas Tanpa Ambigu */}
+                    <div className="mt-2.5 bg-slate-900/90 rounded-lg p-2.5 border border-slate-700/60 space-y-1.5 text-[11px]">
+                      <div className="flex items-center justify-between text-slate-200">
+                        <span>Kesehatan:</span>
+                        <strong className="text-emerald-400 font-extrabold tabular-nums">591</strong>
                       </div>
-                      <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-slate-800">
-                        <div
-                          className="h-full rounded-full bg-indigo-500 transition-all duration-500"
-                          style={{ width: "100%" }}
-                        />
+                      <div className="flex items-center justify-between text-slate-200">
+                        <span>Hospitality:</span>
+                        <strong className="text-blue-400 font-extrabold tabular-nums">347</strong>
                       </div>
-                      <div className="mt-1.5 pt-1 border-t border-slate-800/80 flex items-center justify-between text-[9px] text-slate-300">
-                        <span>Medis 591 · Hosp 347</span>
-                        <span>Mfg 168 · Kon 40 · Fish 13</span>
+                      <div className="flex items-center justify-between text-slate-200">
+                        <span>Manufaktur:</span>
+                        <strong className="text-amber-400 font-extrabold tabular-nums">168</strong>
+                      </div>
+                      <div className="flex items-center justify-between text-slate-200">
+                        <span>Konstruksi:</span>
+                        <strong className="text-cyan-400 font-extrabold tabular-nums">40</strong>
+                      </div>
+                      <div className="flex items-center justify-between text-slate-200 pt-1 border-t border-slate-800">
+                        <span>Fisherman (Kemaritiman):</span>
+                        <strong className="text-indigo-300 font-extrabold tabular-nums">13 Peserta</strong>
                       </div>
                     </div>
                   </div>
 
                   <div className="mt-2.5 pt-2 border-t border-slate-700/60 flex items-center justify-between text-xs">
                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                      Demand: 10.470
+                      Demand: 10.470 Kuota
                     </span>
                     <span className="text-xs font-black text-indigo-300 tabular-nums">
                       4 Kelas (23.247)
@@ -729,23 +737,27 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
                       36 Lembaga Terverifikasi
                     </p>
 
-                    {/* Informasi Ketercapaian & Progres Vokasi Terdaftar */}
-                    <div className="mt-2.5 bg-slate-900/90 rounded-lg p-2 border border-slate-700/60">
-                      <div className="flex items-center justify-between text-[11px] font-bold">
-                        <span className="text-emerald-400 tabular-nums">{vocationalPercent}%</span>
-                        <span className="text-slate-200 tabular-nums">
-                          {vocationalCount} / {vocationalTarget} Lembaga
-                        </span>
+                    {/* Informasi Rincian Lembaga Vokasi */}
+                    <div className="mt-2.5 bg-slate-900/90 rounded-lg p-2.5 border border-slate-700/60 space-y-1.5 text-[11px]">
+                      <div className="flex items-center justify-between text-slate-200">
+                        <span>Lembaga Terverifikasi:</span>
+                        <strong className="text-emerald-400 font-extrabold tabular-nums">36 Lembaga</strong>
                       </div>
-                      <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-slate-800">
-                        <div
-                          className="h-full rounded-full bg-emerald-500 transition-all duration-500"
-                          style={{ width: `${Math.max(vocationalCount > 0 ? 3 : 0, Math.min(100, vocationalPercent))}%` }}
-                        />
+                      <div className="flex items-center justify-between text-slate-200">
+                        <span>Target Lembaga:</span>
+                        <strong className="text-slate-300 font-extrabold tabular-nums">36 Target</strong>
                       </div>
-                      <div className="mt-1.5 pt-1 border-t border-slate-800/80 flex items-center justify-between text-[9px] text-slate-300">
-                        <span>Target: 36 Lembaga</span>
-                        <span className="text-emerald-400 font-bold">100% Terverifikasi</span>
+                      <div className="flex items-center justify-between text-slate-200">
+                        <span>Vokasi Ber-Suplai:</span>
+                        <strong className="text-blue-400 font-extrabold tabular-nums">36 Vokasi</strong>
+                      </div>
+                      <div className="flex items-center justify-between text-slate-200">
+                        <span>Peserta Ber-Suplai:</span>
+                        <strong className="text-emerald-400 font-extrabold tabular-nums">{candidateCount.toLocaleString("id-ID")}</strong>
+                      </div>
+                      <div className="flex items-center justify-between text-slate-200 pt-1 border-t border-slate-800">
+                        <span>Status Kesiapan:</span>
+                        <strong className="text-emerald-400 font-extrabold tabular-nums">100% Siap</strong>
                       </div>
                     </div>
                   </div>
@@ -787,23 +799,27 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
                       Permintaan Luar Negeri
                     </p>
 
-                    {/* Informasi Ketercapaian & Progres Pemenuhan Kuota */}
-                    <div className="mt-2.5 bg-slate-900/90 rounded-lg p-2 border border-slate-700/60">
-                      <div className="flex items-center justify-between text-[11px] font-bold">
-                        <span className="text-amber-400 tabular-nums">{demandPercent}%</span>
-                        <span className="text-slate-200 tabular-nums">
-                          {demandFilledQuota} / {demandHeadcount} Kuota
-                        </span>
+                    {/* Informasi Rincian Permintaan Luar Negeri */}
+                    <div className="mt-2.5 bg-slate-900/90 rounded-lg p-2.5 border border-slate-700/60 space-y-1.5 text-[11px]">
+                      <div className="flex items-center justify-between text-slate-200">
+                        <span>Total Permintaan:</span>
+                        <strong className="text-amber-400 font-extrabold tabular-nums">{demandHeadcount} Kuota</strong>
                       </div>
-                      <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-slate-800">
-                        <div
-                          className="h-full rounded-full bg-amber-500 transition-all duration-500"
-                          style={{ width: `${Math.max(demandFilledQuota > 0 ? 3 : 0, Math.min(100, demandPercent))}%` }}
-                        />
+                      <div className="flex items-center justify-between text-slate-200">
+                        <span>Kuota Terisi:</span>
+                        <strong className="text-emerald-400 font-extrabold tabular-nums">{demandFilledQuota} Kuota</strong>
                       </div>
-                      <div className="mt-1.5 pt-1 border-t border-slate-800/80 flex items-center justify-between text-[9px] text-slate-300">
-                        <span>Turki · Jepang · MY · KR</span>
-                        <span className="text-amber-400 font-bold">5 Order Resmi</span>
+                      <div className="flex items-center justify-between text-slate-200">
+                        <span>Persentase Terisi:</span>
+                        <strong className="text-amber-400 font-extrabold tabular-nums">{demandPercent}%</strong>
+                      </div>
+                      <div className="flex items-center justify-between text-slate-200">
+                        <span>Negara Mitra:</span>
+                        <strong className="text-cyan-400 font-extrabold tabular-nums">4 Negara</strong>
+                      </div>
+                      <div className="flex items-center justify-between text-slate-200 pt-1 border-t border-slate-800">
+                        <span>Order Terverifikasi:</span>
+                        <strong className="text-amber-400 font-extrabold tabular-nums">{demandCount} Order</strong>
                       </div>
                     </div>
                   </div>
