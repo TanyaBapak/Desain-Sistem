@@ -115,9 +115,7 @@ export function PillarTimelineFlow({
       desc: "Lembaga vokasi dan balai pelatihan terdaftar yang telah diverifikasi resmi oleh Task Force dan memiliki akun operator aktif.",
       icon: Building2,
       metricLabel: "36 Lembaga Terverifikasi",
-      metricValue: vokasiWithSupplyCount > 0
-        ? `36 Terverifikasi (${vokasiWithSupplyCount} Ber-Suplai)`
-        : "36 Lembaga Terverifikasi",
+      metricValue: "36 Vokasi (" + actualCandidates.toLocaleString("id-ID") + " Peserta)",
       status: "ready",
       colorClass: "text-emerald-600 dark:text-emerald-400 border-emerald-500/40 bg-emerald-500/10",
       badgeBg: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30",

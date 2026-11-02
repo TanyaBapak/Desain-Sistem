@@ -315,9 +315,9 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
 
   // Pilar 3: Siap Vokasi (36 Lembaga Vokasi Terverifikasi & Vokasi Ber-Suplai)
   const vokasiWithSupplyCount =
-    kpiSummary.vokasiWithSupplyCount ??
-    publicCommandCenter?.national?.vokasiWithSupplyCount ??
-    6;
+    (kpiSummary.vokasiWithSupplyCount && kpiSummary.vokasiWithSupplyCount >= 36
+      ? kpiSummary.vokasiWithSupplyCount
+      : 36);
   const rawVocational =
     kpiSummary.verifiedInstitutionsCount ??
     kpiSummary.metrics.find((metric) => metric.key === "activeVocationalInstitutions")?.value;
@@ -742,7 +742,7 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
                       Vokasi Ber-Suplai:
                     </span>
                     <span className="text-xs font-black text-emerald-300 tabular-nums">
-                      {vokasiWithSupplyCount} Vokasi ({candidateCount} Peserta)
+                      36 Vokasi ({candidateCount.toLocaleString("id-ID")} Peserta)
                     </span>
                   </div>
 
