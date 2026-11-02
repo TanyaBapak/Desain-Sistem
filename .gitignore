@@ -25,3 +25,8 @@ pnpm-debug.log*
 .idea/
 .DS_Store
 Thumbs.db
+
+# Database backups & dumps
+*.sql
+*.sql.gz
+*.sqlite

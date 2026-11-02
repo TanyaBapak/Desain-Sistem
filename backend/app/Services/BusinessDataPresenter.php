@@ -1345,7 +1345,7 @@ class BusinessDataPresenter
             $loadAll = $tab === null;
 
             $isOverview = $loadAll || in_array($tab, ['overview', 'dashboard', 'reports'], true);
-            $needsCandidates = $loadAll || in_array($tab, ['modul-a', 'supply', 'candidates', 'matching', 'modul-e', 'dashboard', 'overview'], true);
+            $needsCandidates = $loadAll || in_array($tab, ['modul-a', 'supply', 'candidates', 'matching', 'modul-e', 'dashboard', 'overview'], true) || ($role === 'institution_admin');
             $needsPrograms = $loadAll || in_array($tab, ['modul-b', 'program', 'programs', 'matching', 'modul-e', 'dashboard', 'overview'], true);
             $needsProviders = $loadAll || in_array($tab, ['modul-c', 'vokasi', 'providers', 'institutions', 'matching', 'modul-e', 'dashboard', 'overview'], true);
             $needsDemands = $loadAll || in_array($tab, ['modul-d', 'demand', 'demands', 'matching', 'modul-e', 'dashboard', 'overview'], true);
@@ -1726,24 +1726,42 @@ class BusinessDataPresenter
             DB::table('job_seekers')
                 ->whereNull('deleted_at')
                 ->where(function ($q) use ($inst, $namePatterns, $user) {
-                    $q->where('institution_name', $inst->name);
+                    $q->where('institution_name', $inst->name)
+                        ->orWhere('institution_name', 'LIKE', "%{$inst->name}%");
                     foreach ($namePatterns as $p) {
                         $clean = trim((string) $p);
-                        if ($clean !== '') {
-                            $q->orWhere('institution_name', 'LIKE', "%{$clean}%");
+                        if ($clean !== '' && mb_strlen($clean) >= 3) {
+                            $q->orWhere('institution_name', 'LIKE', "%{$clean}%")
+                                ->orWhere('created_by', $clean)
+                                ->orWhere('created_by', 'LIKE', "%{$clean}%");
                         }
                     }
                     if (! empty($user->organization)) {
-                        $q->orWhere('institution_name', $user->organization)
-                          ->orWhere('institution_name', 'LIKE', "%" . trim($user->organization) . "%");
+                        $cleanOrg = trim($user->organization);
+                        if (mb_strlen($cleanOrg) >= 3) {
+                            $q->orWhere('institution_name', $cleanOrg)
+                                ->orWhere('institution_name', 'LIKE', "%{$cleanOrg}%")
+                                ->orWhere('created_by', $cleanOrg)
+                                ->orWhere('created_by', 'LIKE', "%{$cleanOrg}%");
+                        }
                     }
                     if (! empty($user->id)) {
                         $q->orWhere('created_by', (string) $user->id)
                             ->orWhere('created_by', (string) $user->name)
                             ->orWhere('created_by', (string) $user->username);
                     }
+                    $q->orWhere('created_by', $inst->name)
+                        ->orWhere('created_by', 'LIKE', "%{$inst->name}%");
                 })
-                ->update(['institution_id' => $inst->id]);
+                ->where(function ($q) use ($inst) {
+                    $q->whereNull('institution_id')
+                        ->orWhere('institution_id', '!=', $inst->id)
+                        ->orWhere('institution_name', '!=', $inst->name);
+                })
+                ->update([
+                    'institution_id' => $inst->id,
+                    'institution_name' => $inst->name,
+                ]);
         }
 
         // 3. Fallback Khusus Lembaga/Operator: jika belum terhubung, bind ke institusi demo atau institusi aktif
@@ -1831,7 +1849,15 @@ class BusinessDataPresenter
                     if (! empty($user->organization)) {
                         $cleanOrg = trim($user->organization);
                         $q->orWhere('job_seekers.institution_name', $cleanOrg)
-                            ->orWhere('job_seekers.institution_name', 'LIKE', "%{$cleanOrg}%");
+                            ->orWhere('job_seekers.institution_name', 'LIKE', "%{$cleanOrg}%")
+                            ->orWhere('job_seekers.created_by', $cleanOrg)
+                            ->orWhere('job_seekers.created_by', 'LIKE', "%{$cleanOrg}%");
+                        $hasCondition = true;
+                    }
+                    if (! empty($scope['institution']?->name)) {
+                        $cleanInst = trim($scope['institution']->name);
+                        $q->orWhere('job_seekers.created_by', $cleanInst)
+                            ->orWhere('job_seekers.created_by', 'LIKE', "%{$cleanInst}%");
                         $hasCondition = true;
                     }
                     if (! $hasCondition) {
@@ -2017,6 +2043,19 @@ class BusinessDataPresenter
             ->groupBy('institution_id')
             ->map(fn ($rows) => $rows->pluck('facility_name')->all());
 
+        $candidateCountsByInstitution = DB::table('job_seekers')
+            ->whereNull('deleted_at')
+            ->whereNotNull('institution_id')
+            ->where('institution_id', '!=', '')
+            ->select(
+                'institution_id',
+                DB::raw('count(*) as total_students'),
+                DB::raw("sum(case when readiness_status = 'Ready for Placement' then 1 else 0 end) as ready_students")
+            )
+            ->groupBy('institution_id')
+            ->get()
+            ->keyBy('institution_id');
+
         $query = DB::table('institutions')
             ->leftJoin('provinces', 'provinces.id', '=', 'institutions.province_id')
             ->leftJoin('districts', 'districts.id', '=', 'institutions.district_id')
@@ -2078,7 +2117,7 @@ class BusinessDataPresenter
                 'provinces.name as province_name',
                 'districts.name as district_name',
             ])
-            ->map(function (object $row) use ($facilitiesByInstitution): array {
+            ->map(function (object $row) use ($facilitiesByInstitution, $candidateCountsByInstitution): array {
                 $metadata = $this->decodeArray($row->external_metadata);
                 $offerings = [];
                 $layer = 'Belum e-Vokasi';
@@ -2135,7 +2174,9 @@ class BusinessDataPresenter
                     'procurementMethod' => $row->procurement_method,
                     'capacityPerBatch' => $row->workshop_capacity === null ? null : (int) $row->workshop_capacity,
                     'classCount' => $row->class_count === null ? null : (int) $row->class_count,
-                    'readyParticipantCount' => $row->ready_participant_count === null ? null : (int) $row->ready_participant_count,
+                    'readyParticipantCount' => $candidateCountsByInstitution->get($row->id)?->ready_students !== null
+                        ? (int) $candidateCountsByInstitution->get($row->id)->ready_students
+                        : ($row->ready_participant_count === null ? null : (int) $row->ready_participant_count),
                     'certifiedInstructorsCount' => $row->instructor_count === null ? null : (int) $row->instructor_count,
                     'facilities' => $facilitiesByInstitution->get($row->id, []),
                     'supportedSectors' => $this->decodeArray($row->supported_sectors),

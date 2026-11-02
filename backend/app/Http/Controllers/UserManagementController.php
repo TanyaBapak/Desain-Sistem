@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Role;
 use App\Models\User;
+use App\Services\CandidateInstitutionReconciliationService;
 use App\Services\DashboardTargetService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -263,6 +264,9 @@ class UserManagementController extends Controller
             $user->update($attributes);
             $role = Role::query()->where('name', $data['role'])->firstOrFail();
             $user->roles()->sync([$role->id]);
+            if (! empty($user->institution_id)) {
+                app(CandidateInstitutionReconciliationService::class)->reconcileForUser($user);
+            }
             app(\App\Services\BusinessDataPresenter::class)->forget($user);
             $this->writeAudit($request, $user, 'Data akun dan peran pengguna diperbarui.');
         });
@@ -342,6 +346,9 @@ class UserManagementController extends Controller
 
         DB::transaction(function () use ($request, $user, $scopeName, $attributes): void {
             $user->update($attributes);
+            if (! empty($user->institution_id)) {
+                app(CandidateInstitutionReconciliationService::class)->reconcileForUser($user);
+            }
             app(\App\Services\BusinessDataPresenter::class)->forget($user);
             $this->writeAudit($request, $user, 'Lingkup wilayah pengguna diperbarui menjadi '.$scopeName.'.');
         });

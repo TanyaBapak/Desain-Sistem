@@ -484,7 +484,15 @@ class BusinessDataController extends Controller
                     if (! empty($user->organization)) {
                         $cleanOrg = trim($user->organization);
                         $q->orWhere('job_seekers.institution_name', $cleanOrg)
-                            ->orWhere('job_seekers.institution_name', 'LIKE', "%{$cleanOrg}%");
+                            ->orWhere('job_seekers.institution_name', 'LIKE', "%{$cleanOrg}%")
+                            ->orWhere('job_seekers.created_by', $cleanOrg)
+                            ->orWhere('job_seekers.created_by', 'LIKE', "%{$cleanOrg}%");
+                        $hasCondition = true;
+                    }
+                    if (! empty($scope['institution']?->name)) {
+                        $cleanInst = trim($scope['institution']->name);
+                        $q->orWhere('job_seekers.created_by', $cleanInst)
+                            ->orWhere('job_seekers.created_by', 'LIKE', "%{$cleanInst}%");
                         $hasCondition = true;
                     }
                     if (! $hasCondition) {

@@ -301,29 +301,8 @@ class InstitutionDataPlottingSeeder extends Seeder
             'verification_status' => 'Verified',
         ]);
 
-        $candidates = DB::table('job_seekers')
-            ->whereNull('deleted_at')
-            ->orderBy('id')
-            ->get();
-
-        $chunks = $candidates->chunk(ceil($candidates->count() / 3));
-        $targetInstitutions = [
-            0 => ['id' => 'VOC-DEMO-001', 'name' => 'SMK Contoh Cibinong', 'source' => 'SMK'],
-            1 => ['id' => 'INS-D1B455831B68B81E', 'name' => 'LPK Omega Hotel Academy', 'source' => 'LPK'],
-            2 => ['id' => 'INS-11B789B1BA61DA82', 'name' => 'Politeknik Indonusa Surakarta', 'source' => 'D3'],
-        ];
-
-        foreach ($chunks as $index => $chunk) {
-            $target = $targetInstitutions[$index] ?? $targetInstitutions[0];
-            $ids = $chunk->pluck('id')->all();
-            if (! empty($ids)) {
-                DB::table('job_seekers')->whereIn('id', $ids)->update([
-                    'institution_id' => $target['id'],
-                    'institution_name' => $target['name'],
-                    'source_type' => $target['source'],
-                ]);
-            }
-        }
+        // Rekonsiliasi data peserta riil ke institusi masing-masing tanpa menimpa data pengguna
+        app(\App\Services\CandidateInstitutionReconciliationService::class)->reconcileAll();
     }
 
     private function plotTrainingPrograms(): void
