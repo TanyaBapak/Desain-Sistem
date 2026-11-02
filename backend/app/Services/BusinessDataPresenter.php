@@ -1674,10 +1674,31 @@ class BusinessDataPresenter
                 $inst = DB::table('institutions')->where('email', $user->email)->first();
             }
             if (! $inst && ! empty($user->organization)) {
+                $orgClean = trim($user->organization);
                 $inst = DB::table('institutions')
-                    ->whereRaw('LOWER(name) = ?', [mb_strtolower(trim($user->organization))])
-                    ->orWhere('name', $user->organization)
+                    ->whereRaw('LOWER(name) = ?', [mb_strtolower($orgClean)])
+                    ->orWhere('name', $orgClean)
+                    ->orWhere('name', 'LIKE', "%{$orgClean}%")
                     ->first();
+
+                if (! $inst && in_array($user->primaryRole()?->name, ['institution_admin', 'training_operator'], true)) {
+                    $instId = 'inst-'.Str::slug($orgClean);
+                    DB::table('institutions')->updateOrInsert(
+                        ['id' => $instId],
+                        [
+                            'name' => $orgClean,
+                            'province_id' => $user->province_id ?: '33',
+                            'district_id' => $user->district_id ?: '3372',
+                            'institution_type' => 'Perguruan Tinggi / Politeknik',
+                            'ownership_type' => 'Swasta',
+                            'status' => 'Aktif',
+                            'verification_status' => 'Verified',
+                            'evokasi_status' => 'Terverifikasi e-Vokasi',
+                            'updated_at' => now(),
+                        ]
+                    );
+                    $inst = DB::table('institutions')->where('id', $instId)->first();
+                }
             }
 
             if ($inst) {
@@ -1690,6 +1711,24 @@ class BusinessDataPresenter
 
         if (! empty($user->organization) && ! in_array($user->organization, $namePatterns, true)) {
             $namePatterns[] = $user->organization;
+        }
+
+        // Auto-link peserta job_seekers yang belum ter-bind institution_id miliknya
+        if ($inst) {
+            DB::table('job_seekers')
+                ->whereNull('institution_id')
+                ->where(function ($q) use ($inst, $user) {
+                    $q->where('institution_name', $inst->name);
+                    if (! empty($user->organization)) {
+                        $q->orWhere('institution_name', $user->organization);
+                    }
+                    if (! empty($user->id)) {
+                        $q->orWhere('created_by', (string) $user->id)
+                            ->orWhere('created_by', (string) $user->name)
+                            ->orWhere('created_by', (string) $user->username);
+                    }
+                })
+                ->update(['institution_id' => $inst->id]);
         }
 
         // 3. Fallback Khusus Lembaga/Operator: jika belum terhubung, bind ke institusi demo atau institusi aktif
@@ -1782,8 +1821,8 @@ class BusinessDataPresenter
             ->leftJoin('provinces', 'provinces.id', '=', 'job_seekers.province_id')
             ->leftJoin('districts', 'districts.id', '=', 'job_seekers.district_id')
             ->when($this->bp3miScope->hasActiveAreaFilter($user), fn ($query) => $this->bp3miScope->applyToJobSeekers($query, $user))
-            ->orderByDesc('job_seekers.created_at')
-            ->limit(2000)
+            ->orderByDesc(DB::raw("COALESCE(job_seekers.updated_at, job_seekers.created_at)"))
+            ->limit(15000)
             ->get([
                 'job_seekers.id',
                 'job_seekers.nik',

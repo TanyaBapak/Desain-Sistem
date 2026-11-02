@@ -107,6 +107,7 @@ export const CandidateImportModal: React.FC<CandidateImportModalProps> = ({
               toast.success(`${total} data calon PMI berhasil diunggah dan disimpan.`);
               resetState();
               onClose();
+              router.reload();
             },
             onError: (errors: Record<string, string>) => {
               const firstMsg = Object.values(errors).find(Boolean);
