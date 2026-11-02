@@ -131,6 +131,9 @@ export function SupplyTargetProjectionPanel({
       sector: string;
       occupation: string;
       targetQuota: number;
+      totalJp: number | null;
+      technicalJp: number | null;
+      languageJp: number | null;
       region: string;
       source: string;
     }[] = [];
@@ -162,6 +165,9 @@ export function SupplyTargetProjectionPanel({
         sector: pt.sectorName,
         occupation: pt.occupationName,
         targetQuota: pt.target,
+        totalJp: pt.totalJp ?? null,
+        technicalJp: pt.technicalJp ?? null,
+        languageJp: pt.languageJp ?? null,
         region: defaultRegion,
         source: defaultSource,
       });
@@ -562,6 +568,7 @@ export function SupplyTargetProjectionPanel({
                     <th className="py-2.5 px-3">Sektor</th>
                     <th className="py-2.5 px-3">Jabatan Kerja</th>
                     <th className="py-2.5 px-3 text-right">Target Suplai</th>
+                    <th className="py-2.5 px-3 text-right">Total JP</th>
                     <th className="py-2.5 px-3">Daerah Asal</th>
                     <th className="py-2.5 px-3">Sumber Data</th>
                     <th className="py-2.5 px-3 text-center">Tahun</th>
@@ -570,7 +577,7 @@ export function SupplyTargetProjectionPanel({
                 <tbody className="divide-y divide-border/60">
                   {paginatedTargets.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="py-8 text-center text-muted-foreground">
+                      <td colSpan={8} className="py-8 text-center text-muted-foreground">
                         Tidak ada data target penempatan yang cocok dengan kriteria filter.
                       </td>
                     </tr>
@@ -586,6 +593,9 @@ export function SupplyTargetProjectionPanel({
                         </td>
                         <td className="py-2.5 px-3 text-right font-bold text-foreground tabular-nums">
                           {row.targetQuota.toLocaleString("id-ID")}
+                        </td>
+                        <td className="py-2.5 px-3 text-right font-semibold text-foreground tabular-nums">
+                          {row.totalJp ? `${row.totalJp.toLocaleString("id-ID")} JP` : "-"}
                         </td>
                         <td className="py-2.5 px-3 text-muted-foreground">{row.region}</td>
                         <td className="py-2.5 px-3">

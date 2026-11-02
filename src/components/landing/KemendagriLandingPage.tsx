@@ -72,15 +72,15 @@ const PILLAR_COUNTRY_PROGRAMS: CountryProgramPillar[] = [
         tracks: [
           {
             type: "teknis",
-            title: "Housekeeping",
-            jp: 360,
+            title: "Housekeeping / Waiter / Spa Therapist",
+            jp: 180,
             startDate: "07 Nov 2026",
             finishDate: "24 Des 2026",
           },
           {
             type: "bahasa",
-            title: "Bahasa Inggris (Housekeeping)",
-            jp: 200,
+            title: "Bahasa Inggris (Hospitality)",
+            jp: 640,
             startDate: "07 Nov 2026",
             finishDate: "15 Des 2026",
           },
@@ -91,15 +91,15 @@ const PILLAR_COUNTRY_PROGRAMS: CountryProgramPillar[] = [
         tracks: [
           {
             type: "teknis",
-            title: "Welder (SMAW 3G/4G)",
-            jp: 400,
+            title: "Pelatihan & Sertifikasi Teknis Manufaktur",
+            jp: 320,
             startDate: "10 Nov 2026",
             finishDate: "30 Des 2026",
           },
           {
             type: "bahasa",
-            title: "Bahasa Turki Dasar",
-            jp: 160,
+            title: "Bahasa Inggris / Turki Dasar",
+            jp: 640,
             startDate: "10 Nov 2026",
             finishDate: "10 Des 2026",
           },
@@ -115,34 +115,34 @@ const PILLAR_COUNTRY_PROGRAMS: CountryProgramPillar[] = [
         tracks: [
           {
             type: "teknis",
-            title: "Civil Infrastructure Worker",
-            jp: 360,
+            title: "Pelatihan Teknis Konstruksi",
+            jp: 320,
             startDate: "05 Nov 2026",
             finishDate: "20 Des 2026",
           },
           {
             type: "bahasa",
-            title: "Bahasa Melayu & Regulasi Kerja",
-            jp: 120,
+            title: "Bahasa Inggris",
+            jp: 640,
             startDate: "05 Nov 2026",
             finishDate: "30 Nov 2026",
           },
         ],
       },
       {
-        sector: "Perkebunan",
+        sector: "Agriculture",
         tracks: [
           {
             type: "teknis",
-            title: "Plantation Mechanization",
-            jp: 320,
+            title: "Plantation Worker Sawit",
+            jp: 140,
             startDate: "08 Nov 2026",
             finishDate: "18 Des 2026",
           },
           {
             type: "bahasa",
-            title: "K3 & Budaya Kerja Industri",
-            jp: 100,
+            title: "Bahasa & Budaya Kerja Perkebunan",
+            jp: 40,
             startDate: "08 Nov 2026",
             finishDate: "25 Nov 2026",
           },
@@ -158,15 +158,15 @@ const PILLAR_COUNTRY_PROGRAMS: CountryProgramPillar[] = [
         tracks: [
           {
             type: "teknis",
-            title: "Offshore Fishery Operations",
-            jp: 420,
+            title: "Sertifikasi Teknis ABK Fishermen",
+            jp: 20,
             startDate: "03 Nov 2026",
             finishDate: "05 Jan 2027",
           },
           {
             type: "bahasa",
             title: "Bahasa Korea (EPS-TOPIK)",
-            jp: 240,
+            jp: 640,
             startDate: "03 Nov 2026",
             finishDate: "20 Des 2026",
           },
@@ -177,15 +177,15 @@ const PILLAR_COUNTRY_PROGRAMS: CountryProgramPillar[] = [
         tracks: [
           {
             type: "teknis",
-            title: "Ship Hull Assembly & Fabrication",
-            jp: 450,
+            title: "Welder (160 JP) / Molding (320 JP)",
+            jp: 160,
             startDate: "05 Nov 2026",
             finishDate: "10 Jan 2027",
           },
           {
             type: "bahasa",
-            title: "Bahasa Korea Industri Terapan",
-            jp: 240,
+            title: "Bahasa Korea (EPS-TOPIK)",
+            jp: 640,
             startDate: "05 Nov 2026",
             finishDate: "22 Des 2026",
           },
@@ -201,34 +201,34 @@ const PILLAR_COUNTRY_PROGRAMS: CountryProgramPillar[] = [
         tracks: [
           {
             type: "teknis",
-            title: "Kaigo (Perawat Lansia)",
-            jp: 480,
+            title: "Caregiver (Lvl Pelaksana) SSW",
+            jp: 160,
             startDate: "01 Nov 2026",
             finishDate: "15 Jan 2027",
           },
           {
             type: "bahasa",
             title: "Bahasa Jepang (JLPT N4 / JFT-Basic)",
-            jp: 320,
+            jp: 640,
             startDate: "01 Nov 2026",
             finishDate: "31 Des 2026",
           },
         ],
       },
       {
-        sector: "Pertanian",
+        sector: "Agriculture",
         tracks: [
           {
             type: "teknis",
-            title: "Smart Agriculture & Food Packaging",
-            jp: 360,
+            title: "Farmer / Farming",
+            jp: 140,
             startDate: "04 Nov 2026",
             finishDate: "24 Des 2026",
           },
           {
             type: "bahasa",
-            title: "Bahasa Jepang Praktis Kerja",
-            jp: 200,
+            title: "Bahasa Jepang",
+            jp: 640,
             startDate: "04 Nov 2026",
             finishDate: "12 Des 2026",
           },
@@ -284,14 +284,16 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
 
   // Metrik Dinamis Alur 4 Pilar
   // Pilar 1: Suplai / Siap Latih
+  const TARGET_SUPPLY = 12600;
+  const TARGET_PROGRAM = 630;
+  const TARGET_VOKASI = 2382;
+  const TARGET_DEMAND_COUNTRIES = 4;
+
   const candidateCount =
     kpiSummary.metrics.find((metric) => metric.key === "registeredJobSeekers")?.value ??
     publicCommandCenter?.national?.candidatesCount ??
     0;
-  const rawCandidateTarget = kpiSummary.metrics.find((metric) => metric.key === "registeredJobSeekers")?.target;
-  const candidateTarget = rawCandidateTarget && rawCandidateTarget !== 6000 && rawCandidateTarget > 0
-    ? rawCandidateTarget
-    : 12600;
+  const candidateTarget = TARGET_SUPPLY;
   const candidatePercent = Math.min(
     100,
     Math.round((candidateCount / (candidateTarget || 1)) * 100),
@@ -306,15 +308,13 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
     kpiSummary.activeClassesCount ??
     publicCommandCenter?.national?.activeClassesCount ??
     0;
-  const rawProgramTarget =
-    kpiSummary.metrics.find((metric) => metric.key === "activeTrainingPrograms")?.target;
-  const programTarget = rawProgramTarget && rawProgramTarget > 0 ? rawProgramTarget : 40000;
+  const programTarget = TARGET_PROGRAM;
   const programPercent = Math.min(
     100,
     Math.round((curriculumCount / (programTarget || 1)) * 100),
   );
 
-  // Pilar 3: Siap Vokasi (Lembaga Vokasi Terdaftar, Terverifikasi & Vokasi Ber-Suplai)
+  // Pilar 3: Siap Vokasi (Lembaga Vokasi Terdaftar, Terverifikasi & Vokasi Suplai)
   const vokasiWithSupplyCount =
     kpiSummary.vokasiWithSupplyCount ??
     publicCommandCenter?.national?.vokasiWithSupplyCount ??
@@ -324,9 +324,7 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
     kpiSummary.metrics.find((metric) => metric.key === "activeVocationalInstitutions")?.value ??
     publicCommandCenter?.national?.providersCount;
   const vocationalCount = rawVocational && rawVocational > 0 ? rawVocational : 0;
-  const vocationalTarget =
-    kpiSummary.metrics.find((metric) => metric.key === "activeVocationalInstitutions")?.target ??
-    2382;
+  const vocationalTarget = TARGET_VOKASI;
   const vocationalPercent = Math.min(
     100,
     Math.round((vocationalCount / (vocationalTarget || 1)) * 100),
@@ -351,7 +349,7 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
   );
   const targetCountryCount =
     kpiSummary.demandCountryCount ??
-    (projection.countries.length > 0 ? projection.countries.length : (publicCommandCenter?.national?.demandCountryCount ?? 4));
+    (projection.countries.length > 0 ? projection.countries.length : (publicCommandCenter?.national?.demandCountryCount ?? TARGET_DEMAND_COUNTRIES));
   const targetCountryNames = projection.countries.length > 0
     ? projection.countries.slice(0, 3).map((c) => c.name).join(", ") + (projection.countries.length > 3 ? "…" : "")
     : "Turki, Jepang, Korea…";
@@ -739,7 +737,7 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
                 <article
                   onClick={() => handlePillarDrilldown("lembaga")}
                   className="group relative rounded-2xl border border-emerald-500/30 bg-gradient-to-br from-emerald-950/40 via-slate-900/90 to-slate-900/95 p-4 sm:p-5 flex flex-col justify-between hover:border-emerald-400 hover:shadow-xl hover:shadow-emerald-900/20 transition-all duration-300 cursor-pointer"
-                  title="Klik untuk membuka data rincian lembaga vokasi ber-suplai"
+                  title="Klik untuk membuka data rincian lembaga vokasi suplai"
                 >
                   <div>
                     <div className="flex items-center justify-between mb-2">
@@ -769,11 +767,11 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
                         <strong className="text-slate-200 font-bold">{vocationalTarget.toLocaleString("id-ID")} Target</strong>
                       </div>
                       <div className="flex items-center justify-between text-slate-300">
-                        <span>Vokasi Ber-Suplai:</span>
+                        <span>Vokasi Suplai:</span>
                         <strong className="text-emerald-400 font-bold">{vokasiWithSupplyCount} Vokasi</strong>
                       </div>
                       <div className="flex items-center justify-between text-slate-300">
-                        <span>Peserta Ber-Suplai:</span>
+                        <span>Peserta Suplai:</span>
                         <strong className="text-cyan-400 font-bold">{candidateCount.toLocaleString("id-ID")} Peserta</strong>
                       </div>
                     </div>
@@ -782,7 +780,7 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
                   {/* Badges / Pill Tags */}
                   <div className="pt-3 border-t border-slate-800/80 flex flex-wrap items-center gap-1.5 text-[10px] font-semibold mt-2">
                     <span className="px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
-                      {vokasiWithSupplyCount} Vokasi Ber-Suplai
+                      {vokasiWithSupplyCount} Vokasi Suplai
                     </span>
                     <span className="px-2.5 py-1 rounded-full bg-slate-800/80 text-emerald-400 border border-slate-700/60">
                       {vocationalCount.toLocaleString("id-ID")} Lembaga Aktif

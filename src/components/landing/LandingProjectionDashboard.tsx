@@ -37,6 +37,12 @@ export interface LandingProjectionData {
     occupationName: string;
     projectionPlacement: string;
     target: number;
+    classCount?: number | null;
+    technicalJp?: number | null;
+    technicalCertificationJp?: number | null;
+    languageJp?: number | null;
+    languageCertificationJp?: number | null;
+    totalJp?: number | null;
   }[];
   participants: LandingProjectionParticipant[];
 }

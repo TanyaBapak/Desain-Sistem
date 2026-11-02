@@ -560,7 +560,7 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
             }`}
           >
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-            <span>Ber-Suplai Peserta ({supplyCount})</span>
+            <span>Suplai Peserta ({supplyCount})</span>
           </button>
           <button
             type="button"

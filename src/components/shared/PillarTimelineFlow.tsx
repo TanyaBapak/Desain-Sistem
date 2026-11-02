@@ -109,14 +109,14 @@ export function PillarTimelineFlow({
       pillarKey: "lpk",
       title: "3. Siap Vokasi",
       subtitle: vokasiWithSupplyCount > 0
-        ? `${vokasiWithSupplyCount} Lembaga Ber-Suplai`
+        ? `${vokasiWithSupplyCount} Lembaga Suplai`
         : `${actualProviders.toLocaleString("id-ID")} Lembaga Vokasi`,
       tag: "Fasilitas",
       desc: "Lembaga vokasi dan balai pelatihan terdaftar yang telah diverifikasi resmi oleh Task Force.",
       icon: Building2,
       metricLabel: `Total: ${actualProviders.toLocaleString("id-ID")} Lembaga Terdaftar`,
       metricValue: vokasiWithSupplyCount > 0
-        ? `${vokasiWithSupplyCount} Lembaga Ber-Suplai (${actualCandidates.toLocaleString("id-ID")} Peserta)`
+        ? `${vokasiWithSupplyCount} Lembaga Suplai (${actualCandidates.toLocaleString("id-ID")} Peserta)`
         : `${actualProviders.toLocaleString("id-ID")} Lembaga Aktif`,
       status: "ready",
       colorClass: "text-emerald-600 dark:text-emerald-400 border-emerald-500/40 bg-emerald-500/10",

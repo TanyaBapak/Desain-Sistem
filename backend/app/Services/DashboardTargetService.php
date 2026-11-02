@@ -771,7 +771,7 @@ class DashboardTargetService
     }
 
     /**
-     * @return list<array{id: int, year: int, sectorName: string, occupationName: string, projectionPlacement: string, target: int}>
+     * @return list<array{id: int, year: int, sectorName: string, occupationName: string, projectionPlacement: string, target: int, classCount: int|null, technicalJp: int|null, technicalCertificationJp: int|null, languageJp: int|null, languageCertificationJp: int|null, totalJp: int|null}>
      */
     public function allLandingPlacementTargets(): array
     {
@@ -788,12 +788,18 @@ class DashboardTargetService
                 'occupationName' => $row->occupation_name,
                 'projectionPlacement' => $row->projection_placement,
                 'target' => (int) $row->target,
+                'classCount' => isset($row->class_count) && $row->class_count !== null ? (int) $row->class_count : null,
+                'technicalJp' => isset($row->technical_jp) && $row->technical_jp !== null ? (int) $row->technical_jp : null,
+                'technicalCertificationJp' => isset($row->technical_certification_jp) && $row->technical_certification_jp !== null ? (int) $row->technical_certification_jp : null,
+                'languageJp' => isset($row->language_jp) && $row->language_jp !== null ? (int) $row->language_jp : null,
+                'languageCertificationJp' => isset($row->language_certification_jp) && $row->language_certification_jp !== null ? (int) $row->language_certification_jp : null,
+                'totalJp' => isset($row->total_jp) && $row->total_jp !== null ? (int) $row->total_jp : null,
             ])
             ->all();
     }
 
     /**
-     * @return list<array{year: int, sectorName: string, occupationName: string, projectionPlacement: string, target: int}>
+     * @return list<array{year: int, sectorName: string, occupationName: string, projectionPlacement: string, target: int, classCount: int|null, technicalJp: int|null, technicalCertificationJp: int|null, languageJp: int|null, languageCertificationJp: int|null, totalJp: int|null}>
      */
     public function landingPlacementProjection(?int $year): array
     {
@@ -803,13 +809,19 @@ class DashboardTargetService
             ->orderBy('sector_name')
             ->orderBy('occupation_name')
             ->orderBy('projection_placement')
-            ->get(['year', 'sector_name', 'occupation_name', 'projection_placement', 'target'])
+            ->get()
             ->map(fn (object $row): array => [
                 'year' => (int) $row->year,
                 'sectorName' => $row->sector_name,
                 'occupationName' => $row->occupation_name,
                 'projectionPlacement' => $row->projection_placement,
                 'target' => (int) $row->target,
+                'classCount' => isset($row->class_count) && $row->class_count !== null ? (int) $row->class_count : null,
+                'technicalJp' => isset($row->technical_jp) && $row->technical_jp !== null ? (int) $row->technical_jp : null,
+                'technicalCertificationJp' => isset($row->technical_certification_jp) && $row->technical_certification_jp !== null ? (int) $row->technical_certification_jp : null,
+                'languageJp' => isset($row->language_jp) && $row->language_jp !== null ? (int) $row->language_jp : null,
+                'languageCertificationJp' => isset($row->language_certification_jp) && $row->language_certification_jp !== null ? (int) $row->language_certification_jp : null,
+                'totalJp' => isset($row->total_jp) && $row->total_jp !== null ? (int) $row->total_jp : null,
             ])
             ->all();
     }

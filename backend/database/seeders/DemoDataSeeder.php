@@ -103,7 +103,7 @@ class DemoDataSeeder extends Seeder
                 'sector_id' => 'SECT-WELD',
                 'occupation_id' => 'OCC-WL-01',
                 'target_country_id' => 'JP',
-                'total_jp' => 120,
+                'total_jp' => 840,
                 'certification_target' => 'Sertifikasi kompetensi dasar',
                 'cost_per_participant' => 0,
                 'quota' => 20,
