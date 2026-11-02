@@ -112,6 +112,14 @@ Route::get('/debug-log', function (Request $request) {
                     'users' => DB::table('users')->count(),
                     'model_has_roles' => DB::table('model_has_roles')->count(),
                     'victoria_candidates' => DB::table('job_seekers')->where('institution_name', 'like', '%Victoria%')->count(),
+                    'rajawali_candidates' => DB::table('job_seekers')->where('institution_name', 'like', '%Rajawali%')->count(),
+                    'vokasi_users' => DB::table('users')
+                        ->where('scope_level', 'lembaga')
+                        ->orWhere('name', 'like', '%Rajawali%')
+                        ->orWhere('organization', 'like', '%Rajawali%')
+                        ->orWhere('organization', 'like', '%Victoria%')
+                        ->orWhere('name', 'like', '%Arief%')
+                        ->get(['id', 'name', 'email', 'organization', 'scope_level', 'scope_name', 'institution_id']),
                     'git_commit' => trim((string) shell_exec('git rev-parse --short HEAD')),
                     'latest_sessions' => (function() {
                         $files = glob(storage_path('framework/sessions/*'));

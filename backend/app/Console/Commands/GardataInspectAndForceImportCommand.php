@@ -181,25 +181,110 @@ class GardataInspectAndForceImportCommand extends Command
         }
 
         // Tautkan akun pengguna lembaga ke institusi resminya dan perbarui scope_level
-        $instId = $syncService->resolveOrCreateInstitution('LPK Victoria Hotel School', '33', '3372');
         $instRole = DB::table('roles')->where('name', 'institution_admin')->value('id');
 
-        $ariefUsers = DB::table('users')
+        // 1. Victoria Hotel School (Arief Prasetya)
+        $vicId = $syncService->resolveOrCreateInstitution('LPK Victoria Hotel School', '33', '3372');
+        DB::table('users')
             ->where(function ($q) {
                 $q->where('name', 'LIKE', '%Arief%')
                     ->orWhere('email', 'LIKE', '%victoria%')
                     ->orWhere('organization', 'LIKE', '%Victoria%')
                     ->orWhere('scope_name', 'LIKE', '%Victoria%');
             })
-            ->get();
-
-        foreach ($ariefUsers as $u) {
-            DB::table('users')->where('id', $u->id)->update([
-                'institution_id' => $instId,
+            ->update([
+                'institution_id' => $vicId,
                 'organization' => 'LPK Victoria Hotel School',
                 'scope_level' => 'lembaga',
                 'scope_name' => 'LPK Victoria Hotel School',
             ]);
+
+        // 2. LPK Omega Hotel Academy
+        $omgId = $syncService->resolveOrCreateInstitution('LPK Omega Hotel Academy', '33', '3372');
+        DB::table('users')
+            ->where(function ($q) {
+                $q->where('name', 'LIKE', '%Omega%')
+                    ->orWhere('email', 'LIKE', '%omega%')
+                    ->orWhere('organization', 'LIKE', '%Omega%')
+                    ->orWhere('scope_name', 'LIKE', '%Omega%');
+            })
+            ->update([
+                'institution_id' => $omgId,
+                'organization' => 'LPK Omega Hotel Academy',
+                'scope_level' => 'lembaga',
+                'scope_name' => 'LPK Omega Hotel Academy',
+            ]);
+
+        // 3. Politeknik Indonusa Surakarta
+        $indoId = $syncService->resolveOrCreateInstitution('Politeknik Indonusa Surakarta', '33', '3372');
+        DB::table('users')
+            ->where(function ($q) {
+                $q->where('name', 'LIKE', '%Indonusa%')
+                    ->orWhere('email', 'LIKE', '%indonusa%')
+                    ->orWhere('organization', 'LIKE', '%Indonusa%')
+                    ->orWhere('scope_name', 'LIKE', '%Indonusa%');
+            })
+            ->update([
+                'institution_id' => $indoId,
+                'organization' => 'Politeknik Indonusa Surakarta',
+                'scope_level' => 'lembaga',
+                'scope_name' => 'Politeknik Indonusa Surakarta',
+            ]);
+
+        // 4. Institut Kesehatan Rajawali
+        $rajawaliId = $syncService->resolveOrCreateInstitution('Institut Kesehatan Rajawali', '32', '3273');
+        DB::table('users')
+            ->where(function ($q) {
+                $q->where('name', 'LIKE', '%Rajawali%')
+                    ->orWhere('email', 'LIKE', '%rajawali%')
+                    ->orWhere('organization', 'LIKE', '%Rajawali%')
+                    ->orWhere('scope_name', 'LIKE', '%Rajawali%');
+            })
+            ->update([
+                'institution_id' => $rajawaliId,
+                'organization' => 'Institut Kesehatan Rajawali',
+                'scope_level' => 'lembaga',
+                'scope_name' => 'Institut Kesehatan Rajawali',
+            ]);
+
+        // 5. Otomatis tautkan semua user ber-role vokasi/lembaga ke institusinya
+        $vokasiRoleIds = DB::table('roles')
+            ->whereIn('name', ['institution_admin', 'training_operator', 'vokasi', 'lembaga_vokasi'])
+            ->pluck('id');
+
+        $vokasiUserIds = DB::table('model_has_roles')
+            ->whereIn('role_id', $vokasiRoleIds)
+            ->pluck('model_id')
+            ->unique();
+
+        $allVokasiUsers = DB::table('users')
+            ->whereIn('id', $vokasiUserIds)
+            ->orWhere('scope_level', 'lembaga')
+            ->get();
+
+        foreach ($allVokasiUsers as $u) {
+            $orgName = trim((string) ($u->organization ?: $u->scope_name ?: $u->name));
+            if (! empty($orgName) && ! in_array(strtolower($orgName), ['nasional', 'nasional terpadu', 'kementerian', 'task force', 'super admin', 'administrator'], true)) {
+                $matchedInstId = $syncService->resolveOrCreateInstitution($orgName, $u->province_id ?: '32', $u->district_id ?: '3273');
+                DB::table('users')->where('id', $u->id)->update([
+                    'institution_id' => $matchedInstId,
+                    'organization' => $orgName,
+                    'scope_level' => 'lembaga',
+                    'scope_name' => $orgName,
+                ]);
+
+                // Hubungkan calon pekerja migran yang memiliki nama lembaga serupa
+                DB::table('job_seekers')
+                    ->where(function ($jq) use ($orgName, $u) {
+                        $jq->where('institution_name', 'LIKE', "%{$orgName}%")
+                            ->orWhere('created_by', (string) $u->id)
+                            ->orWhere('created_by', $u->name);
+                    })
+                    ->where(function ($jq) {
+                        $jq->whereNull('institution_id')->orWhere('institution_id', '');
+                    })
+                    ->update(['institution_id' => $matchedInstId]);
+            }
 
             if ($instRole) {
                 DB::table('model_has_roles')->updateOrInsert(

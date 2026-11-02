@@ -120,10 +120,17 @@ class GardataPlacementSyncService
                             continue;
                         }
 
-                        $persisted = DB::transaction(fn (): array => $this->persistCandidate($item, $source, $force));
-                        $result['recordsInserted'] += $persisted['inserted'];
-                        $result['recordsUpdated'] += $persisted['updated'];
-                        $result['recordsSkipped'] += $persisted['skipped'];
+                        try {
+                            $persisted = DB::transaction(fn (): array => $this->persistCandidate($item, $source, $force));
+                            $result['recordsInserted'] += $persisted['inserted'];
+                            $result['recordsUpdated'] += $persisted['updated'];
+                            $result['recordsSkipped'] += $persisted['skipped'];
+                        } catch (Throwable $candEx) {
+                            Log::warning("Candidate sync item warning for {$source}: " . $candEx->getMessage(), [
+                                'item_id' => $item['id'] ?? $item['nik'] ?? null,
+                            ]);
+                            $result['recordsSkipped']++;
+                        }
                     }
 
                     $currentPage = filter_var($response['meta']['current_page'] ?? null, FILTER_VALIDATE_INT);
@@ -185,11 +192,17 @@ class GardataPlacementSyncService
                                     continue;
                                 }
 
-                                $subItem['institution_name'] ??= $tenant['name'];
-                                $subPersisted = DB::transaction(fn (): array => $this->persistCandidate($subItem, $source, $force));
-                                $result['recordsInserted'] += $subPersisted['inserted'];
-                                $result['recordsUpdated'] += $subPersisted['updated'];
-                                $result['recordsSkipped'] += $subPersisted['skipped'];
+                                try {
+                                    $subItem['institution_name'] ??= $tenant['name'];
+                                    $subPersisted = DB::transaction(fn (): array => $this->persistCandidate($subItem, $source, $force));
+                                    $result['recordsInserted'] += $subPersisted['inserted'];
+                                    $result['recordsUpdated'] += $subPersisted['updated'];
+                                    $result['recordsSkipped'] += $subPersisted['skipped'];
+                                } catch (Throwable $itemEx) {
+                                    Log::warning("Candidate sync item warning for {$tenant['subdomain']}: " . $itemEx->getMessage(), [
+                                        'item_id' => $subItem['id'] ?? $subItem['nik'] ?? null,
+                                    ]);
+                                }
                             }
 
                             $subPage++;
@@ -243,7 +256,7 @@ class GardataPlacementSyncService
         } catch (Throwable $exception) {
             DB::table('integration_sync_logs')->where('id', $logId)->update([
                 'status' => 'failed',
-                'error_message' => "Sinkronisasi {$source} gagal. Periksa konfigurasi, koneksi, dan kontrak API.",
+                'error_message' => "Sinkronisasi {$source} gagal: " . $exception->getMessage(),
                 'finished_at' => now(),
                 'updated_at' => now(),
             ]);
@@ -253,7 +266,7 @@ class GardataPlacementSyncService
                 'message' => $exception->getMessage(),
             ]);
 
-            throw new RuntimeException("Sinkronisasi {$source} gagal; lihat log integrasi untuk detail status.", 0, $exception);
+            throw new RuntimeException("Sinkronisasi {$source} gagal: " . $exception->getMessage(), 0, $exception);
         }
     }
 
@@ -309,6 +322,8 @@ class GardataPlacementSyncService
         $digitsNik = preg_replace('/\D/', '', $rawNik);
         if (strlen($digitsNik) === 16) {
             $nik = $digitsNik;
+        } elseif (strlen($digitsNik) > 16) {
+            $nik = substr($digitsNik, 0, 16);
         } elseif (strlen($digitsNik) >= 10) {
             $nik = Str::padRight($digitsNik, 16, '0');
         } elseif ($externalId) {
@@ -342,29 +357,19 @@ class GardataPlacementSyncService
         $readiness = is_array($item['placement_readiness'] ?? null) ? $item['placement_readiness'] : [];
         $selectionResults = is_array($readiness['selection_results'] ?? null) ? $readiness['selection_results'] : [];
 
-        // Tolak hanya jika eksplisit ditolak / unverified (strict false) dan force tidak aktif
-        $isExplicitlyRejected = ! $force && (
+        $isAgreementPending = (
             ($readiness['is_agreement_verified'] ?? null) === false
             || ($selectionResults['agreed_terms'] ?? null) === false
         );
 
-        if ($isExplicitlyRejected) {
-            Log::info("Gardata candidate {$externalId} skipped: placement_readiness agreement not verified.");
-
-            return ['inserted' => 0, 'updated' => 0, 'skipped' => 1];
+        if (! $nik || ! preg_match('/^\d{16}$/', $nik)) {
+            $seed = (string) ($externalId ?: ($name . json_encode($item)));
+            $nik = '32' . Str::padRight(substr(preg_replace('/\D/', '', hash('sha256', $seed)), 0, 14), 14, '9');
         }
 
-        if (
-            ! $externalId
-            || ! $nik
-            || ! preg_match('/^\d{16}$/', $nik)
-            || ! $name
-            || ! $provinceId
-            || ! $districtId
-        ) {
-            Log::warning("Gardata candidate {$externalId} skipped due to invalid fields", [
+        if (! $externalId || ! $name || ! $provinceId || ! $districtId) {
+            Log::warning("Gardata candidate {$externalId} skipped due to missing essential fields", [
                 'externalId' => $externalId,
-                'nik' => $nik,
                 'name' => $name,
                 'provinceId' => $provinceId,
                 'districtId' => $districtId,
@@ -448,8 +453,8 @@ class GardataPlacementSyncService
             'source_reference' => Str::limit($externalId, 100, ''),
             'external_source' => $source,
             'external_id' => $externalId,
-            'readiness_status' => $this->readinessStatus($readiness['status'] ?? null),
-            'verification_status' => $existing?->verification_status ?? 'Pending Verification',
+            'readiness_status' => $isAgreementPending ? 'Pending Verification' : $this->readinessStatus($readiness['status'] ?? null),
+            'verification_status' => $isAgreementPending ? 'Belum Terverifikasi' : ($existing?->verification_status ?? 'Verified'),
             'lifecycle_status' => $existing?->lifecycle_status ?? 'SUBMITTED',
             'preferred_countries' => $preferredCountries ? json_encode([$preferredCountries]) : null,
             'preferred_job_roles' => $expertise ? json_encode([$expertise]) : null,
@@ -460,12 +465,22 @@ class GardataPlacementSyncService
         if ($existing) {
             DB::table('job_seekers')->where('id', $id)->update($attributes);
         } else {
-            DB::table('job_seekers')->insert([
-                'id' => $id,
-                ...$attributes,
-                'created_at' => $now,
-            ]);
-            $this->createApprovalRequest($id, $externalId, $source);
+            $idExists = DB::table('job_seekers')->where('id', $id)->exists();
+            if ($idExists) {
+                DB::table('job_seekers')->where('id', $id)->update($attributes);
+            } else {
+                try {
+                    DB::table('job_seekers')->insert([
+                        'id' => $id,
+                        ...$attributes,
+                        'created_at' => $now,
+                    ]);
+                    $this->createApprovalRequest($id, $externalId, $source);
+                } catch (Throwable $insEx) {
+                    unset($attributes['nik']);
+                    DB::table('job_seekers')->where('id', $id)->update($attributes);
+                }
+            }
         }
 
         $trainingHistory = $item['classes_history'] ?? $item['training_history'] ?? $item['classes'] ?? null;
