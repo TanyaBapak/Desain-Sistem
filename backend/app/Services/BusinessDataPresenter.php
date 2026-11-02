@@ -395,7 +395,13 @@ class BusinessDataPresenter
                 ]), collect());
 
             $sampleInstitutions = $instQuery
+                ->orderByRaw("CASE 
+                    WHEN institutions.id IN ('INS-D1B455831B68B81E', 'INS-11B789B1BA61DA82', 'VOC-DEMO-001') THEN 1
+                    WHEN institutions.evokasi_status = 'Terverifikasi e-Vokasi' THEN 2 
+                    ELSE 3 
+                END")
                 ->orderBy('institutions.name')
+                ->limit(200)
                 ->get([
                     'institutions.id',
                     'institutions.name',
@@ -473,24 +479,6 @@ class BusinessDataPresenter
                             'major' => (string) ($c->major ?? '-'),
                         ];
                     })->values()->all();
-
-                    if (empty($students)) {
-                        $sectorName = ! empty($supportedSectorsDecoded) ? $supportedSectorsDecoded[0] : 'Perhotelan & Pariwisata';
-                        $jobName = ! empty($supportedOccupations) ? $supportedOccupations[0] : 'Staf Operasional';
-                        $sampleNames = ['Ahmad Fauzi', 'Siti Rahmawati', 'Budi Santoso', 'Dewi Lestari'];
-                        $sampleCountries = ['Jepang', 'Jerman', 'Korea Selatan', 'Australia'];
-                        foreach ($sampleNames as $idx => $sName) {
-                            $students[] = [
-                                'id' => $row->id.'-std-'.($idx + 1),
-                                'name' => $sName,
-                                'targetCountry' => $sampleCountries[$idx % count($sampleCountries)],
-                                'sector' => $sectorName,
-                                'occupation' => $supportedOccupations[$idx % max(1, count($supportedOccupations))] ?? $jobName,
-                                'status' => 'Siap Penempatan',
-                                'major' => $jobName,
-                            ];
-                        }
-                    }
 
                     $source = 'umum';
                     $inputLevel = 'lembaga_vokasi';
@@ -1378,10 +1366,10 @@ class BusinessDataPresenter
             $loadAll = $tab === null;
 
             $isOverview = $loadAll || in_array($tab, ['overview', 'dashboard', 'reports'], true);
-            $needsCandidates = $loadAll || in_array($tab, ['modul-a', 'matching', 'modul-e', 'dashboard', 'overview'], true);
-            $needsPrograms = $loadAll || in_array($tab, ['modul-b', 'matching', 'modul-e', 'dashboard', 'overview'], true);
-            $needsProviders = $loadAll || in_array($tab, ['modul-c', 'matching', 'modul-e', 'dashboard', 'overview'], true);
-            $needsDemands = $loadAll || in_array($tab, ['modul-d', 'matching', 'modul-e', 'dashboard', 'overview'], true);
+            $needsCandidates = $loadAll || in_array($tab, ['modul-a', 'supply', 'candidates', 'matching', 'modul-e', 'dashboard', 'overview'], true);
+            $needsPrograms = $loadAll || in_array($tab, ['modul-b', 'program', 'programs', 'matching', 'modul-e', 'dashboard', 'overview'], true);
+            $needsProviders = $loadAll || in_array($tab, ['modul-c', 'vokasi', 'providers', 'institutions', 'matching', 'modul-e', 'dashboard', 'overview'], true);
+            $needsDemands = $loadAll || in_array($tab, ['modul-d', 'demand', 'demands', 'matching', 'modul-e', 'dashboard', 'overview'], true);
             $needsMatches = $loadAll || in_array($tab, ['matching', 'modul-e'], true);
             $needsAllocations = $loadAll || in_array($tab, ['matching', 'modul-e', 'dashboard', 'overview'], true);
             $needsApprovals = $loadAll || in_array($tab, ['approvals'], true);

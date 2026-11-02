@@ -20,6 +20,7 @@ import {
   BriefcaseBusiness,
   Users,
   Search,
+  ChevronLeft,
   ChevronRight,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -88,6 +89,9 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
   const [selectedProvinceForLpk, setSelectedProvinceForLpk] = useState<string | null>(null);
   const [institutionSourceFilter, setInstitutionSourceFilter] = useState<"ALL" | "siskop2mi" | "disnaker" | "umum">(initialSourceFilter);
   const [institutionLevelFilter, setInstitutionLevelFilter] = useState<"ALL" | InstitutionInputLevel>("ALL");
+  const [institutionStatusFilter, setInstitutionStatusFilter] = useState<"ALL" | "supply" | "verified">("ALL");
+  const [institutionSearchQuery, setInstitutionSearchQuery] = useState<string>("");
+  const [institutionPage, setInstitutionPage] = useState<number>(1);
 
   useEffect(() => {
     setSelectedSector(initialSector);
@@ -99,6 +103,9 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
     setSelectedCandidateForDetail(null);
     setInstitutionSourceFilter(initialSourceFilter);
     setInstitutionLevelFilter("ALL");
+    setInstitutionStatusFilter(type === "peserta" ? "supply" : "ALL");
+    setInstitutionSearchQuery("");
+    setInstitutionPage(1);
   }, [type, initialSector, initialSourceFilter]);
 
   const defaultRealDemands: PublicPreviewDemand[] = useMemo(() => [
@@ -145,6 +152,19 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
       const source = resolveInstitutionSource(p);
       const level = resolveInstitutionInputLevel(p);
       const occupations = (p.sectorals ?? []).map((s) => s.position || s.sectoral);
+      const matchedStudents = ALL_REGISTERED_CANDIDATES.filter(
+        (c) =>
+          c.institutionName?.toLowerCase().includes(p.name.toLowerCase()) ||
+          p.name.toLowerCase().includes(c.institutionName?.toLowerCase() || "")
+      ).map((s) => ({
+        id: s.id,
+        name: s.fullName,
+        targetCountry: s.preferredCountry?.[0] || "Jepang",
+        sector: s.preferredSectors?.[0] || "Hospitality",
+        occupation: s.preferredJobRole?.[0] || s.major || "Staff",
+        status: s.readinessStatus === "Ready for Placement" ? "Siap Penempatan" : "Dalam Pelatihan",
+        major: s.major,
+      }));
       return {
         id: p.id,
         name: p.name,
@@ -155,20 +175,9 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
         evokasiStatus: p.evokasiVerificationStatus || "Terverifikasi e-Vokasi",
         supportedSectors: p.supportedSectors || ["Hospitality"],
         supportedOccupations: occupations.length > 0 ? occupations : ["Staf Operasional"],
-        students: ALL_REGISTERED_CANDIDATES.filter(
-          (c) =>
-            c.institutionName?.toLowerCase().includes(p.name.toLowerCase()) ||
-            p.name.toLowerCase().includes(c.institutionName?.toLowerCase() || "")
-        ).map((s) => ({
-          id: s.id,
-          name: s.fullName,
-          targetCountry: s.preferredCountry?.[0] || "Jepang",
-          sector: s.preferredSectors?.[0] || "Hospitality",
-          occupation: s.preferredJobRole?.[0] || s.major || "Staff",
-          status: s.readinessStatus === "Ready for Placement" ? "Siap Penempatan" : "Dalam Pelatihan",
-          major: s.major,
-        })),
-        studentCount: p.capacityPerBatch || 40,
+        students: matchedStudents,
+        studentCount: matchedStudents.length,
+        workshopCapacity: p.capacityPerBatch || 40,
         registrationSource: source,
         registrationSourceId: p.id,
         inputLevel: level,
@@ -216,7 +225,7 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
   ].map(normalizeCatalogValue);
   const filteredInstitutions =
     selectedSector && selectedOccupation
-      ? verifiedInstitutions.filter((institution) => {
+      ? institutions.filter((institution) => {
           const supportsSelectedSector =
             !institution.supportedSectors?.length ||
             institution.supportedSectors.some((supportedSector) => {
@@ -559,6 +568,12 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
   };
 
   const renderInstitutionList = (items: PublicPreviewInstitution[]) => {
+    const supplyCount = items.filter(
+      (it) => (it.students?.length ?? it.studentCount ?? 0) > 0
+    ).length;
+    const verifiedCount = items.filter(
+      (it) => it.evokasiStatus === "Terverifikasi e-Vokasi"
+    ).length;
     const siskop2miCount = items.filter(
       (it) => resolveInstitutionSource({ registrationSource: it.registrationSource, id: it.id }) === "siskop2mi"
     ).length;
@@ -569,7 +584,15 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
       (it) => resolveInstitutionSource({ registrationSource: it.registrationSource, id: it.id }) === "umum"
     ).length;
 
+    const q = institutionSearchQuery.toLowerCase().trim();
     const filtered = items.filter((it) => {
+      const matchSearch =
+        !q ||
+        it.name.toLowerCase().includes(q) ||
+        (it.province && it.province.toLowerCase().includes(q)) ||
+        (it.district && it.district.toLowerCase().includes(q)) ||
+        (it.type && it.type.toLowerCase().includes(q));
+
       const matchSource =
         institutionSourceFilter === "ALL" ||
         resolveInstitutionSource({ registrationSource: it.registrationSource, id: it.id }) ===
@@ -583,11 +606,96 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
           inputLevel: it.inputLevel,
         }) === institutionLevelFilter;
 
-      return matchSource && matchLevel;
+      const matchStatus =
+        institutionStatusFilter === "ALL" ||
+        (institutionStatusFilter === "supply" && (it.students?.length ?? it.studentCount ?? 0) > 0) ||
+        (institutionStatusFilter === "verified" && it.evokasiStatus === "Terverifikasi e-Vokasi");
+
+      return matchSearch && matchSource && matchLevel && matchStatus;
     });
+
+    const pageSize = 15;
+    const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+    const safeCurrentPage = Math.min(institutionPage, totalPages);
+    const paginated = filtered.slice((safeCurrentPage - 1) * pageSize, safeCurrentPage * pageSize);
 
     return (
       <div className="space-y-3">
+        {/* Search Bar */}
+        <div className="relative">
+          <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Cari nama lembaga vokasi, kabupaten/kota, atau kejuruan..."
+            value={institutionSearchQuery}
+            onChange={(e) => {
+              setInstitutionSearchQuery(e.target.value);
+              setInstitutionPage(1);
+            }}
+            className="h-8.5 pl-8 pr-8 text-xs bg-background"
+          />
+          {institutionSearchQuery && (
+            <button
+              type="button"
+              onClick={() => {
+                setInstitutionSearchQuery("");
+                setInstitutionPage(1);
+              }}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground hover:text-foreground cursor-pointer"
+            >
+              ×
+            </button>
+          )}
+        </div>
+
+        {/* Status Kesiapan Filter Bar */}
+        <div className="flex flex-wrap items-center gap-1.5 p-2 rounded-xl bg-muted/40 border border-border/60 text-xs">
+          <span className="text-[11px] font-semibold text-muted-foreground mr-1">Status Kesiapan:</span>
+          <button
+            type="button"
+            onClick={() => {
+              setInstitutionStatusFilter("ALL");
+              setInstitutionPage(1);
+            }}
+            className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer ${
+              institutionStatusFilter === "ALL"
+                ? "bg-primary text-primary-foreground shadow-xs"
+                : "bg-background border border-border text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Semua Direktori ({items.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setInstitutionStatusFilter("supply");
+              setInstitutionPage(1);
+            }}
+            className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 ${
+              institutionStatusFilter === "supply"
+                ? "bg-emerald-600 text-white shadow-xs font-bold"
+                : "bg-background border border-border text-muted-foreground hover:text-emerald-600"
+            }`}
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+            <span>Ber-Suplai Peserta ({supplyCount})</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setInstitutionStatusFilter("verified");
+              setInstitutionPage(1);
+            }}
+            className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 ${
+              institutionStatusFilter === "verified"
+                ? "bg-blue-600 text-white shadow-xs font-bold"
+                : "bg-background border border-border text-muted-foreground hover:text-blue-600"
+            }`}
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-blue-400" />
+            <span>Terverifikasi e-Vokasi ({verifiedCount})</span>
+          </button>
+        </div>
+
         {/* Source & Level Filter Quick Bar */}
         <div className="space-y-2 p-2.5 rounded-xl bg-muted/30 border border-border/60 text-xs">
           <div className="flex flex-wrap items-center gap-1.5">
@@ -597,24 +705,26 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
               onClick={() => {
                 setInstitutionSourceFilter("ALL");
                 setInstitutionLevelFilter("ALL");
+                setInstitutionPage(1);
               }}
               className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer ${
                 institutionSourceFilter === "ALL"
-                  ? "bg-primary text-primary-foreground shadow-xs"
+                  ? "bg-foreground text-background shadow-xs"
                   : "bg-background border border-border text-muted-foreground hover:text-foreground"
               }`}
             >
-              Semua ({items.length})
+              Semua Sumber ({items.length})
             </button>
             <button
               type="button"
               onClick={() => {
                 setInstitutionSourceFilter("siskop2mi");
                 setInstitutionLevelFilter("ALL");
+                setInstitutionPage(1);
               }}
               className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1 ${
                 institutionSourceFilter === "siskop2mi"
-                  ? "bg-blue-600 text-white shadow-xs"
+                  ? "bg-blue-600 text-white shadow-xs font-bold"
                   : "bg-background border border-border text-muted-foreground hover:text-blue-600"
               }`}
             >
@@ -626,10 +736,11 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
               onClick={() => {
                 setInstitutionSourceFilter("disnaker");
                 setInstitutionLevelFilter("ALL");
+                setInstitutionPage(1);
               }}
               className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1 ${
                 institutionSourceFilter === "disnaker"
-                  ? "bg-indigo-600 text-white shadow-xs"
+                  ? "bg-indigo-600 text-white shadow-xs font-bold"
                   : "bg-background border border-border text-muted-foreground hover:text-indigo-600"
               }`}
             >
@@ -641,10 +752,11 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
               onClick={() => {
                 setInstitutionSourceFilter("umum");
                 setInstitutionLevelFilter("ALL");
+                setInstitutionPage(1);
               }}
               className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1 ${
                 institutionSourceFilter === "umum"
-                  ? "bg-emerald-600 text-white shadow-xs"
+                  ? "bg-emerald-600 text-white shadow-xs font-bold"
                   : "bg-background border border-border text-muted-foreground hover:text-emerald-600"
               }`}
             >
@@ -658,7 +770,10 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
             <span className="text-[10.5px] font-semibold text-muted-foreground mr-1">Level:</span>
             <button
               type="button"
-              onClick={() => setInstitutionLevelFilter("ALL")}
+              onClick={() => {
+                setInstitutionLevelFilter("ALL");
+                setInstitutionPage(1);
+              }}
               className={`px-2 py-0.5 rounded-md text-[11px] font-medium transition cursor-pointer ${
                 institutionLevelFilter === "ALL"
                   ? "bg-foreground text-background font-semibold"
@@ -671,7 +786,10 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
               <>
                 <button
                   type="button"
-                  onClick={() => setInstitutionLevelFilter("kabupaten_kota")}
+                  onClick={() => {
+                    setInstitutionLevelFilter("kabupaten_kota");
+                    setInstitutionPage(1);
+                  }}
                   className={`px-2 py-0.5 rounded-md text-[11px] font-medium transition cursor-pointer ${
                     institutionLevelFilter === "kabupaten_kota"
                       ? "bg-amber-600 text-white font-semibold shadow-xs"
@@ -682,7 +800,10 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
                 </button>
                 <button
                   type="button"
-                  onClick={() => setInstitutionLevelFilter("provinsi")}
+                  onClick={() => {
+                    setInstitutionLevelFilter("provinsi");
+                    setInstitutionPage(1);
+                  }}
                   className={`px-2 py-0.5 rounded-md text-[11px] font-medium transition cursor-pointer ${
                     institutionLevelFilter === "provinsi"
                       ? "bg-indigo-600 text-white font-semibold shadow-xs"
@@ -696,7 +817,10 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
             {(institutionSourceFilter === "ALL" || institutionSourceFilter === "umum") && (
               <button
                 type="button"
-                onClick={() => setInstitutionLevelFilter("lembaga_vokasi")}
+                onClick={() => {
+                  setInstitutionLevelFilter("lembaga_vokasi");
+                  setInstitutionPage(1);
+                }}
                 className={`px-2 py-0.5 rounded-md text-[11px] font-medium transition cursor-pointer ${
                   institutionLevelFilter === "lembaga_vokasi"
                     ? "bg-emerald-600 text-white font-semibold shadow-xs"
@@ -709,7 +833,10 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
             {(institutionSourceFilter === "ALL" || institutionSourceFilter === "siskop2mi") && (
               <button
                 type="button"
-                onClick={() => setInstitutionLevelFilter("nasional")}
+                onClick={() => {
+                  setInstitutionLevelFilter("nasional");
+                  setInstitutionPage(1);
+                }}
                 className={`px-2 py-0.5 rounded-md text-[11px] font-medium transition cursor-pointer ${
                   institutionLevelFilter === "nasional"
                     ? "bg-blue-600 text-white font-semibold shadow-xs"
@@ -725,22 +852,30 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
         <div className="rounded-lg border border-border p-2">
           {filtered.length === 0 ? (
             <p className="p-5 text-center text-sm text-muted-foreground">
-              Belum ada lembaga vokasi yang sesuai dengan pilihan filter ini.
+              Belum ada lembaga vokasi yang sesuai dengan pilihan pencarian atau filter ini.
             </p>
           ) : (
             <div className="space-y-2.5">
-              {filtered.map((institution) => {
+              {paginated.map((institution) => {
                 const isVerified =
                   institution.evokasiStatus === "Terverifikasi e-Vokasi";
                 const studentCount = institution.students?.length ?? institution.studentCount ?? 0;
+                const hasStudents = studentCount > 0;
                 return (
                   <div
                     key={institution.id}
                     onClick={() => {
-                      setSelectedInstitutionForStudents(institution);
-                      setStudentSearchQuery("");
+                      if (hasStudents) {
+                        setSelectedInstitutionForStudents(institution);
+                        setStudentSearchQuery("");
+                      }
                     }}
-                    className="rounded-lg border border-border bg-white dark:bg-slate-900 p-3 space-y-2 hover:border-primary/60 hover:shadow-md cursor-pointer transition-all group"
+                    className={cn(
+                      "rounded-lg border border-border bg-white dark:bg-slate-900 p-3 space-y-2 transition-all",
+                      hasStudents
+                        ? "hover:border-primary/60 hover:shadow-md cursor-pointer group"
+                        : "border-border/70"
+                    )}
                   >
                     <div className="flex min-w-0 items-start justify-between gap-2">
                       <div className="min-w-0 flex-1">
@@ -755,7 +890,9 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
                         </div>
                         <h6 className="break-words text-sm font-semibold text-foreground group-hover:text-primary transition-colors flex items-center gap-1.5">
                           <span>{institution.name}</span>
-                          <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-transform group-hover:translate-x-0.5" />
+                          {hasStudents && (
+                            <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-transform group-hover:translate-x-0.5" />
+                          )}
                         </h6>
                         <p className="mt-0.5 text-xs text-muted-foreground">
                           {institution.district ? `${institution.district}, ` : ""}
@@ -784,10 +921,19 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
                           </span>
                         )}
                       </div>
-                      <span className="text-primary font-semibold text-xs flex items-center gap-1 group-hover:underline">
-                        <Users className="h-3.5 w-3.5" />
-                        {studentCount} Calon Peserta &rarr;
-                      </span>
+                      {hasStudents ? (
+                        <span className="text-primary font-semibold text-xs flex items-center gap-1 group-hover:underline cursor-pointer">
+                          <Users className="h-3.5 w-3.5" />
+                          {studentCount} Calon Peserta &rarr;
+                        </span>
+                      ) : (
+                        <span className="text-xs text-muted-foreground flex items-center gap-1">
+                          <Building2 className="h-3.5 w-3.5 opacity-60" />
+                          {institution.workshopCapacity
+                            ? `Kapasitas: ${institution.workshopCapacity} / Batch`
+                            : "Terdaftar Siap Diklat"}
+                        </span>
+                      )}
                     </div>
                   </div>
                 );
@@ -795,6 +941,43 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
             </div>
           )}
         </div>
+
+        {/* Pagination Bar */}
+        {filtered.length > pageSize && (
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-muted-foreground px-1 pt-1 border-t border-border/40">
+            <span>
+              Menampilkan {((safeCurrentPage - 1) * pageSize) + 1} -{" "}
+              {Math.min(filtered.length, safeCurrentPage * pageSize)} dari {filtered.length} lembaga
+            </span>
+            <div className="flex items-center gap-1.5">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setInstitutionPage((p) => Math.max(1, p - 1))}
+                disabled={safeCurrentPage <= 1}
+                className="h-7 px-2.5 text-xs gap-1 cursor-pointer"
+              >
+                <ChevronLeft className="h-3.5 w-3.5" />
+                Sebelumnya
+              </Button>
+              <span className="px-2 font-medium text-foreground">
+                Halaman {safeCurrentPage} / {totalPages}
+              </span>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setInstitutionPage((p) => Math.min(totalPages, p + 1))}
+                disabled={safeCurrentPage >= totalPages}
+                className="h-7 px-2.5 text-xs gap-1 cursor-pointer"
+              >
+                Selanjutnya
+                <ChevronRight className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
     );
   };
@@ -809,7 +992,7 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
         }
         return (
           <div className="space-y-4">
-            {renderInstitutionList(verifiedInstitutions)}
+            {renderInstitutionList(institutions)}
           </div>
         );
 
