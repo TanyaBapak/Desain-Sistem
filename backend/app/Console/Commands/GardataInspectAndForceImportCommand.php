@@ -159,6 +159,39 @@ class GardataInspectAndForceImportCommand extends Command
         }
 
         $this->newLine();
+        $this->line('6. Menyinkronkan direktori dan kandidat institusi vokasi (Victoria, Omega, Indonusa)...');
+        try {
+            $vicResult = $syncService->ensureVictoriaCandidates(true);
+            $this->info("   - LPK Victoria Hotel School: {$vicResult['inserted']} baru, {$vicResult['updated']} diperbarui.");
+        } catch (Throwable $e) {
+            $this->warn('   - Victoria sync warning: ' . $e->getMessage());
+        }
+        try {
+            $omgResult = $syncService->ensureOmegaCandidates(true);
+            $this->info("   - LPK Omega Hotel Academy: {$omgResult['inserted']} baru, {$omgResult['updated']} diperbarui.");
+        } catch (Throwable $e) {
+            $this->warn('   - Omega sync warning: ' . $e->getMessage());
+        }
+        try {
+            $indoResult = $syncService->ensureIndonusaCandidates(true);
+            $this->info("   - Politeknik Indonusa Surakarta: {$indoResult['inserted']} baru, {$indoResult['updated']} diperbarui.");
+        } catch (Throwable $e) {
+            $this->warn('   - Indonusa sync warning: ' . $e->getMessage());
+        }
+
+        // Tautkan akun pengguna lembaga ke institusi resminya
+        DB::table('users')
+            ->where(function ($q) {
+                $q->where('name', 'LIKE', '%Arief%')
+                    ->orWhere('email', 'LIKE', '%victoria%')
+                    ->orWhere('organization', 'LIKE', '%Victoria%');
+            })
+            ->update([
+                'institution_id' => $syncService->resolveOrCreateInstitution('LPK Victoria Hotel School', '33', '3372'),
+                'organization' => 'LPK Victoria Hotel School',
+            ]);
+
+        $this->newLine();
         $this->line('7. Membersihkan cache aplikasi...');
         Artisan::call('optimize:clear');
         $this->info('   Cache berhasil dibersihkan.');
