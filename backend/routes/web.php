@@ -63,6 +63,33 @@ Route::post('/integrations/gardata/webhook', GardataWebhookController::class)->n
 Route::post('/integrations/sippmi/webhook', GardataWebhookController::class)->name('integrations.sippmi.webhook');
 
 Route::get('/debug-log', function (Request $request) {
+    if ($request->query('check_arief_page')) {
+        try {
+            $user = \App\Models\User::find(17);
+            auth()->login($user);
+            $appController = app(\App\Http\Controllers\AppController::class);
+            $response = $appController(
+                $request,
+                'modul-a',
+                app(\App\Services\Bp3miScope::class),
+                app(\App\Services\BusinessDataPresenter::class),
+                app(\App\Services\DashboardTargetService::class),
+                app(\App\Http\Controllers\UserManagementController::class),
+            );
+            $pageData = $response->toResponse($request)->getData()['page'];
+            return response()->json([
+                'component' => $pageData['component'] ?? null,
+                'businessData_candidates_count' => count($pageData['props']['businessData']['candidates'] ?? []),
+                'businessData_first_candidate' => $pageData['props']['businessData']['candidates'][0] ?? null,
+                'auth_user' => $pageData['props']['auth']['user'] ?? null,
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+        }
+    }
     if ($request->query('stats')) {
         try {
             $user = auth()->user();
