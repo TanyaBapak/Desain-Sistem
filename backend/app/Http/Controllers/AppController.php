@@ -57,6 +57,10 @@ class AppController extends Controller
 
         if ($needsBusinessData) {
             try {
+                if ($tab === 'modul-a' || $request->session()->has('impersonator_id')) {
+                    $businessDataPresenter->forget($request->user());
+                }
+
                 $businessData = $businessDataPresenter->make(
                     $request->user(),
                     array_merge(

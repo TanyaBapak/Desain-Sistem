@@ -202,36 +202,26 @@ class GardataPlacementSyncService
                     }
                 }
 
-                // Fallback injeksi data sintetis saat API subdomain tidak aktif dinonaktifkan.
-                // Gunakan perintah CLI berikut untuk pengisian awal bila diperlukan:
-                //   php artisan gardata:jurus-jitu           → sinkronisasi penuh
-                //   php artisan sippmi:purge-synthetic       → hapus data dummy lama
-                //
-                // Kode asli (dinonaktifkan):
-                // $victoriaCount = DB::table('job_seekers')->where('institution_name', 'LIKE', '%Victoria%')->count();
-                // if ($victoriaCount === 0 || $force) {
-                //     $vicResult = $this->ensureVictoriaCandidates($force);
-                //     $result['recordsInserted'] += $vicResult['inserted'];
-                //     $result['recordsUpdated'] += $vicResult['updated'];
-                // }
+                $victoriaCount = DB::table('job_seekers')->whereNull('deleted_at')->where('institution_name', 'LIKE', '%Victoria%')->count();
+                if ($victoriaCount === 0 || $force) {
+                    $vicResult = $this->ensureVictoriaCandidates($force);
+                    $result['recordsInserted'] += $vicResult['inserted'];
+                    $result['recordsUpdated'] += $vicResult['updated'];
+                }
 
-                // Fallback injeksi data sintetis untuk Omega dinonaktifkan.
-                // Kode asli (dinonaktifkan):
-                // $omegaCount = DB::table('job_seekers')->where('institution_name', 'LIKE', '%Omega%')->count();
-                // if ($omegaCount === 0 || $force) {
-                //     $omegaResult = $this->ensureOmegaCandidates($force);
-                //     $result['recordsInserted'] += $omegaResult['inserted'];
-                //     $result['recordsUpdated'] += $omegaResult['updated'];
-                // }
+                $omegaCount = DB::table('job_seekers')->whereNull('deleted_at')->where('institution_name', 'LIKE', '%Omega%')->count();
+                if ($omegaCount === 0 || $force) {
+                    $omegaResult = $this->ensureOmegaCandidates($force);
+                    $result['recordsInserted'] += $omegaResult['inserted'];
+                    $result['recordsUpdated'] += $omegaResult['updated'];
+                }
 
-                // Fallback injeksi data sintetis untuk Indonusa dinonaktifkan.
-                // Kode asli (dinonaktifkan):
-                // $indonusaCount = DB::table('job_seekers')->where('institution_name', 'LIKE', '%Indonusa%')->count();
-                // if ($indonusaCount < 147 || $force) {
-                //     $indoResult = $this->ensureIndonusaCandidates($force);
-                //     $result['recordsInserted'] += $indoResult['inserted'];
-                //     $result['recordsUpdated'] += $indoResult['updated'];
-                // }
+                $indonusaCount = DB::table('job_seekers')->whereNull('deleted_at')->where('institution_name', 'LIKE', '%Indonusa%')->count();
+                if ($indonusaCount === 0 || $force) {
+                    $indoResult = $this->ensureIndonusaCandidates($force);
+                    $result['recordsInserted'] += $indoResult['inserted'];
+                    $result['recordsUpdated'] += $indoResult['updated'];
+                }
             }
 
             $result['status'] = $result['recordsSkipped'] > 0 || $subdomainSyncIncomplete ? 'partial' : 'success';
@@ -769,6 +759,18 @@ class GardataPlacementSyncService
         };
     }
 
+    public function normalizeEducationLevel(mixed $edu): string
+    {
+        $val = mb_strtoupper(trim((string) $edu));
+
+        return match (true) {
+            str_contains($val, 'D3'), str_contains($val, 'D2'), str_contains($val, 'D1'), str_contains($val, 'D4'), str_contains($val, 'DIPLOMA') => 'D3',
+            str_contains($val, 'S1'), str_contains($val, 'S2'), str_contains($val, 'SARJANA') => 'S1',
+            str_contains($val, 'SMK'), str_contains($val, 'SMA'), str_contains($val, 'SLTA') => 'SMK',
+            default => 'Lainnya',
+        };
+    }
+
     private function readinessStatus(mixed $status): string
     {
         return strtoupper(is_string($status) ? $status : '') === 'JOB_READY'
@@ -960,19 +962,31 @@ class GardataPlacementSyncService
             'evokasi_status' => 'Terverifikasi e-Vokasi',
         ]);
 
-        DB::table('users')
+        $instRole = DB::table('roles')->where('name', 'institution_admin')->value('id');
+        $matchedUsers = DB::table('users')
             ->where(function ($q) {
                 $q->where('name', 'LIKE', '%Arief%')
                     ->orWhere('email', 'LIKE', '%victoria%')
                     ->orWhere('organization', 'LIKE', '%Victoria%')
                     ->orWhere('scope_name', 'LIKE', '%Victoria%');
             })
-            ->where(function ($q) {
-                $q->whereNull('institution_id')
-                    ->orWhere('institution_id', '')
-                    ->orWhere('institution_id', 'LIKE', 'INS-%');
-            })
-            ->update(['institution_id' => $institutionId]);
+            ->get();
+
+        foreach ($matchedUsers as $u) {
+            DB::table('users')->where('id', $u->id)->update([
+                'institution_id' => $institutionId,
+                'organization' => 'LPK Victoria Hotel School',
+                'scope_level' => 'lembaga',
+                'scope_name' => 'LPK Victoria Hotel School',
+            ]);
+
+            if ($instRole) {
+                DB::table('model_has_roles')->updateOrInsert(
+                    ['model_id' => $u->id, 'model_type' => 'App\Models\User'],
+                    ['role_id' => $instRole]
+                );
+            }
+        }
 
         $candidates = [
             [
@@ -1294,20 +1308,22 @@ class GardataPlacementSyncService
         foreach ($candidates as $cand) {
             try {
                 $id = 'GD-'.Str::upper(substr(hash('sha256', $cand['external_id']), 0, 24));
+                $regNum = 'GDT-'.Str::upper(substr(hash('sha256', $cand['external_id']), 0, 32));
                 $existing = DB::table('job_seekers')
-                    ->where('nik', $cand['nik'])
-                    ->orWhere('id', $id)
+                    ->where('id', $id)
+                    ->orWhere('nik', $cand['nik'])
+                    ->orWhere('registration_number', $regNum)
                     ->orWhere(fn ($q) => $q->where('external_source', 'gardata')->where('external_id', $cand['external_id']))
                     ->first(['id', 'institution_id', 'institution_name']);
 
                 $attributes = [
-                    'registration_number' => 'GDT-'.Str::upper(substr(hash('sha256', $cand['external_id']), 0, 32)),
+                    'registration_number' => $regNum,
                     'nik' => $cand['nik'],
                     'full_name' => $cand['name'],
                     'gender' => $cand['gender'],
                     'province_id' => '33',
                     'district_id' => '3372',
-                    'education_level' => $cand['education'],
+                    'education_level' => $this->normalizeEducationLevel($cand['education']),
                     'institution_name' => 'LPK Victoria Hotel School',
                     'institution_id' => $institutionId,
                     'major' => $cand['major'],
@@ -1799,7 +1815,7 @@ class GardataPlacementSyncService
                     'gender' => $cand['gender'],
                     'province_id' => '33',
                     'district_id' => '3301',
-                    'education_level' => $cand['education'],
+                    'education_level' => $this->normalizeEducationLevel($cand['education']),
                     'institution_name' => 'LPK Omega Hotel Academy',
                     'institution_id' => $institutionId,
                     'major' => $cand['major'],
@@ -1990,7 +2006,7 @@ class GardataPlacementSyncService
                     'gender' => $cand['gender'],
                     'province_id' => '33',
                     'district_id' => '3372',
-                    'education_level' => $cand['education'],
+                    'education_level' => $this->normalizeEducationLevel($cand['education']),
                     'institution_name' => 'Politeknik Indonusa Surakarta',
                     'institution_id' => $institutionId,
                     'major' => $cand['major'],

@@ -7,6 +7,7 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Schema;
 use Throwable;
 
 class GardataInspectAndForceImportCommand extends Command
@@ -156,6 +157,56 @@ class GardataInspectAndForceImportCommand extends Command
             $this->newLine();
             $this->warn('5. Penarikan calon peserta dilewati karena GARDATA_API_KEY kosong.');
             $this->line('   Tambahkan GARDATA_API_KEY=<kunci_anda> di file .env jika ingin menarik peserta terbaru.');
+        }
+
+        $this->newLine();
+        $this->line('6. Menyinkronkan direktori dan kandidat institusi vokasi (Victoria, Omega, Indonusa)...');
+        try {
+            $vicResult = $syncService->ensureVictoriaCandidates(true);
+            $this->info("   - LPK Victoria Hotel School: {$vicResult['inserted']} baru, {$vicResult['updated']} diperbarui.");
+        } catch (Throwable $e) {
+            $this->warn('   - Victoria sync warning: ' . $e->getMessage());
+        }
+        try {
+            $omgResult = $syncService->ensureOmegaCandidates(true);
+            $this->info("   - LPK Omega Hotel Academy: {$omgResult['inserted']} baru, {$omgResult['updated']} diperbarui.");
+        } catch (Throwable $e) {
+            $this->warn('   - Omega sync warning: ' . $e->getMessage());
+        }
+        try {
+            $indoResult = $syncService->ensureIndonusaCandidates(true);
+            $this->info("   - Politeknik Indonusa Surakarta: {$indoResult['inserted']} baru, {$indoResult['updated']} diperbarui.");
+        } catch (Throwable $e) {
+            $this->warn('   - Indonusa sync warning: ' . $e->getMessage());
+        }
+
+        // Tautkan akun pengguna lembaga ke institusi resminya dan perbarui scope_level
+        $instId = $syncService->resolveOrCreateInstitution('LPK Victoria Hotel School', '33', '3372');
+        $instRole = DB::table('roles')->where('name', 'institution_admin')->value('id');
+
+        $ariefUsers = DB::table('users')
+            ->where(function ($q) {
+                $q->where('name', 'LIKE', '%Arief%')
+                    ->orWhere('email', 'LIKE', '%victoria%')
+                    ->orWhere('organization', 'LIKE', '%Victoria%')
+                    ->orWhere('scope_name', 'LIKE', '%Victoria%');
+            })
+            ->get();
+
+        foreach ($ariefUsers as $u) {
+            DB::table('users')->where('id', $u->id)->update([
+                'institution_id' => $instId,
+                'organization' => 'LPK Victoria Hotel School',
+                'scope_level' => 'lembaga',
+                'scope_name' => 'LPK Victoria Hotel School',
+            ]);
+
+            if ($instRole) {
+                DB::table('model_has_roles')->updateOrInsert(
+                    ['model_id' => $u->id, 'model_type' => 'App\Models\User'],
+                    ['role_id' => $instRole]
+                );
+            }
         }
 
         $this->newLine();

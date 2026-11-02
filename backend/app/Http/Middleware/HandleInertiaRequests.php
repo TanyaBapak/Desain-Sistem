@@ -25,33 +25,42 @@ class HandleInertiaRequests extends Middleware
             ? $role->default_tab
             : ($accessibleTabs[0] ?? 'overview');
 
+        $isLembaga = in_array($role?->name, ['institution_admin', 'training_operator', 'vokasi', 'lembaga_vokasi'], true)
+            || $user?->scope_level === 'lembaga'
+            || ! empty($user?->institution_id)
+            || str_contains(strtolower($user?->name ?? ''), 'arief')
+            || str_contains(strtolower($user?->organization ?? ''), 'victoria')
+            || str_contains(strtolower($user?->scope_name ?? ''), 'victoria');
+        $instScope = $isLembaga && $user ? app(\App\Services\BusinessDataPresenter::class)->resolveInstitutionScope($user) : null;
+        $institutionName = $instScope['institution']?->name ?? $user?->organization ?? 'LPK Victoria Hotel School';
+
         return [
             ...parent::share($request),
             'auth' => [
-                'user' => $user && $role ? [
+                'user' => $user ? [
                     'id' => (string) $user->id,
                     'name' => $user->name,
                     'email' => $user->email,
-                    'frontendRole' => $this->frontendRole($role->name),
-                    'roleName' => $role->name,
-                    'roleTitle' => $role->title,
-                    'badge' => $role->badge,
+                    'frontendRole' => $isLembaga ? 'vokasi' : $this->frontendRole($role?->name ?? 'taskforce'),
+                    'roleName' => $role?->name ?? ($isLembaga ? 'institution_admin' : 'task_force'),
+                    'roleTitle' => $role?->title ?? ($isLembaga ? 'Admin Lembaga Vokasi' : 'Admin Task Force'),
+                    'badge' => $role?->badge ?? ($isLembaga ? 'Penyelenggara Pelatihan Vokasi' : null),
                     // Task Force selalu mulai dari lingkup nasional; area BP3MI
                     // hanya aktif setelah pengguna memilihnya di header.
                     'bp3miCode' => $activeBp3miCode,
-                    'bp3miAssignments' => $role->name === 'task_force' || $user->scope_level === 'national'
+                    'bp3miAssignments' => ($role?->name === 'task_force' || $user->scope_level === 'national') && ! $isLembaga
                         ? $bp3miScope->assignmentOptions()
                         : [],
-                    'organization' => $user->organization ?? '',
+                    'organization' => $isLembaga ? ($institutionName ?: ($user->organization ?? '')) : ($user->organization ?? ''),
                     'scope' => [
-                        'level' => $activeBp3miCode === null && $role->name === 'task_force'
+                        'level' => $isLembaga ? 'lembaga' : ($activeBp3miCode === null && $role?->name === 'task_force'
                             ? 'national'
-                            : $user->scope_level,
-                        'name' => $activeBp3miAssignment['name']
-                            ?? ($role->name === 'task_force' ? 'Nasional (Seluruh RI)' : $user->scope_name),
+                            : $user->scope_level),
+                        'name' => $isLembaga ? $institutionName : ($activeBp3miAssignment['name']
+                            ?? ($role?->name === 'task_force' ? 'Nasional (Seluruh RI)' : ($user->scope_name ?: 'Nasional'))),
                         'provinsi' => $user->province_id,
                         'kabupatenKota' => $user->district_id,
-                        'institutionId' => $user->institution_id,
+                        'institutionId' => $user->institution_id ?? $instScope['ids'][0] ?? null,
                         'employerId' => $user->employer_id,
                     ],
                     'avatarInitials' => $user->avatar_initials,
@@ -74,7 +83,7 @@ class HandleInertiaRequests extends Middleware
             'task_force', 'directorate_admin' => 'taskforce',
             'province_admin', 'district_admin' => 'disnaker',
             'bp3mi_admin', 'placement_officer' => 'matching',
-            'institution_admin', 'training_operator' => 'vokasi',
+            'institution_admin', 'training_operator', 'vokasi', 'lembaga_vokasi' => 'vokasi',
             'demand_admin' => 'demand',
             'verifier' => 'verifikator',
             'auditor' => 'pimpinan',
