@@ -36,7 +36,6 @@ import {
   resolveInstitutionInputLevel,
   InstitutionInputLevel,
 } from "@/lib/institution-source";
-import { mockProviders } from "@/data/mockProviders";
 import { ALL_REGISTERED_CANDIDATES } from "@/data/realSupplyCandidates";
 import type { CandidateParticipant } from "@/types";
 import { CandidateDetailModal } from "@/components/modul-a/CandidateDetailModal";
@@ -108,94 +107,13 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
     setInstitutionPage(1);
   }, [type, initialSector, initialSourceFilter]);
 
-  const defaultRealDemands: PublicPreviewDemand[] = useMemo(() => [
-    {
-      id: "DEM-TR-001",
-      country: "Turki",
-      employerName: "Antalya Coastal Hospitality & Resort Group",
-      sector: "Hospitality",
-      occupation: "Hotel & Resort Specialist",
-      quota: 120,
-      deadline: "30 Jun 2027",
-    },
-    {
-      id: "DEM-JP-001",
-      country: "Jepang",
-      employerName: "Tokyo Medical Care & Nagoya Works",
-      sector: "Kesehatan",
-      occupation: "Caregiver / Perawat Lansia (Kaigo)",
-      quota: 250,
-      deadline: "31 Agu 2027",
-    },
-    {
-      id: "DEM-KR-001",
-      country: "Korea",
-      employerName: "Busan Marine Fleet & Shipyard Corporation",
-      sector: "Fisherman",
-      occupation: "Fishing Vessel Operator & Deck Hand",
-      quota: 180,
-      deadline: "30 Sep 2027",
-    },
-    {
-      id: "DEM-MY-001",
-      country: "Malaysia",
-      employerName: "Kuala Lumpur Modern Infrastructure Consortium",
-      sector: "Konstruksi",
-      occupation: "Civil Infrastructure Technician",
-      quota: 150,
-      deadline: "31 Jul 2027",
-    },
-  ], []);
-
-  const mappedMockInstitutions = useMemo<PublicPreviewInstitution[]>(() => {
-    return mockProviders.map((p) => {
-      const source = resolveInstitutionSource(p);
-      const level = resolveInstitutionInputLevel(p);
-      const occupations = (p.sectorals ?? []).map((s) => s.position || s.sectoral);
-      const matchedStudents = ALL_REGISTERED_CANDIDATES.filter(
-        (c) =>
-          c.institutionName?.toLowerCase().includes(p.name.toLowerCase()) ||
-          p.name.toLowerCase().includes(c.institutionName?.toLowerCase() || "")
-      ).map((s) => ({
-        id: s.id,
-        name: s.fullName,
-        targetCountry: s.preferredCountry?.[0] || "Jepang",
-        sector: s.preferredSectors?.[0] || "Hospitality",
-        occupation: s.preferredJobRole?.[0] || s.major || "Staff",
-        status: s.readinessStatus === "Ready for Placement" ? "Siap Penempatan" : "Dalam Pelatihan",
-        major: s.major,
-      }));
-      return {
-        id: p.id,
-        name: p.name,
-        type: p.providerType || "LPK",
-        province: p.provinsi || "Jawa Barat",
-        district: p.kabupatenKota && p.kabupatenKota !== p.provinsi ? p.kabupatenKota : `Wilayah ${p.provinsi}`,
-        accreditation: p.accreditation || "Unggul",
-        evokasiStatus: p.evokasiVerificationStatus || "Terverifikasi e-Vokasi",
-        supportedSectors: p.supportedSectors || ["Hospitality"],
-        supportedOccupations: occupations.length > 0 ? occupations : ["Staf Operasional"],
-        students: matchedStudents,
-        studentCount: matchedStudents.length,
-        workshopCapacity: p.capacityPerBatch || 40,
-        registrationSource: source,
-        registrationSourceId: p.id,
-        inputLevel: level,
-      };
-    });
-  }, []);
-
   const institutions: PublicPreviewInstitution[] = useMemo(() => {
-    const backendList = (data.previewDirectories?.institutions ?? []).map((inst) => ({
+    return (data.previewDirectories?.institutions ?? []).map((inst) => ({
       ...inst,
       registrationSource: resolveInstitutionSource(inst),
       inputLevel: resolveInstitutionInputLevel(inst),
     }));
-    if (backendList.length >= 20) return backendList;
-    const existingIds = new Set(backendList.map((item) => item.id));
-    const extra = mappedMockInstitutions.filter((item) => !existingIds.has(item.id));
-    return [...backendList, ...extra];
-  }, [data.previewDirectories?.institutions, mappedMockInstitutions]);
+  }, [data.previewDirectories?.institutions]);
 
   const verifiedInstitutions = useMemo(
     () => institutions.filter((institution) => institution.evokasiStatus === "Terverifikasi e-Vokasi"),
@@ -203,10 +121,8 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
   );
 
   const demands: PublicPreviewDemand[] = useMemo(() => {
-    const backendDemands = data.previewDirectories?.demands ?? [];
-    if (backendDemands.length >= 4) return backendDemands;
-    return [...backendDemands, ...defaultRealDemands.slice(backendDemands.length)];
-  }, [data.previewDirectories?.demands, defaultRealDemands]);
+    return data.previewDirectories?.demands ?? [];
+  }, [data.previewDirectories?.demands]);
   const nationalLpkList = data.nationalLpkByProvince ?? [];
   const institutionsList = data.institutionsByProvince ?? [];
   const sectors = trainingSectors.map((sector) => sector.name);
@@ -396,46 +312,13 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
     );
   }, [matchingCandidates, candidateSearchQuery]);
 
-    const provinceInstitutions = useMemo(() => {
+  const provinceInstitutions = useMemo(() => {
     if (!selectedProvinceForLpk) return [];
     const cleanSelected = selectedProvinceForLpk.toLowerCase().trim();
-    const matched = institutions.filter((inst) => {
+    return institutions.filter((inst) => {
       const prov = (inst.province || "").toLowerCase().trim();
       return prov.includes(cleanSelected) || cleanSelected.includes(prov);
     });
-    if (matched.length > 0) return matched;
-
-    return [
-      {
-        id: `inst-${cleanSelected.replace(/\s+/g, "-")}-1`,
-        name: `Lembaga Vokasi Mitra ${selectedProvinceForLpk}`,
-        type: "Lembaga Pelatihan Kerja",
-        province: selectedProvinceForLpk,
-        district: `Pusat Pelatihan ${selectedProvinceForLpk}`,
-        accreditation: "A (Unggul)",
-        evokasiStatus: "Terverifikasi e-Vokasi",
-        supportedSectors: ["Hospitality & Cruise Ship", "Manufaktur & Teknik Mesin"],
-        supportedOccupations: ["Waiter / Barista", "Welder", "Housekeeping Attendant"],
-        studentCount: ALL_REGISTERED_CANDIDATES.filter(
-          (c) =>
-            (c.provinsi || "").toLowerCase().includes(cleanSelected) ||
-            cleanSelected.includes((c.provinsi || "").toLowerCase())
-        ).length || 12,
-        students: ALL_REGISTERED_CANDIDATES.filter(
-          (c) =>
-            (c.provinsi || "").toLowerCase().includes(cleanSelected) ||
-            cleanSelected.includes((c.provinsi || "").toLowerCase())
-        ).map((s) => ({
-          id: s.id,
-          name: s.fullName,
-          targetCountry: s.preferredCountry?.[0] || "Jepang",
-          sector: s.preferredSectors?.[0] || "Hospitality",
-          occupation: s.preferredJobRole?.[0] || s.major || "Staff",
-          status: s.readinessStatus === "Ready for Placement" ? "Siap Penempatan" : "Dalam Pelatihan",
-          major: s.major,
-        })),
-      },
-    ];
   }, [selectedProvinceForLpk, institutions]);
 
   const renderStudentList = () => {

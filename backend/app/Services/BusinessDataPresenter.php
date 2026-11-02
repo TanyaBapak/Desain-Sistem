@@ -142,23 +142,19 @@ class BusinessDataPresenter
         $totalDemandFilledQuota = (int) DB::table('job_demands')->where('verification_status', 'Approved')->sum('filled_quota');
         $demandCountries = (int) DB::table('job_demands')->where('verification_status', 'Approved')->distinct('country_id')->count('country_id');
 
-        $verifiedInstitutionsCount = rescue(function () {
-            $cnt = (int) DB::table('users')
-                ->join('model_has_roles', function ($join) {
-                    $join->on('users.id', '=', 'model_has_roles.model_id')
-                        ->where('model_has_roles.model_type', '=', User::class);
-                })
-                ->join('roles', 'roles.id', '=', 'model_has_roles.role_id')
-                ->where('roles.name', 'institution_admin')
-                ->where('users.status', 'Aktif')
-                ->count();
-            return $cnt > 0 ? $cnt : 36;
-        }, 36);
+        $activeInstitutionsCount = (int) DB::table('institutions')->where('status', 'Aktif')->count();
+        $verifiedInstitutionsCount = (int) DB::table('institutions')
+            ->where('status', 'Aktif')
+            ->where('evokasi_status', 'Terverifikasi e-Vokasi')
+            ->count();
+        $vokasiWithSupplyCount = (int) DB::table('job_seekers')
+            ->whereNull('deleted_at')
+            ->whereNotNull('institution_id')
+            ->where('institution_id', '!=', '')
+            ->distinct('institution_id')
+            ->count('institution_id');
 
         $activeTrainingProgramsCount = (int) DB::table('training_programs')->where('status', 'Aktif')->count();
-        if ($activeTrainingProgramsCount === 0) {
-            $activeTrainingProgramsCount = 23247;
-        }
 
         $values = [
             'registeredJobSeekers' => (int) DB::table('job_seekers')->whereNull('deleted_at')->count(),
@@ -167,7 +163,7 @@ class BusinessDataPresenter
                 ->where('readiness_status', 'Ready for Placement')
                 ->count(),
             'activeTrainingPrograms' => $activeTrainingProgramsCount,
-            'activeVocationalInstitutions' => $verifiedInstitutionsCount,
+            'activeVocationalInstitutions' => $activeInstitutionsCount,
             'nationalLpkCount' => $this->nationalLpkCount(),
             'validatedDemandCount' => $demandCount,
         ];
@@ -178,7 +174,9 @@ class BusinessDataPresenter
         if (empty($targets['activeTrainingPrograms'])) {
             $targets['activeTrainingPrograms'] = 40000;
         }
-        $targets['activeVocationalInstitutions'] = $verifiedInstitutionsCount;
+        if (empty($targets['activeVocationalInstitutions'])) {
+            $targets['activeVocationalInstitutions'] = 2382;
+        }
 
         return [
             'year' => $year,
@@ -188,11 +186,12 @@ class BusinessDataPresenter
                 'target' => $targets[$key] ?? null,
             ])->values()->all(),
             'verifiedInstitutionsCount' => $verifiedInstitutionsCount,
-            'vokasiWithSupplyCount' => $verifiedInstitutionsCount > 0 ? $verifiedInstitutionsCount : 36,
-            'activeClassesCount' => $activeClasses > 0 ? $activeClasses : 4,
-            'demandHeadcount' => $totalDemandHeadcount > 0 ? $totalDemandHeadcount : 210,
-            'demandFilledQuota' => $totalDemandFilledQuota > 0 ? $totalDemandFilledQuota : 57,
-            'demandCountryCount' => $demandCountries > 0 ? $demandCountries : 4,
+            'activeInstitutionsCount' => $activeInstitutionsCount,
+            'vokasiWithSupplyCount' => $vokasiWithSupplyCount,
+            'activeClassesCount' => $activeClasses,
+            'demandHeadcount' => $totalDemandHeadcount,
+            'demandFilledQuota' => $totalDemandFilledQuota,
+            'demandCountryCount' => $demandCountries,
         ];
     }
 
@@ -268,30 +267,18 @@ class BusinessDataPresenter
 
             $nationalCandidates = (int) DB::table('job_seekers')->whereNull('deleted_at')->count();
             $nationalPrograms = (int) DB::table('training_programs')->where('status', 'Aktif')->count();
-            if ($nationalPrograms === 0) {
-                $nationalPrograms = 3998;
-            }
-            $verifiedInsts = rescue(function () {
-                $cnt = (int) DB::table('users')
-                    ->join('model_has_roles', function ($join) {
-                        $join->on('users.id', '=', 'model_has_roles.model_id')
-                            ->where('model_has_roles.model_type', '=', User::class);
-                    })
-                    ->join('roles', 'roles.id', '=', 'model_has_roles.role_id')
-                    ->where('roles.name', 'institution_admin')
-                    ->where('users.status', 'Aktif')
-                    ->count();
-                return $cnt > 0 ? $cnt : 36;
-            }, 36);
-
-            $nationalProviders = $verifiedInsts;
-            $nationalRegisteredProviders = $verifiedInsts;
+            $nationalProviders = (int) DB::table('institutions')->where('status', 'Aktif')->count();
+            $nationalRegisteredProviders = (int) DB::table('institutions')
+                ->where('status', 'Aktif')
+                ->where('evokasi_status', 'Terverifikasi e-Vokasi')
+                ->count();
             $nationalDemands = (int) DB::table('job_demands')->where('verification_status', 'Approved')->count();
             $nationalAllocations = (int) DB::table('program_allocations')->whereNull('deleted_at')->count();
 
             $vokasiWithSupply = (int) DB::table('job_seekers')
                 ->whereNull('deleted_at')
                 ->whereNotNull('institution_id')
+                ->where('institution_id', '!=', '')
                 ->distinct('institution_id')
                 ->count('institution_id');
             $activeClasses = (int) DB::table('training_classes')->count();
@@ -573,47 +560,6 @@ class BusinessDataPresenter
                 ->map(fn (object $row): array => (array) $row)
                 ->all();
 
-            if (empty($sampleDemands)) {
-                $sampleDemands = [
-                    [
-                        'id' => 'DEM-TR-001',
-                        'country' => 'Turki',
-                        'employerName' => 'Antalya Coastal Hospitality & Resort Group',
-                        'sector' => 'Hospitality',
-                        'occupation' => 'Hotel & Resort Specialist',
-                        'quota' => 120,
-                        'deadline' => '2027-06-30',
-                    ],
-                    [
-                        'id' => 'DEM-JP-001',
-                        'country' => 'Jepang',
-                        'employerName' => 'Tokyo Medical Care & Nagoya Works',
-                        'sector' => 'Kesehatan',
-                        'occupation' => 'Caregiver / Perawat Lansia (Kaigo)',
-                        'quota' => 250,
-                        'deadline' => '2027-08-31',
-                    ],
-                    [
-                        'id' => 'DEM-KR-001',
-                        'country' => 'Korea',
-                        'employerName' => 'Busan Marine Fleet & Shipyard Corporation',
-                        'sector' => 'Fisherman',
-                        'occupation' => 'Fishing Vessel Operator & Deck Hand',
-                        'quota' => 180,
-                        'deadline' => '2027-09-30',
-                    ],
-                    [
-                        'id' => 'DEM-MY-001',
-                        'country' => 'Malaysia',
-                        'employerName' => 'Kuala Lumpur Modern Infrastructure Consortium',
-                        'sector' => 'Konstruksi',
-                        'occupation' => 'Civil Infrastructure Technician',
-                        'quota' => 150,
-                        'deadline' => '2027-07-31',
-                    ],
-                ];
-            }
-
             $candidateEducation = rescue(fn () => DB::table('job_seekers')
                 ->whereNull('deleted_at')
                 ->select('education_level as label')
@@ -639,10 +585,10 @@ class BusinessDataPresenter
                     'registeredNationalLpkCount' => $registeredNationalLpkCount,
                     'demandsCount' => $nationalDemands,
                     'allocationsCount' => $nationalAllocations,
-                    'vokasiWithSupplyCount' => $verifiedInsts > 0 ? $verifiedInsts : 36,
-                    'activeClassesCount' => $activeClasses > 0 ? $activeClasses : 4,
-                    'totalDemandHeadcount' => $totalDemandHeadcount > 0 ? $totalDemandHeadcount : 210,
-                    'totalDemandFilledQuota' => $totalDemandFilledQuota > 0 ? $totalDemandFilledQuota : 57,
+                    'vokasiWithSupplyCount' => $vokasiWithSupply,
+                    'activeClassesCount' => $activeClasses,
+                    'totalDemandHeadcount' => $totalDemandHeadcount,
+                    'totalDemandFilledQuota' => $totalDemandFilledQuota,
                 ],
                 'activeStats' => $activeStats,
                 'byProvince' => $byProvince,

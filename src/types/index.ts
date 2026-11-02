@@ -653,6 +653,7 @@ export interface PublicCommandCenterStats {
   activeClassesCount?: number;
   totalDemandHeadcount?: number;
   totalDemandFilledQuota?: number;
+  demandCountryCount?: number;
 }
 
 export interface PublicProvinceStats {

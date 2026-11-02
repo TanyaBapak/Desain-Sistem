@@ -114,6 +114,6 @@ class PublicCommandCenterTest extends TestCase
                 ->where('publicCommandCenter.activeStats.providersCount', 1)
                 ->where('publicCommandCenter.activeStats.registeredProvidersCount', 1)
                 ->where('publicCommandCenter.national.providersCount', 2)
-                ->where('publicCommandCenter.activeStats.programsCount', 3998));
+                ->where('publicCommandCenter.activeStats.programsCount', 0));
     }
 }

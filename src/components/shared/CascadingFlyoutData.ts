@@ -3,7 +3,6 @@ import {
   INDONUSA_D3_CANDIDATES,
   VICTORIA_LPK_CANDIDATES,
 } from "@/data/realSupplyCandidates";
-import { mockSupply } from "@/data/mockSupply";
 
 // Tree and data definitions for SMK Go Global Cascading Flyout Explorer
 // Data diselaraskan langsung dengan database riil Kementerian & Task Force SMK Go Global
@@ -278,8 +277,7 @@ const supplyTree = (): TreeNode[] => [
                   ["Lembaga", "SMK Negeri 7 Semarang"],
                   ["Jenjang", "SMK Kejuruan"],
                   ["Sertifikasi", "BNSP Teknisi Elektronika Industri"],
-                ],
-                mockSupply.filter((c) => c.id === "CAND-2026-006")
+                ]
               ),
               lf(
                 "Mekatronika & Robotika Pabrikasi",
@@ -327,8 +325,7 @@ const supplyTree = (): TreeNode[] => [
                   ["Lembaga", "SMK Kesehatan Bakti Husada Purwokerto"],
                   ["Jenjang", "SMK Kejuruan"],
                   ["Sertifikasi", "SSW Tokutei Ginou Kaigo / BNSP Asnakes"],
-                ],
-                mockSupply.filter((c) => c.id === "CAND-2026-002")
+                ]
               ),
             ],
           },
@@ -428,8 +425,7 @@ const supplyTree = (): TreeNode[] => [
                   ["Lembaga", "SMKN 1 Cibinong"],
                   ["Jenjang", "SMK Kejuruan"],
                   ["Sertifikasi", "BNSP Welder 3G Plate (SMAW/GMAW)"],
-                ],
-                mockSupply.filter((c) => c.id === "CAND-2026-001")
+                ]
               ),
             ],
           },
@@ -450,8 +446,7 @@ const supplyTree = (): TreeNode[] => [
                   ["Lembaga", "SMKN 2 Kota Bekasi"],
                   ["Jenjang", "SMK Kejuruan"],
                   ["Sertifikasi", "BNSP Commis Pastry & Bakery"],
-                ],
-                mockSupply.filter((c) => c.id === "CAND-2026-004")
+                ]
               ),
             ],
           },
@@ -530,8 +525,7 @@ const supplyTree = (): TreeNode[] => [
                   ["Lembaga", "SMKN 1 Mundu Cirebon"],
                   ["Jenjang", "SMK Kejuruan"],
                   ["Sertifikasi", "BST-Fisheries Kemhub & ANKAPIN III"],
-                ],
-                mockSupply.filter((c) => c.id === "CAND-2026-009")
+                ]
               ),
             ],
           },
@@ -557,8 +551,7 @@ const supplyTree = (): TreeNode[] => [
                   ["Lembaga", "Politeknik Elektronika Negeri Surabaya (PENS)"],
                   ["Jenjang", "D3 / Politeknik"],
                   ["Sertifikasi", "BNSP Otomasi Industri & PLC"],
-                ],
-                mockSupply.filter((c) => c.id === "CAND-2026-003")
+                ]
               ),
             ],
           },
@@ -658,8 +651,7 @@ const supplyTree = (): TreeNode[] => [
                   ["Lembaga", "SMK Negeri 26 Jakarta"],
                   ["Jenjang", "SMK Kejuruan"],
                   ["Sertifikasi", "BNSP Tune-up EFI & Engine Overhaul"],
-                ],
-                mockSupply.filter((c) => c.id === "CAND-2026-005")
+                ]
               ),
             ],
           },
@@ -706,8 +698,7 @@ const supplyTree = (): TreeNode[] => [
                   ["Lembaga", "BATC (Bali Aviation & Tourism Center)"],
                   ["Jenjang", "Lembaga Pelatihan Kerja (LPK)"],
                   ["Sertifikasi", "CIBTAC International Beauty & Spa Therapist"],
-                ],
-                mockSupply.filter((c) => c.id === "CAND-2026-007")
+                ]
               ),
             ],
           },
