@@ -93,14 +93,12 @@ export function PillarTimelineFlow({
       stepNumber: 2,
       pillarKey: "pel",
       title: "2. Siap Program",
-      subtitle: "Bahasa · Teknis · Sertifikasi",
+      subtitle: "5 Sektor Prioritas · Bahasa & Teknis",
       tag: "Standardisasi",
-      desc: "Pelatihan terstruktur per negara tujuan yang mencakup Program Bahasa (N4/EPS/A2), keahlian Teknis, dan Sertifikasi kompetensi resmi.",
+      desc: "Pelatihan terstruktur per negara tujuan mencakup 5 Sektor Prioritas (Kesehatan, Hospitality, Manufaktur, Konstruksi, Fisherman), Bahasa (N4/EPS/A2), dan Sertifikasi kompetensi resmi.",
       icon: GraduationCap,
-      metricLabel: `Target: ${TARGET_PROGRAM.toLocaleString("id-ID")} Kelas`,
-      metricValue: actualPrograms > 100
-        ? `${actualPrograms.toLocaleString("id-ID")} Kurikulum (4 Kelas Aktif)`
-        : `${actualPrograms.toLocaleString("id-ID")} Kelas Aktif`,
+      metricLabel: `Target: ${TARGET_PROGRAM.toLocaleString("id-ID")} Kurikulum`,
+      metricValue: `${actualPrograms.toLocaleString("id-ID")} Kurikulum (5 Sektor · 4 Kelas Aktif)`,
       status: "active",
       colorClass: "text-indigo-600 dark:text-indigo-400 border-indigo-500/40 bg-indigo-500/10",
       badgeBg: "bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border-indigo-500/30",

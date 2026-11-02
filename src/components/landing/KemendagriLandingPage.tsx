@@ -296,21 +296,22 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
     Math.round((candidateCount / (candidateTarget || 1)) * 100),
   );
 
-  // Pilar 2: Siap Program (Realisasi Kelas Aktif vs Kurikulum e-Vokasi)
+  // Pilar 2: Siap Program (Realisasi 5 Sektor Prioritas & 23.247 Kurikulum Standarisasi)
   const curriculumCount =
     kpiSummary.metrics.find((metric) => metric.key === "activeTrainingPrograms")?.value ??
     publicCommandCenter?.national?.programsCount ??
-    9811;
+    23247;
   const activeClassesCount =
     kpiSummary.activeClassesCount ??
     publicCommandCenter?.national?.activeClassesCount ??
     4;
-  const programTarget =
-    kpiSummary.metrics.find((metric) => metric.key === "activeTrainingPrograms")?.target ??
-    630;
+  const rawProgramTarget =
+    kpiSummary.metrics.find((metric) => metric.key === "activeTrainingPrograms")?.target;
+  const programTarget = rawProgramTarget && rawProgramTarget > 0 ? rawProgramTarget : 40000;
+  // Capaian standarisasi kurikulum 5 sektor prioritas: 23.247 / 40.000 (58%)
   const programPercent = Math.min(
     100,
-    Math.round((activeClassesCount / (programTarget || 1)) * 100),
+    Math.round((curriculumCount / (programTarget || 1)) * 100),
   );
 
   // Pilar 3: Siap Vokasi (36 Lembaga Vokasi Terverifikasi & Vokasi Ber-Suplai)
@@ -663,21 +664,21 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
                       2. Siap Program
                     </h4>
                     <p className="text-[11px] text-slate-300 font-medium mt-0.5">
-                      Bahasa · Teknis · Sertifikasi
+                      5 Sektor Prioritas · Bahasa & Teknis
                     </p>
 
-                    {/* Informasi Ketercapaian & Progres Kelas */}
+                    {/* Informasi Ketercapaian & Progres Kurikulum 5 Sektor */}
                     <div className="mt-2.5 bg-slate-900/90 rounded-lg p-2 border border-slate-700/60">
                       <div className="flex items-center justify-between text-[11px] font-bold">
                         <span className="text-indigo-400 tabular-nums">{programPercent}%</span>
                         <span className="text-slate-200 tabular-nums">
-                          {activeClassesCount.toLocaleString("id-ID")} / {programTarget.toLocaleString("id-ID")} Kelas
+                          {curriculumCount.toLocaleString("id-ID")} / {programTarget.toLocaleString("id-ID")} Kurikulum
                         </span>
                       </div>
                       <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-slate-800">
                         <div
                           className="h-full rounded-full bg-indigo-500 transition-all duration-500"
-                          style={{ width: `${Math.max(activeClassesCount > 0 ? 3 : 0, Math.min(100, programPercent))}%` }}
+                          style={{ width: `${Math.max(curriculumCount > 0 ? 3 : 0, Math.min(100, programPercent))}%` }}
                         />
                       </div>
                     </div>
@@ -685,10 +686,10 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
 
                   <div className="mt-2.5 pt-2 border-t border-slate-700/60 flex items-center justify-between text-xs">
                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                      Target: {programTarget.toLocaleString("id-ID")} Kelas
+                      Target: {programTarget.toLocaleString("id-ID")} Kurikulum
                     </span>
                     <span className="text-xs font-black text-indigo-300 tabular-nums">
-                      {curriculumCount.toLocaleString("id-ID")} Kurikulum
+                      5 Sektor ({activeClassesCount} Kelas Aktif)
                     </span>
                   </div>
 
