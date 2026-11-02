@@ -87,6 +87,24 @@ Route::get('/debug-log', function (Request $request) {
                     'victoria_candidates' => DB::table('job_seekers')->where('institution_name', 'like', '%Victoria%')->count(),
                     'git_commit' => trim((string) shell_exec('git rev-parse --short HEAD')),
                     'arief_users' => DB::table('users')->where('name', 'like', '%Arief%')->select('id', 'name', 'scope_level', 'scope_name', 'organization', 'institution_id')->get(),
+                    'arief_test' => (function() {
+                        $arief = \App\Models\User::find(17);
+                        if (! $arief) return 'no user 17';
+                        $presenter = app(\App\Services\BusinessDataPresenter::class);
+                        $data = $presenter->make($arief, ['tab' => 'modul-a']);
+                        return [
+                            'user' => [
+                                'id' => $arief->id,
+                                'role' => $arief->primaryRole()?->name,
+                                'roles' => $arief->roles->pluck('name'),
+                                'scope_level' => $arief->scope_level,
+                                'scope_name' => $arief->scope_name,
+                                'institution_id' => $arief->institution_id,
+                            ],
+                            'candidates_count' => count($data['candidates'] ?? []),
+                            'first_candidate' => $data['candidates'][0] ?? null,
+                        ];
+                    })(),
                 ],
             ]);
         } catch (\Throwable $e) {
