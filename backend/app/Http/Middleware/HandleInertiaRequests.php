@@ -25,6 +25,10 @@ class HandleInertiaRequests extends Middleware
             ? $role->default_tab
             : ($accessibleTabs[0] ?? 'overview');
 
+        $isLembaga = in_array($role?->name, ['institution_admin', 'training_operator', 'vokasi', 'lembaga_vokasi'], true) || $user?->scope_level === 'lembaga';
+        $instScope = $isLembaga && $user ? app(\App\Services\BusinessDataPresenter::class)->resolveInstitutionScope($user) : null;
+        $institutionName = $instScope['institution']?->name ?? $user?->organization ?? 'Lembaga Vokasi';
+
         return [
             ...parent::share($request),
             'auth' => [
@@ -42,16 +46,16 @@ class HandleInertiaRequests extends Middleware
                     'bp3miAssignments' => $role->name === 'task_force' || $user->scope_level === 'national'
                         ? $bp3miScope->assignmentOptions()
                         : [],
-                    'organization' => $user->organization ?? '',
+                    'organization' => $isLembaga ? ($institutionName ?: ($user->organization ?? '')) : ($user->organization ?? ''),
                     'scope' => [
-                        'level' => $activeBp3miCode === null && $role->name === 'task_force'
+                        'level' => $isLembaga ? 'lembaga' : ($activeBp3miCode === null && $role->name === 'task_force'
                             ? 'national'
-                            : $user->scope_level,
-                        'name' => $activeBp3miAssignment['name']
-                            ?? ($role->name === 'task_force' ? 'Nasional (Seluruh RI)' : $user->scope_name),
+                            : $user->scope_level),
+                        'name' => $isLembaga ? $institutionName : ($activeBp3miAssignment['name']
+                            ?? ($role->name === 'task_force' ? 'Nasional (Seluruh RI)' : ($user->scope_name ?: 'Nasional'))),
                         'provinsi' => $user->province_id,
                         'kabupatenKota' => $user->district_id,
-                        'institutionId' => $user->institution_id,
+                        'institutionId' => $user->institution_id ?? $instScope['ids'][0] ?? null,
                         'employerId' => $user->employer_id,
                     ],
                     'avatarInitials' => $user->avatar_initials,
