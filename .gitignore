@@ -4,8 +4,8 @@ node_modules/
 # Production build
 dist/
 dist-ssr/
-# /public/build/
-# /backend/public/build/
+/public/build/
+/backend/public/build/
 /public/hot
 
 # Local env files

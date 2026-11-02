@@ -14,7 +14,7 @@
 /auth.json
 /node_modules
 /public/hot
-# /public/build tracked for seamless zero-node production deployment
+/public/build/
 /public/storage
 /storage/*.key
 /storage/app/import/data_vokasi.csv

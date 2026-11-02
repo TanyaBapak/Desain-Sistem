@@ -1,4 +1,10 @@
 #!/usr/bin/env sh
 set -e
 
+# Tolak bila ada penambahan/perubahan artefak build di staging (lihat AGENTS.md Bagian 0.5)
+if git diff --cached --name-only --diff-filter=ACM | grep -q -E '^(backend/)?public/build/'; then
+  echo "Error: Artefak build di public/build dilarang di-commit (lihat AGENTS.md Bagian 0.5)."
+  exit 1
+fi
+
 echo "Pemeriksaan pre-commit lolos."

@@ -1,4 +1,10 @@
 #!/usr/bin/env sh
 set -e
 
+# Tolak bila ada artefak build yang ditambahkan/diubah pada commit yang akan di-push (lihat AGENTS.md Bagian 0.5)
+if git diff --name-only --diff-filter=ACM origin/main HEAD 2>/dev/null | grep -q -E '^(backend/)?public/build/'; then
+  echo "Error: Artefak build di public/build dilarang di-push (lihat AGENTS.md Bagian 0.5)."
+  exit 1
+fi
+
 echo "Pemeriksaan pre-push lolos."
