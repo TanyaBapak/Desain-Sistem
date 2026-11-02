@@ -83,6 +83,14 @@ class AppController extends Controller
                         ['tab' => $tab]
                     ),
                 );
+
+                \Log::info('AppController businessData loaded', [
+                    'user_id' => $request->user()?->id,
+                    'user_name' => $request->user()?->name,
+                    'tab' => $tab,
+                    'candidates_count' => count($businessData['candidates'] ?? []),
+                    'is_impersonating' => $request->session()->has('impersonator_id'),
+                ]);
             } catch (\Throwable $e) {
                 \Log::error('AppController businessData error: ' . $e->getMessage(), [
                     'trace' => $e->getTraceAsString(),
