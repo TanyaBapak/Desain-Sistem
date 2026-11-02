@@ -60,7 +60,7 @@ export const SupplyTable: React.FC<SupplyTableProps> = ({
   const store = useAppStore();
   const currentRole = propRole || store.currentRole;
   const currentScope = propScope || store.currentScope;
-  const candidates = (propCandidates && Array.isArray(propCandidates) && propCandidates.length > 0) ? propCandidates : store.candidates;
+  const candidates = propCandidates !== undefined ? propCandidates : store.candidates;
   const {
     currentUser,
     selectedCandidateIds,
@@ -454,7 +454,7 @@ export const SupplyTable: React.FC<SupplyTableProps> = ({
             <div className="flex flex-col items-start gap-1.5 sm:flex-row sm:flex-wrap sm:items-center sm:gap-2">
               <h1 className="text-base font-semibold tracking-tight sm:text-lg">Dashboard Pemetaan Calon PMI</h1>
               <span className="rounded px-2 py-0.5 text-xs font-semibold text-blue-100 bg-blue-700/60">
-                Scope: {currentScope.name}
+                Scope: {currentRole === 'vokasi' && (!currentScope.name || currentScope.name.toLowerCase().includes('nasional')) ? connectedFeederName : currentScope.name}
               </span>
               {currentRole === 'vokasi' && (
                 <span className="rounded px-2 py-0.5 text-xs font-semibold text-emerald-200 bg-emerald-800/80 border border-emerald-500/40">
