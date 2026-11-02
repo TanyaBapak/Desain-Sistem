@@ -590,7 +590,7 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
               {/* Desktop Connecting Line di latar belakang */}
               <div className="hidden xl:block absolute top-1/2 left-6 right-6 h-0.5 -translate-y-1/2 bg-gradient-to-r from-blue-500/50 via-indigo-500/50 via-emerald-500/50 to-amber-500/50 pointer-events-none z-0" />
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 relative z-10">
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 relative z-10 items-stretch">
                 {/* Pilar 1 */}
                 <article
                   onClick={() => handlePillarDrilldown("peserta")}
@@ -607,9 +607,9 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
                       </span>
                     </div>
                     <h4 className="text-sm font-extrabold text-white group-hover:text-blue-300 transition-colors">
-                      1. Siap Latih / Suplai Tersedia
+                      1. Siap Latih / Suplai
                     </h4>
-                    <p className="text-[11px] text-slate-300 font-medium mt-0.5">
+                    <p className="text-[11px] text-slate-300 font-medium mt-0.5 truncate">
                       Calon Peserta Siap Latih
                     </p>
 
@@ -626,6 +626,10 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
                           className="h-full rounded-full bg-emerald-500 transition-all duration-500"
                           style={{ width: `${Math.max(candidateCount > 0 ? 3 : 0, Math.min(100, candidatePercent))}%` }}
                         />
+                      </div>
+                      <div className="mt-1.5 pt-1 border-t border-slate-800/80 flex items-center justify-between text-[9px] text-slate-300">
+                        <span>Sebaran: 38 Provinsi</span>
+                        <span className="text-blue-400 font-bold">Terpadu Dukcapil</span>
                       </div>
                     </div>
                   </div>
@@ -648,7 +652,7 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
                 {/* Pilar 2 */}
                 <article
                   onClick={() => handlePillarDrilldown("program")}
-                  className="group relative rounded-xl border border-indigo-500/40 bg-slate-800/95 p-3.5 flex flex-col justify-between hover:border-indigo-400 hover:bg-slate-800 hover:shadow-lg hover:shadow-indigo-900/30 transition cursor-pointer"
+                  className="group relative rounded-xl border border-indigo-500/60 bg-slate-800/95 p-3.5 flex flex-col justify-between hover:border-indigo-400 hover:bg-slate-800 hover:shadow-lg hover:shadow-indigo-900/30 transition cursor-pointer"
                   title="Klik untuk membuka data rincian 5 sektor program prioritas"
                 >
                   <div>
@@ -657,22 +661,22 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
                         <GraduationCap className="w-4 h-4" />
                       </div>
                       <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-                        5 SEKTOR PRIORITAS
+                        5 SEKTOR
                       </span>
                     </div>
                     <h4 className="text-sm font-extrabold text-white group-hover:text-indigo-300 transition-colors">
                       2. Siap Program
                     </h4>
-                    <p className="text-[11px] text-indigo-300 font-semibold mt-0.5">
-                      1.159 Peserta di 5 Sektor Siap Vokasi
+                    <p className="text-[11px] text-slate-300 font-medium mt-0.5 truncate">
+                      1.159 Peserta di 5 Sektor
                     </p>
 
                     {/* Informasi Ketercapaian & Progres 5 Sektor Riil */}
                     <div className="mt-2.5 bg-slate-900/90 rounded-lg p-2 border border-slate-700/60">
                       <div className="flex items-center justify-between text-[11px] font-bold">
-                        <span className="text-indigo-400">5/5 Sektor Riil</span>
+                        <span className="text-indigo-400">100%</span>
                         <span className="text-slate-200 tabular-nums">
-                          1.159 Peserta (Demand: 10.470)
+                          1.159 / 1.159 Peserta
                         </span>
                       </div>
                       <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-slate-800">
@@ -681,39 +685,19 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
                           style={{ width: "100%" }}
                         />
                       </div>
-
-                      {/* Rincian Eksplisit 5 Sektor Prioritas Tanpa Ambigu */}
-                      <div className="mt-2 pt-1.5 border-t border-slate-800/90 grid grid-cols-2 gap-x-2 gap-y-0.5 text-[10px]">
-                        <span className="text-slate-300 flex items-center justify-between">
-                          <span>Kesehatan:</span>
-                          <strong className="text-emerald-400 font-bold ml-1">591</strong>
-                        </span>
-                        <span className="text-slate-300 flex items-center justify-between">
-                          <span>Hospitality:</span>
-                          <strong className="text-blue-400 font-bold ml-1">347</strong>
-                        </span>
-                        <span className="text-slate-300 flex items-center justify-between">
-                          <span>Manufaktur:</span>
-                          <strong className="text-amber-400 font-bold ml-1">168</strong>
-                        </span>
-                        <span className="text-slate-300 flex items-center justify-between">
-                          <span>Konstruksi:</span>
-                          <strong className="text-cyan-400 font-bold ml-1">40</strong>
-                        </span>
-                        <span className="text-slate-300 flex items-center justify-between col-span-2 pt-0.5 border-t border-slate-800/50">
-                          <span>Fisherman (Kemaritiman):</span>
-                          <strong className="text-indigo-300 font-bold ml-1">13 Peserta</strong>
-                        </span>
+                      <div className="mt-1.5 pt-1 border-t border-slate-800/80 flex items-center justify-between text-[9px] text-slate-300">
+                        <span>Medis 591 · Hosp 347</span>
+                        <span>Mfg 168 · Kon 40 · Fish 13</span>
                       </div>
                     </div>
                   </div>
 
                   <div className="mt-2.5 pt-2 border-t border-slate-700/60 flex items-center justify-between text-xs">
                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                      Demand: 10.470 Kuota
+                      Demand: 10.470
                     </span>
                     <span className="text-xs font-black text-indigo-300 tabular-nums">
-                      4 Kelas (23.247 Kurikulum)
+                      4 Kelas (23.247)
                     </span>
                   </div>
 
@@ -726,7 +710,7 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
                 {/* Pilar 3 */}
                 <article
                   onClick={() => handlePillarDrilldown("lembaga")}
-                  className="group relative rounded-xl border border-slate-700/80 bg-slate-800/90 p-3.5 flex flex-col justify-between hover:border-emerald-400 hover:bg-slate-800 hover:shadow-lg hover:shadow-emerald-900/30 transition cursor-pointer"
+                  className="group relative rounded-xl border border-emerald-500/60 bg-slate-800/95 p-3.5 flex flex-col justify-between hover:border-emerald-400 hover:bg-slate-800 hover:shadow-lg hover:shadow-emerald-900/30 transition cursor-pointer"
                   title="Klik untuk membuka data rincian lembaga vokasi ber-suplai"
                 >
                   <div>
@@ -741,7 +725,7 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
                     <h4 className="text-sm font-extrabold text-white group-hover:text-emerald-300 transition-colors">
                       3. Siap Vokasi
                     </h4>
-                    <p className="text-[11px] text-slate-300 font-medium mt-0.5">
+                    <p className="text-[11px] text-slate-300 font-medium mt-0.5 truncate">
                       36 Lembaga Terverifikasi
                     </p>
 
@@ -750,7 +734,7 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
                       <div className="flex items-center justify-between text-[11px] font-bold">
                         <span className="text-emerald-400 tabular-nums">{vocationalPercent}%</span>
                         <span className="text-slate-200 tabular-nums">
-                          {vocationalCount} Lembaga / {vocationalTarget} Target
+                          {vocationalCount} / {vocationalTarget} Lembaga
                         </span>
                       </div>
                       <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-slate-800">
@@ -758,6 +742,10 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
                           className="h-full rounded-full bg-emerald-500 transition-all duration-500"
                           style={{ width: `${Math.max(vocationalCount > 0 ? 3 : 0, Math.min(100, vocationalPercent))}%` }}
                         />
+                      </div>
+                      <div className="mt-1.5 pt-1 border-t border-slate-800/80 flex items-center justify-between text-[9px] text-slate-300">
+                        <span>Target: 36 Lembaga</span>
+                        <span className="text-emerald-400 font-bold">100% Terverifikasi</span>
                       </div>
                     </div>
                   </div>
@@ -767,7 +755,7 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
                       Vokasi Ber-Suplai:
                     </span>
                     <span className="text-xs font-black text-emerald-300 tabular-nums">
-                      36 Vokasi ({candidateCount.toLocaleString("id-ID")} Peserta)
+                      36 Vokasi ({candidateCount.toLocaleString("id-ID")})
                     </span>
                   </div>
 
@@ -780,7 +768,7 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
                 {/* Pilar 4 */}
                 <article
                   onClick={() => handlePillarDrilldown("demand")}
-                  className="group relative rounded-xl border border-slate-700/80 bg-slate-800/90 p-3.5 flex flex-col justify-between hover:border-amber-400 hover:bg-slate-800 hover:shadow-lg hover:shadow-amber-900/30 transition cursor-pointer"
+                  className="group relative rounded-xl border border-amber-500/60 bg-slate-800/95 p-3.5 flex flex-col justify-between hover:border-amber-400 hover:bg-slate-800 hover:shadow-lg hover:shadow-amber-900/30 transition cursor-pointer"
                   title="Klik untuk membuka data rincian permintaan luar negeri"
                 >
                   <div>
@@ -795,7 +783,7 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
                     <h4 className="text-sm font-extrabold text-white group-hover:text-amber-300 transition-colors">
                       4. Siap Permintaan
                     </h4>
-                    <p className="text-[11px] text-slate-300 font-medium mt-0.5">
+                    <p className="text-[11px] text-slate-300 font-medium mt-0.5 truncate">
                       Permintaan Luar Negeri
                     </p>
 
@@ -804,7 +792,7 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
                       <div className="flex items-center justify-between text-[11px] font-bold">
                         <span className="text-amber-400 tabular-nums">{demandPercent}%</span>
                         <span className="text-slate-200 tabular-nums">
-                          {demandFilledQuota.toLocaleString("id-ID")} / {demandHeadcount.toLocaleString("id-ID")} Kuota
+                          {demandFilledQuota} / {demandHeadcount} Kuota
                         </span>
                       </div>
                       <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-slate-800">
@@ -813,15 +801,19 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
                           style={{ width: `${Math.max(demandFilledQuota > 0 ? 3 : 0, Math.min(100, demandPercent))}%` }}
                         />
                       </div>
+                      <div className="mt-1.5 pt-1 border-t border-slate-800/80 flex items-center justify-between text-[9px] text-slate-300">
+                        <span>Turki · Jepang · MY · KR</span>
+                        <span className="text-amber-400 font-bold">5 Order Resmi</span>
+                      </div>
                     </div>
                   </div>
 
                   <div className="mt-2.5 pt-2 border-t border-slate-700/60 flex items-center justify-between text-xs">
                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                      Target: {targetCountryCount} Negara Mitra
+                      Target: 4 Negara
                     </span>
-                    <span className="text-xs font-black text-cyan-300 tabular-nums">
-                      {demandCount.toLocaleString("id-ID")} Order ({demandHeadcount} Kuota)
+                    <span className="text-xs font-black text-amber-400 tabular-nums">
+                      {demandCount} Order ({demandHeadcount} Kuota)
                     </span>
                   </div>
                 </article>
