@@ -74,7 +74,7 @@ class HandleInertiaRequests extends Middleware
             'task_force', 'directorate_admin' => 'taskforce',
             'province_admin', 'district_admin' => 'disnaker',
             'bp3mi_admin', 'placement_officer' => 'matching',
-            'institution_admin', 'training_operator' => 'vokasi',
+            'institution_admin', 'training_operator', 'vokasi', 'lembaga_vokasi' => 'vokasi',
             'demand_admin' => 'demand',
             'verifier' => 'verifikator',
             'auditor' => 'pimpinan',

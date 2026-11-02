@@ -1874,7 +1874,7 @@ class BusinessDataPresenter
             })
             ->leftJoin('provinces', 'provinces.id', '=', 'job_seekers.province_id')
             ->leftJoin('districts', 'districts.id', '=', 'job_seekers.district_id')
-            ->when($this->bp3miScope->hasActiveAreaFilter($user), fn ($query) => $this->bp3miScope->applyToJobSeekers($query, $user))
+            ->when($role === 'task_force' && $this->bp3miScope->hasActiveAreaFilter($user), fn ($query) => $this->bp3miScope->applyToJobSeekers($query, $user))
             ->orderByDesc(DB::raw("COALESCE(job_seekers.updated_at, job_seekers.created_at)"))
             ->limit(15000)
             ->get([
@@ -3282,7 +3282,7 @@ class BusinessDataPresenter
                 ->whereNotExists(fn ($query) => $query->selectRaw('1')
                     ->from('placement_cases')
                     ->whereColumn('placement_cases.candidate_match_id', 'candidate_matches.id'))
-                ->when($this->bp3miScope->hasActiveAreaFilter($user), fn ($query) => $this->bp3miScope->applyToJobSeekers($query, $user))
+                ->when($role === 'task_force' && $this->bp3miScope->hasActiveAreaFilter($user), fn ($query) => $this->bp3miScope->applyToJobSeekers($query, $user))
                 ->orderBy('job_seekers.full_name')
                 ->get([
                     'candidate_matches.id as candidate_match_id',

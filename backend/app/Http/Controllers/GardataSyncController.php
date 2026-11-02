@@ -13,7 +13,7 @@ class GardataSyncController extends Controller
     public function __invoke(Request $request): RedirectResponse
     {
         abort_unless(
-            in_array($request->user()->roles()->value('name'), ['super_admin', 'task_force', 'institution_admin'], true),
+            in_array($request->user()->roles()->value('name'), ['super_admin', 'task_force', 'institution_admin', 'vokasi', 'lembaga_vokasi', 'training_operator'], true) || $request->user()->scope_level === 'lembaga',
             403,
         );
 
