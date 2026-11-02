@@ -43,7 +43,7 @@ class BusinessDataController extends Controller
             };
             $this->createApprovalRequest($request, $type, $id);
         });
-        app(BusinessDataPresenter::class)->forget($request->user());
+        app(BusinessDataPresenter::class)->forgetAll();
 
         return back()->with('success', 'Data berhasil disimpan ke database.');
     }
@@ -83,7 +83,9 @@ class BusinessDataController extends Controller
         DB::transaction(function () use ($request, $validated, &$importedCount): void {
             $user = $request->user();
             $role = $user->roles()->value('name');
-            $institution = $role === 'institution_admin' ? $this->resolveUserInstitution($user) : null;
+            $institution = (in_array($role, ['institution_admin', 'training_operator'], true) || $user->scope_level === 'lembaga')
+                ? $this->resolveUserInstitution($user)
+                : null;
 
             foreach ($validated['candidates'] as $idx => $item) {
                 $rawNik = preg_replace('/\D/', '', (string) ($item['nik'] ?? ''));
@@ -165,7 +167,7 @@ class BusinessDataController extends Controller
             }
         });
 
-        app(BusinessDataPresenter::class)->forget($request->user());
+        app(BusinessDataPresenter::class)->forgetAll();
 
         if ($request->wantsJson()) {
             return response()->json([
@@ -196,7 +198,7 @@ class BusinessDataController extends Controller
             };
             $this->createApprovalRequest($request, $type, $id);
         });
-        app(BusinessDataPresenter::class)->forget($request->user());
+        app(BusinessDataPresenter::class)->forgetAll();
 
         return back()->with('success', 'Perubahan berhasil disimpan.');
     }
@@ -233,7 +235,7 @@ class BusinessDataController extends Controller
 
             $this->writeAudit($request, $type, $id, 'HAPUS_DATA', $reason);
         });
-        app(BusinessDataPresenter::class)->forget($request->user());
+        app(BusinessDataPresenter::class)->forgetAll();
 
         return back()->with('success', 'Data berhasil dinonaktifkan.');
     }
@@ -470,7 +472,14 @@ class BusinessDataController extends Controller
                         }
                     }
                     if (! empty($user->id)) {
-                        $q->orWhere('job_seekers.created_by', (string) $user->id);
+                        $q->orWhere('job_seekers.created_by', (string) $user->id)
+                            ->orWhere('job_seekers.created_by', (string) $user->name)
+                            ->orWhere('job_seekers.created_by', (string) $user->username);
+                        $hasCondition = true;
+                    }
+                    if (! empty($user->organization)) {
+                        $q->orWhere('job_seekers.institution_name', (string) $user->organization);
+                        $hasCondition = true;
                     }
                     if (! $hasCondition) {
                         $q->where('job_seekers.institution_id', $user->institution_id ?? '');
@@ -1007,10 +1016,10 @@ class BusinessDataController extends Controller
         if ($role === 'task_force' && ! app(Bp3miScope::class)->allowsProvinceId($user, $provinceId)) {
             abort(403);
         }
-        if ($role === 'institution_admin') {
+        if (in_array($role, ['institution_admin', 'training_operator'], true) || $user->scope_level === 'lembaga') {
             $institution = $this->resolveUserInstitution($user);
             if (! $institution && ! $request->session()->has('impersonator_id')) {
-                $instName = $user->organization ?: 'Politeknik Indonusa Surakarta';
+                $instName = $user->organization ?: ('Lembaga Vokasi '.($user->name ?: 'Mitra'));
                 $instId = 'inst-'.Str::slug($instName);
                 DB::table('institutions')->updateOrInsert(
                     ['id' => $instId],
@@ -1027,6 +1036,9 @@ class BusinessDataController extends Controller
                     ]
                 );
                 $institution = DB::table('institutions')->where('id', $instId)->first();
+                if ($institution && empty($user->institution_id)) {
+                    DB::table('users')->where('id', $user->id)->update(['institution_id' => $institution->id]);
+                }
             }
         } else {
             $institution = null;

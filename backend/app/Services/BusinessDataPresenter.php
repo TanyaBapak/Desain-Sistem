@@ -1765,7 +1765,14 @@ class BusinessDataPresenter
                         }
                     }
                     if (! empty($user->id)) {
-                        $q->orWhere('job_seekers.created_by', (string) $user->id);
+                        $q->orWhere('job_seekers.created_by', (string) $user->id)
+                            ->orWhere('job_seekers.created_by', (string) $user->name)
+                            ->orWhere('job_seekers.created_by', (string) $user->username);
+                        $hasCondition = true;
+                    }
+                    if (! empty($user->organization)) {
+                        $q->orWhere('job_seekers.institution_name', (string) $user->organization);
+                        $hasCondition = true;
                     }
                     if (! $hasCondition) {
                         $q->where('job_seekers.institution_id', $user->institution_id ?? '');
