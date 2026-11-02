@@ -7,6 +7,7 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Schema;
 use Throwable;
 
 class GardataInspectAndForceImportCommand extends Command
@@ -179,17 +180,34 @@ class GardataInspectAndForceImportCommand extends Command
             $this->warn('   - Indonusa sync warning: ' . $e->getMessage());
         }
 
-        // Tautkan akun pengguna lembaga ke institusi resminya
-        DB::table('users')
+        // Tautkan akun pengguna lembaga ke institusi resminya dan perbarui scope_level
+        $instId = $syncService->resolveOrCreateInstitution('LPK Victoria Hotel School', '33', '3372');
+        $instRole = DB::table('roles')->where('name', 'institution_admin')->value('id');
+
+        $ariefUsers = DB::table('users')
             ->where(function ($q) {
                 $q->where('name', 'LIKE', '%Arief%')
                     ->orWhere('email', 'LIKE', '%victoria%')
-                    ->orWhere('organization', 'LIKE', '%Victoria%');
+                    ->orWhere('organization', 'LIKE', '%Victoria%')
+                    ->orWhere('scope_name', 'LIKE', '%Victoria%');
             })
-            ->update([
-                'institution_id' => $syncService->resolveOrCreateInstitution('LPK Victoria Hotel School', '33', '3372'),
+            ->get();
+
+        foreach ($ariefUsers as $u) {
+            DB::table('users')->where('id', $u->id)->update([
+                'institution_id' => $instId,
                 'organization' => 'LPK Victoria Hotel School',
+                'scope_level' => 'lembaga',
+                'scope_name' => 'LPK Victoria Hotel School',
             ]);
+
+            if ($instRole) {
+                DB::table('model_has_roles')->updateOrInsert(
+                    ['model_id' => $u->id, 'model_type' => 'App\Models\User'],
+                    ['role_id' => $instRole]
+                );
+            }
+        }
 
         $this->newLine();
         $this->line('7. Membersihkan cache aplikasi...');

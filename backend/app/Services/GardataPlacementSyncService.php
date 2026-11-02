@@ -962,17 +962,31 @@ class GardataPlacementSyncService
             'evokasi_status' => 'Terverifikasi e-Vokasi',
         ]);
 
-        DB::table('users')
+        $instRole = DB::table('roles')->where('name', 'institution_admin')->value('id');
+        $matchedUsers = DB::table('users')
             ->where(function ($q) {
                 $q->where('name', 'LIKE', '%Arief%')
                     ->orWhere('email', 'LIKE', '%victoria%')
                     ->orWhere('organization', 'LIKE', '%Victoria%')
                     ->orWhere('scope_name', 'LIKE', '%Victoria%');
             })
-            ->update([
+            ->get();
+
+        foreach ($matchedUsers as $u) {
+            DB::table('users')->where('id', $u->id)->update([
                 'institution_id' => $institutionId,
                 'organization' => 'LPK Victoria Hotel School',
+                'scope_level' => 'lembaga',
+                'scope_name' => 'LPK Victoria Hotel School',
             ]);
+
+            if ($instRole) {
+                DB::table('model_has_roles')->updateOrInsert(
+                    ['model_id' => $u->id, 'model_type' => 'App\Models\User'],
+                    ['role_id' => $instRole]
+                );
+            }
+        }
 
         $candidates = [
             [
