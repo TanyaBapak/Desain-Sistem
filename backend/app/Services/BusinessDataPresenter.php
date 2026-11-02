@@ -3240,38 +3240,22 @@ class BusinessDataPresenter
             $candidateSource = 'all';
         }
         $candidateSourceFilter = function ($query) use ($candidateSource): void {
-            $query->where(function ($sourceQuery): void {
-                $sourceQuery->whereIn('job_seekers.external_source', ['gardata', 'sippmi'])
-                    ->orWhere(function ($legacy): void {
-                        $legacy->whereNull('job_seekers.external_source')
-                            ->where(function ($names): void {
-                                foreach (GardataPlacementSyncService::KNOWN_SUBDOMAINS as $tenant) {
-                                    $needle = match ($tenant['subdomain']) {
-                                        'omegahotelacademy.sippmi.com' => 'Omega',
-                                        'victoriahotelschool.sippmi.com' => 'Victoria',
-                                        'dutainternationalcourse.sippmi.com' => 'Duta',
-                                        default => $tenant['name'],
-                                    };
-                                    $names->orWhere('job_seekers.institution_name', 'LIKE', '%'.$needle.'%');
-                                }
-                            });
-                    });
-            });
             if ($candidateSource === 'sippmi.com') {
-                $query->where(function ($q): void {
-                    $q->where('job_seekers.external_source', 'sippmi')
-                        ->orWhere('job_seekers.institution_name', 'LIKE', '%Indonusa%');
+                $query->where('job_seekers.institution_name', 'LIKE', '%Indonusa%');
+            } elseif ($candidateSource === 'omegahotelacademy.sippmi.com') {
+                $query->where('job_seekers.institution_name', 'LIKE', '%Omega%');
+            } elseif ($candidateSource === 'victoriahotelschool.sippmi.com') {
+                $query->where('job_seekers.institution_name', 'LIKE', '%Victoria%');
+            } elseif ($candidateSource === 'dutainternationalcourse.sippmi.com') {
+                $query->where('job_seekers.institution_name', 'LIKE', '%Duta International%');
+            } else {
+                $query->where(function ($sourceQuery): void {
+                    $sourceQuery->where('job_seekers.institution_name', 'LIKE', '%Indonusa%')
+                        ->orWhere('job_seekers.institution_name', 'LIKE', '%Omega%')
+                        ->orWhere('job_seekers.institution_name', 'LIKE', '%Victoria%')
+                        ->orWhere('job_seekers.institution_name', 'LIKE', '%Duta International%')
+                        ->orWhere('job_seekers.external_source', 'gardata');
                 });
-            } elseif ($candidateSource !== 'all') {
-                $tenant = collect(GardataPlacementSyncService::KNOWN_SUBDOMAINS)
-                    ->firstWhere('subdomain', $candidateSource);
-                $needle = match ($candidateSource) {
-                    'omegahotelacademy.sippmi.com' => 'Omega',
-                    'victoriahotelschool.sippmi.com' => 'Victoria',
-                    'dutainternationalcourse.sippmi.com' => 'Duta',
-                    default => $tenant['name'] ?? '',
-                };
-                $query->where('job_seekers.institution_name', 'LIKE', '%'.$needle.'%');
             }
         };
         $candidateCountQuery = DB::table('job_seekers')
@@ -3306,14 +3290,12 @@ class BusinessDataPresenter
         $gardataCandidates = $candidateRows->map(fn (object $row): array => [
             'id' => $row->id,
             'fullName' => $row->full_name,
-            'institutionName' => ($row->external_source === 'sippmi' || stripos((string) $row->institution_name, 'Indonusa') !== false)
-                ? 'Politeknik Indonusa Surakarta'
-                : $row->institution_name,
+            'institutionName' => $row->institution_name ?: 'Belum ditentukan',
             'subdomain' => match (true) {
-                $row->external_source === 'sippmi' || stripos((string) $row->institution_name, 'Indonusa') !== false => 'sippmi.com',
+                stripos((string) $row->institution_name, 'Indonusa') !== false => 'sippmi.com',
                 stripos((string) $row->institution_name, 'Omega') !== false => 'omegahotelacademy.sippmi.com',
                 stripos((string) $row->institution_name, 'Victoria') !== false => 'victoriahotelschool.sippmi.com',
-                stripos((string) $row->institution_name, 'Duta') !== false => 'dutainternationalcourse.sippmi.com',
+                stripos((string) $row->institution_name, 'Duta International') !== false => 'dutainternationalcourse.sippmi.com',
                 default => 'gardata.sippmi.com',
             },
             'nik' => strlen($row->nik) === 16 ? substr($row->nik, 0, 4).'••••••••'.substr($row->nik, -4) : '••••',
@@ -3418,21 +3400,15 @@ class BusinessDataPresenter
         $tenants = collect(GardataPlacementSyncService::KNOWN_SUBDOMAINS)->map(function (array $t): array {
             $inst = DB::table('institutions')->where('external_id', $t['subdomain'])->first();
             $searchKey = match ($t['subdomain']) {
-                'omegahotelacademy.sippmi.com' => 'Omega',
-                'victoriahotelschool.sippmi.com' => 'Victoria',
-                'dutainternationalcourse.sippmi.com' => 'Duta',
+                'omegahotelacademy.sippmi.com' => 'Omega Hotel',
+                'victoriahotelschool.sippmi.com' => 'Victoria Hotel',
+                'dutainternationalcourse.sippmi.com' => 'Duta International',
                 default => $t['name'],
             };
 
             $candCount = DB::table('job_seekers')
                 ->whereNull('deleted_at')
-                ->where(function ($query) use ($searchKey): void {
-                    $query->where('institution_name', 'LIKE', '%'.$searchKey.'%')
-                        ->where(function ($q): void {
-                            $q->whereIn('external_source', ['gardata', 'sippmi'])
-                                ->orWhereNull('external_source');
-                        });
-                })
+                ->where('institution_name', 'LIKE', '%'.$searchKey.'%')
                 ->count();
 
             $classCount = DB::table('external_training_records')
@@ -3466,19 +3442,13 @@ class BusinessDataPresenter
             'district' => 'Surakarta',
             'candidateCount' => DB::table('job_seekers')
                 ->whereNull('deleted_at')
-                ->where(function ($q): void {
-                    $q->where('external_source', 'sippmi')
-                        ->orWhere('institution_name', 'LIKE', '%Indonusa%');
-                })
+                ->where('institution_name', 'LIKE', '%Indonusa%')
                 ->count(),
             'classCount' => DB::table('external_training_records')
-                ->where(function ($q): void {
-                    $q->where('external_source', 'sippmi')
-                        ->orWhereIn('job_seeker_id', function ($sub): void {
-                            $sub->select('id')
-                                ->from('job_seekers')
-                                ->where('institution_name', 'LIKE', '%Indonusa%');
-                        });
+                ->whereIn('job_seeker_id', function ($sub): void {
+                    $sub->select('id')
+                        ->from('job_seekers')
+                        ->where('institution_name', 'LIKE', '%Indonusa%');
                 })
                 ->distinct('external_batch_id')
                 ->count('external_batch_id'),
