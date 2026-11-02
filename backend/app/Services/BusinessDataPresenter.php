@@ -1349,7 +1349,7 @@ class BusinessDataPresenter
         }
 
         $isModulA = in_array($tab, ['modul-a', 'supply', 'candidates'], true);
-        $isImpersonating = request()->session()->has('impersonator_id');
+        $isImpersonating = request()->hasSession() && request()->session()->has('impersonator_id');
 
         // Pastikan scope institusi dan auto-linking selalu dijalankan segar untuk akun lembaga
         if ($isLembaga) {

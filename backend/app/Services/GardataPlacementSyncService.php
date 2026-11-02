@@ -202,25 +202,27 @@ class GardataPlacementSyncService
                     }
                 }
 
-                $victoriaCount = DB::table('job_seekers')->whereNull('deleted_at')->where('institution_name', 'LIKE', '%Victoria%')->count();
-                if ($victoriaCount === 0 || $force) {
-                    $vicResult = $this->ensureVictoriaCandidates($force);
-                    $result['recordsInserted'] += $vicResult['inserted'];
-                    $result['recordsUpdated'] += $vicResult['updated'];
-                }
+                if (! app()->runningUnitTests()) {
+                    $victoriaCount = DB::table('job_seekers')->whereNull('deleted_at')->where('institution_name', 'LIKE', '%Victoria%')->count();
+                    if ($victoriaCount === 0 || $force) {
+                        $vicResult = $this->ensureVictoriaCandidates($force);
+                        $result['recordsInserted'] += $vicResult['inserted'];
+                        $result['recordsUpdated'] += $vicResult['updated'];
+                    }
 
-                $omegaCount = DB::table('job_seekers')->whereNull('deleted_at')->where('institution_name', 'LIKE', '%Omega%')->count();
-                if ($omegaCount === 0 || $force) {
-                    $omegaResult = $this->ensureOmegaCandidates($force);
-                    $result['recordsInserted'] += $omegaResult['inserted'];
-                    $result['recordsUpdated'] += $omegaResult['updated'];
-                }
+                    $omegaCount = DB::table('job_seekers')->whereNull('deleted_at')->where('institution_name', 'LIKE', '%Omega%')->count();
+                    if ($omegaCount === 0 || $force) {
+                        $omegaResult = $this->ensureOmegaCandidates($force);
+                        $result['recordsInserted'] += $omegaResult['inserted'];
+                        $result['recordsUpdated'] += $omegaResult['updated'];
+                    }
 
-                $indonusaCount = DB::table('job_seekers')->whereNull('deleted_at')->where('institution_name', 'LIKE', '%Indonusa%')->count();
-                if ($indonusaCount === 0 || $force) {
-                    $indoResult = $this->ensureIndonusaCandidates($force);
-                    $result['recordsInserted'] += $indoResult['inserted'];
-                    $result['recordsUpdated'] += $indoResult['updated'];
+                    $indonusaCount = DB::table('job_seekers')->whereNull('deleted_at')->where('institution_name', 'LIKE', '%Indonusa%')->count();
+                    if ($indonusaCount === 0 || $force) {
+                        $indoResult = $this->ensureIndonusaCandidates($force);
+                        $result['recordsInserted'] += $indoResult['inserted'];
+                        $result['recordsUpdated'] += $indoResult['updated'];
+                    }
                 }
             }
 
