@@ -104,7 +104,7 @@ class User extends Authenticatable
             'directorate_admin' => ['dashboard', 'modul-b', 'modul-c', 'matching', 'reports'],
             'province_admin', 'district_admin' => ['modul-a'],
             'bp3mi_admin', 'placement_officer' => ['matching'],
-            'institution_admin' => ['modul-a', 'modul-b', 'modul-c'],
+            'institution_admin', 'vokasi', 'lembaga_vokasi' => ['modul-a', 'modul-b', 'modul-c'],
             'demand_admin' => ['modul-d'],
             'verifier' => ['modul-a', 'modul-b', 'modul-c', 'modul-d', 'approvals'],
             'training_operator' => ['modul-b'],

@@ -83,7 +83,7 @@ class BusinessDataController extends Controller
         DB::transaction(function () use ($request, $validated, &$importedCount): void {
             $user = $request->user();
             $role = $user->roles()->value('name');
-            $institution = (in_array($role, ['institution_admin', 'training_operator'], true) || $user->scope_level === 'lembaga')
+            $institution = (in_array($role, ['institution_admin', 'training_operator', 'vokasi', 'lembaga_vokasi'], true) || $user->scope_level === 'lembaga')
                 ? $this->resolveUserInstitution($user)
                 : null;
 
@@ -147,7 +147,7 @@ class BusinessDataController extends Controller
                     'kabupatenKota' => $resolved['district_name'],
                     'educationLevel' => $educationLevel,
                     'institutionName' => $institution?->name ?? ($item['institutionName'] ?: 'Lembaga Vokasi'),
-                    'sourceType' => $item['sourceType'] ?? ($role === 'institution_admin' ? 'Lembaga Vokasi' : 'Disnaker Pemda'),
+                    'sourceType' => $item['sourceType'] ?? (in_array($role, ['institution_admin', 'vokasi', 'lembaga_vokasi', 'training_operator'], true) ? 'Lembaga Vokasi' : 'Disnaker Pemda'),
                     'major' => ! empty($item['major']) ? $item['major'] : 'Umum',
                     'skills' => array_values(array_filter($item['skills'] ?? [], fn ($s) => is_string($s) && trim($s) !== '')),
                     'workExperiences' => $item['workExperiences'] ?? [],
@@ -245,7 +245,7 @@ class BusinessDataController extends Controller
         $user = $request->user();
         $role = $user->roles()->value('name');
 
-        abort_unless(in_array($role, ['task_force', 'directorate_admin', 'institution_admin', 'verifier'], true), 403);
+        abort_unless(in_array($role, ['task_force', 'directorate_admin', 'institution_admin', 'verifier', 'vokasi', 'lembaga_vokasi', 'training_operator'], true), 403);
 
         $page = max(1, (int) $request->query('page', 1));
         $perPage = min(24, max(12, (int) $request->query('per_page', 12)));
@@ -263,7 +263,7 @@ class BusinessDataController extends Controller
             ->leftJoin('districts', 'districts.id', '=', 'institutions.district_id')
             ->where('institutions.status', 'Aktif')
             ->when(app(Bp3miScope::class)->hasActiveAreaFilter($user), fn ($q) => app(Bp3miScope::class)->applyToInstitutions($q, $user))
-            ->when($role === 'institution_admin' || $user->scope_level === 'lembaga', function ($q) use ($user) {
+            ->when(in_array($role, ['institution_admin', 'training_operator', 'vokasi', 'lembaga_vokasi'], true) || $user->scope_level === 'lembaga', function ($q) use ($user) {
                 $scope = app(BusinessDataPresenter::class)->resolveInstitutionScope($user);
                 $q->where(function ($qq) use ($scope, $user) {
                     $hasCond = false;
@@ -439,7 +439,7 @@ class BusinessDataController extends Controller
         $user = $request->user();
         $role = $user->roles()->value('name');
 
-        abort_unless(in_array($role, ['task_force', 'province_admin', 'district_admin', 'institution_admin', 'verifier'], true), 403);
+        abort_unless(in_array($role, ['task_force', 'province_admin', 'district_admin', 'institution_admin', 'verifier', 'vokasi', 'lembaga_vokasi', 'training_operator'], true), 403);
 
         $page = max(1, (int) $request->query('page', 1));
         $perPage = min(100, max(25, (int) $request->query('per_page', 50)));
@@ -450,7 +450,7 @@ class BusinessDataController extends Controller
             ->leftJoin('provinces', 'provinces.id', '=', 'job_seekers.province_id')
             ->when(app(Bp3miScope::class)->hasActiveAreaFilter($user), fn ($query) => app(Bp3miScope::class)->applyToJobSeekers($query, $user))
             ->when($role === 'province_admin', fn ($query) => $query->where('job_seekers.province_id', $user->province_id))
-            ->when(in_array($role, ['institution_admin', 'training_operator'], true) || $user->scope_level === 'lembaga', function ($query) use ($user) {
+            ->when(in_array($role, ['institution_admin', 'training_operator', 'vokasi', 'lembaga_vokasi'], true) || $user->scope_level === 'lembaga', function ($query) use ($user) {
                 $scope = app(BusinessDataPresenter::class)->resolveInstitutionScope($user);
                 $query->where(function ($q) use ($scope, $user) {
                     $hasCondition = false;
@@ -1022,7 +1022,7 @@ class BusinessDataController extends Controller
         if ($role === 'task_force' && ! app(Bp3miScope::class)->allowsProvinceId($user, $provinceId)) {
             abort(403);
         }
-        if (in_array($role, ['institution_admin', 'training_operator'], true) || $user->scope_level === 'lembaga') {
+        if (in_array($role, ['institution_admin', 'training_operator', 'vokasi', 'lembaga_vokasi'], true) || $user->scope_level === 'lembaga') {
             $institution = $this->resolveUserInstitution($user);
             if (! $institution && ! $request->session()->has('impersonator_id')) {
                 $instName = $user->organization ?: ('Lembaga Vokasi '.($user->name ?: 'Mitra'));
@@ -1067,7 +1067,7 @@ class BusinessDataController extends Controller
             'education_level' => $data['educationLevel'],
             'institution_name' => $institution?->name ?? $data['institutionName'],
             'major' => $data['major'],
-            'source_type' => $role === 'institution_admin'
+            'source_type' => in_array($role, ['institution_admin', 'vokasi', 'lembaga_vokasi', 'training_operator'], true)
                 ? 'LPK'
                 : ($role === 'province_admin' || $role === 'district_admin'
                     ? 'Disnaker'
@@ -1150,7 +1150,7 @@ class BusinessDataController extends Controller
         $this->assertOccupationSector($occupationId, $sectorId, 'targetJobRole');
         $countryId = $this->referenceId('countries', 'name', $data['targetCountry'], 'targetCountry');
         $existing = $creating ? null : DB::table('training_programs')->where('id', $id)->first();
-        $institutionId = in_array($request->user()->roles()->value('name'), ['institution_admin', 'training_operator'], true)
+        $institutionId = in_array($request->user()->roles()->value('name'), ['institution_admin', 'training_operator', 'vokasi', 'lembaga_vokasi'], true)
             ? $request->user()->institution_id
             : $data['institutionId'];
         if ($request->user()->roles()->value('name') === 'task_force') {
@@ -1598,20 +1598,20 @@ class BusinessDataController extends Controller
         }
 
         $allowedRoles = match ($type) {
-            'candidates' => ['task_force', 'province_admin', 'district_admin', 'institution_admin', 'verifier'],
-            'programs' => ['task_force', 'directorate_admin', 'institution_admin', 'training_operator'],
-            'providers' => ['task_force', 'directorate_admin', 'institution_admin'],
+            'candidates' => ['task_force', 'province_admin', 'district_admin', 'institution_admin', 'verifier', 'vokasi', 'lembaga_vokasi'],
+            'programs' => ['task_force', 'directorate_admin', 'institution_admin', 'training_operator', 'vokasi', 'lembaga_vokasi'],
+            'providers' => ['task_force', 'directorate_admin', 'institution_admin', 'vokasi', 'lembaga_vokasi'],
             'demands' => ['task_force', 'demand_admin'],
         };
 
         abort_unless(in_array($role, $allowedRoles, true), 403);
-        if ($action === 'create' && $role === 'institution_admin' && $type === 'providers') {
+        if ($action === 'create' && in_array($role, ['institution_admin', 'vokasi', 'lembaga_vokasi'], true) && $type === 'providers') {
             abort(403);
         }
-        if ($type === 'candidates' && $role === 'institution_admin' && ! $this->resolveUserInstitution($request->user())) {
+        if ($type === 'candidates' && in_array($role, ['institution_admin', 'vokasi', 'lembaga_vokasi'], true) && ! $this->resolveUserInstitution($request->user())) {
             abort(403);
         }
-        if ($action === 'create' && in_array($role, ['institution_admin', 'training_operator'], true) && ! $this->resolveUserInstitution($request->user()) && $type === 'programs') {
+        if ($action === 'create' && in_array($role, ['institution_admin', 'training_operator', 'vokasi', 'lembaga_vokasi'], true) && ! $this->resolveUserInstitution($request->user()) && $type === 'programs') {
             abort(403);
         }
         if ($action === 'create' && $role === 'demand_admin' && ! $request->user()->employer_id) {
@@ -1708,7 +1708,7 @@ class BusinessDataController extends Controller
                 'task_force' => app(Bp3miScope::class)->allowsProvinceId($user, $record->province_id),
                 'province_admin' => $record->province_id === $user->province_id,
                 'district_admin' => $record->district_id === $user->district_id,
-                'institution_admin' => $record->institution_id === $user->institution_id
+                'institution_admin', 'vokasi', 'lembaga_vokasi' => $record->institution_id === $user->institution_id
                     || in_array($record->institution_id, $instScope['ids'], true),
                 default => $user->scope_level === 'lembaga'
                     ? ($record->institution_id === $user->institution_id || in_array($record->institution_id, $instScope['ids'], true))
@@ -1719,13 +1719,13 @@ class BusinessDataController extends Controller
                     $user,
                     DB::table('institutions')->where('id', $record->institution_id)->value('province_id'),
                 ),
-                'institution_admin', 'training_operator' => $record->institution_id === $user->institution_id
+                'institution_admin', 'training_operator', 'vokasi', 'lembaga_vokasi' => $record->institution_id === $user->institution_id
                     || in_array($record->institution_id, $instScope['ids'], true),
                 default => true,
             },
             'providers' => match ($role) {
                 'task_force' => app(Bp3miScope::class)->allowsProvinceId($user, $record->province_id),
-                'institution_admin' => $record->id === $user->institution_id
+                'institution_admin', 'vokasi', 'lembaga_vokasi' => $record->id === $user->institution_id
                     || in_array($record->id, $instScope['ids'], true)
                     || (! empty($user->organization) && stripos($record->name, $user->organization) !== false)
                     || collect($instScope['patterns'] ?? [])->contains(fn ($p) => stripos($record->name, str_replace('%', '', (string) $p)) !== false)

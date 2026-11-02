@@ -967,12 +967,10 @@ class GardataPlacementSyncService
                     ->orWhere('organization', 'LIKE', '%Victoria%')
                     ->orWhere('scope_name', 'LIKE', '%Victoria%');
             })
-            ->where(function ($q) {
-                $q->whereNull('institution_id')
-                    ->orWhere('institution_id', '')
-                    ->orWhere('institution_id', 'LIKE', 'INS-%');
-            })
-            ->update(['institution_id' => $institutionId]);
+            ->update([
+                'institution_id' => $institutionId,
+                'organization' => 'LPK Victoria Hotel School',
+            ]);
 
         $candidates = [
             [
