@@ -3,6 +3,7 @@ import { useForm } from "@inertiajs/react";
 import { MapPinned } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { InstitutionIdField } from "@/pages/InstitutionIdField";
 import type { ManagedUser, UserManagementData } from "@/pages/user-management-types";
 
 interface UserScopeDialogProps {
@@ -31,9 +32,10 @@ export function UserScopeDialog({
     }
   };
   const form = useForm({
-    scopeLevel: user.scopeLevel || (user.districtId ? "kabupaten" : user.provinceId ? "provinsi" : "national"),
+    scopeLevel: user.scopeLevel || (user.institutionId ? "lembaga" : user.districtId ? "kabupaten" : user.provinceId ? "provinsi" : "national"),
     provinceId: user.provinceId ?? "",
     districtId: user.districtId ?? "",
+    institutionId: user.institutionId ?? "",
   });
   const isProvinceAdmin = user.roleName === "province_admin";
   const isDistrictAdmin = user.roleName === "district_admin";
@@ -43,9 +45,10 @@ export function UserScopeDialog({
   useEffect(() => {
     if (!open) {
       form.setData({
-        scopeLevel: user.scopeLevel || (user.districtId ? "kabupaten" : user.provinceId ? "provinsi" : "national"),
+        scopeLevel: user.scopeLevel || (user.institutionId ? "lembaga" : user.districtId ? "kabupaten" : user.provinceId ? "provinsi" : "national"),
         provinceId: user.provinceId ?? "",
         districtId: user.districtId ?? "",
+        institutionId: user.institutionId ?? "",
       });
     }
   }, [open, user]);
@@ -70,9 +73,9 @@ export function UserScopeDialog({
       )}
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Edit lingkup pengguna</DialogTitle>
+          <DialogTitle>Edit Lingkup & ID Vokasi</DialogTitle>
           <DialogDescription>
-            Atur wilayah yang tercatat untuk akun {user.name}. Peran dan aturan aksesnya tidak berubah.
+            Atur wilayah atau ID Vokasi untuk akun {user.name}. Data pencari kerja dan modul akan ditampilkan sesuai lingkup yang dipilih.
           </DialogDescription>
         </DialogHeader>
         {isTaskForce ? (
@@ -86,7 +89,7 @@ export function UserScopeDialog({
           </div>
         ) : (
           <form onSubmit={submit} className="space-y-4">
-            <Field label="Tingkat wilayah" error={form.errors.scopeLevel}>
+            <Field label="Tingkat lingkup" error={form.errors.scopeLevel}>
               <select
                 className={selectClass}
                 value={form.data.scopeLevel}
@@ -95,6 +98,7 @@ export function UserScopeDialog({
                   form.setData("scopeLevel", scopeLevel);
                   if (scopeLevel !== "kabupaten") form.setData("districtId", "");
                   if (scopeLevel === "national") form.setData("provinceId", "");
+                  if (scopeLevel !== "lembaga") form.setData("institutionId", "");
                 }}
                 disabled={isProvinceAdmin || isDistrictAdmin}
                 required
@@ -102,6 +106,7 @@ export function UserScopeDialog({
                 <option value="national">Nasional</option>
                 <option value="provinsi">Provinsi</option>
                 <option value="kabupaten">Kabupaten/kota</option>
+                <option value="lembaga">Lembaga Vokasi (ID Vokasi)</option>
               </select>
               {(isProvinceAdmin || isDistrictAdmin) && (
                 <span className="block text-xs font-normal text-muted-foreground">
@@ -109,7 +114,24 @@ export function UserScopeDialog({
                 </span>
               )}
             </Field>
-            {form.data.scopeLevel !== "national" && (
+
+            {form.data.scopeLevel === "lembaga" && (
+              <div className="space-y-2">
+                <InstitutionIdField
+                  label="Pilih Lembaga & ID Vokasi"
+                  value={form.data.institutionId}
+                  onChange={(id) => form.setData("institutionId", id)}
+                  institutions={data?.institutions ?? []}
+                  error={form.errors.institutionId}
+                  required
+                />
+                <p className="text-xs text-muted-foreground">
+                  Setelah ID Vokasi disimpan, data calon peserta pada akun ini otomatis difilter sesuai data lembaganya.
+                </p>
+              </div>
+            )}
+
+            {form.data.scopeLevel !== "national" && form.data.scopeLevel !== "lembaga" && (
               <Field label="Provinsi" error={form.errors.provinceId}>
                 <select
                   className={selectClass}
@@ -127,6 +149,7 @@ export function UserScopeDialog({
                 </select>
               </Field>
             )}
+
             {form.data.scopeLevel === "kabupaten" && (
               <Field label="Kabupaten/kota" error={form.errors.districtId}>
                 <select
@@ -143,12 +166,16 @@ export function UserScopeDialog({
                 </select>
               </Field>
             )}
-            <p className="text-xs text-muted-foreground">
-              Lingkup Nasional dapat memilih area sebagai filter opsional di header. Hak akses tetap mengikuti peran.
-            </p>
+
+            {form.data.scopeLevel === "national" && (
+              <p className="text-xs text-muted-foreground">
+                Lingkup Nasional dapat memilih area sebagai filter opsional di header. Hak akses tetap mengikuti peran.
+              </p>
+            )}
+
             {Object.keys(form.errors).length > 0 && (
               <p role="alert" className="text-sm text-destructive">
-                Periksa kembali lingkup yang dipilih.
+                Periksa kembali isian lingkup yang dipilih.
               </p>
             )}
             <DialogFooter>

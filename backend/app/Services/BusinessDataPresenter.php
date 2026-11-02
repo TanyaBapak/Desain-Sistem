@@ -1587,7 +1587,7 @@ class BusinessDataPresenter
                 'matching_runs.id = (SELECT latest_run.id FROM matching_runs AS latest_run WHERE latest_run.job_demand_id = candidate_matches.job_demand_id ORDER BY latest_run.created_at DESC, latest_run.run_date DESC, latest_run.id DESC LIMIT 1)',
             );
 
-        if (in_array($role, ['institution_admin', 'training_operator'], true)) {
+        if (in_array($role, ['institution_admin', 'training_operator'], true) || $user->scope_level === 'lembaga') {
             $scope = $this->resolveInstitutionScope($user);
             if (! empty($scope['ids'])) {
                 $query->whereIn('job_seekers.institution_id', $scope['ids']);
@@ -1710,7 +1710,7 @@ class BusinessDataPresenter
             ->whereNull('deleted_at')
             ->when($role === 'province_admin', fn ($query) => $query->where('job_seekers.province_id', $user->province_id))
             ->when($role === 'district_admin', fn ($query) => $query->where('job_seekers.district_id', $user->district_id))
-            ->when(in_array($role, ['institution_admin', 'training_operator'], true), function ($query) use ($user) {
+            ->when(in_array($role, ['institution_admin', 'training_operator'], true) || $user->scope_level === 'lembaga', function ($query) use ($user) {
                 $scope = $this->resolveInstitutionScope($user);
                 $query->where(function ($q) use ($scope, $user) {
                     $hasCondition = false;
@@ -1835,7 +1835,7 @@ class BusinessDataPresenter
             ->leftJoin('provinces', 'provinces.id', '=', 'institutions.province_id')
             ->where('training_programs.status', '!=', 'Nonaktif')
             ->when(
-                in_array($role, ['institution_admin', 'training_operator'], true),
+                in_array($role, ['institution_admin', 'training_operator'], true) || $user->scope_level === 'lembaga',
                 function ($query) use ($user) {
                     $scope = $this->resolveInstitutionScope($user);
                     $query->where(function ($q) use ($scope, $user) {
@@ -1921,7 +1921,7 @@ class BusinessDataPresenter
             ->leftJoin('provinces', 'provinces.id', '=', 'institutions.province_id')
             ->leftJoin('districts', 'districts.id', '=', 'institutions.district_id')
             ->where('institutions.status', 'Aktif')
-            ->when(in_array($role, ['institution_admin', 'training_operator'], true), function ($q) use ($user) {
+            ->when(in_array($role, ['institution_admin', 'training_operator'], true) || $user->scope_level === 'lembaga', function ($q) use ($user) {
                 $scope = $this->resolveInstitutionScope($user);
                 $q->where(function ($qq) use ($scope, $user) {
                     $hasCond = false;
@@ -2148,7 +2148,7 @@ class BusinessDataPresenter
             ->leftJoin('institutions', 'institutions.id', '=', 'program_allocations.institution_id')
             ->leftJoin('provinces', 'provinces.id', '=', 'institutions.province_id')
             ->whereNull('program_allocations.deleted_at')
-            ->when(in_array($role, ['institution_admin', 'training_operator'], true), function ($q) use ($user) {
+            ->when(in_array($role, ['institution_admin', 'training_operator'], true) || $user->scope_level === 'lembaga', function ($q) use ($user) {
                 $scope = $this->resolveInstitutionScope($user);
                 if (! empty($scope['ids'])) {
                     $q->whereIn('program_allocations.institution_id', $scope['ids']);

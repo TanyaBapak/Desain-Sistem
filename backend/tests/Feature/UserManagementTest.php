@@ -498,6 +498,34 @@ class UserManagementTest extends TestCase
                 ->has('adminUsers.data', 15));
     }
 
+    public function test_super_admin_can_set_institution_id_and_scope_candidates_to_institution(): void
+    {
+        $this->seed(DemoDataSeeder::class);
+        $admin = $this->userWithRole('super_admin');
+        $user = $this->userWithRole('institution_admin', [
+            'username' => 'operator-vokasi-baru',
+            'email' => 'operator-vokasi-baru@example.invalid',
+        ]);
+
+        $this->actingAs($admin)->patch("/admin/users/{$user->id}/scope", [
+            'scopeLevel' => 'lembaga',
+            'institutionId' => 'VOC-DEMO-001',
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $user->refresh();
+        $this->assertSame('VOC-DEMO-001', $user->institution_id);
+        $this->assertSame('lembaga', $user->scope_level);
+        $this->assertSame('SMK Contoh Cibinong', $user->scope_name);
+        $this->assertSame('SMK Contoh Cibinong', $user->organization);
+
+        $presenter = app(\App\Services\BusinessDataPresenter::class);
+        $businessData = $presenter->make($user, ['tab' => 'modul-a']);
+        $this->assertNotEmpty($businessData['candidates']);
+        foreach ($businessData['candidates'] as $candidate) {
+            $this->assertSame('VOC-DEMO-001', $candidate['institutionId'] ?? $candidate['institution_id'] ?? null);
+        }
+    }
+
     private function userWithRole(string $roleName, array $attributes = []): User
     {
         $user = User::factory()->create($attributes);

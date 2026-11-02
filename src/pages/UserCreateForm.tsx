@@ -3,6 +3,7 @@ import { UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { InstitutionIdField } from "@/pages/InstitutionIdField";
 import type { UserManagementData } from "@/pages/user-management-types";
 
 export function UserCreateForm({ data }: { data: UserManagementData }) {
@@ -79,12 +80,15 @@ export function UserCreateForm({ data }: { data: UserManagementData }) {
             </Field>
           )}
           {asksInstitution && (
-            <Field label="Lembaga" error={form.errors.institutionId}>
-              <select className={selectClass} value={form.data.institutionId} onChange={(event) => form.setData("institutionId", event.target.value)} required>
-                <option value="">Pilih lembaga</option>
-                {(data?.institutions ?? []).map((institution) => <option key={institution.id} value={institution.id}>{institution.name}</option>)}
-              </select>
-            </Field>
+            <div className="sm:col-span-2 lg:col-span-3">
+              <InstitutionIdField
+                value={form.data.institutionId}
+                onChange={(id) => form.setData("institutionId", id)}
+                institutions={data?.institutions ?? []}
+                error={form.errors.institutionId}
+                required
+              />
+            </div>
           )}
           {asksEmployer && (
             <Field label="Pemberi kerja" error={form.errors.employerId}>

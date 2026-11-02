@@ -13,6 +13,7 @@ export interface ManagedUser {
   provinceId: string | null;
   districtId: string | null;
   institutionId: string | null;
+  institutionName?: string | null;
   employerId: string | null;
 }
 
@@ -31,7 +32,7 @@ export interface UserManagementData {
   filterRoles?: { name: string; title: string }[];
   provinces: { id: string; name: string }[];
   districts: { id: string; province_id: string; name: string }[];
-  institutions: { id: string; name: string }[];
+  institutions: { id: string; name: string; candidateCount?: number }[];
   employers: { id: string; name: string }[];
 }
 

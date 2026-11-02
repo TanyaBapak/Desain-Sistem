@@ -4,6 +4,7 @@ import { Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { InstitutionIdField, type InstitutionOption } from "@/pages/InstitutionIdField";
 
 interface EditableUser {
   id: string;
@@ -23,7 +24,7 @@ interface UserEditDialogProps {
   roles: { name: string; title: string }[];
   provinces: { id: string; name: string }[];
   districts: { id: string; province_id: string; name: string }[];
-  institutions: { id: string; name: string }[];
+  institutions: InstitutionOption[];
   employers: { id: string; name: string }[];
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
@@ -154,12 +155,15 @@ export function UserEditDialog({
             </Field>
           )}
           {asksInstitution && (
-            <Field label="Lembaga" error={form.errors.institutionId}>
-              <select className={selectClass} value={form.data.institutionId} onChange={(event) => form.setData("institutionId", event.target.value)} required>
-                <option value="">Pilih lembaga</option>
-                {(institutions ?? []).map((institution) => <option key={institution.id} value={institution.id}>{institution.name}</option>)}
-              </select>
-            </Field>
+            <div className="sm:col-span-2">
+              <InstitutionIdField
+                value={form.data.institutionId}
+                onChange={(id) => form.setData("institutionId", id)}
+                institutions={institutions ?? []}
+                error={form.errors.institutionId}
+                required
+              />
+            </div>
           )}
           {asksEmployer && (
             <Field label="Pemberi kerja" error={form.errors.employerId}>

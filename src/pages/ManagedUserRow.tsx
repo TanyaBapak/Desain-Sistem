@@ -2,6 +2,7 @@ import { useState } from "react";
 import { router } from "@inertiajs/react";
 import {
   ArrowLeftRight,
+  Building2,
   CheckCircle2,
   Clock,
   MapPinned,
@@ -40,7 +41,21 @@ export function ManagedUserRow({ user, currentUserId, data }: { user: ManagedUse
         <p className="text-xs text-muted-foreground">{user.username} · {user.email}</p>
       </td>
       <td className="p-3 text-foreground whitespace-nowrap">{user.roleTitle}</td>
-      <td className="p-3 text-muted-foreground text-xs">{user.scopeName}</td>
+      <td className="p-3 text-xs">
+        <div className="flex flex-col gap-1 items-start">
+          <span className="font-medium text-foreground">{user.scopeName || "-"}</span>
+          {user.institutionId ? (
+            <span className="inline-flex items-center gap-1 font-mono text-[11px] px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+              <Building2 className="h-3 w-3" />
+              ID: {user.institutionId}
+            </span>
+          ) : (
+            <span className="text-[11px] text-muted-foreground capitalize">
+              {user.scopeLevel || "Nasional"}
+            </span>
+          )}
+        </div>
+      </td>
       <td className="p-3">
         <div className="flex flex-col gap-1 items-start whitespace-nowrap">
           {user.status === "Aktif" ? (
@@ -114,8 +129,8 @@ export function ManagedUserRow({ user, currentUserId, data }: { user: ManagedUse
                     <span>Edit Profil & Peran</span>
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setScopeDialogOpen(true)} className="cursor-pointer text-xs">
-                    <MapPinned className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
-                    <span>Edit Lingkup Wilayah</span>
+                    <Building2 className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
+                    <span>Atur ID Vokasi & Lingkup</span>
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     disabled={user.status !== "Aktif"}

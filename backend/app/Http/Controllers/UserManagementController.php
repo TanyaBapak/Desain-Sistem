@@ -63,6 +63,15 @@ class UserManagementController extends Controller
             ->paginate($perPage)
             ->withQueryString();
 
+        $institutionsMap = rescue(fn () => DB::table('institutions')->pluck('name', 'id')->all(), []);
+        $candidateCounts = rescue(fn () => DB::table('job_seekers')
+            ->whereNull('deleted_at')
+            ->whereNotNull('institution_id')
+            ->select('institution_id', DB::raw('count(*) as count'))
+            ->groupBy('institution_id')
+            ->pluck('count', 'institution_id')
+            ->all(), []);
+
         $users->through(fn (User $user): array => [
             'id' => (string) $user->id,
             'name' => $user->name,
@@ -78,6 +87,7 @@ class UserManagementController extends Controller
             'provinceId' => $user->province_id,
             'districtId' => $user->district_id,
             'institutionId' => $user->institution_id,
+            'institutionName' => $user->institution_id ? ($institutionsMap[$user->institution_id] ?? $user->organization) : null,
             'employerId' => $user->employer_id,
         ]);
 
@@ -104,7 +114,16 @@ class UserManagementController extends Controller
                 ->get(['name', 'title']), []),
             'provinces' => rescue(fn () => DB::table('provinces')->orderBy('name')->get(['id', 'name']), []),
             'districts' => rescue(fn () => DB::table('districts')->orderBy('name')->get(['id', 'province_id', 'name']), []),
-            'institutions' => rescue(fn () => DB::table('institutions')->where('status', 'Aktif')->orderBy('name')->get(['id', 'name']), []),
+            'institutions' => rescue(fn () => DB::table('institutions')
+                ->where('status', 'Aktif')
+                ->orderBy('name')
+                ->get(['id', 'name'])
+                ->map(fn (object $inst): array => [
+                    'id' => (string) $inst->id,
+                    'name' => (string) $inst->name,
+                    'candidateCount' => (int) ($candidateCounts[$inst->id] ?? 0),
+                ])
+                ->all(), []),
             'employers' => rescue(fn () => DB::table('employers')->orderBy('name')->get(['id', 'name']), []),
         ];
     }
@@ -174,6 +193,7 @@ class UserManagementController extends Controller
         $scope = $this->resolveScope($data);
 
         DB::transaction(function () use ($request, $data, $scope): void {
+            $inst = ! empty($data['institutionId']) ? DB::table('institutions')->where('id', $data['institutionId'])->first() : null;
             $attributes = [
                 'user_code' => 'USR-'.Str::upper(Str::random(10)),
                 'name' => $data['name'],
@@ -182,9 +202,10 @@ class UserManagementController extends Controller
                 'password' => Hash::make($data['password']),
                 'scope_level' => $scope['level'],
                 'scope_name' => $scope['name'],
-                'province_id' => $data['provinceId'] ?? null,
-                'district_id' => $data['districtId'] ?? null,
+                'province_id' => $data['provinceId'] ?? ($inst?->province_id ?? null),
+                'district_id' => $data['districtId'] ?? ($inst?->district_id ?? null),
                 'institution_id' => $data['institutionId'] ?? null,
+                'organization' => $inst?->name ?? ($data['name'] ?? null),
                 'employer_id' => $data['employerId'] ?? null,
                 'status' => 'Aktif',
                 'avatar_initials' => Str::upper(Str::substr($data['name'], 0, 2)),
@@ -192,6 +213,7 @@ class UserManagementController extends Controller
             $user = User::query()->create($attributes);
             $role = Role::query()->where('name', $data['role'])->firstOrFail();
             $user->roles()->sync([$role->id]);
+            app(\App\Services\BusinessDataPresenter::class)->forgetAll();
             $this->writeAudit($request, $user, 'Pembuatan akun dan penetapan peran.');
         });
 
@@ -218,18 +240,22 @@ class UserManagementController extends Controller
         $scope = $this->resolveScope($data);
 
         DB::transaction(function () use ($request, $user, $data, $scope): void {
+            $inst = ! empty($data['institutionId']) ? DB::table('institutions')->where('id', $data['institutionId'])->first() : null;
             $attributes = [
                 'name' => $data['name'],
                 'username' => $data['username'],
                 'email' => $data['email'],
                 'scope_level' => $scope['level'],
                 'scope_name' => $scope['name'],
-                'province_id' => $data['provinceId'] ?? null,
-                'district_id' => $data['districtId'] ?? null,
+                'province_id' => $data['provinceId'] ?? ($inst?->province_id ?? null),
+                'district_id' => $data['districtId'] ?? ($inst?->district_id ?? null),
                 'institution_id' => $data['institutionId'] ?? null,
                 'employer_id' => $data['employerId'] ?? null,
                 'avatar_initials' => Str::upper(Str::substr($data['name'], 0, 2)),
             ];
+            if ($inst) {
+                $attributes['organization'] = $inst->name;
+            }
             if (filled($data['password'] ?? null)) {
                 $attributes['password'] = Hash::make($data['password']);
             }
@@ -237,6 +263,7 @@ class UserManagementController extends Controller
             $user->update($attributes);
             $role = Role::query()->where('name', $data['role'])->firstOrFail();
             $user->roles()->sync([$role->id]);
+            app(\App\Services\BusinessDataPresenter::class)->forget($user);
             $this->writeAudit($request, $user, 'Data akun dan peran pengguna diperbarui.');
         });
 
@@ -253,9 +280,15 @@ class UserManagementController extends Controller
         abort_if($role === 'task_force', 422, 'Lingkup Task Force dipilih melalui dropdown area di header.');
 
         $data = $request->validate([
-            'scopeLevel' => ['required', Rule::in(['national', 'provinsi', 'kabupaten'])],
+            'scopeLevel' => ['required', Rule::in(['national', 'provinsi', 'kabupaten', 'lembaga'])],
+            'institutionId' => [
+                Rule::requiredIf($request->input('scopeLevel') === 'lembaga'),
+                'nullable',
+                'string',
+                'exists:institutions,id',
+            ],
             'provinceId' => [
-                Rule::requiredIf($request->input('scopeLevel') !== 'national'),
+                Rule::requiredIf(in_array($request->input('scopeLevel'), ['provinsi', 'kabupaten'], true)),
                 'nullable',
                 'string',
                 'exists:provinces,id',
@@ -278,21 +311,38 @@ class UserManagementController extends Controller
             ]);
         }
 
-        $isDistrictScope = $data['scopeLevel'] === 'kabupaten';
-        $scopeName = match ($data['scopeLevel']) {
-            'national' => 'Nasional',
-            'kabupaten' => (string) DB::table('districts')->where('id', $data['districtId'])->value('name'),
-            default => (string) DB::table('provinces')->where('id', $data['provinceId'])->value('name'),
-        };
-        $attributes = [
-            'scope_level' => $data['scopeLevel'],
-            'scope_name' => $scopeName,
-            'province_id' => $data['provinceId'] ?? null,
-            'district_id' => $isDistrictScope ? $data['districtId'] : null,
-        ];
+        if ($data['scopeLevel'] === 'lembaga') {
+            $inst = DB::table('institutions')->where('id', $data['institutionId'])->first();
+            $scopeName = $inst ? $inst->name : 'Lembaga Vokasi';
+            $attributes = [
+                'scope_level' => 'lembaga',
+                'scope_name' => $scopeName,
+                'institution_id' => $data['institutionId'],
+                'organization' => $scopeName,
+                'province_id' => $inst?->province_id ?? null,
+                'district_id' => $inst?->district_id ?? null,
+            ];
+        } else {
+            $isDistrictScope = $data['scopeLevel'] === 'kabupaten';
+            $scopeName = match ($data['scopeLevel']) {
+                'national' => 'Nasional',
+                'kabupaten' => (string) DB::table('districts')->where('id', $data['districtId'])->value('name'),
+                default => (string) DB::table('provinces')->where('id', $data['provinceId'])->value('name'),
+            };
+            $attributes = [
+                'scope_level' => $data['scopeLevel'],
+                'scope_name' => $scopeName,
+                'province_id' => $data['provinceId'] ?? null,
+                'district_id' => $isDistrictScope ? $data['districtId'] : null,
+            ];
+            if ($request->has('institutionId') && empty($data['institutionId'])) {
+                $attributes['institution_id'] = null;
+            }
+        }
 
         DB::transaction(function () use ($request, $user, $scopeName, $attributes): void {
             $user->update($attributes);
+            app(\App\Services\BusinessDataPresenter::class)->forget($user);
             $this->writeAudit($request, $user, 'Lingkup wilayah pengguna diperbarui menjadi '.$scopeName.'.');
         });
 

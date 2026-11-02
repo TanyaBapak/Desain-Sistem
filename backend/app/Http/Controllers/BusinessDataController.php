@@ -261,7 +261,7 @@ class BusinessDataController extends Controller
             ->leftJoin('districts', 'districts.id', '=', 'institutions.district_id')
             ->where('institutions.status', 'Aktif')
             ->when(app(Bp3miScope::class)->hasActiveAreaFilter($user), fn ($q) => app(Bp3miScope::class)->applyToInstitutions($q, $user))
-            ->when($role === 'institution_admin', function ($q) use ($user) {
+            ->when($role === 'institution_admin' || $user->scope_level === 'lembaga', function ($q) use ($user) {
                 $scope = app(BusinessDataPresenter::class)->resolveInstitutionScope($user);
                 $q->where(function ($qq) use ($scope, $user) {
                     $hasCond = false;
@@ -448,7 +448,7 @@ class BusinessDataController extends Controller
             ->leftJoin('provinces', 'provinces.id', '=', 'job_seekers.province_id')
             ->when(app(Bp3miScope::class)->hasActiveAreaFilter($user), fn ($query) => app(Bp3miScope::class)->applyToJobSeekers($query, $user))
             ->when($role === 'province_admin', fn ($query) => $query->where('job_seekers.province_id', $user->province_id))
-            ->when($role === 'institution_admin', function ($query) use ($user) {
+            ->when(in_array($role, ['institution_admin', 'training_operator'], true) || $user->scope_level === 'lembaga', function ($query) use ($user) {
                 $scope = app(BusinessDataPresenter::class)->resolveInstitutionScope($user);
                 $query->where(function ($q) use ($scope, $user) {
                     $hasCondition = false;
@@ -1692,7 +1692,9 @@ class BusinessDataController extends Controller
                 'district_admin' => $record->district_id === $user->district_id,
                 'institution_admin' => $record->institution_id === $user->institution_id
                     || in_array($record->institution_id, $instScope['ids'], true),
-                default => true,
+                default => $user->scope_level === 'lembaga'
+                    ? ($record->institution_id === $user->institution_id || in_array($record->institution_id, $instScope['ids'], true))
+                    : true,
             },
             'programs' => match ($role) {
                 'task_force' => app(Bp3miScope::class)->allowsProvinceId(
