@@ -1429,7 +1429,11 @@ class BusinessDataPresenter
 
         $cacheKey = $this->cacheKey($user, $role, $filters);
 
-        return Cache::remember($cacheKey, 30, $computeData);
+        try {
+            return Cache::remember($cacheKey, 30, $computeData);
+        } catch (\Throwable $e) {
+            return $computeData();
+        }
     }
 
     public function auditLogs(?string $role, User $user): array
@@ -1467,12 +1471,20 @@ class BusinessDataPresenter
 
     public function forget(User $user): void
     {
-        Cache::forever('business_data:user_version:'.$user->id, (string) Str::uuid());
+        try {
+            Cache::forever('business_data:user_version:'.$user->id, (string) Str::uuid());
+        } catch (\Throwable $e) {
+            \Log::warning('Failed to invalidate user business data cache: ' . $e->getMessage());
+        }
     }
 
     public function forgetAll(): void
     {
-        Cache::forever('business_data:version', (string) Str::uuid());
+        try {
+            Cache::forever('business_data:version', (string) Str::uuid());
+        } catch (\Throwable $e) {
+            \Log::warning('Failed to invalidate global business data cache: ' . $e->getMessage());
+        }
     }
 
     public function autoHealTenantCandidates(bool $forceInTest = false): void

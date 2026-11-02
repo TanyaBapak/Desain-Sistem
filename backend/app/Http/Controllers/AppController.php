@@ -56,11 +56,15 @@ class AppController extends Controller
         $needsBusinessData = !in_array($tab, ['rbac', 'targets'], true);
 
         if ($needsBusinessData) {
-            try {
-                if ($tab === 'modul-a' || $request->session()->has('impersonator_id')) {
+            if ($tab === 'modul-a' || $request->session()->has('impersonator_id')) {
+                try {
                     $businessDataPresenter->forget($request->user());
+                } catch (\Throwable $e) {
+                    \Log::warning('AppController cache forget warning: ' . $e->getMessage());
                 }
+            }
 
+            try {
                 $businessData = $businessDataPresenter->make(
                     $request->user(),
                     array_merge(
