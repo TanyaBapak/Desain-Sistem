@@ -84,6 +84,9 @@ Route::get('/debug-log', function (Request $request) {
                     'job_demands' => DB::table('job_demands')->count(),
                     'users' => DB::table('users')->count(),
                     'model_has_roles' => DB::table('model_has_roles')->count(),
+                    'victoria_candidates' => DB::table('job_seekers')->where('institution_name', 'like', '%Victoria%')->count(),
+                    'git_commit' => trim((string) shell_exec('git rev-parse --short HEAD')),
+                    'arief_users' => DB::table('users')->where('name', 'like', '%Arief%')->select('id', 'name', 'scope_level', 'scope_name', 'organization', 'institution_id')->get(),
                 ],
             ]);
         } catch (\Throwable $e) {
