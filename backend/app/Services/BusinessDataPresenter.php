@@ -1658,6 +1658,36 @@ class BusinessDataPresenter
             $inst = DB::table('institutions')->where('id', $user->institution_id)->first();
             if ($inst) {
                 $namePatterns[] = $inst->name;
+
+                // Temukan semua sibling IDs yang memiliki nama persis sama
+                $siblingIds = DB::table('institutions')
+                    ->where(function ($q) use ($inst) {
+                        $q->where('name', $inst->name)
+                            ->orWhereRaw('LOWER(name) = ?', [mb_strtolower($inst->name)]);
+                    })
+                    ->pluck('id')
+                    ->all();
+
+                foreach ($siblingIds as $sId) {
+                    $institutionIds[] = (string) $sId;
+                }
+
+                // Normalisasi core name (tanpa prefix LPK, LKP, SMK, BLKK, dll.) untuk menangkap variasi prefix
+                $coreName = trim(preg_replace('/^(lpk|lkp|smk|blkk|blkln|balai|politeknik|universitas)\.?\s+/i', '', $inst->name));
+                if (mb_strlen($coreName) >= 5) {
+                    $related = DB::table('institutions')
+                        ->where(function ($q) use ($coreName) {
+                            $q->where('name', 'LIKE', "%{$coreName}%")
+                                ->orWhereRaw('LOWER(name) LIKE ?', ['%' . mb_strtolower($coreName) . '%']);
+                        })
+                        ->when(! empty($inst->province_id), fn ($q) => $q->where('province_id', $inst->province_id))
+                        ->get(['id', 'name']);
+
+                    foreach ($related as $rel) {
+                        $institutionIds[] = (string) $rel->id;
+                        $namePatterns[] = $rel->name;
+                    }
+                }
             }
         }
 
