@@ -463,9 +463,13 @@ class BusinessDataController extends Controller
                             $clean = trim((string) $pattern);
                             if ($clean !== '') {
                                 if ($hasCondition) {
-                                    $q->orWhere('job_seekers.institution_name', $clean);
+                                    $q->orWhere('job_seekers.institution_name', $clean)
+                                        ->orWhere('job_seekers.institution_name', 'LIKE', "%{$clean}%");
                                 } else {
-                                    $q->where('job_seekers.institution_name', $clean);
+                                    $q->where(function ($sub) use ($clean) {
+                                        $sub->where('job_seekers.institution_name', $clean)
+                                            ->orWhere('job_seekers.institution_name', 'LIKE', "%{$clean}%");
+                                    });
                                     $hasCondition = true;
                                 }
                             }
@@ -478,7 +482,9 @@ class BusinessDataController extends Controller
                         $hasCondition = true;
                     }
                     if (! empty($user->organization)) {
-                        $q->orWhere('job_seekers.institution_name', (string) $user->organization);
+                        $cleanOrg = trim($user->organization);
+                        $q->orWhere('job_seekers.institution_name', $cleanOrg)
+                            ->orWhere('job_seekers.institution_name', 'LIKE', "%{$cleanOrg}%");
                         $hasCondition = true;
                     }
                     if (! $hasCondition) {
