@@ -638,11 +638,11 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
                     {/* Hero Number */}
                     <div className="my-2">
                       <div className="text-3xl sm:text-4xl font-black text-white tracking-tight tabular-nums">
-                        {candidateCount >= 1000 ? `${(candidateCount / 1000).toFixed(2)}K` : candidateCount}
-                        <span className="text-xs text-cyan-400 font-semibold ml-2">({candidateCount.toLocaleString("id-ID")})</span>
+                        {candidateCount.toLocaleString("id-ID")}
+                        <span className="text-xs text-cyan-400 font-semibold ml-2">Peserta Terdata</span>
                       </div>
                       <p className="text-[11px] text-slate-400 font-medium mt-0.5">
-                        Calon Peserta Siap Latih Terdata
+                        Calon Peserta Siap Latih Terdaftar Riil
                       </p>
                     </div>
 
