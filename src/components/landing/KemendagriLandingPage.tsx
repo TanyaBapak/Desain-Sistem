@@ -563,273 +563,286 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
             </div>
           </div>
 
-          {/* Right program overview card */}
-          <div className="lg:col-span-7 bg-slate-900/95 border border-slate-800 rounded-2xl p-5 sm:p-6 shadow-2xl backdrop-blur-md space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
-              <div className="flex items-center gap-2.5">
-                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-600/30 text-blue-400 border border-blue-500/40 shrink-0">
+          {/* Right program overview card - Modern 2x2 Ecosystem Grid */}
+          <div className="lg:col-span-7 bg-slate-900/90 border border-slate-800/80 rounded-3xl p-5 sm:p-7 shadow-2xl backdrop-blur-xl space-y-5">
+            {/* Header Alur Ekosistem */}
+            <div className="flex items-center justify-between gap-2 border-b border-slate-800/80 pb-4">
+              <div className="flex items-center gap-3">
+                <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 shrink-0">
                   <Sparkles className="w-4 h-4" />
                 </span>
                 <div>
-                  <h3 className="text-sm sm:text-base font-extrabold text-white">
-                    Alur Ekosistem SMK Go Global: Hulu ke Hilir
-                  </h3>
-                  <p className="text-[11px] text-slate-400">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-base sm:text-lg font-extrabold text-white tracking-tight">
+                      Alur Ekosistem Hulu ke Hilir
+                    </h3>
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
+                      Hulu ke Hilir
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-400 mt-0.5">
                     Rantai proses terpadu dari penjaringan talenta hingga penempatan luar negeri.
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-1.5 text-[10px] text-emerald-400 font-semibold bg-emerald-950/60 border border-emerald-800/60 px-2.5 py-1 rounded-full shrink-0 self-start sm:self-auto">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                <span>Alur Terhubung Real-Time</span>
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5 text-[10px] text-emerald-400 font-semibold bg-emerald-950/60 border border-emerald-800/60 px-2.5 py-1 rounded-full">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  <span>Real-Time</span>
+                </div>
               </div>
             </div>
 
-            {/* Alur 4 Pilar Terhubung dengan Garis Data */}
+            {/* 2x2 Interactive Flow Grid */}
             <div className="relative">
-              {/* Desktop Connecting Line di latar belakang */}
-              <div className="hidden xl:block absolute top-1/2 left-6 right-6 h-0.5 -translate-y-1/2 bg-gradient-to-r from-blue-500/50 via-indigo-500/50 via-emerald-500/50 to-amber-500/50 pointer-events-none z-0" />
+              {/* Connector lines between cards (Desktop) */}
+              {/* Top Row Connector Arrow: Card 1 -> Card 2 */}
+              <div className="hidden md:flex absolute top-[24%] left-[48%] -translate-x-1/2 -translate-y-1/2 items-center justify-center z-20 pointer-events-none">
+                <div className="flex items-center gap-1 bg-slate-900/95 border border-cyan-500/40 px-2 py-0.5 rounded-full shadow-lg shadow-cyan-950/60 text-cyan-400 text-[10px] font-extrabold">
+                  <span className="animate-pulse">---▶</span>
+                </div>
+              </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 relative z-10 items-stretch">
-                {/* Pilar 1 */}
+              {/* S-curve connector badge: Card 2 (top-right) -> Card 3 (bottom-left) */}
+              <div className="hidden md:flex absolute top-[50%] left-[48%] -translate-x-1/2 -translate-y-1/2 items-center justify-center z-20 pointer-events-none">
+                <div className="flex items-center gap-1.5 bg-slate-900/95 border border-slate-700/80 px-2.5 py-0.5 rounded-full text-slate-300 text-[9px] font-semibold shadow-md">
+                  <span className="text-cyan-400 font-bold">↺</span> Standardisasi ke Fasilitas
+                </div>
+              </div>
+
+              {/* Bottom Row Connector Arrow: Card 3 -> Card 4 */}
+              <div className="hidden md:flex absolute top-[76%] left-[48%] -translate-x-1/2 -translate-y-1/2 items-center justify-center z-20 pointer-events-none">
+                <div className="flex items-center gap-1 bg-slate-900/95 border border-purple-500/40 px-2 py-0.5 rounded-full shadow-lg shadow-purple-950/60 text-purple-400 text-[10px] font-extrabold">
+                  <span className="animate-pulse">---▶</span>
+                </div>
+              </div>
+
+              {/* The 2x2 Grid of 4 Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 relative z-0">
+                {/* 1. Siap Latih (Top-Left) */}
                 <article
                   onClick={() => handlePillarDrilldown("peserta")}
-                  className="group relative rounded-xl border border-blue-500/60 bg-slate-800/95 p-3.5 flex flex-col justify-between hover:border-blue-400 hover:bg-slate-800 hover:shadow-lg hover:shadow-blue-900/30 transition cursor-pointer"
+                  className="group relative rounded-2xl border border-cyan-500/30 bg-gradient-to-br from-cyan-950/40 via-slate-900/90 to-slate-900/95 p-4 sm:p-5 flex flex-col justify-between hover:border-cyan-400 hover:shadow-xl hover:shadow-cyan-900/20 transition-all duration-300 cursor-pointer"
                   title="Klik untuk membuka data rincian peserta / suplai siap latih"
                 >
                   <div>
-                    <div className="flex items-center justify-between gap-1 mb-2">
-                      <div className="w-7 h-7 rounded-lg bg-blue-500/20 text-blue-400 border border-blue-500/30 flex items-center justify-center">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="text-sm font-extrabold text-white group-hover:text-cyan-300 transition-colors">
+                        1. Siap Latih
+                      </h4>
+                      <div className="w-8 h-8 rounded-xl bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 flex items-center justify-center shadow-inner">
                         <Users className="w-4 h-4" />
                       </div>
-                      <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-blue-500/20 text-blue-300 border border-blue-500/30">
-                        PENJARINGAN
-                      </span>
                     </div>
-                    <h4 className="text-sm font-extrabold text-white group-hover:text-blue-300 transition-colors">
-                      1. Siap Latih / Suplai
-                    </h4>
-                    <p className="text-[11px] text-slate-300 font-medium mt-0.5 truncate">
-                      Calon Peserta Siap Latih
-                    </p>
 
-                    {/* Informasi Rincian Peserta Siap Latih */}
-                    <div className="mt-2.5 bg-slate-900/90 rounded-lg p-2.5 border border-slate-700/60 space-y-1.5 text-[11px]">
-                      <div className="flex items-center justify-between text-slate-200">
-                        <span>Peserta Terdata:</span>
-                        <strong className="text-emerald-400 font-extrabold tabular-nums">{candidateCount.toLocaleString("id-ID")}</strong>
+                    {/* Hero Number */}
+                    <div className="my-2">
+                      <div className="text-3xl sm:text-4xl font-black text-white tracking-tight tabular-nums">
+                        {candidateCount >= 1000 ? `${(candidateCount / 1000).toFixed(2)}K` : candidateCount}
+                        <span className="text-xs text-cyan-400 font-semibold ml-2">({candidateCount.toLocaleString("id-ID")})</span>
                       </div>
-                      <div className="flex items-center justify-between text-slate-200">
-                        <span>Target Nasional:</span>
-                        <strong className="text-slate-300 font-extrabold tabular-nums">{candidateTarget.toLocaleString("id-ID")}</strong>
+                      <p className="text-[11px] text-slate-400 font-medium mt-0.5">
+                        Calon Peserta Siap Latih Terdata
+                      </p>
+                    </div>
+
+                    {/* Rincian Keterangan */}
+                    <div className="mt-2 py-2 px-2.5 bg-slate-900/80 rounded-xl border border-slate-800/80 space-y-1 text-[10px]">
+                      <div className="flex items-center justify-between text-slate-300">
+                        <span>Target Penjaringan:</span>
+                        <strong className="text-slate-200 font-bold">{candidateTarget.toLocaleString("id-ID")} Peserta</strong>
                       </div>
-                      <div className="flex items-center justify-between text-slate-200">
-                        <span>Capaian Penjaringan:</span>
-                        <strong className="text-blue-400 font-extrabold tabular-nums">{candidatePercent}%</strong>
+                      <div className="flex items-center justify-between text-slate-300">
+                        <span>Capaian Terdata:</span>
+                        <strong className="text-cyan-300 font-bold">{candidatePercent}% ({candidateCount.toLocaleString("id-ID")})</strong>
                       </div>
-                      <div className="flex items-center justify-between text-slate-200">
+                      <div className="flex items-center justify-between text-slate-300">
                         <span>Sebaran Wilayah:</span>
-                        <strong className="text-cyan-400 font-extrabold tabular-nums">38 Provinsi</strong>
-                      </div>
-                      <div className="flex items-center justify-between text-slate-200 pt-1 border-t border-slate-800">
-                        <span>Validasi Dukcapil:</span>
-                        <strong className="text-emerald-400 font-extrabold tabular-nums">100% Valid</strong>
+                        <strong className="text-emerald-400 font-bold">38 Provinsi (100% Dukcapil)</strong>
                       </div>
                     </div>
                   </div>
 
-                  <div className="mt-2.5 pt-2 border-t border-slate-700/60 flex items-center justify-between text-xs">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                      Target: {candidateTarget.toLocaleString("id-ID")}
-                    </span>
-                    <span className="text-xs font-black text-emerald-400 tabular-nums">
+                  {/* Badges / Pill Tags */}
+                  <div className="pt-3 border-t border-slate-800/80 flex flex-wrap items-center gap-1.5 text-[10px] font-semibold mt-2">
+                    <span className="px-2.5 py-1 rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
                       {candidateCount.toLocaleString("id-ID")} Peserta
                     </span>
-                  </div>
-
-                  {/* Panah alur desktop */}
-                  <div className="hidden xl:flex absolute -right-2.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-slate-900 border border-blue-500/50 items-center justify-center text-[10px] text-blue-400 z-20">
-                    →
+                    <span className="px-2.5 py-1 rounded-full bg-slate-800/80 text-slate-300 border border-slate-700/60">
+                      Target: {candidateTarget.toLocaleString("id-ID")}
+                    </span>
                   </div>
                 </article>
 
-                {/* Pilar 2 */}
+                {/* 2. Siap Program (Top-Right) */}
                 <article
                   onClick={() => handlePillarDrilldown("program")}
-                  className="group relative rounded-xl border border-indigo-500/60 bg-slate-800/95 p-3.5 flex flex-col justify-between hover:border-indigo-400 hover:bg-slate-800 hover:shadow-lg hover:shadow-indigo-900/30 transition cursor-pointer"
+                  className="group relative rounded-2xl border border-amber-500/30 bg-gradient-to-br from-amber-950/40 via-slate-900/90 to-slate-900/95 p-4 sm:p-5 flex flex-col justify-between hover:border-amber-400 hover:shadow-xl hover:shadow-amber-900/20 transition-all duration-300 cursor-pointer"
                   title="Klik untuk membuka data rincian 5 sektor program prioritas"
                 >
                   <div>
-                    <div className="flex items-center justify-between gap-1 mb-2">
-                      <div className="w-7 h-7 rounded-lg bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 flex items-center justify-center">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="text-sm font-extrabold text-white group-hover:text-amber-300 transition-colors">
+                        2. Siap Program
+                      </h4>
+                      <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center shadow-inner">
                         <GraduationCap className="w-4 h-4" />
                       </div>
-                      <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-                        5 SEKTOR
-                      </span>
                     </div>
-                    <h4 className="text-sm font-extrabold text-white group-hover:text-indigo-300 transition-colors">
-                      2. Siap Program
-                    </h4>
-                    <p className="text-[11px] text-slate-300 font-medium mt-0.5 truncate">
-                      1.159 Peserta di 5 Sektor
-                    </p>
 
-                    {/* Rincian Eksplisit 5 Sektor Prioritas Tanpa Ambigu */}
-                    <div className="mt-2.5 bg-slate-900/90 rounded-lg p-2.5 border border-slate-700/60 space-y-1.5 text-[11px]">
-                      <div className="flex items-center justify-between text-slate-200">
+                    {/* Hero Number */}
+                    <div className="my-2">
+                      <div className="text-3xl sm:text-4xl font-black text-white tracking-tight tabular-nums">
+                        1.159
+                        <span className="text-xs text-amber-400 font-semibold ml-2">Peserta di 5 Sektor</span>
+                      </div>
+                      <p className="text-[11px] text-slate-400 font-medium mt-0.5">
+                        Standardisasi Bahasa, Teknis & Sertifikasi
+                      </p>
+                    </div>
+
+                    {/* Rincian Eksplisit 5 Sektor Riil */}
+                    <div className="mt-2 py-1.5 px-2 bg-slate-900/80 rounded-xl border border-slate-800/80 grid grid-cols-2 gap-x-3 gap-y-1 text-[10px]">
+                      <div className="flex items-center justify-between text-slate-300">
                         <span>Kesehatan:</span>
-                        <strong className="text-emerald-400 font-extrabold tabular-nums">591</strong>
+                        <strong className="text-emerald-400 font-bold ml-1">591</strong>
                       </div>
-                      <div className="flex items-center justify-between text-slate-200">
+                      <div className="flex items-center justify-between text-slate-300">
                         <span>Hospitality:</span>
-                        <strong className="text-blue-400 font-extrabold tabular-nums">347</strong>
+                        <strong className="text-blue-400 font-bold ml-1">347</strong>
                       </div>
-                      <div className="flex items-center justify-between text-slate-200">
+                      <div className="flex items-center justify-between text-slate-300">
                         <span>Manufaktur:</span>
-                        <strong className="text-amber-400 font-extrabold tabular-nums">168</strong>
+                        <strong className="text-amber-400 font-bold ml-1">168</strong>
                       </div>
-                      <div className="flex items-center justify-between text-slate-200">
+                      <div className="flex items-center justify-between text-slate-300">
                         <span>Konstruksi:</span>
-                        <strong className="text-cyan-400 font-extrabold tabular-nums">40</strong>
+                        <strong className="text-cyan-400 font-bold ml-1">40</strong>
                       </div>
-                      <div className="flex items-center justify-between text-slate-200 pt-1 border-t border-slate-800">
+                      <div className="flex items-center justify-between text-slate-300 col-span-2 pt-0.5 border-t border-slate-800/60">
                         <span>Fisherman (Kemaritiman):</span>
-                        <strong className="text-indigo-300 font-extrabold tabular-nums">13 Peserta</strong>
+                        <strong className="text-indigo-300 font-bold ml-1">13 Peserta</strong>
                       </div>
                     </div>
                   </div>
 
-                  <div className="mt-2.5 pt-2 border-t border-slate-700/60 flex items-center justify-between text-xs">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                  {/* Badges / Pill Tags */}
+                  <div className="pt-3 border-t border-slate-800/80 flex flex-wrap items-center gap-1.5 text-[10px] font-semibold mt-2">
+                    <span className="px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30">
                       Demand: 10.470 Kuota
                     </span>
-                    <span className="text-xs font-black text-indigo-300 tabular-nums">
-                      4 Kelas (23.247)
+                    <span className="px-2.5 py-1 rounded-full bg-slate-800/80 text-amber-300 border border-slate-700/60">
+                      4 Kelas (23.247 Kurikulum)
                     </span>
-                  </div>
-
-                  {/* Panah alur desktop */}
-                  <div className="hidden xl:flex absolute -right-2.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-slate-900 border border-slate-700 items-center justify-center text-[10px] text-slate-400 z-20">
-                    →
                   </div>
                 </article>
 
-                {/* Pilar 3 */}
+                {/* 3. Siap Vokasi (Bottom-Left) */}
                 <article
                   onClick={() => handlePillarDrilldown("lembaga")}
-                  className="group relative rounded-xl border border-emerald-500/60 bg-slate-800/95 p-3.5 flex flex-col justify-between hover:border-emerald-400 hover:bg-slate-800 hover:shadow-lg hover:shadow-emerald-900/30 transition cursor-pointer"
+                  className="group relative rounded-2xl border border-emerald-500/30 bg-gradient-to-br from-emerald-950/40 via-slate-900/90 to-slate-900/95 p-4 sm:p-5 flex flex-col justify-between hover:border-emerald-400 hover:shadow-xl hover:shadow-emerald-900/20 transition-all duration-300 cursor-pointer"
                   title="Klik untuk membuka data rincian lembaga vokasi ber-suplai"
                 >
                   <div>
-                    <div className="flex items-center justify-between gap-1 mb-2">
-                      <div className="w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="text-sm font-extrabold text-white group-hover:text-emerald-300 transition-colors">
+                        3. Siap Vokasi
+                      </h4>
+                      <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center shadow-inner">
                         <Building2 className="w-4 h-4" />
                       </div>
-                      <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                        FASILITAS
-                      </span>
                     </div>
-                    <h4 className="text-sm font-extrabold text-white group-hover:text-emerald-300 transition-colors">
-                      3. Siap Vokasi
-                    </h4>
-                    <p className="text-[11px] text-slate-300 font-medium mt-0.5 truncate">
-                      36 Lembaga Terverifikasi
-                    </p>
 
-                    {/* Informasi Rincian Lembaga Vokasi */}
-                    <div className="mt-2.5 bg-slate-900/90 rounded-lg p-2.5 border border-slate-700/60 space-y-1.5 text-[11px]">
-                      <div className="flex items-center justify-between text-slate-200">
-                        <span>Lembaga Terverifikasi:</span>
-                        <strong className="text-emerald-400 font-extrabold tabular-nums">36 Lembaga</strong>
+                    {/* Hero Number */}
+                    <div className="my-2">
+                      <div className="text-3xl sm:text-4xl font-black text-white tracking-tight tabular-nums">
+                        {vocationalCount}
+                        <span className="text-xs text-emerald-400 font-semibold ml-2">Lembaga Terverifikasi</span>
                       </div>
-                      <div className="flex items-center justify-between text-slate-200">
-                        <span>Target Lembaga:</span>
-                        <strong className="text-slate-300 font-extrabold tabular-nums">36 Target</strong>
+                      <p className="text-[11px] text-slate-400 font-medium mt-0.5">
+                        Balai Latihan & Lembaga Vokasi Resmi
+                      </p>
+                    </div>
+
+                    {/* Keterangan Kesiapan Vokasi */}
+                    <div className="mt-2 py-2 px-2.5 bg-slate-900/80 rounded-xl border border-slate-800/80 space-y-1 text-[10px]">
+                      <div className="flex items-center justify-between text-slate-300">
+                        <span>Target Lembaga Terverifikasi:</span>
+                        <strong className="text-slate-200 font-bold">36 Target</strong>
                       </div>
-                      <div className="flex items-center justify-between text-slate-200">
+                      <div className="flex items-center justify-between text-slate-300">
                         <span>Vokasi Ber-Suplai:</span>
-                        <strong className="text-blue-400 font-extrabold tabular-nums">36 Vokasi</strong>
+                        <strong className="text-emerald-400 font-bold">36 Vokasi</strong>
                       </div>
-                      <div className="flex items-center justify-between text-slate-200">
+                      <div className="flex items-center justify-between text-slate-300">
                         <span>Peserta Ber-Suplai:</span>
-                        <strong className="text-emerald-400 font-extrabold tabular-nums">{candidateCount.toLocaleString("id-ID")}</strong>
-                      </div>
-                      <div className="flex items-center justify-between text-slate-200 pt-1 border-t border-slate-800">
-                        <span>Status Kesiapan:</span>
-                        <strong className="text-emerald-400 font-extrabold tabular-nums">100% Siap</strong>
+                        <strong className="text-cyan-400 font-bold">{candidateCount.toLocaleString("id-ID")} Peserta</strong>
                       </div>
                     </div>
                   </div>
 
-                  <div className="mt-2.5 pt-2 border-t border-slate-700/60 flex items-center justify-between text-xs">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                      Vokasi Ber-Suplai:
+                  {/* Badges / Pill Tags */}
+                  <div className="pt-3 border-t border-slate-800/80 flex flex-wrap items-center gap-1.5 text-[10px] font-semibold mt-2">
+                    <span className="px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                      36 Lembaga / 36 Target
                     </span>
-                    <span className="text-xs font-black text-emerald-300 tabular-nums">
-                      36 Vokasi ({candidateCount.toLocaleString("id-ID")})
+                    <span className="px-2.5 py-1 rounded-full bg-slate-800/80 text-emerald-400 border border-slate-700/60">
+                      100% Siap Latih
                     </span>
-                  </div>
-
-                  {/* Panah alur desktop */}
-                  <div className="hidden xl:flex absolute -right-2.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-slate-900 border border-slate-700 items-center justify-center text-[10px] text-slate-400 z-20">
-                    →
                   </div>
                 </article>
 
-                {/* Pilar 4 */}
+                {/* 4. Siap Permintaan (Bottom-Right) */}
                 <article
                   onClick={() => handlePillarDrilldown("demand")}
-                  className="group relative rounded-xl border border-amber-500/60 bg-slate-800/95 p-3.5 flex flex-col justify-between hover:border-amber-400 hover:bg-slate-800 hover:shadow-lg hover:shadow-amber-900/30 transition cursor-pointer"
+                  className="group relative rounded-2xl border border-purple-500/30 bg-gradient-to-br from-purple-950/40 via-slate-900/90 to-slate-900/95 p-4 sm:p-5 flex flex-col justify-between hover:border-purple-400 hover:shadow-xl hover:shadow-purple-900/20 transition-all duration-300 cursor-pointer"
                   title="Klik untuk membuka data rincian permintaan luar negeri"
                 >
                   <div>
-                    <div className="flex items-center justify-between gap-1 mb-2">
-                      <div className="w-7 h-7 rounded-lg bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="text-sm font-extrabold text-white group-hover:text-purple-300 transition-colors">
+                        4. Siap Permintaan
+                      </h4>
+                      <div className="w-8 h-8 rounded-xl bg-purple-500/20 text-purple-400 border border-purple-500/30 flex items-center justify-center shadow-inner">
                         <Globe2 className="w-4 h-4" />
                       </div>
-                      <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                        ORDER KERJA
-                      </span>
                     </div>
-                    <h4 className="text-sm font-extrabold text-white group-hover:text-amber-300 transition-colors">
-                      4. Siap Permintaan
-                    </h4>
-                    <p className="text-[11px] text-slate-300 font-medium mt-0.5 truncate">
-                      Permintaan Luar Negeri
-                    </p>
 
-                    {/* Informasi Rincian Permintaan Luar Negeri */}
-                    <div className="mt-2.5 bg-slate-900/90 rounded-lg p-2.5 border border-slate-700/60 space-y-1.5 text-[11px]">
-                      <div className="flex items-center justify-between text-slate-200">
-                        <span>Total Permintaan:</span>
-                        <strong className="text-amber-400 font-extrabold tabular-nums">{demandHeadcount} Kuota</strong>
+                    {/* Hero Number */}
+                    <div className="my-2">
+                      <div className="text-3xl sm:text-4xl font-black text-white tracking-tight tabular-nums">
+                        10.470
+                        <span className="text-xs text-purple-400 font-semibold ml-2">Kuota Demand</span>
                       </div>
-                      <div className="flex items-center justify-between text-slate-200">
+                      <p className="text-[11px] text-slate-400 font-medium mt-0.5">
+                        Kebutuhan Pekerja Migran Luar Negeri
+                      </p>
+                    </div>
+
+                    {/* Keterangan Demand Luar Negeri */}
+                    <div className="mt-2 py-2 px-2.5 bg-slate-900/80 rounded-xl border border-slate-800/80 space-y-1 text-[10px]">
+                      <div className="flex items-center justify-between text-slate-300">
+                        <span>Negara Mitra Resmi:</span>
+                        <strong className="text-cyan-300 font-bold">Turki · Jepang · MY · KR</strong>
+                      </div>
+                      <div className="flex items-center justify-between text-slate-300">
+                        <span>Headcount Order Batch I:</span>
+                        <strong className="text-amber-400 font-bold">{demandHeadcount} Kuota (5 Order)</strong>
+                      </div>
+                      <div className="flex items-center justify-between text-slate-300">
                         <span>Kuota Terisi:</span>
-                        <strong className="text-emerald-400 font-extrabold tabular-nums">{demandFilledQuota} Kuota</strong>
-                      </div>
-                      <div className="flex items-center justify-between text-slate-200">
-                        <span>Persentase Terisi:</span>
-                        <strong className="text-amber-400 font-extrabold tabular-nums">{demandPercent}%</strong>
-                      </div>
-                      <div className="flex items-center justify-between text-slate-200">
-                        <span>Negara Mitra:</span>
-                        <strong className="text-cyan-400 font-extrabold tabular-nums">4 Negara</strong>
-                      </div>
-                      <div className="flex items-center justify-between text-slate-200 pt-1 border-t border-slate-800">
-                        <span>Order Terverifikasi:</span>
-                        <strong className="text-amber-400 font-extrabold tabular-nums">{demandCount} Order</strong>
+                        <strong className="text-emerald-400 font-bold">{demandFilledQuota} Kuota ({demandPercent}%)</strong>
                       </div>
                     </div>
                   </div>
 
-                  <div className="mt-2.5 pt-2 border-t border-slate-700/60 flex items-center justify-between text-xs">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                      Target: 4 Negara
+                  {/* Badges / Pill Tags */}
+                  <div className="pt-3 border-t border-slate-800/80 flex flex-wrap items-center gap-1.5 text-[10px] font-semibold mt-2">
+                    <span className="px-2.5 py-1 rounded-full bg-purple-500/15 text-purple-300 border border-purple-500/30">
+                      4 Negara Mitra
                     </span>
-                    <span className="text-xs font-black text-amber-400 tabular-nums">
-                      {demandCount} Order ({demandHeadcount} Kuota)
+                    <span className="px-2.5 py-1 rounded-full bg-slate-800/80 text-purple-300 border border-slate-700/60">
+                      5 Order Resmi
                     </span>
                   </div>
                 </article>
