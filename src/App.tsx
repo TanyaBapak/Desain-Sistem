@@ -125,6 +125,11 @@ interface AppProps {
       value: number;
       target: number | null;
     }[];
+    vokasiWithSupplyCount?: number;
+    activeClassesCount?: number;
+    demandHeadcount?: number;
+    demandFilledQuota?: number;
+    demandCountryCount?: number;
   };
   landingProjection: LandingProjectionData;
   trainingCatalog?: { sectors: TrainingSectorCatalogItem[] };

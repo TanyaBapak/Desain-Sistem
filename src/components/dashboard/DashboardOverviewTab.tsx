@@ -135,7 +135,7 @@ export function DashboardOverviewTab({
           badge={`${totalTrainingQuota} Kuota`}
           icon={GraduationCap}
           progressPercent={programAchievementPct}
-          progressLabel={`${programs.length.toLocaleString("id-ID")} / ${TARGET_PROGRAM_CLASSES.toLocaleString("id-ID")} Target Kelas (${programAchievementPct}%)`}
+          progressLabel={`${programs.length.toLocaleString("id-ID")} Kurikulum / ${TARGET_PROGRAM_CLASSES.toLocaleString("id-ID")} Target Kelas`}
           onOpenPage={() => onSelectTab("program")}
           pageActionLabel="Buka Tab Program"
           onDrilldown={() => onOpenDrilldown("program")}

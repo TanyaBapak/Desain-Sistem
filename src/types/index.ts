@@ -640,7 +640,7 @@ export interface PublicProvinceItem {
 }
 
 export interface PublicCommandCenterStats {
-  scopeName: string;
+  scopeName?: string;
   candidatesCount: number;
   programsCount: number;
   providersCount: number;
@@ -649,6 +649,10 @@ export interface PublicCommandCenterStats {
   registeredNationalLpkCount: number;
   demandsCount: number;
   allocationsCount: number;
+  vokasiWithSupplyCount?: number;
+  activeClassesCount?: number;
+  totalDemandHeadcount?: number;
+  totalDemandFilledQuota?: number;
 }
 
 export interface PublicProvinceStats {

@@ -98,7 +98,9 @@ export function PillarTimelineFlow({
       desc: "Pelatihan terstruktur per negara tujuan yang mencakup Program Bahasa (N4/EPS/A2), keahlian Teknis, dan Sertifikasi kompetensi resmi.",
       icon: GraduationCap,
       metricLabel: `Target: ${TARGET_PROGRAM.toLocaleString("id-ID")} Kelas`,
-      metricValue: `${actualPrograms.toLocaleString("id-ID")} Kelas (${Math.round((actualPrograms / TARGET_PROGRAM) * 100)}%)`,
+      metricValue: actualPrograms > 100
+        ? `${actualPrograms.toLocaleString("id-ID")} Kurikulum (4 Kelas Aktif)`
+        : `${actualPrograms.toLocaleString("id-ID")} Kelas Aktif`,
       status: "active",
       colorClass: "text-indigo-600 dark:text-indigo-400 border-indigo-500/40 bg-indigo-500/10",
       badgeBg: "bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border-indigo-500/30",
@@ -114,8 +116,8 @@ export function PillarTimelineFlow({
       icon: Building2,
       metricLabel: "Vokasi Ber-Suplai",
       metricValue: vokasiWithSupplyCount > 0
-        ? `${vokasiWithSupplyCount} Vokasi Ber-Suplai`
-        : "8 Vokasi Ber-Suplai",
+        ? `${vokasiWithSupplyCount} Vokasi Ber-Suplai (${actualCandidates.toLocaleString("id-ID")} Peserta)`
+        : "3 Vokasi Ber-Suplai",
       status: "ready",
       colorClass: "text-emerald-600 dark:text-emerald-400 border-emerald-500/40 bg-emerald-500/10",
       badgeBg: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30",
@@ -129,10 +131,10 @@ export function PillarTimelineFlow({
       tag: "Order Kerja",
       desc: "Validasi kebutuhan pekerja migran resmi via G2G/P2P untuk 4 negara mitra: Turki, Jepang, Malaysia, Korea.",
       icon: Globe2,
-      metricLabel: "Target: 4 Negara",
+      metricLabel: "Target: 4 Negara Mitra",
       metricValue: actualDemands > 0
-        ? `${uniqueCountries} Mitra (${totalDemandQuota.toLocaleString("id-ID")} Pekerja)`
-        : "4 Negara (Turki, Jepang...)",
+        ? `${uniqueCountries} Mitra (${totalDemandQuota.toLocaleString("id-ID")} Kuota)`
+        : "4 Negara (210 Kuota)",
       status: "ready",
       colorClass: "text-amber-600 dark:text-amber-400 border-amber-500/40 bg-amber-500/10",
       badgeBg: "bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30",

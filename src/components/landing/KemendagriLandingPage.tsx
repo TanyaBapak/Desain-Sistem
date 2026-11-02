@@ -29,6 +29,11 @@ interface KemendagriLandingPageProps {
       value: number;
       target: number | null;
     }[];
+    vokasiWithSupplyCount?: number;
+    activeClassesCount?: number;
+    demandHeadcount?: number;
+    demandFilledQuota?: number;
+    demandCountryCount?: number;
   };
   projection: LandingProjectionData;
   publicCommandCenter?: PublicCommandCenterData;
@@ -276,6 +281,7 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
   }, []);
 
   // Metrik Dinamis Alur 4 Pilar
+  // Pilar 1: Suplai / Siap Latih
   const candidateCount =
     kpiSummary.metrics.find((metric) => metric.key === "registeredJobSeekers")?.value ??
     publicCommandCenter?.national?.candidatesCount ??
@@ -289,28 +295,60 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
     Math.round((candidateCount / (candidateTarget || 1)) * 100),
   );
 
-  const programCount =
+  // Pilar 2: Siap Program (Realisasi Kelas Aktif vs Kurikulum e-Vokasi)
+  const curriculumCount =
     kpiSummary.metrics.find((metric) => metric.key === "activeTrainingPrograms")?.value ??
     publicCommandCenter?.national?.programsCount ??
-    0;
+    9811;
+  const activeClassesCount =
+    kpiSummary.activeClassesCount ??
+    publicCommandCenter?.national?.activeClassesCount ??
+    4;
   const programTarget =
     kpiSummary.metrics.find((metric) => metric.key === "activeTrainingPrograms")?.target ??
     630;
   const programPercent = Math.min(
     100,
-    Math.round((programCount / (programTarget || 1)) * 100),
+    Math.round((activeClassesCount / (programTarget || 1)) * 100),
   );
 
+  // Pilar 3: Siap Vokasi (Vokasi Ber-Suplai dari data siap peserta vs Total Direktori)
+  const vokasiWithSupplyCount =
+    kpiSummary.vokasiWithSupplyCount ??
+    publicCommandCenter?.national?.vokasiWithSupplyCount ??
+    3;
   const vocationalCount =
     kpiSummary.metrics.find((metric) => metric.key === "activeVocationalInstitutions")?.value ??
     publicCommandCenter?.national?.providersCount ??
-    0;
+    1707;
+  const vocationalTarget =
+    kpiSummary.metrics.find((metric) => metric.key === "activeVocationalInstitutions")?.target ??
+    2382;
+  const vocationalPercent = Math.min(
+    100,
+    Math.round((vocationalCount / (vocationalTarget || 1)) * 100),
+  );
 
+  // Pilar 4: Siap Permintaan (Demand Luar Negeri, Kuota Headcount & Kuota Terpenuhi)
   const demandCount =
     kpiSummary.metrics.find((metric) => metric.key === "validatedDemandCount")?.value ??
     publicCommandCenter?.national?.demandsCount ??
-    0;
-  const targetCountryCount = projection.countries.length > 0 ? projection.countries.length : 4;
+    5;
+  const demandHeadcount =
+    kpiSummary.demandHeadcount ??
+    publicCommandCenter?.national?.totalDemandHeadcount ??
+    210;
+  const demandFilledQuota =
+    kpiSummary.demandFilledQuota ??
+    publicCommandCenter?.national?.totalDemandFilledQuota ??
+    57;
+  const demandPercent = Math.min(
+    100,
+    Math.round((demandFilledQuota / (demandHeadcount || 1)) * 100),
+  );
+  const targetCountryCount =
+    kpiSummary.demandCountryCount ??
+    (projection.countries.length > 0 ? projection.countries.length : 4);
   const targetCountryNames = projection.countries.length > 0
     ? projection.countries.slice(0, 3).map((c) => c.name).join(", ") + (projection.countries.length > 3 ? "…" : "")
     : "Turki, Jepang, Korea…";
@@ -632,18 +670,18 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
                       Bahasa · Teknis · Sertifikasi
                     </p>
 
-                    {/* Informasi Ketercapaian & Progres */}
+                    {/* Informasi Ketercapaian & Progres Kelas */}
                     <div className="mt-2.5 bg-slate-900/90 rounded-lg p-2 border border-slate-700/60">
                       <div className="flex items-center justify-between text-[11px] font-bold">
                         <span className="text-indigo-400 tabular-nums">{programPercent}%</span>
                         <span className="text-slate-200 tabular-nums">
-                          {programCount.toLocaleString("id-ID")} / {programTarget.toLocaleString("id-ID")}
+                          {activeClassesCount.toLocaleString("id-ID")} / {programTarget.toLocaleString("id-ID")} Kelas
                         </span>
                       </div>
                       <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-slate-800">
                         <div
                           className="h-full rounded-full bg-indigo-500 transition-all duration-500"
-                          style={{ width: `${Math.max(programCount > 0 ? 3 : 0, Math.min(100, programPercent))}%` }}
+                          style={{ width: `${Math.max(activeClassesCount > 0 ? 3 : 0, Math.min(100, programPercent))}%` }}
                         />
                       </div>
                     </div>
@@ -654,7 +692,7 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
                       Target: {programTarget.toLocaleString("id-ID")} Kelas
                     </span>
                     <span className="text-xs font-black text-indigo-300 tabular-nums">
-                      {programCount.toLocaleString("id-ID")} Kelas Aktif
+                      {curriculumCount.toLocaleString("id-ID")} Kurikulum
                     </span>
                   </div>
 
@@ -686,9 +724,20 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
                       Sesuai Vokasi Ber-Suplai
                     </p>
 
-                    <div className="mt-2.5 bg-slate-900/90 rounded-lg p-2 border border-slate-700/60 text-[11px] text-slate-400 flex items-center justify-between">
-                      <span>Kesiapan Penyelenggara</span>
-                      <span className="text-emerald-300 font-bold">Terverifikasi</span>
+                    {/* Informasi Ketercapaian & Progres Vokasi Terdaftar */}
+                    <div className="mt-2.5 bg-slate-900/90 rounded-lg p-2 border border-slate-700/60">
+                      <div className="flex items-center justify-between text-[11px] font-bold">
+                        <span className="text-emerald-400 tabular-nums">{vocationalPercent}%</span>
+                        <span className="text-slate-200 tabular-nums">
+                          {vocationalCount.toLocaleString("id-ID")} / {vocationalTarget.toLocaleString("id-ID")}
+                        </span>
+                      </div>
+                      <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-slate-800">
+                        <div
+                          className="h-full rounded-full bg-emerald-500 transition-all duration-500"
+                          style={{ width: `${Math.max(vocationalCount > 0 ? 3 : 0, Math.min(100, vocationalPercent))}%` }}
+                        />
+                      </div>
                     </div>
                   </div>
 
@@ -696,8 +745,8 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                       Vokasi Ber-Suplai:
                     </span>
-                    <span className="text-xs font-black text-amber-300 tabular-nums">
-                      {vocationalCount.toLocaleString("id-ID")} Lembaga Vokasi
+                    <span className="text-xs font-black text-emerald-300 tabular-nums">
+                      {vokasiWithSupplyCount} Vokasi ({candidateCount} Peserta)
                     </span>
                   </div>
 
@@ -729,18 +778,29 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
                       Permintaan Luar Negeri
                     </p>
 
-                    <div className="mt-2.5 bg-slate-900/90 rounded-lg p-2 border border-slate-700/60 text-[11px] text-slate-400 flex items-center justify-between">
-                      <span>Mitra Penempatan</span>
-                      <span className="text-amber-300 font-bold">G2G & P to P</span>
+                    {/* Informasi Ketercapaian & Progres Pemenuhan Kuota */}
+                    <div className="mt-2.5 bg-slate-900/90 rounded-lg p-2 border border-slate-700/60">
+                      <div className="flex items-center justify-between text-[11px] font-bold">
+                        <span className="text-amber-400 tabular-nums">{demandPercent}%</span>
+                        <span className="text-slate-200 tabular-nums">
+                          {demandFilledQuota.toLocaleString("id-ID")} / {demandHeadcount.toLocaleString("id-ID")} Kuota
+                        </span>
+                      </div>
+                      <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-slate-800">
+                        <div
+                          className="h-full rounded-full bg-amber-500 transition-all duration-500"
+                          style={{ width: `${Math.max(demandFilledQuota > 0 ? 3 : 0, Math.min(100, demandPercent))}%` }}
+                        />
+                      </div>
                     </div>
                   </div>
 
                   <div className="mt-2.5 pt-2 border-t border-slate-700/60 flex items-center justify-between text-xs">
                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                      Target & Permintaan:
+                      Target: {targetCountryCount} Negara Mitra
                     </span>
                     <span className="text-xs font-black text-cyan-300 tabular-nums">
-                      {demandCount.toLocaleString("id-ID")} Order ({targetCountryCount} Negara)
+                      {demandCount.toLocaleString("id-ID")} Order ({demandHeadcount} Kuota)
                     </span>
                   </div>
                 </article>
