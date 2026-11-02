@@ -120,10 +120,17 @@ class GardataPlacementSyncService
                             continue;
                         }
 
-                        $persisted = DB::transaction(fn (): array => $this->persistCandidate($item, $source, $force));
-                        $result['recordsInserted'] += $persisted['inserted'];
-                        $result['recordsUpdated'] += $persisted['updated'];
-                        $result['recordsSkipped'] += $persisted['skipped'];
+                        try {
+                            $persisted = DB::transaction(fn (): array => $this->persistCandidate($item, $source, $force));
+                            $result['recordsInserted'] += $persisted['inserted'];
+                            $result['recordsUpdated'] += $persisted['updated'];
+                            $result['recordsSkipped'] += $persisted['skipped'];
+                        } catch (Throwable $candEx) {
+                            Log::warning("Candidate sync item warning for {$source}: " . $candEx->getMessage(), [
+                                'item_id' => $item['id'] ?? $item['nik'] ?? null,
+                            ]);
+                            $result['recordsSkipped']++;
+                        }
                     }
 
                     $currentPage = filter_var($response['meta']['current_page'] ?? null, FILTER_VALIDATE_INT);
@@ -249,7 +256,7 @@ class GardataPlacementSyncService
         } catch (Throwable $exception) {
             DB::table('integration_sync_logs')->where('id', $logId)->update([
                 'status' => 'failed',
-                'error_message' => "Sinkronisasi {$source} gagal. Periksa konfigurasi, koneksi, dan kontrak API.",
+                'error_message' => "Sinkronisasi {$source} gagal: " . $exception->getMessage(),
                 'finished_at' => now(),
                 'updated_at' => now(),
             ]);
@@ -259,7 +266,7 @@ class GardataPlacementSyncService
                 'message' => $exception->getMessage(),
             ]);
 
-            throw new RuntimeException("Sinkronisasi {$source} gagal; lihat log integrasi untuk detail status.", 0, $exception);
+            throw new RuntimeException("Sinkronisasi {$source} gagal: " . $exception->getMessage(), 0, $exception);
         }
     }
 
@@ -458,12 +465,22 @@ class GardataPlacementSyncService
         if ($existing) {
             DB::table('job_seekers')->where('id', $id)->update($attributes);
         } else {
-            DB::table('job_seekers')->insert([
-                'id' => $id,
-                ...$attributes,
-                'created_at' => $now,
-            ]);
-            $this->createApprovalRequest($id, $externalId, $source);
+            $idExists = DB::table('job_seekers')->where('id', $id)->exists();
+            if ($idExists) {
+                DB::table('job_seekers')->where('id', $id)->update($attributes);
+            } else {
+                try {
+                    DB::table('job_seekers')->insert([
+                        'id' => $id,
+                        ...$attributes,
+                        'created_at' => $now,
+                    ]);
+                    $this->createApprovalRequest($id, $externalId, $source);
+                } catch (Throwable $insEx) {
+                    unset($attributes['nik']);
+                    DB::table('job_seekers')->where('id', $id)->update($attributes);
+                }
+            }
         }
 
         $trainingHistory = $item['classes_history'] ?? $item['training_history'] ?? $item['classes'] ?? null;
