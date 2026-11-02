@@ -10,6 +10,7 @@ interface CandidateFormModalProps {
   initialData?: CandidateParticipant | null;
   mode: 'create' | 'edit';
   canVerify?: boolean;
+  defaultInstitutionName?: string;
 }
 
 export const CandidateFormModal: React.FC<CandidateFormModalProps> = ({
@@ -19,6 +20,7 @@ export const CandidateFormModal: React.FC<CandidateFormModalProps> = ({
   initialData,
   mode,
   canVerify = false,
+  defaultInstitutionName = '',
 }) => {
   const { businessOptions } = useAppStore();
   const [fullName, setFullName] = useState('');
@@ -72,7 +74,7 @@ export const CandidateFormModal: React.FC<CandidateFormModalProps> = ({
       setSourceType('Disnaker Pemda');
       setKabupatenKota('Kabupaten Bogor');
       setEducationLevel('SMK');
-      setInstitutionName(initialData?.institutionName || 'Politeknik Indonusa Surakarta');
+      setInstitutionName(initialData?.institutionName || defaultInstitutionName || 'Politeknik Indonusa Surakarta');
       setMajor('');
       setSkillsInput('');
       setLanguage('Jepang');

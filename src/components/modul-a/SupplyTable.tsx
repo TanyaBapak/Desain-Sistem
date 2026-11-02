@@ -1294,6 +1294,7 @@ export const SupplyTable: React.FC<SupplyTableProps> = ({
         mode={formMode}
         initialData={candidateToEdit}
         canVerify={canVerifyCandidates}
+        defaultInstitutionName={connectedFeederName}
         onClose={() => {
           setIsFormOpen(false);
           setCandidateToEdit(null);
