@@ -1584,7 +1584,7 @@ function buildRealTrees(): Record<PillarKey, PillarConfig> {
       t: "3. Siap Vokasi",
       lv: ["Jenis Vokasi", "Negara · Sektor · Jabatan", "Lembaga Vokasi"],
       k: [
-        ["a", "Lembaga Terverifikasi"],
+        ["a", "Vokasi Suplai (Target: 2.382)"],
         ["b", "Jumlah Kelas"],
         ["c", "Kapasitas Latih"],
         ["d", "Siap Ditempatkan"],
@@ -1605,14 +1605,14 @@ function buildRealTrees(): Record<PillarKey, PillarConfig> {
   };
 
   // Sesuaikan angka total di kartu utama dengan data di header timeline:
-  // 1. Siap Latih: 12.600 Peserta
-  // 2. Siap Program: 630 Kelas (5 Sektor)
-  // 3. Siap Vokasi: Sesuai jumlah vokasi ber-suplai (8 Vokasi Terisi Suplai)
-  // 4. Siap Permintaan: 4 Negara Mitra
+  // 1. Siap Latih: 12.600 Peserta (Target)
+  // 2. Siap Program: 630 Kelas (Target)
+  // 3. Siap Vokasi: 30 Vokasi Suplai (Target: 2.382 Vokasi)
+  // 4. Siap Permintaan: 4 Negara Mitra (Target)
   const HEADER_TARGETS: Record<PillarKey, number> = {
     sup: 12600,
     pel: 630,
-    lpk: 36,
+    lpk: 30,
     dem: 4,
   };
 

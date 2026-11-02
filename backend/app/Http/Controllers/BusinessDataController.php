@@ -203,6 +203,78 @@ class BusinessDataController extends Controller
         return back()->with('success', 'Perubahan berhasil disimpan.');
     }
 
+    public function updateProgramSchedule(Request $request, string $id): RedirectResponse
+    {
+        $this->authorizeWrite($request, 'programs', 'update');
+        $existing = DB::table('training_programs')->where('id', $id)->first();
+        abort_unless($existing, 404);
+        $this->assertRecordScope($request, 'programs', $existing);
+
+        $validated = $request->validate([
+            'scheduleStart' => ['required', 'date'],
+            'scheduleEnd' => ['required', 'date', 'after_or_equal:scheduleStart'],
+            'durationJP' => ['nullable', 'integer', 'min:0', 'max:100000'],
+        ], [
+            'scheduleStart.required' => 'Tanggal mulai pelatihan wajib diisi.',
+            'scheduleStart.date' => 'Format tanggal mulai pelatihan tidak valid.',
+            'scheduleEnd.required' => 'Tanggal selesai pelatihan wajib diisi.',
+            'scheduleEnd.date' => 'Format tanggal selesai pelatihan tidak valid.',
+            'scheduleEnd.after_or_equal' => 'Tanggal selesai pelatihan tidak boleh lebih awal dari tanggal mulai.',
+        ]);
+
+        DB::transaction(function () use ($request, $id, $existing, $validated): void {
+            $totalJp = isset($validated['durationJP']) ? (int) $validated['durationJP'] : (int) ($existing->total_jp ?? 0);
+
+            DB::table('training_programs')->where('id', $id)->update([
+                'start_date' => $validated['scheduleStart'],
+                'end_date' => $validated['scheduleEnd'],
+                'total_jp' => $totalJp,
+                'updated_at' => now(),
+            ]);
+
+            if ($existing->institution_id && ($totalJp > 0 || ! empty($validated['scheduleStart']))) {
+                $existingClass = DB::table('training_classes')->where('program_id', $id)->first();
+                if ($existingClass) {
+                    DB::table('training_classes')->where('id', $existingClass->id)->update([
+                        'updated_at' => now(),
+                    ]);
+                } else {
+                    $classId = 'CLS-'.strtoupper(substr(md5((string) $id), 0, 8));
+                    DB::table('training_classes')->updateOrInsert(
+                        ['id' => $classId],
+                        [
+                            'program_id' => $id,
+                            'institution_id' => $existing->institution_id,
+                            'class_name' => $existing->name.' - Batch I',
+                            'capacity' => max(20, (int) ($existing->quota ?: 25)),
+                            'enrolled_count' => (int) ($existing->enrolled_count ?? 0),
+                            'status' => 'Berjalan',
+                            'updated_at' => now(),
+                            'created_at' => now(),
+                        ]
+                    );
+                }
+            }
+
+            $oldRange = ($existing->start_date ?: '-').' s/d '.($existing->end_date ?: '-');
+            $newRange = $validated['scheduleStart'].' s/d '.$validated['scheduleEnd'];
+            $this->writeAudit(
+                $request,
+                'programs',
+                $id,
+                'UPDATE_DATA',
+                "Pengaturan jadwal pelaksanaan program pelatihan ({$newRange}).",
+                'Jadwal Pelaksanaan',
+                $oldRange,
+                $newRange,
+            );
+        });
+
+        app(BusinessDataPresenter::class)->forgetAll();
+
+        return back()->with('success', 'Jadwal tanggal program pelatihan berhasil disimpan.');
+    }
+
     public function destroy(Request $request, string $type, string $id): RedirectResponse
     {
         $this->authorizeWrite($request, $type, 'delete');
@@ -1190,6 +1262,33 @@ class BusinessDataController extends Controller
             DB::table('training_programs')->where('id', $id)->update($attributes);
         }
 
+        if ($institutionId && ((int) ($data['durationJP'] ?? 0) > 0 || ! empty($data['scheduleStart']))) {
+            $existingClass = DB::table('training_classes')->where('program_id', $id)->first();
+            if ($existingClass) {
+                DB::table('training_classes')->where('id', $existingClass->id)->update([
+                    'institution_id' => $institutionId,
+                    'class_name' => $data['title'].' - Batch I',
+                    'capacity' => max(20, (int) ($data['quota'] ?: 25)),
+                    'updated_at' => now(),
+                ]);
+            } else {
+                $classId = 'CLS-'.strtoupper(substr(md5((string) $id), 0, 8));
+                DB::table('training_classes')->updateOrInsert(
+                    ['id' => $classId],
+                    [
+                        'program_id' => $id,
+                        'institution_id' => $institutionId,
+                        'class_name' => $data['title'].' - Batch I',
+                        'capacity' => max(20, (int) ($data['quota'] ?: 25)),
+                        'enrolled_count' => (int) ($existing->enrolled_count ?? 0),
+                        'status' => 'Berjalan',
+                        'updated_at' => now(),
+                        'created_at' => now(),
+                    ]
+                );
+            }
+        }
+
         $fieldChanged = null;
         $oldValue = null;
         $newValue = null;
@@ -1601,15 +1700,15 @@ class BusinessDataController extends Controller
         abort_unless(isset(self::ENTITY_TABLES[$type]), 404);
         $role = $request->user()->roles()->value('name');
 
-        if ($role === 'directorate_admin' || $request->session()->has('impersonator_id')) {
+        if (in_array($role, ['super_admin', 'directorate_admin'], true) || $request->session()->has('impersonator_id')) {
             return;
         }
 
         $allowedRoles = match ($type) {
-            'candidates' => ['task_force', 'province_admin', 'district_admin', 'institution_admin', 'verifier', 'vokasi', 'lembaga_vokasi'],
-            'programs' => ['task_force', 'directorate_admin', 'institution_admin', 'training_operator', 'vokasi', 'lembaga_vokasi'],
-            'providers' => ['task_force', 'directorate_admin', 'institution_admin', 'vokasi', 'lembaga_vokasi'],
-            'demands' => ['task_force', 'demand_admin'],
+            'candidates' => ['super_admin', 'task_force', 'province_admin', 'district_admin', 'institution_admin', 'verifier', 'vokasi', 'lembaga_vokasi'],
+            'programs' => ['super_admin', 'task_force', 'directorate_admin', 'institution_admin', 'training_operator', 'vokasi', 'lembaga_vokasi'],
+            'providers' => ['super_admin', 'task_force', 'directorate_admin', 'institution_admin', 'vokasi', 'lembaga_vokasi'],
+            'demands' => ['super_admin', 'task_force', 'demand_admin'],
         };
 
         abort_unless(in_array($role, $allowedRoles, true), 403);
@@ -1705,7 +1804,7 @@ class BusinessDataController extends Controller
     {
         $user = $request->user();
         $role = $user->roles()->value('name');
-        if ($role === 'directorate_admin' || $request->session()->has('impersonator_id')) {
+        if (in_array($role, ['super_admin', 'directorate_admin'], true) || $request->session()->has('impersonator_id')) {
             return;
         }
 

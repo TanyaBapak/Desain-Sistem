@@ -43,7 +43,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const isSuperAdmin = currentUser?.roleName === "super_admin" || currentUser?.role === "superadmin";
 
   const navItems = NAV_ITEMS.filter((item) => {
-    if (isSuperAdmin && (item.section === "Ringkasan" || item.section === "Pelaksanaan")) {
+    if (isSuperAdmin && item.section === "Ringkasan") {
       return false;
     }
     return accessibleTabs.includes(item.id);
@@ -92,7 +92,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       <nav aria-label="Navigasi utama" className="flex-1 space-y-4 overflow-y-auto p-2">
         {(["Ringkasan", "Pelaksanaan", "Pengelolaan"] as SidebarSection[]).map((section) => {
-          if (isSuperAdmin && (section === "Ringkasan" || section === "Pelaksanaan")) {
+          if (isSuperAdmin && section === "Ringkasan") {
             return null;
           }
           const sectionItems = navItems.filter((item) => item.section === section);

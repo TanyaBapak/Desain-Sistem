@@ -316,10 +316,11 @@ export const ProgramFormModal: React.FC<ProgramFormModalProps> = ({
 
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">
-                Jadwal Mulai Kelas
+                Tanggal Mulai Pelatihan <span className="text-rose-500">*</span>
               </label>
               <input
                 type="date"
+                required
                 value={scheduleStart}
                 onChange={(e) => setScheduleStart(e.target.value)}
                 className="w-full text-xs p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-slate-50"
@@ -328,10 +329,12 @@ export const ProgramFormModal: React.FC<ProgramFormModalProps> = ({
 
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">
-                Jadwal Selesai Kelas
+                Tanggal Selesai Pelatihan <span className="text-rose-500">*</span>
               </label>
               <input
                 type="date"
+                required
+                min={scheduleStart || undefined}
                 value={scheduleEnd}
                 onChange={(e) => setScheduleEnd(e.target.value)}
                 className="w-full text-xs p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-slate-50"

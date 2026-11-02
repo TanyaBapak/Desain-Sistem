@@ -141,7 +141,10 @@ export const PublicCommandCenterSection: React.FC<PublicCommandCenterSectionProp
         </div>
 
         {/* 1. Cascading Flyout 4 Pillars Component */}
-        <CascadingFlyout onOpenDrilldownModal={handleOpenDrilldownFromFlyout} />
+        <CascadingFlyout
+          vokasiSupplyCount={initialData?.national?.vokasiWithSupplyCount}
+          onOpenDrilldownModal={handleOpenDrilldownFromFlyout}
+        />
 
         {/* Bagian Kanal Asal / Sumber Pendaftaran & Kesenjangan Supply vs Demand di-hidden sesuai permintaan */}
       </div>

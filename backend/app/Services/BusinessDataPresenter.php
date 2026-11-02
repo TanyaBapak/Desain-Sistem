@@ -137,7 +137,14 @@ class BusinessDataPresenter
             ->whereNotNull('institution_id')
             ->distinct('institution_id')
             ->count('institution_id');
-        $activeClasses = (int) DB::table('training_classes')->count();
+        $activeClasses = max(
+            (int) DB::table('training_classes')->count(),
+            (int) DB::table('training_programs')
+                ->where('status', 'Aktif')
+                ->whereNotNull('total_jp')
+                ->where('total_jp', '>', 0)
+                ->count()
+        );
         $totalDemandHeadcount = (int) DB::table('job_demands')->where('verification_status', 'Approved')->sum('headcount');
         $totalDemandFilledQuota = (int) DB::table('job_demands')->where('verification_status', 'Approved')->sum('filled_quota');
         $demandCountries = (int) DB::table('job_demands')->where('verification_status', 'Approved')->distinct('country_id')->count('country_id');
@@ -281,7 +288,14 @@ class BusinessDataPresenter
                 ->where('institution_id', '!=', '')
                 ->distinct('institution_id')
                 ->count('institution_id');
-            $activeClasses = (int) DB::table('training_classes')->count();
+            $activeClasses = max(
+                (int) DB::table('training_classes')->count(),
+                (int) DB::table('training_programs')
+                    ->where('status', 'Aktif')
+                    ->whereNotNull('total_jp')
+                    ->where('total_jp', '>', 0)
+                    ->count()
+            );
             $totalDemandHeadcount = (int) DB::table('job_demands')->where('verification_status', 'Approved')->sum('headcount');
             $totalDemandFilledQuota = (int) DB::table('job_demands')->where('verification_status', 'Approved')->sum('filled_quota');
 
@@ -2093,6 +2107,8 @@ class BusinessDataPresenter
             ->when($this->bp3miScope->hasActiveAreaFilter($user), fn ($q) => $this->bp3miScope->applyToTrainingPrograms($q, $user));
 
         return $query
+            ->orderByRaw('CASE WHEN training_programs.total_jp IS NOT NULL AND training_programs.total_jp > 0 THEN 0 WHEN training_programs.start_date IS NOT NULL THEN 1 ELSE 2 END')
+            ->orderByDesc('training_programs.start_date')
             ->orderByDesc('training_programs.created_at')
             ->get([
                 'training_programs.id',
@@ -2635,10 +2651,10 @@ class BusinessDataPresenter
                 'trainingRecordCount' => (clone $gardataTraining)->count('external_training_records.id'),
                 'lastSyncStatus' => $gardataLastSync?->status,
                 'lastSyncAt' => $gardataLastSync?->finished_at,
-                'recordsFetched' => $role === 'task_force' ? null : (int) ($gardataLastSync?->records_fetched ?? 0),
-                'recordsInserted' => $role === 'task_force' ? null : (int) ($gardataLastSync?->records_inserted ?? 0),
-                'recordsUpdated' => $role === 'task_force' ? null : (int) ($gardataLastSync?->records_updated ?? 0),
-                'recordsSkipped' => $role === 'task_force' ? null : (int) ($gardataLastSync?->records_skipped ?? 0),
+                'recordsFetched' => (int) ($gardataLastSync?->records_fetched ?? 0),
+                'recordsInserted' => (int) ($gardataLastSync?->records_inserted ?? 0),
+                'recordsUpdated' => (int) ($gardataLastSync?->records_updated ?? 0),
+                'recordsSkipped' => (int) ($gardataLastSync?->records_skipped ?? 0),
             ],
             'updatedAt' => $updatedAt,
         ];
@@ -3397,8 +3413,17 @@ class BusinessDataPresenter
             true,
         ))->count();
 
-        $tenants = collect(GardataPlacementSyncService::KNOWN_SUBDOMAINS)->map(function (array $t): array {
-            $inst = DB::table('institutions')->where('external_id', $t['subdomain'])->first();
+        $baseTenants = collect(GardataPlacementSyncService::KNOWN_SUBDOMAINS)->map(function (array $t): array {
+            $inst = DB::table('institutions')
+                ->where(function ($q) use ($t) {
+                    $q->where('external_id', $t['subdomain'])
+                        ->orWhere(function ($qq) use ($t) {
+                            $qq->where('id', 'LIKE', 'GRD-%')
+                                ->where('name', 'LIKE', '%'.$t['name'].'%');
+                        });
+                })
+                ->orderByRaw("CASE WHEN id LIKE 'GRD-%' THEN 0 ELSE 1 END")
+                ->first();
             $searchKey = match ($t['subdomain']) {
                 'omegahotelacademy.sippmi.com' => 'Omega Hotel',
                 'victoriahotelschool.sippmi.com' => 'Victoria Hotel',
@@ -3422,7 +3447,7 @@ class BusinessDataPresenter
                 ->count('external_batch_id');
 
             return [
-                'id' => $inst?->id ?? 'tenant-'.$t['subdomain'],
+                'id' => $inst?->id ?? 'GRD-'.Str::upper(substr(hash('sha256', $t['subdomain']), 0, 12)),
                 'name' => $t['name'],
                 'subdomain' => $t['subdomain'],
                 'url' => $t['url'],
@@ -3433,7 +3458,7 @@ class BusinessDataPresenter
                 'classCount' => $classCount,
             ];
         })->push([
-            'id' => 'sippmi-politeknik-indonusa',
+            'id' => 'GRD-INDONUSA',
             'name' => GardataPlacementSyncService::SIPPMI_INSTITUTION_NAME,
             'subdomain' => 'sippmi.com',
             'url' => 'https://sippmi.com',
@@ -3452,7 +3477,43 @@ class BusinessDataPresenter
                 })
                 ->distinct('external_batch_id')
                 ->count('external_batch_id'),
-        ])->all();
+        ]);
+
+        $extraGrdInstitutions = DB::table('institutions')
+            ->leftJoin('provinces', 'provinces.id', '=', 'institutions.province_id')
+            ->leftJoin('districts', 'districts.id', '=', 'institutions.district_id')
+            ->where('institutions.id', 'LIKE', 'GRD-%')
+            ->whereNotIn('institutions.id', ['GRD-INDONUSA', 'GRD-OMEGA-HOTEL', 'GRD-VICTORIA-HOTEL', 'GRD-DUTA-INTL'])
+            ->get([
+                'institutions.id',
+                'institutions.name',
+                'institutions.status',
+                'provinces.name as province_name',
+                'districts.name as district_name',
+            ])
+            ->map(function (object $inst): array {
+                $candCount = DB::table('job_seekers')
+                    ->whereNull('deleted_at')
+                    ->where(function ($q) use ($inst) {
+                        $q->where('institution_id', $inst->id)
+                            ->orWhereRaw('LOWER(institution_name) = ?', [mb_strtolower($inst->name)]);
+                    })
+                    ->count();
+
+                return [
+                    'id' => (string) $inst->id,
+                    'name' => (string) $inst->name,
+                    'subdomain' => 'gardata.sippmi.com',
+                    'url' => 'https://gardata.sippmi.com',
+                    'status' => (string) ($inst->status ?: 'Aktif'),
+                    'province' => (string) ($inst->province_name ?? 'Jawa Tengah'),
+                    'district' => (string) ($inst->district_name ?? ''),
+                    'candidateCount' => $candCount,
+                    'classCount' => 0,
+                ];
+            });
+
+        $tenants = $baseTenants->concat($extraGrdInstitutions)->values()->all();
 
         $activeClassesCount = $localClasses->whereIn('status', ['Sedang Berjalan', 'berjalan', 'aktif', 'Aktif'])->count() + $activeExternalCount;
 
@@ -3492,10 +3553,10 @@ class BusinessDataPresenter
                 'status' => $lastSync->status,
                 'startedAt' => $lastSync->started_at,
                 'finishedAt' => $lastSync->finished_at,
-                'recordsFetched' => $role === 'task_force' ? null : (int) $lastSync->records_fetched,
-                'recordsInserted' => $role === 'task_force' ? null : (int) $lastSync->records_inserted,
-                'recordsUpdated' => $role === 'task_force' ? null : (int) $lastSync->records_updated,
-                'recordsSkipped' => $role === 'task_force' ? null : (int) $lastSync->records_skipped,
+                'recordsFetched' => (int) $lastSync->records_fetched,
+                'recordsInserted' => (int) $lastSync->records_inserted,
+                'recordsUpdated' => (int) $lastSync->records_updated,
+                'recordsSkipped' => (int) $lastSync->records_skipped,
             ] : null,
         ];
     }

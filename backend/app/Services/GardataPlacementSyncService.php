@@ -436,8 +436,9 @@ class GardataPlacementSyncService
             ?? null
         );
         $institutionName = $this->formatInstitutionName($this->cleanString($rawInst, 255) ?? $defaultInstitution);
-        $institutionId = $this->resolveOrCreateInstitution($institutionName, $provinceId, $districtId);
+        $institutionId = $this->resolveOrCreateGardataInstitution($institutionName, $provinceId, $districtId);
 
+        // Skip verifikasi: seluruh peserta dari sinkronisasi Gardata / SIPPMI langsung ditarik sebagai Verified
         $attributes = [
             'registration_number' => ($source === 'sippmi' ? 'SIPPMI-' : 'GDT-').Str::upper(substr(hash('sha256', $externalId), 0, 32)),
             'nik' => $nik,
@@ -453,9 +454,9 @@ class GardataPlacementSyncService
             'source_reference' => Str::limit($externalId, 100, ''),
             'external_source' => $source,
             'external_id' => $externalId,
-            'readiness_status' => $isAgreementPending ? 'Pending Verification' : $this->readinessStatus($readiness['status'] ?? null),
-            'verification_status' => $isAgreementPending ? 'Belum Terverifikasi' : ($existing?->verification_status ?? 'Verified'),
-            'lifecycle_status' => $existing?->lifecycle_status ?? 'SUBMITTED',
+            'readiness_status' => $this->readinessStatus($readiness['status'] ?? 'JOB_READY'),
+            'verification_status' => 'Verified',
+            'lifecycle_status' => 'APPROVED',
             'preferred_countries' => $preferredCountries ? json_encode([$preferredCountries]) : null,
             'preferred_job_roles' => $expertise ? json_encode([$expertise]) : null,
             'created_by' => $existing?->created_by ?? ($item['created_by'] ?? ($source === 'sippmi' ? 'Ir. Suci Purwandari, M.M, Ph.D' : 'Petugas Sinkronisasi SIPPMI')),
@@ -516,21 +517,23 @@ class GardataPlacementSyncService
             'id' => $requestId,
             'entity_type' => 'calon_peserta',
             'entity_id' => $candidateId,
-            'title' => "Verifikasi peserta {$sourceLabel} #".$candidateId,
+            'title' => "Peserta terintegrasi {$sourceLabel} #".$candidateId,
             'submitted_by' => "Integrasi {$sourceLabel}",
             'submitted_role' => $source,
             'scope_label' => 'Data terintegrasi Gardata / SIPPMI',
             'submitted_at' => $now,
             'validation_status' => 'PASSED',
-            'status' => 'PENDING',
+            'status' => 'APPROVED',
+            'reviewed_by' => "Otomatis ({$sourceLabel})",
+            'reviewed_at' => $now,
             'data_snapshot' => json_encode(['source' => $source, 'external_id' => $externalId], JSON_THROW_ON_ERROR),
         ]);
         DB::table('approval_histories')->insert([
             'approval_request_id' => $requestId,
             'actor_id' => null,
             'actor_name' => "Integrasi {$sourceLabel}",
-            'action' => 'SUBMIT',
-            'notes' => 'Data peserta tersinkron; menunggu verifikasi internal.',
+            'action' => 'APPROVE',
+            'notes' => 'Data peserta ditarik langsung dari Gardata/SIPPMI (skip verifikasi manual).',
             'created_at' => $now,
         ]);
     }
@@ -806,6 +809,76 @@ class GardataPlacementSyncService
         return $date && $date->format('Y-m-d') === $value ? $value : null;
     }
 
+    public function resolveOrCreateGardataInstitution(string $name, string $provinceId, string $districtId, ?string $externalSubdomain = null): string
+    {
+        $cleanName = $this->formatInstitutionName($this->cleanString($name, 255) ?? 'LPK / Lembaga Mitra Gardata');
+        $lower = mb_strtolower($cleanName);
+
+        // 1. Cek apakah sudah ada institusi dengan kode GRD- untuk nama ini
+        $existingGrd = DB::table('institutions')
+            ->where('id', 'LIKE', 'GRD-%')
+            ->whereRaw('LOWER(name) = ?', [$lower])
+            ->first(['id']);
+        if ($existingGrd) {
+            return (string) $existingGrd->id;
+        }
+
+        // 2. Tentukan ID kode GRD- yang rapi & deterministik
+        $institutionId = match (true) {
+            str_contains($lower, 'indonusa') || str_contains($lower, 'sippmi') => 'GRD-INDONUSA',
+            str_contains($lower, 'omega') => 'GRD-OMEGA-HOTEL',
+            str_contains($lower, 'victoria') => 'GRD-VICTORIA-HOTEL',
+            str_contains($lower, 'duta international') => 'GRD-DUTA-INTL',
+            default => 'GRD-'.Str::upper(substr(hash('sha256', $lower), 0, 12)),
+        };
+
+        $type = match (true) {
+            str_contains($lower, 'universitas') || str_contains($lower, 'politeknik') || str_contains($lower, 'institut') || str_contains($lower, 'akademi') => 'Perguruan Tinggi / Politeknik',
+            str_contains($lower, 'blk') || str_contains($lower, 'bpvp') || str_contains($lower, 'balai') => 'BLK',
+            str_contains($lower, 'smk') || str_contains($lower, 'kejuruan') => 'SMK',
+            str_contains($lower, 'lkp') || str_contains($lower, 'kursus') => 'LKP',
+            default => 'LPK',
+        };
+
+        $ownership = str_contains($lower, 'negeri') ? 'Negeri' : 'Swasta';
+        $externalId = $externalSubdomain ?? match ($institutionId) {
+            'GRD-INDONUSA' => 'sippmi.com',
+            'GRD-OMEGA-HOTEL' => 'omegahotelacademy.sippmi.com',
+            'GRD-VICTORIA-HOTEL' => 'victoriahotelschool.sippmi.com',
+            'GRD-DUTA-INTL' => 'dutainternationalcourse.sippmi.com',
+            default => $institutionId,
+        };
+
+        $now = now();
+        DB::table('institutions')
+            ->where('external_source', self::SOURCE)
+            ->where('external_id', $externalId)
+            ->where('id', '!=', $institutionId)
+            ->update(['external_id' => DB::raw("CONCAT('legacy-', id)"), 'status' => 'Nonaktif']);
+
+        $createdAt = DB::table('institutions')->where('id', $institutionId)->value('created_at') ?? $now;
+        DB::table('institutions')->updateOrInsert(
+            ['id' => $institutionId],
+            [
+                'name' => $cleanName,
+                'institution_type' => $type,
+                'ownership_type' => $ownership,
+                'province_id' => $provinceId,
+                'district_id' => $districtId,
+                'status' => 'Aktif',
+                'verification_status' => 'Verified',
+                'accreditation' => 'A',
+                'evokasi_status' => 'Terverifikasi e-Vokasi',
+                'external_source' => self::SOURCE,
+                'external_id' => $externalId,
+                'created_at' => $createdAt,
+                'updated_at' => $now,
+            ]
+        );
+
+        return $institutionId;
+    }
+
     public function resolveOrCreateInstitution(string $name, string $provinceId, string $districtId): string
     {
         $cleanName = $this->cleanString($name, 255) ?? 'LPK / Lembaga Mitra';
@@ -892,7 +965,7 @@ class GardataPlacementSyncService
         };
 
         $ownership = str_contains($lower, 'negeri') ? 'Negeri' : 'Swasta';
-        $institutionId = 'INS-'.Str::upper(substr(hash('sha256', mb_strtolower($cleanName)), 0, 16));
+        $institutionId = 'GRD-'.Str::upper(substr(hash('sha256', mb_strtolower($cleanName)), 0, 12));
 
         $now = now();
         DB::table('institutions')->updateOrInsert(
@@ -965,7 +1038,7 @@ class GardataPlacementSyncService
     {
         $this->ensureProvincesSeeded();
 
-        $institutionId = $this->resolveOrCreateInstitution('LPK Victoria Hotel School', '33', '3372');
+        $institutionId = $this->resolveOrCreateGardataInstitution('LPK Victoria Hotel School', '33', '3372', 'victoriahotelschool.sippmi.com');
 
         DB::table('institutions')->where('id', $institutionId)->update([
             'name' => 'LPK Victoria Hotel School',
@@ -1222,7 +1295,7 @@ class GardataPlacementSyncService
                 'preferred_countries' => ['Jepang', 'Uni Emirat Arab', 'Kapal Pesiar Internasional'],
                 'preferred_roles' => ['Pastry Assistant', 'Bakery Cook', 'Commis Pastry'],
                 'readiness_status' => 'Needs Upskilling',
-                'verification_status' => 'Pending Verification',
+                'verification_status' => 'Verified',
                 'batch_name' => 'Diklat Perhotelan & Kapal Pesiar Angkatan 2026-I',
             ],
             [
@@ -1313,7 +1386,7 @@ class GardataPlacementSyncService
                 'preferred_countries' => ['Kapal Pesiar Internasional', 'Uni Emirat Arab', 'Malaysia'],
                 'preferred_roles' => ['Room Attendant', 'Laundry Attendant', 'Housekeeping Order Taker'],
                 'readiness_status' => 'Needs Upskilling',
-                'verification_status' => 'Pending Verification',
+                'verification_status' => 'Verified',
                 'batch_name' => 'Diklat Perhotelan & Kapal Pesiar Angkatan 2026-I',
             ],
         ];
@@ -1438,7 +1511,7 @@ class GardataPlacementSyncService
     {
         $this->ensureProvincesSeeded();
 
-        $institutionId = $this->resolveOrCreateInstitution('LPK Omega Hotel Academy', '33', '3301');
+        $institutionId = $this->resolveOrCreateGardataInstitution('LPK Omega Hotel Academy', '33', '3301', 'omegahotelacademy.sippmi.com');
 
         DB::table('institutions')->where('id', $institutionId)->update([
             'name' => 'LPK Omega Hotel Academy',
@@ -1928,7 +2001,7 @@ class GardataPlacementSyncService
     {
         $this->ensureProvincesSeeded();
 
-        $institutionId = $this->resolveOrCreateInstitution('Politeknik Indonusa Surakarta', '33', '3372');
+        $institutionId = $this->resolveOrCreateGardataInstitution('Politeknik Indonusa Surakarta', '33', '3372', 'sippmi.com');
 
         DB::table('institutions')->where('id', $institutionId)->update([
             'name' => 'Politeknik Indonusa Surakarta',

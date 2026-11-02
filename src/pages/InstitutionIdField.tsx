@@ -33,9 +33,10 @@ export function InstitutionIdField({
   error,
   required = false,
   disabled = false,
-  helperText = "Cari berdasarkan ID Vokasi (mis. INS-..., CSV-..., VOC-...) atau nama lembaga. Anda dapat memilih lebih dari satu institusi.",
+  helperText = "Cari berdasarkan ID Vokasi (mis. GRD-..., INS-..., CSV-..., VOC-...) atau nama lembaga. Anda dapat memilih lebih dari satu institusi.",
 }: InstitutionIdFieldProps) {
   const [search, setSearch] = useState("");
+  const [prefixFilter, setPrefixFilter] = useState<string>("ALL");
   const [isOpen, setIsOpen] = useState(false);
 
   // Normalize selected IDs (support both array values and single value)
@@ -54,15 +55,19 @@ export function InstitutionIdField({
     });
   }, [selectedIds, institutions]);
 
-  // Filter institutions based on search query
+  // Filter institutions based on search query & prefix filter
   const filteredInstitutions = useMemo(() => {
     const q = search.trim().toLowerCase();
+    const byPrefix = prefixFilter === "ALL"
+      ? institutions
+      : institutions.filter((inst) => inst.id.toUpperCase().startsWith(prefixFilter));
+
     if (!q) {
-      return [...institutions]
+      return [...byPrefix]
         .sort((a, b) => (b.candidateCount ?? 0) - (a.candidateCount ?? 0) || a.name.localeCompare(b.name))
-        .slice(0, 35);
+        .slice(0, 45);
     }
-    return institutions
+    return byPrefix
       .filter((inst) => inst.id.toLowerCase().includes(q) || inst.name.toLowerCase().includes(q))
       .sort((a, b) => {
         const aIdMatch = a.id.toLowerCase() === q;
@@ -71,8 +76,8 @@ export function InstitutionIdField({
         if (!aIdMatch && bIdMatch) return 1;
         return (b.candidateCount ?? 0) - (a.candidateCount ?? 0) || a.name.localeCompare(b.name);
       })
-      .slice(0, 35);
-  }, [institutions, search]);
+      .slice(0, 45);
+  }, [institutions, search, prefixFilter]);
 
   const copyToClipboard = (text: string) => {
     if (navigator?.clipboard?.writeText) {
@@ -205,16 +210,41 @@ export function InstitutionIdField({
               }}
             >
               <Plus className="h-3.5 w-3.5" />
-              Tambah Institusi Lain (misal data INS atau CSV)
+              Tambah Institusi Lain (misal data GRD, INS, atau CSV)
             </Button>
           ) : (
             <div className="space-y-2">
+              <div className="flex flex-wrap items-center gap-1.5">
+                {[
+                  { key: "ALL", label: "Semua Kode" },
+                  { key: "GRD-", label: "GRD- (Gardata)" },
+                  { key: "INS-", label: "INS-" },
+                  { key: "CSV-", label: "CSV-" },
+                  { key: "VOC-", label: "VOC-" },
+                ].map((pf) => (
+                  <button
+                    key={pf.key}
+                    type="button"
+                    onClick={() => {
+                      setPrefixFilter(pf.key);
+                      setIsOpen(true);
+                    }}
+                    className={`px-2.5 py-1 rounded-md text-[11px] font-semibold border transition ${
+                      prefixFilter === pf.key
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-muted/50 text-muted-foreground border-border hover:text-foreground"
+                    }`}
+                  >
+                    {pf.label}
+                  </button>
+                ))}
+              </div>
               <div className="relative">
                 <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
                 <Input
                   type="text"
                   className="pl-9 pr-9 h-10 font-sans"
-                  placeholder="Cari ID Vokasi (INS-..., CSV-..., VOC-...) atau nama lembaga..."
+                  placeholder="Cari ID Vokasi (GRD-..., INS-..., CSV-..., VOC-...) atau nama lembaga..."
                   value={search}
                   onChange={(e) => {
                     setSearch(e.target.value);

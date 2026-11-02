@@ -11,7 +11,8 @@ import {
   Globe2,
   CheckCircle2,
   Edit2,
-  Trash2
+  Trash2,
+  Calendar
 } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
 import { visitAllocationStage } from '../../lib/navigation';
@@ -20,6 +21,7 @@ interface ProgramCardProps {
   program: TrainingProgram;
   onViewCurriculum: (program: TrainingProgram) => void;
   onEditProgram?: (program: TrainingProgram) => void;
+  onEditSchedule?: (program: TrainingProgram) => void;
   onDeleteProgram?: (program: TrainingProgram) => void;
 }
 
@@ -27,6 +29,7 @@ export const ProgramCard: React.FC<ProgramCardProps> = ({
   program,
   onViewCurriculum,
   onEditProgram,
+  onEditSchedule,
   onDeleteProgram,
 }) => {
   const {
@@ -54,6 +57,21 @@ export const ProgramCard: React.FC<ProgramCardProps> = ({
   };
 
   const availableSlots = program.quota - program.enrolledCount;
+
+  const formatDateIndo = (dateStr?: string) => {
+    if (!dateStr) return null;
+    const parsed = new Date(dateStr);
+    if (Number.isNaN(parsed.getTime())) return dateStr;
+    return new Intl.DateTimeFormat('id-ID', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    }).format(parsed);
+  };
+
+  const formattedStart = formatDateIndo(program.scheduleStart);
+  const formattedEnd = formatDateIndo(program.scheduleEnd);
+  const hasSchedule = Boolean(formattedStart || formattedEnd);
 
   return (
     <div
@@ -158,6 +176,40 @@ export const ProgramCard: React.FC<ProgramCardProps> = ({
               </span>
             </div>
           </div>
+        </div>
+
+        {/* Jadwal Pelaksanaan Pelatihan */}
+        <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-200/70 dark:border-slate-700/60">
+          <div className="flex items-center gap-2 min-w-0">
+            <Calendar className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
+            <div className="min-w-0">
+              <span className="text-slate-400 dark:text-slate-500 block text-[10px] uppercase">Tanggal Pelatihan</span>
+              {hasSchedule ? (
+                <span className="font-bold text-slate-800 dark:text-slate-200 truncate block tabular-nums">
+                  {formattedStart || '-'} s/d {formattedEnd || '-'}
+                </span>
+              ) : (
+                <span className="font-medium text-amber-600 dark:text-amber-400 block">
+                  Jadwal belum diatur
+                </span>
+              )}
+            </div>
+          </div>
+
+          {onEditSchedule && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onEditSchedule(program);
+              }}
+              className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 dark:bg-indigo-950/60 dark:hover:bg-indigo-900/70 dark:text-indigo-300 border border-indigo-200/80 dark:border-indigo-800/70 transition shrink-0 flex items-center gap-1"
+              title="Atur Tanggal Mulai & Selesai Pelatihan"
+            >
+              <Calendar className="w-3 h-3" />
+              <span>{hasSchedule ? 'Ubah Tanggal' : 'Atur Tanggal'}</span>
+            </button>
+          )}
         </div>
 
         {/* Quota Progress Bar */}

@@ -697,11 +697,11 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
                     {/* Hero Number */}
                     <div className="my-2">
                       <div className="text-3xl sm:text-4xl font-black text-white tracking-tight tabular-nums">
-                        {curriculumCount.toLocaleString("id-ID")}
-                        <span className="text-xs text-amber-400 font-semibold ml-2">Kurikulum Aktif</span>
+                        {activeClassesCount.toLocaleString("id-ID")}
+                        <span className="text-xs text-amber-400 font-semibold ml-2">Kelas Berjalan</span>
                       </div>
                       <p className="text-[11px] text-slate-400 font-medium mt-0.5">
-                        Katalog Standarisasi Pelatihan & Vokasi
+                        Kelas Pelatihan Terstandarisasi JP BP2MI
                       </p>
                     </div>
 
@@ -712,8 +712,8 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
                         <strong className="text-slate-200 font-bold">{programTarget.toLocaleString("id-ID")} Standar</strong>
                       </div>
                       <div className="flex items-center justify-between text-slate-300">
-                        <span>Kelas Berjalan:</span>
-                        <strong className="text-amber-400 font-bold">{activeClassesCount} Kelas</strong>
+                        <span>Kurikulum Aktif:</span>
+                        <strong className="text-amber-400 font-bold">{curriculumCount.toLocaleString("id-ID")} Kurikulum</strong>
                       </div>
                       <div className="flex items-center justify-between text-slate-300">
                         <span>Peserta Siap Program:</span>
@@ -725,10 +725,10 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
                   {/* Badges / Pill Tags */}
                   <div className="pt-3 border-t border-slate-800/80 flex flex-wrap items-center gap-1.5 text-[10px] font-semibold mt-2">
                     <span className="px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30">
-                      Demand: {demandHeadcount.toLocaleString("id-ID")} Kuota
+                      {activeClassesCount} Kelas Berjalan
                     </span>
                     <span className="px-2.5 py-1 rounded-full bg-slate-800/80 text-amber-300 border border-slate-700/60">
-                      {activeClassesCount} Kelas ({curriculumCount.toLocaleString("id-ID")} Kurikulum)
+                      {curriculumCount.toLocaleString("id-ID")} Kurikulum Aktif
                     </span>
                   </div>
                 </article>
@@ -752,11 +752,11 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
                     {/* Hero Number */}
                     <div className="my-2">
                       <div className="text-3xl sm:text-4xl font-black text-white tracking-tight tabular-nums">
-                        {vocationalCount.toLocaleString("id-ID")}
-                        <span className="text-xs text-emerald-400 font-semibold ml-2">Lembaga Terdaftar</span>
+                        {vokasiWithSupplyCount.toLocaleString("id-ID")}
+                        <span className="text-xs text-emerald-400 font-semibold ml-2">Vokasi Suplai</span>
                       </div>
                       <p className="text-[11px] text-slate-400 font-medium mt-0.5">
-                        Balai Latihan & Lembaga Vokasi Resmi
+                        Lembaga Vokasi Penyuplai Peserta Aktif
                       </p>
                     </div>
 
@@ -767,8 +767,8 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
                         <strong className="text-slate-200 font-bold">{vocationalTarget.toLocaleString("id-ID")} Target</strong>
                       </div>
                       <div className="flex items-center justify-between text-slate-300">
-                        <span>Vokasi Suplai:</span>
-                        <strong className="text-emerald-400 font-bold">{vokasiWithSupplyCount} Vokasi</strong>
+                        <span>Lembaga Terdaftar:</span>
+                        <strong className="text-emerald-400 font-bold">{vocationalCount.toLocaleString("id-ID")} Lembaga</strong>
                       </div>
                       <div className="flex items-center justify-between text-slate-300">
                         <span>Peserta Suplai:</span>
@@ -783,7 +783,7 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
                       {vokasiWithSupplyCount} Vokasi Suplai
                     </span>
                     <span className="px-2.5 py-1 rounded-full bg-slate-800/80 text-emerald-400 border border-slate-700/60">
-                      {vocationalCount.toLocaleString("id-ID")} Lembaga Aktif
+                      {vocationalCount.toLocaleString("id-ID")} Lembaga Terdaftar
                     </span>
                   </div>
                 </article>

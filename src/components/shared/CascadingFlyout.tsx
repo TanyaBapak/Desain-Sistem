@@ -12,10 +12,11 @@ import { cn } from "@/lib/utils";
 
 interface CascadingFlyoutProps {
   className?: string;
+  vokasiSupplyCount?: number;
   onOpenDrilldownModal?: (pillar: PillarKey, pathName?: string) => void;
 }
 
-export function CascadingFlyout({ className, onOpenDrilldownModal }: CascadingFlyoutProps) {
+export function CascadingFlyout({ className, vokasiSupplyCount, onOpenDrilldownModal }: CascadingFlyoutProps) {
   const [curPillar, setCurPillar] = useState<PillarKey | null>(null);
   const [path, setPath] = useState<number[]>([]);
   const [metricKey, setMetricKey] = useState<keyof MetricSpec>("a");
@@ -181,7 +182,7 @@ export function CascadingFlyout({ className, onOpenDrilldownModal }: CascadingFl
             >
               <small className="text-xs font-semibold text-muted-foreground block">{p.t}</small>
               <b className="block text-2xl sm:text-3xl font-extrabold text-foreground mt-0.5 tabular-nums">
-                {formatNum(p.root.m.a)}
+                {formatNum(k === "lpk" && typeof vokasiSupplyCount === "number" && vokasiSupplyCount > 0 ? vokasiSupplyCount : p.root.m.a)}
               </b>
               <small className="text-[11.5px] text-muted-foreground block mt-1 line-clamp-1">
                 {p.k[0][1].toLowerCase()} · {p.root.ch.length} {p.lv[0].toLowerCase()}

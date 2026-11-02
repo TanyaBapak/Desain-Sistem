@@ -52,9 +52,8 @@ class SyncGardataPlacementData implements ShouldBeUnique, ShouldQueue
         }
 
         try {
-            // SIPPMI stays gated on its own admin verification; the Gardata force flag
-            // must not bypass it. Use `php artisan sippmi:sync --force` for explicit overrides.
-            $syncService->syncSippmi();
+            // Langsung tarik seluruh data peserta SIPPMI tanpa menunggu verifikasi admin (skip verifikasi).
+            $syncService->syncSippmi(null, null, true);
         } catch (\Throwable $exception) {
             Log::warning('Optional SIPPMI synchronization failed; Gardata sync is unaffected.', [
                 'message' => $exception->getMessage(),
