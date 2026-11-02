@@ -46,11 +46,23 @@ function topCounts(values: string[]): Array<{ label: string; count: number }> {
     .slice(0, 3);
 }
 
-export const SupplyTable: React.FC = () => {
+export interface SupplyTableProps {
+  candidates?: CandidateParticipant[];
+  currentRole?: any;
+  currentScope?: any;
+}
+
+export const SupplyTable: React.FC<SupplyTableProps> = ({
+  candidates: propCandidates,
+  currentRole: propRole,
+  currentScope: propScope,
+}) => {
+  const store = useAppStore();
+  const currentRole = propRole || store.currentRole;
+  const currentScope = propScope || store.currentScope;
+  const candidates = (propCandidates && Array.isArray(propCandidates) && propCandidates.length > 0) ? propCandidates : store.candidates;
   const {
-    currentRole,
     currentUser,
-    candidates,
     selectedCandidateIds,
     toggleCandidateSelection,
     selectAllCandidates,
@@ -78,9 +90,8 @@ export const SupplyTable: React.FC = () => {
     filterLanguage,
     setFilterLanguage,
     setActiveStage,
-    currentScope,
     setCurrentTab,
-  } = useAppStore();
+  } = store;
 
   const bp3miInfo = getBp3miByCode(currentUser?.bp3miCode);
 

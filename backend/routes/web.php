@@ -113,6 +113,28 @@ Route::get('/debug-log', function (Request $request) {
                     'model_has_roles' => DB::table('model_has_roles')->count(),
                     'victoria_candidates' => DB::table('job_seekers')->where('institution_name', 'like', '%Victoria%')->count(),
                     'git_commit' => trim((string) shell_exec('git rev-parse --short HEAD')),
+                    'latest_sessions' => (function() {
+                        $files = glob(storage_path('framework/sessions/*'));
+                        if (empty($files)) return 'no session files';
+                        usort($files, fn($a, $b) => filemtime($b) <=> filemtime($a));
+                        $res = [];
+                        foreach (array_slice($files, 0, 5) as $f) {
+                            $content = @file_get_contents($f);
+                            $data = @unserialize($content);
+                            if (is_array($data)) {
+                                $uid = null;
+                                foreach ($data as $k => $v) {
+                                    if (str_starts_with($k, 'login_web_')) $uid = $v;
+                                }
+                                $res[] = [
+                                    'time' => date('Y-m-d H:i:s', filemtime($f)),
+                                    'user_id' => $uid,
+                                    'impersonator' => $data['impersonator_name'] ?? null,
+                                ];
+                            }
+                        }
+                        return $res;
+                    })(),
                     'arief_users' => DB::table('users')->where('name', 'like', '%Arief%')->select('id', 'name', 'scope_level', 'scope_name', 'organization', 'institution_id')->get(),
                     'arief_test' => (function() {
                         $arief = \App\Models\User::find(17);

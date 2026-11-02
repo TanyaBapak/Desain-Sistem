@@ -448,7 +448,13 @@ function AppContent({
       );
       break;
     case "modul-a":
-      page = <SupplyTable />;
+      page = (
+        <SupplyTable
+          candidates={businessData?.candidates}
+          currentRole={authenticatedUser?.frontendRole}
+          currentScope={authenticatedUser?.scope}
+        />
+      );
       break;
     case "modul-b":
       page = <TrainingProgramsView />;
