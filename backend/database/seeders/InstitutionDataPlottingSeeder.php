@@ -17,7 +17,19 @@ class InstitutionDataPlottingSeeder extends Seeder
             $this->plotCandidates();
             $this->plotTrainingPrograms();
             $this->plotAllocationsAndMatches();
+            $this->ensureTargetSettings();
         });
+    }
+
+    private function ensureTargetSettings(): void
+    {
+        $currentYear = (int) now()->year;
+        foreach ([$currentYear, 2026, 2027] as $year) {
+            DB::table('dashboard_targets')->updateOrInsert(
+                ['metric_key' => 'registeredJobSeekers_' . $year],
+                ['target_value' => 12600, 'updated_at' => now()]
+            );
+        }
     }
 
     private function seedInstitutions(): void

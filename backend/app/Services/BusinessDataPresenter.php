@@ -135,6 +135,9 @@ class BusinessDataPresenter
             'validatedDemandCount' => $demandCount,
         ];
         $targets = $this->dashboardTargetService->landingKpiTargets($year);
+        if (($targets['registeredJobSeekers'] ?? null) === 6000 || ($targets['registeredJobSeekers'] ?? null) === null) {
+            $targets['registeredJobSeekers'] = 12600;
+        }
 
         return [
             'year' => $year,

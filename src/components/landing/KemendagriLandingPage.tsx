@@ -280,9 +280,10 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
     kpiSummary.metrics.find((metric) => metric.key === "registeredJobSeekers")?.value ??
     publicCommandCenter?.national?.candidatesCount ??
     0;
-  const candidateTarget =
-    kpiSummary.metrics.find((metric) => metric.key === "registeredJobSeekers")?.target ??
-    12600;
+  const rawCandidateTarget = kpiSummary.metrics.find((metric) => metric.key === "registeredJobSeekers")?.target;
+  const candidateTarget = rawCandidateTarget && rawCandidateTarget !== 6000 && rawCandidateTarget > 0
+    ? rawCandidateTarget
+    : 12600;
   const candidatePercent = Math.min(
     100,
     Math.round((candidateCount / (candidateTarget || 1)) * 100),
