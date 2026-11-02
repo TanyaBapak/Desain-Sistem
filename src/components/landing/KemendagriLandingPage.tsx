@@ -750,7 +750,7 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
                       <div className="flex items-center justify-between text-[11px] font-bold">
                         <span className="text-emerald-400 tabular-nums">{vocationalPercent}%</span>
                         <span className="text-slate-200 tabular-nums">
-                          {vocationalCount} / {vocationalTarget} Lembaga
+                          {vocationalCount} Lembaga / {vocationalTarget} Target
                         </span>
                       </div>
                       <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-slate-800">
