@@ -648,8 +648,8 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
                 {/* Pilar 2 */}
                 <article
                   onClick={() => handlePillarDrilldown("program")}
-                  className="group relative rounded-xl border border-slate-700/80 bg-slate-800/90 p-3.5 flex flex-col justify-between hover:border-indigo-400 hover:bg-slate-800 hover:shadow-lg hover:shadow-indigo-900/30 transition cursor-pointer"
-                  title="Klik untuk membuka data rincian program pelatihan"
+                  className="group relative rounded-xl border border-indigo-500/40 bg-slate-800/95 p-3.5 flex flex-col justify-between hover:border-indigo-400 hover:bg-slate-800 hover:shadow-lg hover:shadow-indigo-900/30 transition cursor-pointer"
+                  title="Klik untuk membuka data rincian 5 sektor program prioritas"
                 >
                   <div>
                     <div className="flex items-center justify-between gap-1 mb-2">
@@ -657,39 +657,63 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
                         <GraduationCap className="w-4 h-4" />
                       </div>
                       <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-                        STANDARDISASI
+                        5 SEKTOR PRIORITAS
                       </span>
                     </div>
                     <h4 className="text-sm font-extrabold text-white group-hover:text-indigo-300 transition-colors">
                       2. Siap Program
                     </h4>
-                    <p className="text-[11px] text-slate-300 font-medium mt-0.5">
-                      5 Sektor Prioritas · Bahasa & Teknis
+                    <p className="text-[11px] text-indigo-300 font-semibold mt-0.5">
+                      1.159 Peserta di 5 Sektor Siap Vokasi
                     </p>
 
-                    {/* Informasi Ketercapaian & Progres Kurikulum 5 Sektor */}
+                    {/* Informasi Ketercapaian & Progres 5 Sektor Riil */}
                     <div className="mt-2.5 bg-slate-900/90 rounded-lg p-2 border border-slate-700/60">
                       <div className="flex items-center justify-between text-[11px] font-bold">
-                        <span className="text-indigo-400 tabular-nums">{programPercent}%</span>
+                        <span className="text-indigo-400">5/5 Sektor Riil</span>
                         <span className="text-slate-200 tabular-nums">
-                          {curriculumCount.toLocaleString("id-ID")} / {programTarget.toLocaleString("id-ID")} Kurikulum
+                          1.159 Peserta (Demand: 10.470)
                         </span>
                       </div>
                       <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-slate-800">
                         <div
                           className="h-full rounded-full bg-indigo-500 transition-all duration-500"
-                          style={{ width: `${Math.max(curriculumCount > 0 ? 3 : 0, Math.min(100, programPercent))}%` }}
+                          style={{ width: "100%" }}
                         />
+                      </div>
+
+                      {/* Rincian Eksplisit 5 Sektor Prioritas Tanpa Ambigu */}
+                      <div className="mt-2 pt-1.5 border-t border-slate-800/90 grid grid-cols-2 gap-x-2 gap-y-0.5 text-[10px]">
+                        <span className="text-slate-300 flex items-center justify-between">
+                          <span>Kesehatan:</span>
+                          <strong className="text-emerald-400 font-bold ml-1">591</strong>
+                        </span>
+                        <span className="text-slate-300 flex items-center justify-between">
+                          <span>Hospitality:</span>
+                          <strong className="text-blue-400 font-bold ml-1">347</strong>
+                        </span>
+                        <span className="text-slate-300 flex items-center justify-between">
+                          <span>Manufaktur:</span>
+                          <strong className="text-amber-400 font-bold ml-1">168</strong>
+                        </span>
+                        <span className="text-slate-300 flex items-center justify-between">
+                          <span>Konstruksi:</span>
+                          <strong className="text-cyan-400 font-bold ml-1">40</strong>
+                        </span>
+                        <span className="text-slate-300 flex items-center justify-between col-span-2 pt-0.5 border-t border-slate-800/50">
+                          <span>Fisherman (Kemaritiman):</span>
+                          <strong className="text-indigo-300 font-bold ml-1">13 Peserta</strong>
+                        </span>
                       </div>
                     </div>
                   </div>
 
                   <div className="mt-2.5 pt-2 border-t border-slate-700/60 flex items-center justify-between text-xs">
                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                      Target: {programTarget.toLocaleString("id-ID")} Kurikulum
+                      Demand: 10.470 Kuota
                     </span>
                     <span className="text-xs font-black text-indigo-300 tabular-nums">
-                      5 Sektor ({activeClassesCount} Kelas Aktif)
+                      4 Kelas (23.247 Kurikulum)
                     </span>
                   </div>
 
