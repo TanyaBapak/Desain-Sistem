@@ -16,7 +16,7 @@ class BusinessDataPresenter
         'jepang' => 2000,
         'malaysia' => 5000,
         'turki' => 5000,
-        'korea' => 2000,
+        'korea' => 600,
     ];
 
     private const COUNTRY_ALIASES = [
@@ -490,6 +490,10 @@ class BusinessDataPresenter
                     'institutions.total_active_students as totalActiveStudents',
                     'institutions.workshop_capacity as workshopCapacity',
                     'institutions.external_source as externalSource',
+                    'institutions.procurement_method as procurementMethod',
+                    'institutions.procurement_catalog_url as procurementCatalogUrl',
+                    'institutions.mou_drive_url as mouDriveUrl',
+                    'institutions.evokasi_url as evokasiUrl',
                 ])
                 ->map(function (object $row) use ($candidatesRows, $adminLembagaInstIds): array {
                     $metadata = $this->decodeArray($row->externalMetadata);

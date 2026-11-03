@@ -102,7 +102,7 @@ export const TARGET_COUNTRIES_CONFIG: Record<(typeof TARGET_4_COUNTRIES)[number]
     colorClass: "text-amber-600 dark:text-amber-400 bg-amber-500/10",
     badgeBg: "bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30",
     borderClass: "border-amber-500/30 hover:border-amber-500/60",
-    defaultTarget: 2440,
+    defaultTarget: 600,
   },
 };
 
@@ -612,13 +612,12 @@ export function SupplyTargetProjectionPanel({
                     <th className="py-2.5 px-3 text-right">Total JP</th>
                     <th className="py-2.5 px-3">Daerah Asal</th>
                     <th className="py-2.5 px-3">Tanggal Pelaksanaan</th>
-                    <th className="py-2.5 px-3 text-center">Tahun</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/60">
                   {paginatedTargets.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="py-8 text-center text-muted-foreground">
+                      <td colSpan={7} className="py-8 text-center text-muted-foreground">
                         Tidak ada data target penempatan yang cocok dengan kriteria filter.
                       </td>
                     </tr>
@@ -644,9 +643,6 @@ export function SupplyTargetProjectionPanel({
                             <Calendar className="w-3 h-3 text-emerald-600 dark:text-emerald-400 shrink-0" />
                             <span>{row.scheduleRange}</span>
                           </span>
-                        </td>
-                        <td className="py-2.5 px-3 text-center text-muted-foreground tabular-nums">
-                          {row.year}
                         </td>
                       </tr>
                     ))

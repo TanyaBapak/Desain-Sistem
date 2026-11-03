@@ -179,7 +179,7 @@ class DashboardTargetTest extends TestCase
     {
         $projection = app(\App\Services\BusinessDataPresenter::class)->publicLandingProjection(2027);
 
-        foreach (['Jepang' => 2000, 'Malaysia' => 5000, 'Turki' => 5000, 'Korea' => 2000] as $countryName => $target) {
+        foreach (['Jepang' => 2000, 'Malaysia' => 5000, 'Turki' => 5000, 'Korea' => 600] as $countryName => $target) {
             $country = collect($projection['countries'])->first(
                 fn (array $item): bool => in_array($item['name'], [$countryName, "{$countryName} Selatan"], true),
             );

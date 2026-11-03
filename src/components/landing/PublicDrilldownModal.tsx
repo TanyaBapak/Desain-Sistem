@@ -30,6 +30,8 @@ import {
   Download,
   Loader2,
   BookOpen,
+  ExternalLink,
+  FileText,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
@@ -108,6 +110,22 @@ export function normalizeStudentSector(sec?: string, maj?: string): string {
   return "Administrasi, IT & Lainnya";
 }
 
+export function isLembagaInstitution(inst: PublicPreviewInstitution): boolean {
+  const t = (inst.type || "").toUpperCase();
+  const n = (inst.name || "").toUpperCase();
+  if (t.includes("LPK") || t.includes("LKP") || t.includes("LEMBAGA PELATIHAN") || t.includes("LEMBAGA KURSUS")) {
+    return true;
+  }
+  if (n.startsWith("LPK ") || n.startsWith("LKP ") || n.includes(" LEMBAGA ")) {
+    return true;
+  }
+  return false;
+}
+
+export function isVokasiInstitution(inst: PublicPreviewInstitution): boolean {
+  return !isLembagaInstitution(inst);
+}
+
 export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
   type,
   onClose,
@@ -148,6 +166,7 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
   const [selectedProvinceForLpk, setSelectedProvinceForLpk] = useState<string | null>(null);
   const [institutionSourceFilter, setInstitutionSourceFilter] = useState<"ALL" | "siskop2mi" | "disnaker" | "umum">(initialSourceFilter);
   const [institutionLevelFilter, setInstitutionLevelFilter] = useState<"ALL" | InstitutionInputLevel>("ALL");
+  const [institutionCategoryFilter, setInstitutionCategoryFilter] = useState<"ALL" | "lembaga" | "vokasi">("ALL");
   const [institutionStatusFilter, setInstitutionStatusFilter] = useState<"ALL" | "supply" | "verified">("supply");
   const [institutionSearchQuery, setInstitutionSearchQuery] = useState<string>("");
   const [institutionPage, setInstitutionPage] = useState<number>(1);
@@ -178,6 +197,7 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
     setSelectedCandidateForDetail(null);
     setInstitutionSourceFilter(initialSourceFilter);
     setInstitutionLevelFilter("ALL");
+    setInstitutionCategoryFilter("ALL");
     setInstitutionStatusFilter("supply");
     setInstitutionSearchQuery("");
     setInstitutionPage(1);
@@ -1553,15 +1573,8 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
     const supplyOnlyItems = items.filter(
       (it) => (it.students?.length ?? it.studentCount ?? 0) > 0 || it.hasAdminAccount
     );
-    const siskop2miCount = supplyOnlyItems.filter(
-      (it) => resolveInstitutionSource({ registrationSource: it.registrationSource, id: it.id }) === "siskop2mi"
-    ).length;
-    const disnakerCount = supplyOnlyItems.filter(
-      (it) => resolveInstitutionSource({ registrationSource: it.registrationSource, id: it.id }) === "disnaker"
-    ).length;
-    const umumCount = supplyOnlyItems.filter(
-      (it) => resolveInstitutionSource({ registrationSource: it.registrationSource, id: it.id }) === "umum"
-    ).length;
+    const lembagaCount = supplyOnlyItems.filter((it) => isLembagaInstitution(it)).length;
+    const vokasiCount = supplyOnlyItems.filter((it) => isVokasiInstitution(it)).length;
 
     // Filter berdasarkan Negara & Sektor Nasional bila aktif
     const filteredByNational = supplyOnlyItems.filter((it) => {
@@ -1586,20 +1599,12 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
         (it.district && it.district.toLowerCase().includes(q)) ||
         (it.type && it.type.toLowerCase().includes(q));
 
-      const matchSource =
-        institutionSourceFilter === "ALL" ||
-        resolveInstitutionSource({ registrationSource: it.registrationSource, id: it.id }) ===
-          institutionSourceFilter;
+      const matchCategory =
+        institutionCategoryFilter === "ALL" ||
+        (institutionCategoryFilter === "lembaga" && isLembagaInstitution(it)) ||
+        (institutionCategoryFilter === "vokasi" && isVokasiInstitution(it));
 
-      const matchLevel =
-        institutionLevelFilter === "ALL" ||
-        resolveInstitutionInputLevel({
-          id: it.id,
-          registrationSource: it.registrationSource,
-          inputLevel: it.inputLevel,
-        }) === institutionLevelFilter;
-
-      return matchSearch && matchSource && matchLevel;
+      return matchSearch && matchCategory;
     });
 
     const pageSize = 15;
@@ -1899,157 +1904,68 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
               </Badge>
             </div>
 
-            {/* Source & Level Filter Quick Bar */}
-            <div className="space-y-2 p-2.5 rounded-xl bg-muted/30 border border-border/60 text-xs">
+            {/* Kategori Filter Bar: Lembaga vs Vokasi */}
+            <div className="p-2.5 rounded-xl bg-muted/30 border border-border/60 text-xs flex flex-wrap items-center justify-between gap-2">
               <div className="flex flex-wrap items-center gap-1.5">
-                <span className="text-[11px] font-semibold text-muted-foreground mr-1">Sumber:</span>
+                <span className="text-[11px] font-semibold text-muted-foreground mr-1">Filter Kategori:</span>
                 <button
                   type="button"
                   onClick={() => {
-                    setInstitutionSourceFilter("ALL");
-                    setInstitutionLevelFilter("ALL");
+                    setInstitutionCategoryFilter("ALL");
                     setInstitutionPage(1);
                   }}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer ${
-                    institutionSourceFilter === "ALL"
+                  className={`px-3 py-1 rounded-lg text-xs font-semibold transition cursor-pointer ${
+                    institutionCategoryFilter === "ALL"
                       ? "bg-foreground text-background shadow-xs"
                       : "bg-background border border-border text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  Semua Sumber ({supplyOnlyItems.length})
+                  Semua ({supplyOnlyItems.length})
                 </button>
                 <button
                   type="button"
                   onClick={() => {
-                    setInstitutionSourceFilter("siskop2mi");
-                    setInstitutionLevelFilter("ALL");
+                    setInstitutionCategoryFilter("lembaga");
                     setInstitutionPage(1);
                   }}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1 ${
-                    institutionSourceFilter === "siskop2mi"
+                  className={`px-3 py-1 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 ${
+                    institutionCategoryFilter === "lembaga"
                       ? "bg-blue-600 text-white shadow-xs font-bold"
                       : "bg-background border border-border text-muted-foreground hover:text-blue-600"
                   }`}
                 >
-                  <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-                  <span>SISKOP2MI ({siskop2miCount})</span>
+                  <Building2 className="w-3.5 h-3.5" />
+                  <span>Lembaga ({lembagaCount})</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => {
-                    setInstitutionSourceFilter("disnaker");
-                    setInstitutionLevelFilter("ALL");
+                    setInstitutionCategoryFilter("vokasi");
                     setInstitutionPage(1);
                   }}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1 ${
-                    institutionSourceFilter === "disnaker"
-                      ? "bg-indigo-600 text-white shadow-xs font-bold"
-                      : "bg-background border border-border text-muted-foreground hover:text-indigo-600"
-                  }`}
-                >
-                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
-                  <span>Disnaker ({disnakerCount})</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setInstitutionSourceFilter("umum");
-                    setInstitutionLevelFilter("ALL");
-                    setInstitutionPage(1);
-                  }}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1 ${
-                    institutionSourceFilter === "umum"
+                  className={`px-3 py-1 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 ${
+                    institutionCategoryFilter === "vokasi"
                       ? "bg-emerald-600 text-white shadow-xs font-bold"
                       : "bg-background border border-border text-muted-foreground hover:text-emerald-600"
                   }`}
                 >
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                  <span>Umum / Lembaga ({umumCount})</span>
+                  <BookOpen className="w-3.5 h-3.5" />
+                  <span>Vokasi ({vokasiCount})</span>
                 </button>
               </div>
 
-              {/* Level Filter Sub-bar */}
-              <div className="flex flex-wrap items-center gap-1.5 pt-1.5 border-t border-border/40">
-                <span className="text-[10.5px] font-semibold text-muted-foreground mr-1">Level:</span>
+              {institutionCategoryFilter !== "ALL" && (
                 <button
                   type="button"
                   onClick={() => {
-                    setInstitutionLevelFilter("ALL");
+                    setInstitutionCategoryFilter("ALL");
                     setInstitutionPage(1);
                   }}
-                  className={`px-2 py-0.5 rounded-md text-[11px] font-medium transition cursor-pointer ${
-                    institutionLevelFilter === "ALL"
-                      ? "bg-foreground text-background font-semibold"
-                      : "bg-background/80 border border-border/60 text-muted-foreground hover:text-foreground"
-                  }`}
+                  className="text-[11px] text-muted-foreground hover:text-foreground hover:underline cursor-pointer"
                 >
-                  Semua Level
+                  Reset Filter
                 </button>
-                {(institutionSourceFilter === "ALL" || institutionSourceFilter === "disnaker") && (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setInstitutionLevelFilter("kabupaten_kota");
-                        setInstitutionPage(1);
-                      }}
-                      className={`px-2 py-0.5 rounded-md text-[11px] font-medium transition cursor-pointer ${
-                        institutionLevelFilter === "kabupaten_kota"
-                          ? "bg-amber-600 text-white font-semibold shadow-xs"
-                          : "bg-background/80 border border-border/60 text-muted-foreground hover:text-amber-600"
-                      }`}
-                    >
-                      Disnaker Kab/Kota
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setInstitutionLevelFilter("provinsi");
-                        setInstitutionPage(1);
-                      }}
-                      className={`px-2 py-0.5 rounded-md text-[11px] font-medium transition cursor-pointer ${
-                        institutionLevelFilter === "provinsi"
-                          ? "bg-indigo-600 text-white font-semibold shadow-xs"
-                          : "bg-background/80 border border-border/60 text-muted-foreground hover:text-indigo-600"
-                      }`}
-                    >
-                      Disnaker Provinsi
-                    </button>
-                  </>
-                )}
-                {(institutionSourceFilter === "ALL" || institutionSourceFilter === "umum") && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setInstitutionLevelFilter("lembaga_vokasi");
-                      setInstitutionPage(1);
-                    }}
-                    className={`px-2 py-0.5 rounded-md text-[11px] font-medium transition cursor-pointer ${
-                      institutionLevelFilter === "lembaga_vokasi"
-                        ? "bg-emerald-600 text-white font-semibold shadow-xs"
-                        : "bg-background/80 border border-border/60 text-muted-foreground hover:text-emerald-600"
-                    }`}
-                  >
-                    Lembaga Vokasi (Mandiri)
-                  </button>
-                )}
-                {(institutionSourceFilter === "ALL" || institutionSourceFilter === "siskop2mi") && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setInstitutionLevelFilter("nasional");
-                      setInstitutionPage(1);
-                    }}
-                    className={`px-2 py-0.5 rounded-md text-[11px] font-medium transition cursor-pointer ${
-                      institutionLevelFilter === "nasional"
-                        ? "bg-blue-600 text-white font-semibold shadow-xs"
-                        : "bg-background/80 border border-border/60 text-muted-foreground hover:text-blue-600"
-                    }`}
-                  >
-                    Nasional (SISKOP2MI)
-                  </button>
-                )}
-              </div>
+              )}
             </div>
 
             <div className="rounded-lg border border-border p-2">
@@ -2166,6 +2082,43 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
                             </span>
                           )}
                         </div>
+
+                        {(institution.procurementCatalogUrl || institution.mouDriveUrl || institution.procurementMethod) && (
+                          <div className="flex flex-wrap items-center gap-2 pt-1.5 border-t border-border/30 text-xs">
+                            <span className="text-[11px] font-medium text-muted-foreground">Dokumen & Pengadaan:</span>
+                            {institution.procurementCatalogUrl && (
+                              <a
+                                href={institution.procurementCatalogUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-700 dark:text-blue-300 hover:bg-blue-500/20 text-[11px] font-medium border border-blue-500/30 transition-colors"
+                                title="Buka tautan Inaproc e-Katalog LKPP"
+                              >
+                                <ExternalLink className="h-3 w-3" />
+                                <span>Inaproc e-Katalog</span>
+                              </a>
+                            )}
+                            {institution.mouDriveUrl && (
+                              <a
+                                href={institution.mouDriveUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/20 text-[11px] font-medium border border-emerald-500/30 transition-colors"
+                                title="Lihat Berkas Dokumen MoU"
+                              >
+                                <FileText className="h-3 w-3" />
+                                <span>Berkas MoU</span>
+                              </a>
+                            )}
+                            {institution.procurementMethod && (
+                              <Badge variant="outline" className="text-[10px] text-muted-foreground border-border/80">
+                                Metode: {institution.procurementMethod}
+                              </Badge>
+                            )}
+                          </div>
+                        )}
                       </div>
                     );
                   })}
