@@ -9,7 +9,7 @@ import { ProgramFormModal } from './ProgramFormModal';
 import { DeleteConfirmModal } from '../ui/DeleteConfirmModal';
 import { TrainingProgram } from '../../types';
 import { archiveBusinessData, saveBusinessData } from '../../lib/business-data';
-import { Search, GraduationCap, Award, BookOpen, Layers, Plus, Calendar, X, Save, ChevronLeft, ChevronRight, Table2, LayoutGrid } from 'lucide-react';
+import { Search, GraduationCap, Award, BookOpen, Layers, Plus, Calendar, X, Save, ChevronLeft, ChevronRight, Table2, LayoutGrid, Globe2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 export const TrainingProgramsView: React.FC = () => {
@@ -167,10 +167,14 @@ export const TrainingProgramsView: React.FC = () => {
         filterProgramType === 'All Programs' ||
         p.programType === filterProgramType;
 
+      const searchCountry = filterProgramCountry.toLowerCase();
+      const targetCountryLower = (p.targetCountry || '').toLowerCase();
+      const projCountryLower = (p.projectionPlacement || '').toLowerCase();
       const matchCountry =
         filterProgramCountry === 'ALL' ||
-        p.targetCountry === filterProgramCountry ||
-        (p.projectionPlacement || '').toLowerCase().includes(filterProgramCountry.toLowerCase());
+        targetCountryLower.includes(searchCountry) ||
+        projCountryLower.includes(searchCountry) ||
+        (searchCountry.includes('korea') && (targetCountryLower.includes('korea') || projCountryLower.includes('korea')));
 
       const isBp2mi = Boolean(p.isBp2miTarget || p.id.startsWith('BP2MI-PROG-'));
       const hasScheduleOrJp = Boolean(p.scheduleStart || p.scheduleEnd || (p.durationJP && p.durationJP > 0));
@@ -337,6 +341,43 @@ export const TrainingProgramsView: React.FC = () => {
               ))}
             </select>
           </div>
+        </div>
+
+        {/* 4 Negara Target Utama Shortcut Pills */}
+        <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-slate-100 dark:border-slate-800">
+          <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 mr-1 flex items-center gap-1">
+            <Globe2 className="w-3.5 h-3.5 text-blue-500" />
+            <span>4 Negara Target Resmi:</span>
+          </span>
+          {[
+            { key: 'ALL', label: 'Semua Target' },
+            { key: 'Jepang', label: 'Jepang (Kaigo & Welder)' },
+            { key: 'Korea', label: 'Korea Selatan (Permesinan)' },
+            { key: 'Malaysia', label: 'Malaysia (SMT & Sawit)' },
+            { key: 'Turki', label: 'Turki (Hospitality & Spa)' },
+          ].map((c) => {
+            const isSelected =
+              c.key === 'ALL'
+                ? filterProgramCountry === 'ALL'
+                : filterProgramCountry.toLowerCase().includes(c.key.toLowerCase());
+            return (
+              <button
+                key={c.key}
+                type="button"
+                onClick={() => {
+                  setFilterProgramCountry(c.key === 'ALL' ? 'ALL' : c.key);
+                  setCurrentPage(1);
+                }}
+                className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition border ${
+                  isSelected
+                    ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+                    : 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
+                }`}
+              >
+                {c.label}
+              </button>
+            );
+          })}
         </div>
 
         {/* Search Bar */}

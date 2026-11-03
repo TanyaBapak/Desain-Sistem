@@ -175,48 +175,22 @@ class DashboardTargetTest extends TestCase
                 }));
     }
 
-    public function test_public_korea_south_projection_uses_only_the_six_hundred_fisherman_target(): void
+    public function test_public_four_target_countries_match_country_totals(): void
     {
         $projection = app(\App\Services\BusinessDataPresenter::class)->publicLandingProjection(2027);
 
-        $korea = collect($projection['countries'])->first(
-            fn (array $country): bool => in_array($country['name'], ['Korea', 'Korea Selatan'], true),
-        );
-        $koreaSectors = collect($projection['sectors'])
-            ->filter(fn (array $sector): bool => str_starts_with($sector['name'], "{$korea['name']} ·"));
-        $koreaTargets = collect($projection['placementTargets'])
-            ->filter(fn (array $target): bool => in_array($target['projectionPlacement'], ['Korea', 'Korea Selatan'], true));
-
-        $this->assertNotNull($korea);
-        $this->assertSame(600, $korea['target']);
-        $this->assertSame(600, $koreaSectors->sum('target'));
-        $this->assertSame(
-            ['Sertifikasi Teknis' => 600],
-            $koreaSectors->mapWithKeys(fn (array $sector): array => [
-                substr($sector['name'], strlen("{$korea['name']} · ")) => $sector['target'],
-            ])->all(),
-        );
-        $this->assertSame(1, $koreaTargets->count());
-        $this->assertSame('ABK Fishermen', $koreaTargets->first()['occupationName']);
-        $this->assertSame(600, $koreaTargets->first()['target']);
-    }
-
-    public function test_public_japan_malaysia_and_turkey_targets_match_country_totals(): void
-    {
-        $projection = app(\App\Services\BusinessDataPresenter::class)->publicLandingProjection(2027);
-
-        foreach (['Jepang' => 2000, 'Malaysia' => 5000, 'Turki' => 5000] as $countryName => $target) {
+        foreach (['Jepang' => 2000, 'Malaysia' => 5000, 'Turki' => 5000, 'Korea' => 2000] as $countryName => $target) {
             $country = collect($projection['countries'])->first(
-                fn (array $item): bool => $item['name'] === $countryName,
+                fn (array $item): bool => in_array($item['name'], [$countryName, "{$countryName} Selatan"], true),
             );
             $sectors = collect($projection['sectors'])
-                ->filter(fn (array $item): bool => str_starts_with($item['name'], "{$countryName} ·"));
+                ->filter(fn (array $item): bool => str_starts_with($item['name'], "{$country['name']} ·"));
             $placementTargets = collect($projection['placementTargets'])
                 ->filter(function (array $item) use ($countryName): bool {
                     $destination = preg_replace('/\\s*\\([^)]*\\)/u', '', $item['projectionPlacement'])
                         ?? $item['projectionPlacement'];
 
-                    return mb_strtolower(trim($destination)) === mb_strtolower($countryName);
+                    return in_array(mb_strtolower(trim($destination)), [mb_strtolower($countryName), mb_strtolower("{$countryName} selatan")], true);
                 });
 
             $this->assertNotNull($country, "{$countryName} must be present in public projection.");

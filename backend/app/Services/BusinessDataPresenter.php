@@ -16,6 +16,7 @@ class BusinessDataPresenter
         'jepang' => 2000,
         'malaysia' => 5000,
         'turki' => 5000,
+        'korea' => 2000,
     ];
 
     private const COUNTRY_ALIASES = [
@@ -729,17 +730,6 @@ class BusinessDataPresenter
             $this->dashboardTargetService->landingPlacementProjection(null),
             $allowedCountryNames,
         );
-        $allPlacementTargets = array_values(array_filter(
-            $allPlacementTargets,
-            function (array $item): bool {
-                $countryName = preg_replace('/\\s*\\([^)]*\\)/u', '', $item['projectionPlacement'])
-                    ?? $item['projectionPlacement'];
-
-                return ! in_array($this->normalizeCountryName($countryName), ['korea', 'korea selatan'], true)
-                    || ($item['sectorName'] === 'Sertifikasi Teknis'
-                        && $item['occupationName'] === 'ABK Fishermen');
-            },
-        ));
         $allPlacementTargets = $this->scalePublicPlacementCountryTargets($allPlacementTargets);
         $placementCountryTargets = $this->placementCountryTargets($allPlacementTargets);
         $placementCountryTargets = array_filter(
@@ -814,9 +804,12 @@ class BusinessDataPresenter
             ];
         }
         $countryPerformance = array_values($countryPerformanceByPeriod);
+        $yearPlacementTargets = collect($allPlacementTargets)->where('year', $year)->values()->all();
         $placementTargets = $year === null
             ? $allPlacementTargets
-            : collect($allPlacementTargets)->where('year', $year)->values()->all();
+            : ($yearPlacementTargets !== []
+                ? $yearPlacementTargets
+                : collect($allPlacementTargets)->map(fn (array $item): array => [...$item, 'year' => $year])->all());
         $periods = collect($countryPerformance)
             ->pluck('year')
             ->merge(collect($sectorPerformance)->pluck('year'))

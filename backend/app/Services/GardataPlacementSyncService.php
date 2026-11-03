@@ -3830,6 +3830,7 @@ class GardataPlacementSyncService
 
         if ($matchedUsers->isEmpty()) {
             $newUserId = DB::table('users')->insertGetId([
+                'user_code' => 'USR-DUTA-001',
                 'name' => 'LPK Duta International Course',
                 'username' => 'lpk_duta_international',
                 'email' => 'dutainternationalcourse.sippmi@gmail.com',
@@ -3840,6 +3841,8 @@ class GardataPlacementSyncService
                 'institution_id' => $institutionId,
                 'province_id' => '35',
                 'district_id' => '3501',
+                'status' => 'Aktif',
+                'avatar_initials' => 'DI',
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
