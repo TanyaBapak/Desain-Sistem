@@ -35,6 +35,7 @@ import { Input } from "@/components/ui/input";
 import type {
   PublicCommandCenterData,
   PublicPreviewInstitution,
+  PublicPreviewStudent,
   PublicPreviewDemand,
   TrainingSectorCatalogItem,
 } from "@/types";
@@ -73,6 +74,36 @@ function normalizeCatalogValue(value: string): string {
   return value.trim().toLocaleLowerCase("id-ID");
 }
 
+export function normalizeStudentCountry(raw?: string): string {
+  if (!raw) return "Lainnya";
+  const l = raw.toLowerCase();
+  if (l.includes("jepang") || l.includes("japan")) return "Jepang";
+  if (l.includes("turki") || l.includes("turkey") || l.includes("turky") || l.includes("turkiye")) return "Turki";
+  if (l.includes("korea") || l.includes("korsel")) return "Korea Selatan";
+  if (l.includes("malaysia")) return "Malaysia";
+  return "Lainnya";
+}
+
+export function normalizeStudentSector(sec?: string, maj?: string): string {
+  const str = `${sec || ""} ${maj || ""}`.toLowerCase();
+  if (/(hospit|hotel|pariwisata|waiter|cook|boga|fnb|housekeep|barista|spa)/.test(str)) {
+    return "Hospitality & Pariwisata";
+  }
+  if (/(kesehatan|caregiver|cargiver|perawat|keperawatan|medis|kaigo)/.test(str)) {
+    return "Kesehatan & Caregiver";
+  }
+  if (/(bahasa|sastra|inggris)/.test(str)) {
+    return "Bahasa & Komunikasi";
+  }
+  if (/(manufaktur|mesin|weld|las|cnc|bubut|pabrik)/.test(str)) {
+    return "Manufaktur & Pengelasan";
+  }
+  if (/(otomotif|tkr|tsm|motor|kendaraan)/.test(str)) {
+    return "Otomotif & Transportasi";
+  }
+  return "Sektor Lainnya";
+}
+
 export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
   type,
   onClose,
@@ -83,6 +114,16 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
   sectorOccupations,
   trainingSectors,
 }) => {
+  const [activeDrilldownType, setActiveDrilldownType] = useState<PublicDrilldownType | null>(type);
+  const [candidateViewScope, setCandidateViewScope] = useState<"by_institution" | "all_candidates">("by_institution");
+  const [nationalFilterCountry, setNationalFilterCountry] = useState<string>("ALL");
+  const [nationalFilterSector, setNationalFilterSector] = useState<string>("ALL");
+  const [nationalStudentPage, setNationalStudentPage] = useState<number>(1);
+  const [nationalStudentPageSize, setNationalStudentPageSize] = useState<number>(25);
+  const [nationalStudentViewMode, setNationalStudentViewMode] = useState<"card" | "table">("table");
+  const [demandFilterCountry, setDemandFilterCountry] = useState<string>("ALL");
+  const [demandFilterSector, setDemandFilterSector] = useState<string>("ALL");
+
   const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
   const [selectedSector, setSelectedSector] = useState<string | null>(
     initialSector,
@@ -95,6 +136,8 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
   const [studentPage, setStudentPage] = useState<number>(1);
   const [studentPageSize, setStudentPageSize] = useState<number>(25);
   const [studentViewMode, setStudentViewMode] = useState<"card" | "table">("card");
+  const [studentFilterCountry, setStudentFilterCountry] = useState<string>("ALL");
+  const [studentFilterSector, setStudentFilterSector] = useState<string>("ALL");
   const [candidateSearchQuery, setCandidateSearchQuery] = useState<string>("");
   const [selectedCandidateForDetail, setSelectedCandidateForDetail] = useState<CandidateParticipant | null>(null);
   const [selectedProvinceForLpk, setSelectedProvinceForLpk] = useState<string | null>(null);
@@ -105,15 +148,26 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
   const [institutionPage, setInstitutionPage] = useState<number>(1);
 
   useEffect(() => {
+    setActiveDrilldownType(type);
     setSelectedCountry(null);
     setSelectedSector(initialSector);
     setSelectedOccupation(null);
     setSelectedInstitutionForStudents(null);
     setSelectedProvinceForLpk(null);
+    setCandidateViewScope("by_institution");
+    setNationalFilterCountry("ALL");
+    setNationalFilterSector("ALL");
+    setNationalStudentPage(1);
+    setNationalStudentPageSize(25);
+    setNationalStudentViewMode("table");
+    setDemandFilterCountry("ALL");
+    setDemandFilterSector("ALL");
     setStudentSearchQuery("");
     setStudentPage(1);
     setStudentPageSize(25);
     setStudentViewMode("card");
+    setStudentFilterCountry("ALL");
+    setStudentFilterSector("ALL");
     setCandidateSearchQuery("");
     setSelectedCandidateForDetail(null);
     setInstitutionSourceFilter(initialSourceFilter);
@@ -130,6 +184,64 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
       inputLevel: resolveInstitutionInputLevel(inst),
     }));
   }, [data.previewDirectories?.institutions]);
+
+  const allNationalStudents = useMemo(() => {
+    const list: Array<
+      PublicPreviewStudent & {
+        institutionName: string;
+        institutionId: string;
+        province?: string;
+        district?: string;
+        normalizedCountry: string;
+        normalizedSector: string;
+      }
+    > = [];
+
+    institutions.forEach((inst) => {
+      (inst.students ?? []).forEach((st) => {
+        list.push({
+          ...st,
+          institutionName: inst.name,
+          institutionId: inst.id,
+          province: inst.province,
+          district: inst.district,
+          normalizedCountry: normalizeStudentCountry(st.targetCountry),
+          normalizedSector: normalizeStudentSector(st.sector, st.major),
+        });
+      });
+    });
+
+    return list;
+  }, [institutions]);
+
+  const nationalSummary = useMemo(() => {
+    const countryCounts: Record<string, number> = {
+      Jepang: 0,
+      Turki: 0,
+      "Korea Selatan": 0,
+      Malaysia: 0,
+      Lainnya: 0,
+    };
+    const sectorCounts: Record<string, number> = {
+      "Hospitality & Pariwisata": 0,
+      "Kesehatan & Caregiver": 0,
+      "Bahasa & Komunikasi": 0,
+      "Manufaktur & Pengelasan": 0,
+      "Otomotif & Transportasi": 0,
+      "Sektor Lainnya": 0,
+    };
+
+    allNationalStudents.forEach((st) => {
+      countryCounts[st.normalizedCountry] = (countryCounts[st.normalizedCountry] ?? 0) + 1;
+      sectorCounts[st.normalizedSector] = (sectorCounts[st.normalizedSector] ?? 0) + 1;
+    });
+
+    return {
+      total: allNationalStudents.length,
+      countries: Object.entries(countryCounts).sort((a, b) => b[1] - a[1]),
+      sectors: Object.entries(sectorCounts).sort((a, b) => b[1] - a[1]),
+    };
+  }, [allNationalStudents]);
 
   const verifiedInstitutions = useMemo(
     () => institutions.filter((institution) => institution.evokasiStatus === "Terverifikasi e-Vokasi"),
@@ -339,9 +451,23 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
 
   const [isExportingExcel, setIsExportingExcel] = useState<boolean>(false);
 
-  const handleExportStudentsExcel = async () => {
-    if (!selectedInstitutionForStudents) return;
-    const studentsToExport = selectedInstitutionForStudents.students ?? [];
+  const handleExportCustomStudentsExcel = async ({
+    studentsToExport,
+    title,
+    filenamePrefix,
+    defaultInstitutionName,
+  }: {
+    studentsToExport: Array<
+      PublicPreviewStudent & {
+        institutionName?: string;
+        province?: string;
+        district?: string;
+      }
+    >;
+    title: string;
+    filenamePrefix: string;
+    defaultInstitutionName?: string;
+  }) => {
     if (studentsToExport.length === 0) {
       toast.warning("Tidak ada data calon peserta untuk diekspor.");
       return;
@@ -355,9 +481,9 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
         "No.": idx + 1,
         "ID Peserta": s.id,
         "Nama Calon Peserta": s.name,
-        "Lembaga Vokasi": selectedInstitutionForStudents.name,
-        "Kabupaten / Kota": selectedInstitutionForStudents.district || "—",
-        "Provinsi": selectedInstitutionForStudents.province || scopeName,
+        "Lembaga Vokasi": s.institutionName || defaultInstitutionName || "—",
+        "Kabupaten / Kota": s.district || "—",
+        "Provinsi": s.province || scopeName,
         "Negara Target": s.targetCountry,
         "Sektor": s.sector,
         "Jabatan / Pekerjaan": s.occupation,
@@ -367,7 +493,6 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
 
       const worksheet = XLSX.utils.json_to_sheet(rows);
 
-      // Set optimal column widths
       worksheet["!cols"] = [
         { wch: 6 },  // No.
         { wch: 18 }, // ID Peserta
@@ -383,16 +508,16 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
       ];
 
       const workbook = XLSX.utils.book_new();
-      const safeSheetName = (selectedInstitutionForStudents.name || "Calon Peserta")
+      const safeSheetName = (title || "Calon Peserta")
         .slice(0, 31)
-        .replace(/[:\\\/?*\[\]]/g, "");
+        .replace(/[:\\/?*[\]]/g, "");
       XLSX.utils.book_append_sheet(workbook, worksheet, safeSheetName || "Calon Peserta");
 
-      const slugName = (selectedInstitutionForStudents.name || "calon-peserta")
+      const slugName = (filenamePrefix || "calon-peserta")
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, "-")
         .replace(/^-|-$/g, "");
-      const fileName = `calon-peserta-${slugName}.xlsx`;
+      const fileName = `${slugName}.xlsx`;
       XLSX.writeFile(workbook, fileName);
 
       toast.success(
@@ -406,20 +531,93 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
     }
   };
 
+  const handleExportStudentsExcel = async (customRows?: PublicPreviewStudent[]) => {
+    if (!selectedInstitutionForStudents) return;
+    const studentsToExport = customRows && customRows.length > 0
+      ? customRows
+      : (selectedInstitutionForStudents.students ?? []);
+
+    await handleExportCustomStudentsExcel({
+      studentsToExport: studentsToExport.map((s) => ({
+        ...s,
+        institutionName: selectedInstitutionForStudents.name,
+        province: selectedInstitutionForStudents.province,
+        district: selectedInstitutionForStudents.district,
+      })),
+      title: selectedInstitutionForStudents.name || "Calon Peserta",
+      filenamePrefix: `calon-peserta-${selectedInstitutionForStudents.name || "lembaga"}`,
+      defaultInstitutionName: selectedInstitutionForStudents.name,
+    });
+  };
+
+  const handleExportNationalStudentsExcel = async (
+    filteredRows: Array<PublicPreviewStudent & { institutionName?: string; province?: string; district?: string }>
+  ) => {
+    const filterDesc = [
+      nationalFilterCountry !== "ALL" ? nationalFilterCountry : "",
+      nationalFilterSector !== "ALL" ? nationalFilterSector : "",
+    ].filter(Boolean).join("-") || "semua";
+
+    await handleExportCustomStudentsExcel({
+      studentsToExport: filteredRows,
+      title: `Calon Peserta Nasional (${filteredRows.length})`,
+      filenamePrefix: `calon-peserta-nasional-${filterDesc}`,
+      defaultInstitutionName: "Lembaga Vokasi Nasional",
+    });
+  };
+
   const renderStudentList = () => {
     if (!selectedInstitutionForStudents) return null;
     const students = selectedInstitutionForStudents.students ?? [];
     const q = studentSearchQuery.trim().toLowerCase();
-    const filtered = q
-      ? students.filter(
-          (s) =>
-            s.name.toLowerCase().includes(q) ||
-            s.targetCountry.toLowerCase().includes(q) ||
-            s.sector.toLowerCase().includes(q) ||
-            s.occupation.toLowerCase().includes(q) ||
-            (s.id && s.id.toLowerCase().includes(q))
-        )
-      : students;
+
+    // Rekapitulasi Agregat Negara & Sektor untuk Lembaga Ini
+    const countryBreakdown: Array<[string, number]> = (() => {
+      const counts: Record<string, number> = {};
+      students.forEach((s) => {
+        const countries = (s.targetCountry || "Belum Ditentukan")
+          .split(",")
+          .map((c) => c.trim())
+          .filter(Boolean);
+        countries.forEach((c) => {
+          counts[c] = (counts[c] || 0) + 1;
+        });
+      });
+      return Object.entries(counts).sort((a, b) => b[1] - a[1]);
+    })();
+
+    const sectorBreakdown: Array<[string, number]> = (() => {
+      const counts: Record<string, number> = {};
+      students.forEach((s) => {
+        const sector = (s.sector || s.major || "Lainnya").trim();
+        counts[sector] = (counts[sector] || 0) + 1;
+      });
+      return Object.entries(counts).sort((a, b) => b[1] - a[1]);
+    })();
+
+    // Filter gabungan: Negara, Sektor, dan Pencarian teks
+    const filtered = students.filter((s) => {
+      if (studentFilterCountry !== "ALL") {
+        const matchCountry = (s.targetCountry || "")
+          .toLowerCase()
+          .includes(studentFilterCountry.toLowerCase());
+        if (!matchCountry) return false;
+      }
+      if (studentFilterSector !== "ALL") {
+        const sec = (s.sector || s.major || "").toLowerCase();
+        if (!sec.includes(studentFilterSector.toLowerCase())) return false;
+      }
+      if (q) {
+        return (
+          s.name.toLowerCase().includes(q) ||
+          s.targetCountry.toLowerCase().includes(q) ||
+          s.sector.toLowerCase().includes(q) ||
+          s.occupation.toLowerCase().includes(q) ||
+          (s.id && s.id.toLowerCase().includes(q))
+        );
+      }
+      return true;
+    });
 
     const totalStudents = filtered.length;
     const isShowingAll = studentPageSize >= 999999;
@@ -441,6 +639,8 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
             setSelectedInstitutionForStudents(null);
             setStudentSearchQuery("");
             setStudentPage(1);
+            setStudentFilterCountry("ALL");
+            setStudentFilterSector("ALL");
           }}
           className="-ml-2 w-fit gap-1.5 text-xs text-primary hover:text-primary hover:bg-primary/10 cursor-pointer"
         >
@@ -448,6 +648,7 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
           <span>Kembali ke daftar lembaga vokasi</span>
         </Button>
 
+        {/* Header Lembaga Vokasi */}
         <div className="rounded-xl border border-border bg-muted/40 p-3.5 space-y-2">
           <div className="flex items-start justify-between gap-2">
             <div>
@@ -475,7 +676,7 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
               <Button
                 type="button"
                 size="sm"
-                onClick={handleExportStudentsExcel}
+                onClick={() => handleExportStudentsExcel(filtered)}
                 disabled={isExportingExcel || students.length === 0}
                 className="h-7 px-2.5 text-xs font-semibold gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs cursor-pointer transition-colors"
                 title="Unduh seluruh data calon peserta lembaga ini dalam berkas Excel (.xlsx)"
@@ -487,6 +688,154 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
                 )}
                 <span>Ekspor Excel (.xlsx)</span>
               </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* REKAPITULASI RINGKASAN DI ATAS: NEGARA & SEKTOR */}
+        <div className="rounded-xl border border-border bg-gradient-to-br from-slate-50 to-white dark:from-slate-900/90 dark:to-slate-900 p-3.5 space-y-3 shadow-xs">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <h5 className="text-xs font-bold text-foreground flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span>Rekapitulasi Target Negara & Sektor (Total: {students.length.toLocaleString("id-ID")} Peserta)</span>
+            </h5>
+            {(studentFilterCountry !== "ALL" || studentFilterSector !== "ALL" || studentSearchQuery) && (
+              <button
+                type="button"
+                onClick={() => {
+                  setStudentFilterCountry("ALL");
+                  setStudentFilterSector("ALL");
+                  setStudentSearchQuery("");
+                  setStudentPage(1);
+                }}
+                className="text-[11px] font-semibold text-rose-600 hover:text-rose-700 hover:underline cursor-pointer"
+              >
+                Reset Semua Filter
+              </button>
+            )}
+          </div>
+
+          {/* Baris 1: Rekap Negara */}
+          <div>
+            <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1">
+              <Globe2 className="w-3 h-3 text-emerald-600" />
+              <span>Rekap Negara Tujuan:</span>
+              <span className="font-normal text-[10px] lowercase text-muted-foreground">(klik untuk filter)</span>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              <button
+                type="button"
+                onClick={() => {
+                  setStudentFilterCountry("ALL");
+                  setStudentPage(1);
+                }}
+                className={cn(
+                  "px-2.5 py-1 rounded-lg text-xs font-medium transition cursor-pointer flex items-center gap-1.5",
+                  studentFilterCountry === "ALL"
+                    ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900 font-bold shadow-xs"
+                    : "bg-muted/50 hover:bg-muted text-muted-foreground border border-border/60"
+                )}
+              >
+                <span>Semua Negara</span>
+                <span className="px-1.5 py-0.2 rounded-md bg-black/10 dark:bg-white/20 text-[10px] font-mono">
+                  {students.length.toLocaleString("id-ID")}
+                </span>
+              </button>
+
+              {countryBreakdown.map(([cName, cCount]) => {
+                const pct = Math.round((cCount / students.length) * 100);
+                const isSelected = studentFilterCountry === cName;
+                return (
+                  <button
+                    key={cName}
+                    type="button"
+                    onClick={() => {
+                      setStudentFilterCountry(isSelected ? "ALL" : cName);
+                      setStudentPage(1);
+                    }}
+                    className={cn(
+                      "px-2.5 py-1 rounded-lg text-xs transition cursor-pointer flex items-center gap-1.5 border",
+                      isSelected
+                        ? "bg-emerald-600 text-white font-bold border-emerald-600 shadow-xs"
+                        : "bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/30"
+                    )}
+                  >
+                    <span>{cName}</span>
+                    <span
+                      className={cn(
+                        "px-1.5 py-0.2 rounded-md text-[10px] font-mono font-bold",
+                        isSelected
+                          ? "bg-white/20 text-white"
+                          : "bg-emerald-500/20 text-emerald-800 dark:text-emerald-200"
+                      )}
+                    >
+                      {cCount.toLocaleString("id-ID")} ({pct}%)
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Baris 2: Rekap Sektor */}
+          <div>
+            <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1">
+              <Briefcase className="w-3 h-3 text-blue-600" />
+              <span>Rekap Sektor Peminatan:</span>
+              <span className="font-normal text-[10px] lowercase text-muted-foreground">(klik untuk filter)</span>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              <button
+                type="button"
+                onClick={() => {
+                  setStudentFilterSector("ALL");
+                  setStudentPage(1);
+                }}
+                className={cn(
+                  "px-2.5 py-1 rounded-lg text-xs font-medium transition cursor-pointer flex items-center gap-1.5",
+                  studentFilterSector === "ALL"
+                    ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900 font-bold shadow-xs"
+                    : "bg-muted/50 hover:bg-muted text-muted-foreground border border-border/60"
+                )}
+              >
+                <span>Semua Sektor</span>
+                <span className="px-1.5 py-0.2 rounded-md bg-black/10 dark:bg-white/20 text-[10px] font-mono">
+                  {students.length.toLocaleString("id-ID")}
+                </span>
+              </button>
+
+              {sectorBreakdown.map(([sName, sCount]) => {
+                const pct = Math.round((sCount / students.length) * 100);
+                const isSelected = studentFilterSector === sName;
+                return (
+                  <button
+                    key={sName}
+                    type="button"
+                    onClick={() => {
+                      setStudentFilterSector(isSelected ? "ALL" : sName);
+                      setStudentPage(1);
+                    }}
+                    className={cn(
+                      "px-2.5 py-1 rounded-lg text-xs transition cursor-pointer flex items-center gap-1.5 border",
+                      isSelected
+                        ? "bg-blue-600 text-white font-bold border-blue-600 shadow-xs"
+                        : "bg-blue-500/10 hover:bg-blue-500/20 text-blue-700 dark:text-blue-300 border-blue-500/30"
+                    )}
+                  >
+                    <span>{sName}</span>
+                    <span
+                      className={cn(
+                        "px-1.5 py-0.2 rounded-md text-[10px] font-mono font-bold",
+                        isSelected
+                          ? "bg-white/20 text-white"
+                          : "bg-blue-500/20 text-blue-800 dark:text-blue-200"
+                      )}
+                    >
+                      {sCount.toLocaleString("id-ID")} ({pct}%)
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>
@@ -792,6 +1141,371 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
     );
   };
 
+  const renderNationalAllCandidates = (studentsToRender: typeof allNationalStudents) => {
+    const q = institutionSearchQuery.toLowerCase().trim();
+    const filtered = studentsToRender.filter((s) => {
+      if (nationalFilterCountry !== "ALL" && s.normalizedCountry !== nationalFilterCountry) {
+        return false;
+      }
+      if (nationalFilterSector !== "ALL" && s.normalizedSector !== nationalFilterSector) {
+        return false;
+      }
+      if (q) {
+        return (
+          s.name.toLowerCase().includes(q) ||
+          s.id.toLowerCase().includes(q) ||
+          s.institutionName.toLowerCase().includes(q) ||
+          (s.district && s.district.toLowerCase().includes(q)) ||
+          s.targetCountry.toLowerCase().includes(q) ||
+          s.sector.toLowerCase().includes(q) ||
+          s.occupation.toLowerCase().includes(q)
+        );
+      }
+      return true;
+    });
+
+    const totalStudents = filtered.length;
+    const isShowingAll = nationalStudentPageSize >= 99999;
+    const effectivePageSize = isShowingAll ? totalStudents : nationalStudentPageSize;
+    const totalPages = Math.max(1, Math.ceil(totalStudents / Math.max(1, effectivePageSize)));
+    const safePage = Math.min(nationalStudentPage, totalPages);
+    const startIndex = totalStudents === 0 ? 0 : (safePage - 1) * effectivePageSize + 1;
+    const endIndex = isShowingAll ? totalStudents : Math.min(safePage * effectivePageSize, totalStudents);
+    const paginatedStudents = isShowingAll
+      ? filtered
+      : filtered.slice((safePage - 1) * effectivePageSize, safePage * effectivePageSize);
+
+    return (
+      <div className="space-y-3">
+        {/* Search & Control Toolbar */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
+          {/* Search Bar */}
+          <div className="relative flex-1">
+            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Cari nama peserta, ID/NIK, lembaga vokasi, kab/kota, atau kejuruan..."
+              value={institutionSearchQuery}
+              onChange={(e) => {
+                setInstitutionSearchQuery(e.target.value);
+                setNationalStudentPage(1);
+              }}
+              className="h-8.5 pl-8 pr-8 text-xs bg-background"
+            />
+            {institutionSearchQuery && (
+              <button
+                type="button"
+                onClick={() => {
+                  setInstitutionSearchQuery("");
+                  setNationalStudentPage(1);
+                }}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground hover:text-foreground cursor-pointer"
+              >
+                ×
+              </button>
+            )}
+          </div>
+
+          <div className="flex items-center gap-1.5 self-end sm:self-auto shrink-0">
+            {/* Export Excel Button */}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={isExportingExcel || totalStudents === 0}
+              onClick={() => handleExportNationalStudentsExcel(filtered)}
+              className="h-8 px-2.5 text-xs gap-1.5 border-emerald-500/40 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/10 cursor-pointer font-medium"
+              title="Ekspor seluruh data hasil filter ke file Microsoft Excel (.xlsx)"
+            >
+              {isExportingExcel ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin text-emerald-600" />
+              ) : (
+                <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-600" />
+              )}
+              <span>Excel ({totalStudents.toLocaleString("id-ID")})</span>
+            </Button>
+
+            {/* View Mode Toggle */}
+            <div className="flex items-center bg-muted/50 p-0.5 rounded-lg border border-border/60">
+              <button
+                type="button"
+                onClick={() => setNationalStudentViewMode("table")}
+                className={cn(
+                  "p-1.5 rounded-md transition cursor-pointer",
+                  nationalStudentViewMode === "table"
+                    ? "bg-background shadow-xs text-foreground font-bold"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+                title="Tampilan Tabel Berurutan"
+              >
+                <TableProperties className="h-3.5 w-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setNationalStudentViewMode("card")}
+                className={cn(
+                  "p-1.5 rounded-md transition cursor-pointer",
+                  nationalStudentViewMode === "card"
+                    ? "bg-background shadow-xs text-foreground font-bold"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+                title="Tampilan Kartu Ringkasan"
+              >
+                <LayoutList className="h-3.5 w-3.5" />
+              </button>
+            </div>
+
+            {/* Per-Page Selector */}
+            <div className="flex items-center gap-1 text-[11px] text-muted-foreground border-l border-border/60 pl-2">
+              <span className="hidden sm:inline">Per hal:</span>
+              {[25, 50, 100].map((size) => (
+                <button
+                  key={size}
+                  type="button"
+                  onClick={() => {
+                    setNationalStudentPageSize(size);
+                    setNationalStudentPage(1);
+                  }}
+                  className={cn(
+                    "px-2 py-1 rounded-md text-[11px] font-mono transition cursor-pointer",
+                    nationalStudentPageSize === size
+                      ? "bg-primary text-primary-foreground font-bold shadow-xs"
+                      : "bg-muted/40 hover:bg-muted text-muted-foreground"
+                  )}
+                >
+                  {size}
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={() => {
+                  setNationalStudentPageSize(999999);
+                  setNationalStudentPage(1);
+                }}
+                className={cn(
+                  "px-2 py-1 rounded-md text-[11px] transition cursor-pointer",
+                  isShowingAll
+                    ? "bg-primary text-primary-foreground font-bold shadow-xs"
+                    : "bg-muted/40 hover:bg-muted text-muted-foreground"
+                )}
+                title="Tampilkan seluruh data tanpa paginasi"
+              >
+                Semua
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Counter Bar */}
+        <div className="flex items-center justify-between text-[11px] text-muted-foreground px-2 bg-muted/20 py-1.5 rounded-md border border-border/40">
+          <div>
+            Menampilkan <span className="font-bold text-foreground font-mono">#{startIndex.toLocaleString("id-ID")}</span> –{" "}
+            <span className="font-bold text-foreground font-mono">#{endIndex.toLocaleString("id-ID")}</span> dari{" "}
+            <span className="font-bold text-foreground font-mono">{totalStudents.toLocaleString("id-ID")}</span> calon peserta nasional
+            {(institutionSearchQuery || nationalFilterCountry !== "ALL" || nationalFilterSector !== "ALL") && (
+              <span className="ml-1 text-primary">
+                (difilter dari total {allNationalStudents.length.toLocaleString("id-ID")})
+              </span>
+            )}
+          </div>
+          {!isShowingAll && totalPages > 1 && (
+            <div className="text-[11px] font-medium text-muted-foreground">
+              Hal. <span className="font-bold text-foreground">{safePage}</span> / {totalPages}
+            </div>
+          )}
+        </div>
+
+        {/* Body Table/Card */}
+        {paginatedStudents.length === 0 ? (
+          <div className="p-8 text-center text-xs text-muted-foreground rounded-lg border border-dashed border-border">
+            Tidak ada calon peserta yang cocok dengan kriteria filter saat ini.
+          </div>
+        ) : nationalStudentViewMode === "table" ? (
+          <div className="overflow-x-auto rounded-lg border border-border bg-white dark:bg-slate-900 max-h-[50vh] overflow-y-auto">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead className="sticky top-0 bg-muted/80 backdrop-blur-xs text-muted-foreground font-semibold border-b border-border z-10">
+                <tr>
+                  <th className="py-2.5 px-3 w-16 text-center font-mono">No.</th>
+                  <th className="py-2.5 px-3">Nama & ID Peserta</th>
+                  <th className="py-2.5 px-3">Lembaga Vokasi Penyuplai</th>
+                  <th className="py-2.5 px-3">Negara Target</th>
+                  <th className="py-2.5 px-3">Sektor</th>
+                  <th className="py-2.5 px-3">Jabatan</th>
+                  <th className="py-2.5 px-3 text-right">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/60">
+                {paginatedStudents.map((s, idx) => {
+                  const globalNo = (safePage - 1) * (isShowingAll ? totalStudents : nationalStudentPageSize) + idx + 1;
+                  return (
+                    <tr key={s.id || idx} className="hover:bg-muted/30 transition-colors">
+                      <td className="py-2 px-3 text-center font-mono font-bold text-slate-700 dark:text-slate-300 bg-muted/10">
+                        #{globalNo}
+                      </td>
+                      <td className="py-2 px-3">
+                        <div className="font-semibold text-foreground">{s.name}</div>
+                        <div className="text-[10px] text-muted-foreground font-mono">ID: {s.id}</div>
+                      </td>
+                      <td className="py-2 px-3">
+                        <div className="font-medium text-foreground truncate max-w-[170px]" title={s.institutionName}>
+                          {s.institutionName}
+                        </div>
+                        <div className="text-[10px] text-muted-foreground truncate max-w-[170px]">
+                          {s.district || s.province || "—"}
+                        </div>
+                      </td>
+                      <td className="py-2 px-3">
+                        <span className="font-medium text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                          <Globe2 className="h-3 w-3 shrink-0" />
+                          <span className="truncate max-w-[120px]">{s.targetCountry}</span>
+                        </span>
+                      </td>
+                      <td className="py-2 px-3 text-muted-foreground">
+                        <span className="truncate max-w-[120px] block" title={s.sector}>
+                          {s.sector}
+                        </span>
+                      </td>
+                      <td className="py-2 px-3 font-medium text-foreground">
+                        <span className="truncate max-w-[130px] block" title={s.occupation}>
+                          {s.occupation}
+                        </span>
+                      </td>
+                      <td className="py-2 px-3 text-right">
+                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5 whitespace-nowrap">
+                          {s.status || "Siap Penempatan"}
+                        </Badge>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="space-y-2 max-h-[50vh] overflow-y-auto pr-1">
+            {paginatedStudents.map((s, idx) => {
+              const globalNo = (safePage - 1) * (isShowingAll ? totalStudents : nationalStudentPageSize) + idx + 1;
+              return (
+                <div
+                  key={s.id || idx}
+                  className="rounded-lg border border-border bg-white dark:bg-slate-900 p-3 space-y-2 hover:border-primary/40 transition-colors shadow-xs"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="flex items-center justify-center min-w-[2.75rem] px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 text-xs font-mono font-bold shrink-0 shadow-2xs">
+                        #{globalNo}
+                      </span>
+                      <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-bold shrink-0">
+                        {s.name.charAt(0)}
+                      </div>
+                      <div>
+                        <h5 className="text-sm font-bold text-foreground leading-tight">
+                          {s.name}
+                        </h5>
+                        <div className="text-[10px] text-muted-foreground font-mono flex items-center gap-2">
+                          <span>ID: {s.id}</span>
+                          <span>•</span>
+                          <span className="font-sans font-medium text-primary truncate max-w-[200px]">
+                            {s.institutionName}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <Badge variant="secondary" className="text-[10px] px-2 py-0.5 shrink-0">
+                      {s.status || "Siap Penempatan"}
+                    </Badge>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 pt-1.5 border-t border-border/40 text-xs">
+                    <div className="bg-muted/30 rounded p-1.5">
+                      <span className="text-[10px] text-muted-foreground block font-medium">Tujuan Negara Target:</span>
+                      <span className="font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1 mt-0.5">
+                        <Globe2 className="h-3 w-3 shrink-0" />
+                        <span className="truncate">{s.targetCountry}</span>
+                      </span>
+                    </div>
+                    <div className="bg-muted/30 rounded p-1.5">
+                      <span className="text-[10px] text-muted-foreground block font-medium">Sektor & Kejuruan:</span>
+                      <span className="font-medium text-foreground truncate block mt-0.5" title={s.sector}>
+                        {s.sector}
+                      </span>
+                    </div>
+                    <div className="bg-muted/30 rounded p-1.5">
+                      <span className="text-[10px] text-muted-foreground block font-medium">Jabatan / Kompetensi:</span>
+                      <span className="font-medium text-foreground truncate block mt-0.5" title={s.occupation}>
+                        {s.occupation}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Pagination Controls */}
+        {!isShowingAll && totalPages > 1 && (
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-2 pt-2 border-t border-border/60 text-xs">
+            <div className="flex items-center gap-1">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setNationalStudentPage(1)}
+                disabled={safePage <= 1}
+                className="h-7 px-2 text-xs gap-1 cursor-pointer"
+                title="Kembali ke urutan pertama #1"
+              >
+                <ChevronsLeft className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Awal (#1)</span>
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setNationalStudentPage((p) => Math.max(1, p - 1))}
+                disabled={safePage <= 1}
+                className="h-7 px-2 text-xs gap-1 cursor-pointer"
+              >
+                <ChevronLeft className="h-3.5 w-3.5" />
+                Sebelumnya
+              </Button>
+            </div>
+
+            <span className="font-mono text-muted-foreground text-[11px]">
+              Hal. <strong className="text-foreground">{safePage}</strong> dari <strong>{totalPages}</strong> ({totalStudents.toLocaleString("id-ID")} peserta)
+            </span>
+
+            <div className="flex items-center gap-1">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setNationalStudentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={safePage >= totalPages}
+                className="h-7 px-2 text-xs gap-1 cursor-pointer"
+              >
+                Selanjutnya
+                <ChevronRight className="h-3.5 w-3.5" />
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setNationalStudentPage(totalPages)}
+                disabled={safePage >= totalPages}
+                className="h-7 px-2 text-xs gap-1 cursor-pointer"
+                title={`Loncat ke data terakhir #${totalStudents.toLocaleString("id-ID")}`}
+              >
+                <span className="hidden sm:inline">Ke Akhir (#{totalStudents.toLocaleString("id-ID")})</span>
+                <ChevronsRight className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const renderInstitutionList = (items: PublicPreviewInstitution[]) => {
     const supplyOnlyItems = items.filter(
       (it) => (it.students?.length ?? it.studentCount ?? 0) > 0 || it.hasAdminAccount
@@ -806,8 +1520,22 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
       (it) => resolveInstitutionSource({ registrationSource: it.registrationSource, id: it.id }) === "umum"
     ).length;
 
+    // Filter berdasarkan Negara & Sektor Nasional bila aktif
+    const filteredByNational = supplyOnlyItems.filter((it) => {
+      const studs = it.students ?? [];
+      if (nationalFilterCountry !== "ALL") {
+        const hasCountry = studs.some((s) => normalizeStudentCountry(s.targetCountry) === nationalFilterCountry);
+        if (!hasCountry) return false;
+      }
+      if (nationalFilterSector !== "ALL") {
+        const hasSector = studs.some((s) => normalizeStudentSector(s.sector, s.major) === nationalFilterSector);
+        if (!hasSector) return false;
+      }
+      return true;
+    });
+
     const q = institutionSearchQuery.toLowerCase().trim();
-    const filtered = supplyOnlyItems.filter((it) => {
+    const filtered = filteredByNational.filter((it) => {
       const matchSearch =
         !q ||
         it.name.toLowerCase().includes(q) ||
@@ -837,330 +1565,604 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
     const paginated = filtered.slice((safeCurrentPage - 1) * pageSize, safeCurrentPage * pageSize);
 
     return (
-      <div className="space-y-3">
-        {/* Search Bar */}
-        <div className="relative">
-          <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Cari nama lembaga vokasi, kabupaten/kota, atau kejuruan..."
-            value={institutionSearchQuery}
-            onChange={(e) => {
-              setInstitutionSearchQuery(e.target.value);
-              setInstitutionPage(1);
-            }}
-            className="h-8.5 pl-8 pr-8 text-xs bg-background"
-          />
-          {institutionSearchQuery && (
-            <button
-              type="button"
-              onClick={() => {
-                setInstitutionSearchQuery("");
-                setInstitutionPage(1);
-              }}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground hover:text-foreground cursor-pointer"
-            >
-              ×
-            </button>
-          )}
-        </div>
+      <div className="space-y-3.5">
+        {/* REKAPITULASI SUPLAI CALON PESERTA NASIONAL */}
+        <div className="p-3.5 rounded-xl border border-border bg-slate-50/80 dark:bg-slate-900/80 space-y-3 shadow-xs">
+          {/* Header Card */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-border/60">
+            <div className="flex items-center gap-2.5">
+              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+                <Users className="h-4 w-4" />
+              </span>
+              <div>
+                <h4 className="text-sm font-bold text-foreground flex items-center gap-2">
+                  <span>Rekapitulasi Suplai Calon Peserta Nasional</span>
+                  <Badge className="bg-emerald-600 text-white font-mono text-[11px] font-bold">
+                    {nationalSummary.total.toLocaleString("id-ID")} Calon
+                  </Badge>
+                </h4>
+                <p className="text-[11px] text-muted-foreground">
+                  Distribusi peminatan negara tujuan dan sektor dari {supplyOnlyItems.length} lembaga vokasi penyuplai
+                </p>
+              </div>
+            </div>
 
-        {/* Info Jumlah Vokasi */}
-        <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-xs">
-          <span className="font-semibold text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-emerald-500" />
-            <span>Lembaga Vokasi Terdaftar (User Level Admin Lembaga Vokasi)</span>
-          </span>
-          <Badge className="bg-emerald-600 text-white font-bold text-xs">
-            {supplyOnlyItems.length} Lembaga Vokasi
-          </Badge>
-        </div>
-
-        {/* Source & Level Filter Quick Bar */}
-        <div className="space-y-2 p-2.5 rounded-xl bg-muted/30 border border-border/60 text-xs">
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-[11px] font-semibold text-muted-foreground mr-1">Sumber:</span>
-            <button
+            {/* Tombol Ekspor Excel Nasional Langsung */}
+            <Button
               type="button"
-              onClick={() => {
-                setInstitutionSourceFilter("ALL");
-                setInstitutionLevelFilter("ALL");
-                setInstitutionPage(1);
-              }}
-              className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer ${
-                institutionSourceFilter === "ALL"
-                  ? "bg-foreground text-background shadow-xs"
-                  : "bg-background border border-border text-muted-foreground hover:text-foreground"
-              }`}
+              variant="outline"
+              size="sm"
+              disabled={isExportingExcel}
+              onClick={() => handleExportNationalStudentsExcel(allNationalStudents)}
+              className="h-8 px-2.5 text-xs gap-1.5 border-emerald-500/40 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/10 cursor-pointer font-medium self-start sm:self-auto"
+              title="Ekspor seluruh 4.315 data calon peserta nasional ke file Excel (.xlsx)"
             >
-              Semua Sumber ({supplyOnlyItems.length})
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setInstitutionSourceFilter("siskop2mi");
-                setInstitutionLevelFilter("ALL");
-                setInstitutionPage(1);
-              }}
-              className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1 ${
-                institutionSourceFilter === "siskop2mi"
-                  ? "bg-blue-600 text-white shadow-xs font-bold"
-                  : "bg-background border border-border text-muted-foreground hover:text-blue-600"
-              }`}
-            >
-              <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-              <span>SISKOP2MI ({siskop2miCount})</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setInstitutionSourceFilter("disnaker");
-                setInstitutionLevelFilter("ALL");
-                setInstitutionPage(1);
-              }}
-              className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1 ${
-                institutionSourceFilter === "disnaker"
-                  ? "bg-indigo-600 text-white shadow-xs font-bold"
-                  : "bg-background border border-border text-muted-foreground hover:text-indigo-600"
-              }`}
-            >
-              <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
-              <span>Disnaker ({disnakerCount})</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setInstitutionSourceFilter("umum");
-                setInstitutionLevelFilter("ALL");
-                setInstitutionPage(1);
-              }}
-              className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1 ${
-                institutionSourceFilter === "umum"
-                  ? "bg-emerald-600 text-white shadow-xs font-bold"
-                  : "bg-background border border-border text-muted-foreground hover:text-emerald-600"
-              }`}
-            >
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-              <span>Umum / Lembaga ({umumCount})</span>
-            </button>
+              {isExportingExcel ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin text-emerald-600" />
+              ) : (
+                <Download className="h-3.5 w-3.5 text-emerald-600" />
+              )}
+              <span>Ekspor Excel ({nationalSummary.total.toLocaleString("id-ID")})</span>
+            </Button>
           </div>
 
-          {/* Level Filter Sub-bar */}
-          <div className="flex flex-wrap items-center gap-1.5 pt-1.5 border-t border-border/40">
-            <span className="text-[10.5px] font-semibold text-muted-foreground mr-1">Level:</span>
-            <button
-              type="button"
-              onClick={() => {
-                setInstitutionLevelFilter("ALL");
-                setInstitutionPage(1);
-              }}
-              className={`px-2 py-0.5 rounded-md text-[11px] font-medium transition cursor-pointer ${
-                institutionLevelFilter === "ALL"
-                  ? "bg-foreground text-background font-semibold"
-                  : "bg-background/80 border border-border/60 text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              Semua Level
-            </button>
-            {(institutionSourceFilter === "ALL" || institutionSourceFilter === "disnaker") && (
-              <>
+          {/* Baris 1: Rekap Negara */}
+          <div>
+            <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center justify-between">
+              <span className="flex items-center gap-1">
+                <Globe2 className="w-3 h-3 text-emerald-600" />
+                <span>Target Negara Penempatan:</span>
+                <span className="font-normal text-[10px] lowercase text-muted-foreground">(klik untuk filter)</span>
+              </span>
+              {nationalFilterCountry !== "ALL" && (
                 <button
                   type="button"
                   onClick={() => {
-                    setInstitutionLevelFilter("kabupaten_kota");
+                    setNationalFilterCountry("ALL");
                     setInstitutionPage(1);
+                    setNationalStudentPage(1);
                   }}
-                  className={`px-2 py-0.5 rounded-md text-[11px] font-medium transition cursor-pointer ${
-                    institutionLevelFilter === "kabupaten_kota"
-                      ? "bg-amber-600 text-white font-semibold shadow-xs"
-                      : "bg-background/80 border border-border/60 text-muted-foreground hover:text-amber-600"
-                  }`}
+                  className="text-[10px] text-emerald-600 hover:underline cursor-pointer"
                 >
-                  Disnaker Kab/Kota
+                  Reset Filter Negara
                 </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setInstitutionLevelFilter("provinsi");
-                    setInstitutionPage(1);
-                  }}
-                  className={`px-2 py-0.5 rounded-md text-[11px] font-medium transition cursor-pointer ${
-                    institutionLevelFilter === "provinsi"
-                      ? "bg-indigo-600 text-white font-semibold shadow-xs"
-                      : "bg-background/80 border border-border/60 text-muted-foreground hover:text-indigo-600"
-                  }`}
-                >
-                  Disnaker Provinsi
-                </button>
-              </>
-            )}
-            {(institutionSourceFilter === "ALL" || institutionSourceFilter === "umum") && (
+              )}
+            </div>
+            <div className="flex flex-wrap gap-1.5">
               <button
                 type="button"
                 onClick={() => {
-                  setInstitutionLevelFilter("lembaga_vokasi");
+                  setNationalFilterCountry("ALL");
                   setInstitutionPage(1);
+                  setNationalStudentPage(1);
                 }}
-                className={`px-2 py-0.5 rounded-md text-[11px] font-medium transition cursor-pointer ${
-                  institutionLevelFilter === "lembaga_vokasi"
-                    ? "bg-emerald-600 text-white font-semibold shadow-xs"
-                    : "bg-background/80 border border-border/60 text-muted-foreground hover:text-emerald-600"
-                }`}
+                className={cn(
+                  "px-2.5 py-1 rounded-lg text-xs font-medium transition cursor-pointer flex items-center gap-1.5",
+                  nationalFilterCountry === "ALL"
+                    ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900 font-bold shadow-xs"
+                    : "bg-muted/50 hover:bg-muted text-muted-foreground border border-border/60"
+                )}
               >
-                Lembaga Vokasi (Mandiri)
+                <span>Semua Negara</span>
+                <span className="px-1.5 py-0.2 rounded-md bg-black/10 dark:bg-white/20 text-[10px] font-mono">
+                  {nationalSummary.total.toLocaleString("id-ID")}
+                </span>
               </button>
-            )}
-            {(institutionSourceFilter === "ALL" || institutionSourceFilter === "siskop2mi") && (
-              <button
-                type="button"
-                onClick={() => {
-                  setInstitutionLevelFilter("nasional");
-                  setInstitutionPage(1);
-                }}
-                className={`px-2 py-0.5 rounded-md text-[11px] font-medium transition cursor-pointer ${
-                  institutionLevelFilter === "nasional"
-                    ? "bg-blue-600 text-white font-semibold shadow-xs"
-                    : "bg-background/80 border border-border/60 text-muted-foreground hover:text-blue-600"
-                }`}
-              >
-                Nasional (SISKOP2MI)
-              </button>
-            )}
-          </div>
-        </div>
 
-        <div className="rounded-lg border border-border p-2">
-          {filtered.length === 0 ? (
-            <p className="p-5 text-center text-sm text-muted-foreground">
-              Belum ada lembaga vokasi yang sesuai dengan pilihan pencarian atau filter ini.
-            </p>
-          ) : (
-            <div className="space-y-2.5">
-              {paginated.map((institution) => {
-                const isVerified =
-                  institution.evokasiStatus === "Terverifikasi e-Vokasi";
-                const studentCount = institution.students?.length ?? institution.studentCount ?? 0;
-                const hasStudents = studentCount > 0;
+              {nationalSummary.countries.map(([cName, cCount]) => {
+                const pct = Math.round((cCount / nationalSummary.total) * 100);
+                const isSelected = nationalFilterCountry === cName;
                 return (
-                  <div
-                    key={institution.id}
+                  <button
+                    key={cName}
+                    type="button"
                     onClick={() => {
-                      if (hasStudents) {
-                        setSelectedInstitutionForStudents(institution);
-                        setStudentSearchQuery("");
-                        setStudentPage(1);
-                      }
+                      setNationalFilterCountry(isSelected ? "ALL" : cName);
+                      setInstitutionPage(1);
+                      setNationalStudentPage(1);
                     }}
                     className={cn(
-                      "rounded-lg border border-border bg-white dark:bg-slate-900 p-3 space-y-2 transition-all",
-                      hasStudents
-                        ? "hover:border-primary/60 hover:shadow-md cursor-pointer group"
-                        : "border-border/70"
+                      "px-2.5 py-1 rounded-lg text-xs transition cursor-pointer flex items-center gap-1.5 border",
+                      isSelected
+                        ? "bg-emerald-600 text-white font-bold border-emerald-600 shadow-xs"
+                        : "bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/30"
                     )}
                   >
-                    <div className="flex min-w-0 items-start justify-between gap-2">
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-1.5 mb-1">
-                          <InstitutionSourceBadge
-                            source={institution.registrationSource}
-                            sourceId={institution.registrationSourceId || institution.id}
-                            level={institution.inputLevel}
-                            showLevel
-                            showId={Boolean(institution.registrationSourceId)}
-                          />
-                        </div>
-                        <h6 className="break-words text-sm font-semibold text-foreground group-hover:text-primary transition-colors flex items-center gap-1.5">
-                          <span>{institution.name}</span>
-                          {hasStudents && (
-                            <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-transform group-hover:translate-x-0.5" />
-                          )}
-                        </h6>
-                        <p className="mt-0.5 text-xs text-muted-foreground">
-                          {institution.district ? `${institution.district}, ` : ""}
-                          {institution.province || scopeName}
-                        </p>
-                      </div>
-                      <Badge
-                        variant={isVerified ? "default" : "outline"}
-                        className={
-                          isVerified
-                            ? "max-w-[45%] shrink-0 whitespace-normal break-words bg-emerald-600/10 text-right text-xs text-emerald-700 dark:text-emerald-400 border border-emerald-500/20"
-                            : "max-w-[45%] shrink-0 whitespace-normal break-words text-right text-xs"
-                        }
-                      >
-                        {institution.evokasiStatus || "Terdaftar"}
-                      </Badge>
-                    </div>
-                    <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-t border-border/40 pt-1.5 text-xs text-muted-foreground">
-                      <div className="flex items-center gap-3">
-                        <span>
-                          Jenis: <strong>{institution.type}</strong>
-                        </span>
-                        {institution.accreditation && (
-                          <span>
-                            Akreditasi: <strong>{institution.accreditation}</strong>
-                          </span>
-                        )}
-                      </div>
-                      {hasStudents ? (
-                        <span className="text-primary font-semibold text-xs flex items-center gap-1 group-hover:underline cursor-pointer">
-                          <Users className="h-3.5 w-3.5" />
-                          {studentCount} Calon Peserta &rarr;
-                        </span>
-                      ) : institution.hasAdminAccount ? (
-                        <span className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
-                          <CheckCircle2 className="h-3.5 w-3.5" />
-                          Admin Lembaga Terdaftar
-                        </span>
-                      ) : (
-                        <span className="text-xs text-muted-foreground flex items-center gap-1">
-                          <Building2 className="h-3.5 w-3.5 opacity-60" />
-                          {institution.workshopCapacity
-                            ? `Kapasitas: ${institution.workshopCapacity} / Batch`
-                            : "Terdaftar Siap Diklat"}
-                        </span>
+                    <span>{cName}</span>
+                    <span
+                      className={cn(
+                        "px-1.5 py-0.2 rounded-md text-[10px] font-mono font-bold",
+                        isSelected
+                          ? "bg-white/20 text-white"
+                          : "bg-emerald-500/20 text-emerald-800 dark:text-emerald-200"
                       )}
-                    </div>
-                  </div>
+                    >
+                      {cCount.toLocaleString("id-ID")} ({pct}%)
+                    </span>
+                  </button>
                 );
               })}
             </div>
-          )}
+          </div>
+
+          {/* Baris 2: Rekap Sektor */}
+          <div>
+            <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center justify-between">
+              <span className="flex items-center gap-1">
+                <Briefcase className="w-3 h-3 text-blue-600" />
+                <span>Sektor Peminatan Utama:</span>
+                <span className="font-normal text-[10px] lowercase text-muted-foreground">(klik untuk filter)</span>
+              </span>
+              {nationalFilterSector !== "ALL" && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setNationalFilterSector("ALL");
+                    setInstitutionPage(1);
+                    setNationalStudentPage(1);
+                  }}
+                  className="text-[10px] text-blue-600 hover:underline cursor-pointer"
+                >
+                  Reset Filter Sektor
+                </button>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              <button
+                type="button"
+                onClick={() => {
+                  setNationalFilterSector("ALL");
+                  setInstitutionPage(1);
+                  setNationalStudentPage(1);
+                }}
+                className={cn(
+                  "px-2.5 py-1 rounded-lg text-xs font-medium transition cursor-pointer flex items-center gap-1.5",
+                  nationalFilterSector === "ALL"
+                    ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900 font-bold shadow-xs"
+                    : "bg-muted/50 hover:bg-muted text-muted-foreground border border-border/60"
+                )}
+              >
+                <span>Semua Sektor</span>
+                <span className="px-1.5 py-0.2 rounded-md bg-black/10 dark:bg-white/20 text-[10px] font-mono">
+                  {nationalSummary.total.toLocaleString("id-ID")}
+                </span>
+              </button>
+
+              {nationalSummary.sectors.map(([sName, sCount]) => {
+                const pct = Math.round((sCount / nationalSummary.total) * 100);
+                const isSelected = nationalFilterSector === sName;
+                return (
+                  <button
+                    key={sName}
+                    type="button"
+                    onClick={() => {
+                      setNationalFilterSector(isSelected ? "ALL" : sName);
+                      setInstitutionPage(1);
+                      setNationalStudentPage(1);
+                    }}
+                    className={cn(
+                      "px-2.5 py-1 rounded-lg text-xs transition cursor-pointer flex items-center gap-1.5 border",
+                      isSelected
+                        ? "bg-blue-600 text-white font-bold border-blue-600 shadow-xs"
+                        : "bg-blue-500/10 hover:bg-blue-500/20 text-blue-700 dark:text-blue-300 border-blue-500/30"
+                    )}
+                  >
+                    <span>{sName}</span>
+                    <span
+                      className={cn(
+                        "px-1.5 py-0.2 rounded-md text-[10px] font-mono font-bold",
+                        isSelected
+                          ? "bg-white/20 text-white"
+                          : "bg-blue-500/20 text-blue-800 dark:text-blue-200"
+                      )}
+                    >
+                      {sCount.toLocaleString("id-ID")} ({pct}%)
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Mode Switcher Tabs */}
+          <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-border/60">
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-semibold text-muted-foreground">Tampilan:</span>
+              <div className="flex items-center p-0.5 rounded-lg bg-muted/60 border border-border">
+                <button
+                  type="button"
+                  onClick={() => setCandidateViewScope("by_institution")}
+                  className={cn(
+                    "px-3 py-1 rounded-md text-xs font-semibold transition cursor-pointer flex items-center gap-1.5",
+                    candidateViewScope === "by_institution"
+                      ? "bg-white dark:bg-slate-800 text-foreground shadow-xs"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  <Building2 className="w-3.5 h-3.5" />
+                  <span>Per Lembaga Vokasi ({filtered.length})</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCandidateViewScope("all_candidates")}
+                  className={cn(
+                    "px-3 py-1 rounded-md text-xs font-semibold transition cursor-pointer flex items-center gap-1.5",
+                    candidateViewScope === "all_candidates"
+                      ? "bg-white dark:bg-slate-800 text-foreground shadow-xs"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  <Users className="w-3.5 h-3.5" />
+                  <span>Direktori Seluruh Peserta ({nationalSummary.total.toLocaleString("id-ID")})</span>
+                </button>
+              </div>
+            </div>
+
+            {(nationalFilterCountry !== "ALL" || nationalFilterSector !== "ALL") && (
+              <span className="text-[11px] text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20 font-medium">
+                Filter Aktif: {nationalFilterCountry !== "ALL" ? `Negara ${nationalFilterCountry}` : ""}{" "}
+                {nationalFilterSector !== "ALL" ? `• Sektor ${nationalFilterSector}` : ""}
+              </span>
+            )}
+          </div>
         </div>
 
-        {/* Pagination Bar */}
-        {filtered.length > pageSize && (
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-muted-foreground px-1 pt-1 border-t border-border/40">
-            <span>
-              Menampilkan {((safeCurrentPage - 1) * pageSize) + 1} -{" "}
-              {Math.min(filtered.length, safeCurrentPage * pageSize)} dari {filtered.length} lembaga
-            </span>
-            <div className="flex items-center gap-1.5">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setInstitutionPage((p) => Math.max(1, p - 1))}
-                disabled={safeCurrentPage <= 1}
-                className="h-7 px-2.5 text-xs gap-1 cursor-pointer"
-              >
-                <ChevronLeft className="h-3.5 w-3.5" />
-                Sebelumnya
-              </Button>
-              <span className="px-2 font-medium text-foreground">
-                Halaman {safeCurrentPage} / {totalPages}
-              </span>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setInstitutionPage((p) => Math.min(totalPages, p + 1))}
-                disabled={safeCurrentPage >= totalPages}
-                className="h-7 px-2.5 text-xs gap-1 cursor-pointer"
-              >
-                Selanjutnya
-                <ChevronRight className="h-3.5 w-3.5" />
-              </Button>
+        {/* TAMPILAN SESUAI MODE */}
+        {candidateViewScope === "all_candidates" ? (
+          renderNationalAllCandidates(allNationalStudents)
+        ) : (
+          <div className="space-y-3">
+            {/* Search Bar */}
+            <div className="relative">
+              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Cari nama lembaga vokasi, kabupaten/kota, atau kejuruan..."
+                value={institutionSearchQuery}
+                onChange={(e) => {
+                  setInstitutionSearchQuery(e.target.value);
+                  setInstitutionPage(1);
+                }}
+                className="h-8.5 pl-8 pr-8 text-xs bg-background"
+              />
+              {institutionSearchQuery && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setInstitutionSearchQuery("");
+                    setInstitutionPage(1);
+                  }}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground hover:text-foreground cursor-pointer"
+                >
+                  ×
+                </button>
+              )}
             </div>
+
+            {/* Info Jumlah Vokasi */}
+            <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-xs">
+              <span className="font-semibold text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                <span>
+                  {nationalFilterCountry !== "ALL" || nationalFilterSector !== "ALL"
+                    ? `Lembaga Penyuplai Sesuai Filter (${nationalFilterCountry !== "ALL" ? nationalFilterCountry : ""} ${nationalFilterSector !== "ALL" ? nationalFilterSector : ""})`
+                    : "Lembaga Vokasi Terdaftar (User Level Admin Lembaga Vokasi)"}
+                </span>
+              </span>
+              <Badge className="bg-emerald-600 text-white font-bold text-xs">
+                {filtered.length} Lembaga Vokasi
+              </Badge>
+            </div>
+
+            {/* Source & Level Filter Quick Bar */}
+            <div className="space-y-2 p-2.5 rounded-xl bg-muted/30 border border-border/60 text-xs">
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="text-[11px] font-semibold text-muted-foreground mr-1">Sumber:</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setInstitutionSourceFilter("ALL");
+                    setInstitutionLevelFilter("ALL");
+                    setInstitutionPage(1);
+                  }}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer ${
+                    institutionSourceFilter === "ALL"
+                      ? "bg-foreground text-background shadow-xs"
+                      : "bg-background border border-border text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  Semua Sumber ({supplyOnlyItems.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setInstitutionSourceFilter("siskop2mi");
+                    setInstitutionLevelFilter("ALL");
+                    setInstitutionPage(1);
+                  }}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1 ${
+                    institutionSourceFilter === "siskop2mi"
+                      ? "bg-blue-600 text-white shadow-xs font-bold"
+                      : "bg-background border border-border text-muted-foreground hover:text-blue-600"
+                  }`}
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                  <span>SISKOP2MI ({siskop2miCount})</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setInstitutionSourceFilter("disnaker");
+                    setInstitutionLevelFilter("ALL");
+                    setInstitutionPage(1);
+                  }}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1 ${
+                    institutionSourceFilter === "disnaker"
+                      ? "bg-indigo-600 text-white shadow-xs font-bold"
+                      : "bg-background border border-border text-muted-foreground hover:text-indigo-600"
+                  }`}
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
+                  <span>Disnaker ({disnakerCount})</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setInstitutionSourceFilter("umum");
+                    setInstitutionLevelFilter("ALL");
+                    setInstitutionPage(1);
+                  }}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1 ${
+                    institutionSourceFilter === "umum"
+                      ? "bg-emerald-600 text-white shadow-xs font-bold"
+                      : "bg-background border border-border text-muted-foreground hover:text-emerald-600"
+                  }`}
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                  <span>Umum / Lembaga ({umumCount})</span>
+                </button>
+              </div>
+
+              {/* Level Filter Sub-bar */}
+              <div className="flex flex-wrap items-center gap-1.5 pt-1.5 border-t border-border/40">
+                <span className="text-[10.5px] font-semibold text-muted-foreground mr-1">Level:</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setInstitutionLevelFilter("ALL");
+                    setInstitutionPage(1);
+                  }}
+                  className={`px-2 py-0.5 rounded-md text-[11px] font-medium transition cursor-pointer ${
+                    institutionLevelFilter === "ALL"
+                      ? "bg-foreground text-background font-semibold"
+                      : "bg-background/80 border border-border/60 text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  Semua Level
+                </button>
+                {(institutionSourceFilter === "ALL" || institutionSourceFilter === "disnaker") && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setInstitutionLevelFilter("kabupaten_kota");
+                        setInstitutionPage(1);
+                      }}
+                      className={`px-2 py-0.5 rounded-md text-[11px] font-medium transition cursor-pointer ${
+                        institutionLevelFilter === "kabupaten_kota"
+                          ? "bg-amber-600 text-white font-semibold shadow-xs"
+                          : "bg-background/80 border border-border/60 text-muted-foreground hover:text-amber-600"
+                      }`}
+                    >
+                      Disnaker Kab/Kota
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setInstitutionLevelFilter("provinsi");
+                        setInstitutionPage(1);
+                      }}
+                      className={`px-2 py-0.5 rounded-md text-[11px] font-medium transition cursor-pointer ${
+                        institutionLevelFilter === "provinsi"
+                          ? "bg-indigo-600 text-white font-semibold shadow-xs"
+                          : "bg-background/80 border border-border/60 text-muted-foreground hover:text-indigo-600"
+                      }`}
+                    >
+                      Disnaker Provinsi
+                    </button>
+                  </>
+                )}
+                {(institutionSourceFilter === "ALL" || institutionSourceFilter === "umum") && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setInstitutionLevelFilter("lembaga_vokasi");
+                      setInstitutionPage(1);
+                    }}
+                    className={`px-2 py-0.5 rounded-md text-[11px] font-medium transition cursor-pointer ${
+                      institutionLevelFilter === "lembaga_vokasi"
+                        ? "bg-emerald-600 text-white font-semibold shadow-xs"
+                        : "bg-background/80 border border-border/60 text-muted-foreground hover:text-emerald-600"
+                    }`}
+                  >
+                    Lembaga Vokasi (Mandiri)
+                  </button>
+                )}
+                {(institutionSourceFilter === "ALL" || institutionSourceFilter === "siskop2mi") && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setInstitutionLevelFilter("nasional");
+                      setInstitutionPage(1);
+                    }}
+                    className={`px-2 py-0.5 rounded-md text-[11px] font-medium transition cursor-pointer ${
+                      institutionLevelFilter === "nasional"
+                        ? "bg-blue-600 text-white font-semibold shadow-xs"
+                        : "bg-background/80 border border-border/60 text-muted-foreground hover:text-blue-600"
+                    }`}
+                  >
+                    Nasional (SISKOP2MI)
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div className="rounded-lg border border-border p-2">
+              {filtered.length === 0 ? (
+                <p className="p-5 text-center text-sm text-muted-foreground">
+                  Belum ada lembaga vokasi yang sesuai dengan pilihan pencarian atau filter ini.
+                </p>
+              ) : (
+                <div className="space-y-2.5">
+                  {paginated.map((institution) => {
+                    const isVerified =
+                      institution.evokasiStatus === "Terverifikasi e-Vokasi";
+                    const studentCount = institution.students?.length ?? institution.studentCount ?? 0;
+                    const hasStudents = studentCount > 0;
+
+                    const matchedFilterCount = (institution.students ?? []).filter((s) => {
+                      if (nationalFilterCountry !== "ALL" && normalizeStudentCountry(s.targetCountry) !== nationalFilterCountry) {
+                        return false;
+                      }
+                      if (nationalFilterSector !== "ALL" && normalizeStudentSector(s.sector, s.major) !== nationalFilterSector) {
+                        return false;
+                      }
+                      return true;
+                    }).length;
+
+                    return (
+                      <div
+                        key={institution.id}
+                        onClick={() => {
+                          if (hasStudents) {
+                            setSelectedInstitutionForStudents(institution);
+                            setStudentSearchQuery("");
+                            setStudentPage(1);
+                            if (nationalFilterCountry !== "ALL") {
+                              setStudentFilterCountry(nationalFilterCountry);
+                            }
+                            if (nationalFilterSector !== "ALL") {
+                              setStudentFilterSector(nationalFilterSector);
+                            }
+                          }
+                        }}
+                        className={cn(
+                          "rounded-lg border border-border bg-white dark:bg-slate-900 p-3 space-y-2 transition-all",
+                          hasStudents
+                            ? "hover:border-primary/60 hover:shadow-md cursor-pointer group"
+                            : "border-border/70"
+                        )}
+                      >
+                        <div className="flex min-w-0 items-start justify-between gap-2">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap items-center gap-1.5 mb-1">
+                              <InstitutionSourceBadge
+                                source={institution.registrationSource}
+                                sourceId={institution.registrationSourceId || institution.id}
+                                level={institution.inputLevel}
+                                showLevel
+                                showId={Boolean(institution.registrationSourceId)}
+                              />
+                              {(nationalFilterCountry !== "ALL" || nationalFilterSector !== "ALL") && (
+                                <Badge className="bg-emerald-600/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 text-[10px] font-bold">
+                                  {matchedFilterCount} Calon Sesuai Filter
+                                </Badge>
+                              )}
+                            </div>
+                            <h6 className="break-words text-sm font-semibold text-foreground group-hover:text-primary transition-colors flex items-center gap-1.5">
+                              <span>{institution.name}</span>
+                              {hasStudents && (
+                                <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-transform group-hover:translate-x-0.5" />
+                              )}
+                            </h6>
+                            <p className="mt-0.5 text-xs text-muted-foreground">
+                              {institution.district ? `${institution.district}, ` : ""}
+                              {institution.province || scopeName}
+                            </p>
+                          </div>
+                          <Badge
+                            variant={isVerified ? "default" : "outline"}
+                            className={
+                              isVerified
+                                ? "max-w-[45%] shrink-0 whitespace-normal break-words bg-emerald-600/10 text-right text-xs text-emerald-700 dark:text-emerald-400 border border-emerald-500/20"
+                                : "max-w-[45%] shrink-0 whitespace-normal break-words text-right text-xs"
+                            }
+                          >
+                            {institution.evokasiStatus || "Terdaftar"}
+                          </Badge>
+                        </div>
+                        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-t border-border/40 pt-1.5 text-xs text-muted-foreground">
+                          <div className="flex items-center gap-3">
+                            <span>
+                              Jenis: <strong>{institution.type}</strong>
+                            </span>
+                            {institution.accreditation && (
+                              <span>
+                                Akreditasi: <strong>{institution.accreditation}</strong>
+                              </span>
+                            )}
+                          </div>
+                          {hasStudents ? (
+                            <span className="text-primary font-semibold text-xs flex items-center gap-1 group-hover:underline cursor-pointer">
+                              <Users className="h-3.5 w-3.5" />
+                              {studentCount} Calon Peserta &rarr;
+                            </span>
+                          ) : institution.hasAdminAccount ? (
+                            <span className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
+                              <CheckCircle2 className="h-3.5 w-3.5" />
+                              Admin Lembaga Terdaftar
+                            </span>
+                          ) : (
+                            <span className="text-xs text-muted-foreground flex items-center gap-1">
+                              <Building2 className="h-3.5 w-3.5 opacity-60" />
+                              {institution.workshopCapacity
+                                ? `Kapasitas: ${institution.workshopCapacity} / Batch`
+                                : "Terdaftar Siap Diklat"}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Pagination Bar */}
+            {filtered.length > pageSize && (
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-muted-foreground px-1 pt-1 border-t border-border/40">
+                <span>
+                  Menampilkan {((safeCurrentPage - 1) * pageSize) + 1} -{" "}
+                  {Math.min(filtered.length, safeCurrentPage * pageSize)} dari {filtered.length} lembaga
+                </span>
+                <div className="flex items-center gap-1.5">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setInstitutionPage((p) => Math.max(1, p - 1))}
+                    disabled={safeCurrentPage <= 1}
+                    className="h-7 px-2.5 text-xs gap-1 cursor-pointer"
+                  >
+                    <ChevronLeft className="h-3.5 w-3.5" />
+                    Sebelumnya
+                  </Button>
+                  <span className="px-2 font-medium text-foreground">
+                    Halaman {safeCurrentPage} / {totalPages}
+                  </span>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setInstitutionPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={safeCurrentPage >= totalPages}
+                    className="h-7 px-2.5 text-xs gap-1 cursor-pointer"
+                  >
+                    Selanjutnya
+                    <ChevronRight className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -1168,7 +2170,7 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
   };
 
   const renderContent = () => {
-    switch (type) {
+    switch (activeDrilldownType || type) {
       case "peserta":
       case "lembaga":
       case "sebaran_lembaga":
@@ -1480,54 +2482,406 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
         );
 
       case "demand": {
-        const DEMAND_COUNTRY_SUMMARY = [
+        const DEMAND_COUNTRY_MATRIX = [
           {
-            country: "Jepang",
-            sectors: ["Kesehatan (Caregiver Kaigo)", "Manufaktur (Operator CNC & Welder)", "Transportasi", "Agriculture (Pertanian)"],
-          },
-          {
-            country: "Korea Selatan",
-            sectors: ["Manufaktur (Welder & Molding)", "Fisherman / Perikanan (ABK Kapal)"],
+            country: "Turki",
+            quota: 5000,
+            supplyCount: nationalSummary.countries.find(([c]) => c === "Turki")?.[1] ?? 716,
+            keySectors: "Hospitality & Pariwisata",
+            occupations: "Housekeeping, Waiter, Barista, Spa Therapist, Cook",
+            sampleEmployers: ["Rixos Hospitality & Resort Group Turkey", "Titanic Hotels Antalya", "Maxx Royal Resorts"],
+            statusNote: "Kebutuhan prioritas hotel & resor wisata Mediterania. Program pelatihan bahasa Turki dasar & standar pelayanan internasional dibuka.",
           },
           {
             country: "Malaysia",
-            sectors: ["Kesehatan (Elderly Caretaker)", "Hospitality", "Manufaktur (Operator Produksi)", "Agriculture (Plantation Sawit)"],
+            quota: 5000,
+            supplyCount: nationalSummary.countries.find(([c]) => c === "Malaysia")?.[1] ?? 66,
+            keySectors: "Hospitality, Caretaker & Manufaktur",
+            occupations: "Elderly Caretaker, F&B Service, Operator Manufaktur Elektronik, Perkebunan",
+            sampleEmployers: ["Shangri-La International Resort Penang", "Genting Berhad", "Sime Darby Plantation"],
+            statusNote: "Kebutuhan pekerja terampil formal untuk jaringan perhotelan internasional, perawat lansia, dan manufaktur bersertifikat.",
           },
           {
-            country: "Turki",
-            sectors: ["Hospitality (Housekeeping, Waiter, Spa Therapist, Cook, Cleaner)"],
+            country: "Jepang",
+            quota: 2000,
+            supplyCount: nationalSummary.countries.find(([c]) => c === "Jepang")?.[1] ?? 3384,
+            keySectors: "Kesehatan (Caregiver Kaigo) & Manufaktur",
+            occupations: "Caregiver Kaigo, Welder SMAW/FCAW, Operator CNC, Driver Angkutan, Pertanian Modern",
+            sampleEmployers: ["Hitachi Zosen Heavy Industries", "Aoi Kai Medical Group", "Zenkoku Caregiver Consortium"],
+            statusNote: "Suplai calon peserta melimpah (169% target). Prioritas akselerasi pelatihan bahasa Jepang (JFT-Basic / N4) dan sertifikasi SSW.",
+          },
+          {
+            country: "Korea Selatan",
+            quota: 600,
+            supplyCount: nationalSummary.countries.find(([c]) => c === "Korea Selatan")?.[1] ?? 75,
+            keySectors: "Manufaktur & Perikanan Tangkap",
+            occupations: "Welder Galangan Kapal (Visa E-7), Molding Presisi, ABK Penangkapan Ikan (Visa E-9)",
+            sampleEmployers: ["Hyundai Mobis Parts Manufacturing", "Daewoo Shipbuilding & Marine", "Busan Fishery Federation"],
+            statusNote: "Program G-to-G dan visa E-7 spesialis teknis pengelasan berstandar AWS serta ABK kapal penangkap ikan laut dalam.",
           },
         ];
 
+        const activeMatrix = DEMAND_COUNTRY_MATRIX.filter((item) => {
+          if (demandFilterCountry !== "ALL" && item.country !== demandFilterCountry) {
+            return false;
+          }
+          if (demandFilterSector !== "ALL") {
+            const secLower = demandFilterSector.toLowerCase();
+            if (!item.keySectors.toLowerCase().includes(secLower) && !item.occupations.toLowerCase().includes(secLower)) {
+              return false;
+            }
+          }
+          return true;
+        });
+
+        const activeDemandsList = demands.filter((d) => {
+          if (demandFilterCountry !== "ALL") {
+            const cLower = (d.country || "").toLowerCase();
+            const filterLower = demandFilterCountry.toLowerCase();
+            if (!cLower.includes(filterLower) && !filterLower.includes(cLower)) {
+              return false;
+            }
+          }
+          if (demandFilterSector !== "ALL") {
+            const sLower = (d.sector || "").toLowerCase();
+            const filterLower = demandFilterSector.toLowerCase();
+            if (!sLower.includes(filterLower) && !filterLower.includes(sLower)) {
+              return false;
+            }
+          }
+          return true;
+        });
+
         return (
-          <div className="space-y-3">
-            <p className="text-xs text-muted-foreground">
-              Permintaan pekerja luar negeri berasal dari 4 negara tujuan berikut:
-            </p>
-            <div className="grid grid-cols-1 gap-2.5">
-              {DEMAND_COUNTRY_SUMMARY.map((item) => (
-                <div
-                  key={item.country}
-                  className="rounded-xl border border-border bg-white dark:bg-slate-900 p-3.5 space-y-2 shadow-2xs"
-                >
-                  <div className="flex items-center gap-2.5">
-                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-500/15 text-purple-600 dark:text-purple-400 border border-purple-500/30">
-                      <Globe2 className="h-4 w-4" />
-                    </span>
-                    <h4 className="text-sm font-bold text-foreground">
-                      {item.country}
-                    </h4>
-                  </div>
-                  <div className="flex flex-wrap gap-1.5 pl-10">
-                    {item.sectors.map((sec) => (
-                      <Badge key={sec} variant="secondary" className="text-[11px] font-medium">
-                        {sec}
+          <div className="space-y-4">
+            {/* Header & Filter Card */}
+            <div className="p-3.5 rounded-xl border border-border bg-slate-50/80 dark:bg-slate-900/80 space-y-3 shadow-xs">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-border/60">
+                <div className="flex items-center gap-2.5">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-500/15 text-purple-600 dark:text-purple-400 border border-purple-500/30">
+                    <Globe2 className="h-4 w-4" />
+                  </span>
+                  <div>
+                    <h4 className="text-sm font-bold text-foreground flex items-center gap-2">
+                      <span>Permintaan Pekerja Luar Negeri (Demand 4 Negara)</span>
+                      <Badge className="bg-purple-600 text-white font-mono text-[11px] font-bold">
+                        12.600 Total Kuota
                       </Badge>
-                    ))}
+                    </h4>
+                    <p className="text-[11px] text-muted-foreground">
+                      Analisis gap kuota permintaan mitra internasional terhadap suplai calon peserta siap latih nasional
+                    </p>
                   </div>
                 </div>
-              ))}
+
+                <div className="flex items-center gap-1.5 self-start sm:self-auto text-xs">
+                  <Badge variant="outline" className="text-emerald-700 dark:text-emerald-400 border-emerald-500/30 bg-emerald-500/10 font-medium">
+                    ✓ SISKOP2MI BP2MI
+                  </Badge>
+                </div>
+              </div>
+
+              {/* Filter Negara */}
+              <div>
+                <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center justify-between">
+                  <span className="flex items-center gap-1">
+                    <Globe2 className="w-3 h-3 text-purple-600" />
+                    <span>Filter Negara Mitra:</span>
+                  </span>
+                  {demandFilterCountry !== "ALL" && (
+                    <button
+                      type="button"
+                      onClick={() => setDemandFilterCountry("ALL")}
+                      className="text-[10px] text-purple-600 hover:underline cursor-pointer"
+                    >
+                      Reset Negara
+                    </button>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setDemandFilterCountry("ALL")}
+                    className={cn(
+                      "px-2.5 py-1 rounded-lg text-xs font-medium transition cursor-pointer flex items-center gap-1.5",
+                      demandFilterCountry === "ALL"
+                        ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900 font-bold shadow-xs"
+                        : "bg-muted/50 hover:bg-muted text-muted-foreground border border-border/60"
+                    )}
+                  >
+                    <span>Semua Negara (4)</span>
+                    <span className="px-1.5 py-0.2 rounded-md bg-black/10 dark:bg-white/20 text-[10px] font-mono">
+                      12.600 Kuota
+                    </span>
+                  </button>
+
+                  {DEMAND_COUNTRY_MATRIX.map((item) => {
+                    const isSelected = demandFilterCountry === item.country;
+                    return (
+                      <button
+                        key={item.country}
+                        type="button"
+                        onClick={() => setDemandFilterCountry(isSelected ? "ALL" : item.country)}
+                        className={cn(
+                          "px-2.5 py-1 rounded-lg text-xs transition cursor-pointer flex items-center gap-1.5 border",
+                          isSelected
+                            ? "bg-purple-600 text-white font-bold border-purple-600 shadow-xs"
+                            : "bg-purple-500/10 hover:bg-purple-500/20 text-purple-700 dark:text-purple-300 border-purple-500/30"
+                        )}
+                      >
+                        <span>{item.country}</span>
+                        <span
+                          className={cn(
+                            "px-1.5 py-0.2 rounded-md text-[10px] font-mono font-bold",
+                            isSelected
+                              ? "bg-white/20 text-white"
+                              : "bg-purple-500/20 text-purple-800 dark:text-purple-200"
+                          )}
+                        >
+                          {item.quota.toLocaleString("id-ID")} Kuota
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Filter Sektor */}
+              <div>
+                <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center justify-between">
+                  <span className="flex items-center gap-1">
+                    <Briefcase className="w-3 h-3 text-blue-600" />
+                    <span>Filter Sektor Pekerjaan:</span>
+                  </span>
+                  {demandFilterSector !== "ALL" && (
+                    <button
+                      type="button"
+                      onClick={() => setDemandFilterSector("ALL")}
+                      className="text-[10px] text-blue-600 hover:underline cursor-pointer"
+                    >
+                      Reset Sektor
+                    </button>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {["ALL", "Hospitality", "Kesehatan", "Manufaktur", "Perikanan"].map((sec) => {
+                    const label = sec === "ALL" ? "Semua Sektor" : sec;
+                    const isSelected = demandFilterSector === sec;
+                    return (
+                      <button
+                        key={sec}
+                        type="button"
+                        onClick={() => setDemandFilterSector(isSelected ? "ALL" : sec)}
+                        className={cn(
+                          "px-2.5 py-1 rounded-lg text-xs font-medium transition cursor-pointer flex items-center gap-1",
+                          isSelected
+                            ? "bg-blue-600 text-white font-bold shadow-xs"
+                            : "bg-muted/50 hover:bg-muted text-muted-foreground border border-border/60"
+                        )}
+                      >
+                        <span>{label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
+
+            {/* Matriks Analisis Demand vs Ketersediaan Suplai */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h5 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                  <Workflow className="w-3.5 h-3.5 text-purple-600" />
+                  <span>Matriks Kebutuhan Kuota vs Suplai Calon Peserta</span>
+                </h5>
+                <span className="text-[11px] text-muted-foreground">
+                  Menampilkan {activeMatrix.length} negara
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {activeMatrix.map((item) => {
+                  const pct = Math.min(200, Math.round((item.supplyCount / item.quota) * 100));
+                  const isSurplus = item.supplyCount >= item.quota;
+                  const gap = item.quota - item.supplyCount;
+
+                  return (
+                    <div
+                      key={item.country}
+                      className="rounded-xl border border-border bg-white dark:bg-slate-900 p-3.5 space-y-3 shadow-xs hover:border-purple-500/40 transition-colors"
+                    >
+                      {/* Top Bar Negara & Rasio */}
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400 font-bold border border-purple-500/20">
+                            <Globe2 className="h-4 w-4" />
+                          </span>
+                          <div>
+                            <h4 className="text-sm font-bold text-foreground leading-tight">
+                              {item.country}
+                            </h4>
+                            <span className="text-[11px] text-muted-foreground">
+                              {item.keySectors}
+                            </span>
+                          </div>
+                        </div>
+
+                        <Badge
+                          variant={isSurplus ? "default" : "secondary"}
+                          className={cn(
+                            "text-[10px] font-bold px-2 py-0.5",
+                            isSurplus
+                              ? "bg-emerald-600 text-white"
+                              : "bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30"
+                          )}
+                        >
+                          {isSurplus ? "Surplus Suplai (169%)" : `Kebutuhan Gap ${gap.toLocaleString("id-ID")} Slot`}
+                        </Badge>
+                      </div>
+
+                      {/* Angka Perbandingan: Kuota vs Suplai */}
+                      <div className="grid grid-cols-2 gap-2 p-2 rounded-lg bg-muted/30 border border-border/40 text-xs text-center">
+                        <div>
+                          <span className="text-[10px] text-muted-foreground block font-medium uppercase">
+                            Kuota Permintaan
+                          </span>
+                          <span className="text-sm font-extrabold text-foreground font-mono">
+                            {item.quota.toLocaleString("id-ID")} Slot
+                          </span>
+                        </div>
+                        <div className="border-l border-border/60">
+                          <span className="text-[10px] text-muted-foreground block font-medium uppercase">
+                            Suplai Terdaftar
+                          </span>
+                          <span className="text-sm font-extrabold text-emerald-600 dark:text-emerald-400 font-mono">
+                            {item.supplyCount.toLocaleString("id-ID")} Calon
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Progress Bar */}
+                      <div>
+                        <div className="flex items-center justify-between text-[10px] text-muted-foreground mb-1">
+                          <span>Realisasi Suplai vs Kuota</span>
+                          <span className="font-bold text-foreground font-mono">{pct}%</span>
+                        </div>
+                        <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
+                          <div
+                            className={cn(
+                              "h-full rounded-full transition-all",
+                              isSurplus ? "bg-emerald-600" : "bg-purple-600"
+                            )}
+                            style={{ width: `${Math.min(100, pct)}%` }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Jabatan & Pemberi Kerja */}
+                      <div className="space-y-1 text-xs pt-1 border-t border-border/40">
+                        <div className="text-[11px] text-foreground">
+                          <span className="text-muted-foreground font-medium">Jabatan Utama: </span>
+                          <span>{item.occupations}</span>
+                        </div>
+                        <p className="text-[10.5px] text-muted-foreground leading-relaxed">
+                          {item.statusNote}
+                        </p>
+                      </div>
+
+                      {/* Action Drilldown to Students */}
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={() => {
+                          setActiveDrilldownType("peserta");
+                          setNationalFilterCountry(item.country);
+                          setCandidateViewScope("all_candidates");
+                          setNationalStudentPage(1);
+                        }}
+                        className="w-full text-xs font-semibold gap-1.5 cursor-pointer bg-purple-600 hover:bg-purple-700 text-white shadow-xs"
+                      >
+                        <Users className="w-3.5 h-3.5" />
+                        <span>Lihat {item.supplyCount.toLocaleString("id-ID")} Calon Siap {item.country} &rarr;</span>
+                      </Button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Paket Permintaan Lowongan Terverifikasi */}
+            {activeDemandsList.length > 0 && (
+              <div className="space-y-2.5 pt-2 border-t border-border/60">
+                <h5 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                  <BriefcaseBusiness className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Paket Lowongan Terverifikasi Resmi ({activeDemandsList.length} Paket)</span>
+                </h5>
+
+                <div className="space-y-2">
+                  {activeDemandsList.map((dem) => (
+                    <div
+                      key={dem.id}
+                      className="rounded-xl border border-border bg-white dark:bg-slate-900 p-3 space-y-2 shadow-2xs hover:border-emerald-500/40 transition-colors"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <div className="flex items-center gap-1.5 mb-0.5">
+                            <Badge variant="outline" className="text-[10px] px-1.5 py-0.2 font-mono">
+                              {dem.id}
+                            </Badge>
+                            <Badge className="bg-emerald-600 text-white text-[10px] px-1.5 py-0.2">
+                              ✓ Terverifikasi BP2MI
+                            </Badge>
+                          </div>
+                          <h6 className="text-xs font-bold text-foreground">
+                            {dem.employerName}
+                          </h6>
+                          <div className="text-[11px] text-muted-foreground flex items-center gap-2 mt-0.5">
+                            <span className="font-semibold text-foreground flex items-center gap-1">
+                              <Globe2 className="w-3 h-3 text-purple-600" />
+                              {dem.country}
+                            </span>
+                            <span>•</span>
+                            <span>{dem.sector}</span>
+                          </div>
+                        </div>
+
+                        <div className="text-right">
+                          <span className="text-sm font-extrabold text-foreground font-mono block">
+                            {dem.quota} Slot
+                          </span>
+                          <span className="text-[10px] text-muted-foreground block">
+                            Batas: {dem.deadline || "2027"}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="pt-1.5 border-t border-border/40 flex items-center justify-between text-xs">
+                        <span className="text-primary font-medium flex items-center gap-1">
+                          <GraduationCap className="w-3.5 h-3.5" />
+                          <span>Posisi: <strong>{dem.occupation}</strong></span>
+                        </span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setActiveDrilldownType("peserta");
+                            if (dem.country) {
+                              setNationalFilterCountry(normalizeStudentCountry(dem.country));
+                            }
+                            setCandidateViewScope("all_candidates");
+                            setNationalStudentPage(1);
+                          }}
+                          className="h-6 px-2 text-[11px] font-semibold text-emerald-600 hover:text-emerald-700 hover:bg-emerald-500/10 cursor-pointer"
+                        >
+                          Cari Calon Cocok &rarr;
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         );
       }
@@ -1572,9 +2926,12 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
     if (selectedProvinceForLpk) {
       return `Lembaga Vokasi — ${selectedProvinceForLpk}`;
     }
-    switch (type) {
+    const currentType = activeDrilldownType || type;
+    switch (currentType) {
       case "peserta":
-        return "Siap Latih — Vokasi Suplai Peserta";
+        return candidateViewScope === "all_candidates"
+          ? "Siap Latih — Direktori Calon Peserta Nasional"
+          : "Siap Latih — Lembaga Vokasi Penyuplai Peserta";
       case "program":
         return selectedCountry
           ? `Siap Program — Negara ${selectedCountry}`
@@ -1585,7 +2942,7 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
       case "national_lpk":
         return "Sebaran Lembaga Terdaftar Nasional";
       case "demand":
-        return "Siap Permintaan — 4 Negara Tujuan";
+        return "Siap Permintaan — Permintaan Tenaga Kerja Luar Negeri";
       case "alokasi":
         return "Status Alokasi Penempatan";
       default:
@@ -1596,16 +2953,18 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
   return (
     <>
       <Dialog open={Boolean(type)} onOpenChange={(open) => !open && onClose()}>
-        <DialogContent className="flex w-[calc(100%-2rem)] max-w-2xl max-h-[calc(100dvh-2rem)] flex-col gap-4 overflow-hidden p-4 sm:p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl">
+        <DialogContent className="flex w-[calc(100%-2rem)] max-w-4xl max-h-[calc(100dvh-2rem)] flex-col gap-4 overflow-hidden p-4 sm:p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl">
           <DialogHeader className="space-y-1">
             <DialogTitle className="text-lg font-bold text-foreground">
               {getTitle()}
             </DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground">
-              {type === "lembaga" || type === "sebaran_lembaga"
+              {(activeDrilldownType || type) === "demand"
+                ? "Analisis gap kuota permintaan mitra internasional (Turki, Malaysia, Jepang, Korea) terhadap suplai calon peserta siap latih nasional."
+                : (activeDrilldownType || type) === "lembaga" || (activeDrilldownType || type) === "sebaran_lembaga"
                 ? "Daftar lembaga vokasi dengan akun user level Admin Lembaga Vokasi (total 55 vokasi terdaftar)."
-                : type === "peserta"
-                ? "Daftar calon peserta siap latih (realisasi 4.315 dari target 12.600 peserta)."
+                : (activeDrilldownType || type) === "peserta"
+                ? "Daftar calon peserta siap latih (realisasi 4.315 dari target 12.600 peserta) per negara target & kejuruan."
                 : "Data statistik Command Center Task Force SMK Go Global"}
             </DialogDescription>
           </DialogHeader>

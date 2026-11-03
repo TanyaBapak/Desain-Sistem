@@ -75,10 +75,10 @@ export function PublicPillarDemand({
         <CardContent>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[
-              { name: "Jepang (SSW Kaigo & Welder)", quota: "120 slot" },
-              { name: "Jerman (Ausbildung)", quota: "80 slot" },
-              { name: "Korea Selatan (E-7 / E-9)", quota: "150 slot" },
-              { name: "Turki (Hospitality Staff)", quota: "60 slot" },
+              { name: "Turki (Hospitality Staff)", quota: "5.000 slot" },
+              { name: "Malaysia (Hospitality & Caretaker)", quota: "5.000 slot" },
+              { name: "Jepang (SSW Kaigo & Welder)", quota: "2.000 slot" },
+              { name: "Korea Selatan (E-7 / E-9)", quota: "600 slot" },
             ].map((country) => (
               <div
                 key={country.name}

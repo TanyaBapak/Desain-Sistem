@@ -598,6 +598,21 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
                         Peserta Siap Latih dari Target 12.600
                       </p>
                     </div>
+
+                    <div className="mt-2.5 flex flex-wrap gap-1.5">
+                      <span className="px-2 py-0.5 rounded-md bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 text-[11px] font-semibold">
+                        Jepang: 3.384
+                      </span>
+                      <span className="px-2 py-0.5 rounded-md bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 text-[11px] font-semibold">
+                        Turki: 716
+                      </span>
+                      <span className="px-2 py-0.5 rounded-md bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 text-[11px] font-semibold">
+                        Korsel: 75
+                      </span>
+                      <span className="px-2 py-0.5 rounded-md bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 text-[11px] font-semibold">
+                        Malaysia: 66
+                      </span>
+                    </div>
                   </div>
 
                   <div className="w-full pt-3 border-t border-slate-800/80 flex items-center justify-between text-[11px] font-semibold text-cyan-300 mt-2">
@@ -711,12 +726,18 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
                     </div>
 
                     <div className="mt-2.5 flex flex-wrap gap-1.5">
-                      {FOUR_COUNTRIES.map((country) => (
+                      {[
+                        { country: "Turki", quota: "5.000" },
+                        { country: "Malaysia", quota: "5.000" },
+                        { country: "Jepang", quota: "2.000" },
+                        { country: "Korea Selatan", quota: "600" },
+                      ].map((item) => (
                         <span
-                          key={country}
-                          className="px-2.5 py-1 rounded-lg bg-purple-500/15 text-purple-300 border border-purple-500/30 text-[11px] font-bold"
+                          key={item.country}
+                          className="px-2.5 py-1 rounded-lg bg-purple-500/15 text-purple-300 border border-purple-500/30 text-[11px] font-bold flex items-center gap-1"
                         >
-                          {country}
+                          <span>{item.country}</span>
+                          <span className="text-[10px] text-purple-200/80 font-normal">({item.quota})</span>
                         </span>
                       ))}
                     </div>
