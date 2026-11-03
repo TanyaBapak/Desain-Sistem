@@ -2577,24 +2577,6 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
           return true;
         });
 
-        const activeDemandsList = demands.filter((d) => {
-          if (demandFilterCountry !== "ALL") {
-            const cLower = (d.country || "").toLowerCase();
-            const filterLower = demandFilterCountry.toLowerCase();
-            if (!cLower.includes(filterLower) && !filterLower.includes(cLower)) {
-              return false;
-            }
-          }
-          if (demandFilterSector !== "ALL") {
-            const sLower = (d.sector || "").toLowerCase();
-            const filterLower = demandFilterSector.toLowerCase();
-            if (!sLower.includes(filterLower) && !filterLower.includes(sLower)) {
-              return false;
-            }
-          }
-          return true;
-        });
-
         return (
           <div className="space-y-4">
             {/* Header & Filter Card */}
@@ -2850,81 +2832,6 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
                 })}
               </div>
             </div>
-
-            {/* Paket Permintaan Lowongan Terverifikasi */}
-            {activeDemandsList.length > 0 && (
-              <div className="space-y-2.5 pt-2 border-t border-border/60">
-                <h5 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                  <BriefcaseBusiness className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>Paket Lowongan Terverifikasi Resmi ({activeDemandsList.length} Paket)</span>
-                </h5>
-
-                <div className="space-y-2">
-                  {activeDemandsList.map((dem) => (
-                    <div
-                      key={dem.id}
-                      className="rounded-xl border border-border bg-white dark:bg-slate-900 p-3 space-y-2 shadow-2xs hover:border-emerald-500/40 transition-colors"
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <div className="flex items-center gap-1.5 mb-0.5">
-                            <Badge variant="outline" className="text-[10px] px-1.5 py-0.2 font-mono">
-                              {dem.id}
-                            </Badge>
-                            <Badge className="bg-emerald-600 text-white text-[10px] px-1.5 py-0.2">
-                              ✓ Terverifikasi BP2MI
-                            </Badge>
-                          </div>
-                          <h6 className="text-xs font-bold text-foreground">
-                            {dem.employerName}
-                          </h6>
-                          <div className="text-[11px] text-muted-foreground flex items-center gap-2 mt-0.5">
-                            <span className="font-semibold text-foreground flex items-center gap-1">
-                              <Globe2 className="w-3 h-3 text-purple-600" />
-                              {dem.country}
-                            </span>
-                            <span>•</span>
-                            <span>{dem.sector}</span>
-                          </div>
-                        </div>
-
-                        <div className="text-right">
-                          <span className="text-sm font-extrabold text-foreground font-mono block">
-                            {dem.quota} Slot
-                          </span>
-                          <span className="text-[10px] text-muted-foreground block">
-                            Batas: {dem.deadline || "2027"}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="pt-1.5 border-t border-border/40 flex items-center justify-between text-xs">
-                        <span className="text-primary font-medium flex items-center gap-1">
-                          <GraduationCap className="w-3.5 h-3.5" />
-                          <span>Posisi: <strong>{dem.occupation}</strong></span>
-                        </span>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setActiveDrilldownType("peserta");
-                            if (dem.country) {
-                              setNationalFilterCountry(normalizeStudentCountry(dem.country));
-                            }
-                            setCandidateViewScope("all_candidates");
-                            setNationalStudentPage(1);
-                          }}
-                          className="h-6 px-2 text-[11px] font-semibold text-emerald-600 hover:text-emerald-700 hover:bg-emerald-500/10 cursor-pointer"
-                        >
-                          Cari Calon Cocok &rarr;
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
         );
       }
