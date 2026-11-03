@@ -454,7 +454,7 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
 
   const renderInstitutionList = (items: PublicPreviewInstitution[]) => {
     const supplyOnlyItems = items.filter(
-      (it) => (it.students?.length ?? it.studentCount ?? 0) > 0
+      (it) => (it.students?.length ?? it.studentCount ?? 0) > 0 || it.hasAdminAccount
     );
     const siskop2miCount = supplyOnlyItems.filter(
       (it) => resolveInstitutionSource({ registrationSource: it.registrationSource, id: it.id }) === "siskop2mi"
@@ -524,14 +524,14 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
           )}
         </div>
 
-        {/* Info Jumlah Vokasi yang Ada Suplai Terdata */}
+        {/* Info Jumlah Vokasi */}
         <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-xs">
           <span className="font-semibold text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-emerald-500" />
-            <span>Vokasi dengan Suplai Siap Latih Terdata</span>
+            <span>Lembaga Vokasi Terdaftar (User Level Admin Lembaga Vokasi)</span>
           </span>
           <Badge className="bg-emerald-600 text-white font-bold text-xs">
-            {supplyOnlyItems.length} Vokasi
+            {supplyOnlyItems.length} Lembaga Vokasi
           </Badge>
         </div>
 
@@ -764,6 +764,11 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
                         <span className="text-primary font-semibold text-xs flex items-center gap-1 group-hover:underline cursor-pointer">
                           <Users className="h-3.5 w-3.5" />
                           {studentCount} Calon Peserta &rarr;
+                        </span>
+                      ) : institution.hasAdminAccount ? (
+                        <span className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                          Admin Lembaga Terdaftar
                         </span>
                       ) : (
                         <span className="text-xs text-muted-foreground flex items-center gap-1">
@@ -1257,9 +1262,9 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
             </DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground">
               {type === "lembaga" || type === "sebaran_lembaga"
-                ? "Daftar 30 lembaga vokasi penyuplai peserta siap latih terdata dari database (total 4.315 calon peserta)."
+                ? "Daftar lembaga vokasi dengan akun user level Admin Lembaga Vokasi (total 55 vokasi terdaftar)."
                 : type === "peserta"
-                ? "Daftar lembaga vokasi dan rincian calon peserta siap latih (total 4.315 peserta dari 30 lembaga)."
+                ? "Daftar calon peserta siap latih (realisasi 4.315 dari target 12.600 peserta)."
                 : "Data statistik Command Center Task Force SMK Go Global"}
             </DialogDescription>
           </DialogHeader>

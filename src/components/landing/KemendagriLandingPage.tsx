@@ -289,12 +289,12 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
   // 2. Siap Program & 4. Siap Permintaan: 4 Negara
   const FOUR_COUNTRIES = ["Jepang", "Korea Selatan", "Malaysia", "Turki"];
 
-  // 3. Siap Vokasi: Jumlah vokasi dari siap latih yang sudah ada suplai terdata
-  const rawVokasiSupply =
+  // 3. Siap Vokasi: Jumlah vokasi dihitung dari user level Admin Lembaga Vokasi
+  const rawVokasiAdmin =
     kpiSummary.vokasiWithSupplyCount ??
     publicCommandCenter?.national?.vokasiWithSupplyCount ??
     0;
-  const vokasiWithSupplyCount = rawVokasiSupply > 0 ? rawVokasiSupply : 30;
+  const vokasiAdminCount = rawVokasiAdmin > 0 ? rawVokasiAdmin : 55;
   const sectorOccupations = Object.fromEntries(trainingSectors.map((sector) => {
     if (sector.occupations && sector.occupations.length > 0) {
       return [sector.name, sector.occupations.map((occupation) => occupation.title)];
@@ -589,12 +589,13 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
                     </div>
 
                     <div className="my-3">
-                      <div className="text-3xl sm:text-4xl font-black text-white tracking-tight tabular-nums">
-                        {siapLatihCount.toLocaleString("id-ID")}
-                        <span className="text-xs text-cyan-400 font-semibold ml-2">Peserta</span>
+                      <div className="text-3xl sm:text-4xl font-black text-white tracking-tight tabular-nums flex items-baseline gap-1.5 flex-wrap">
+                        <span>{siapLatihCount.toLocaleString("id-ID")}</span>
+                        <span className="text-xl sm:text-2xl font-bold text-slate-400">/ 12.600</span>
+                        <span className="text-xs text-cyan-400 font-semibold ml-1">Peserta</span>
                       </div>
                       <p className="text-xs text-slate-300 font-medium mt-1">
-                        Peserta Siap Latih
+                        Peserta Siap Latih dari Target 12.600
                       </p>
                     </div>
                   </div>
@@ -668,17 +669,17 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
 
                     <div className="my-3">
                       <div className="text-3xl sm:text-4xl font-black text-white tracking-tight tabular-nums">
-                        {vokasiWithSupplyCount.toLocaleString("id-ID")}
+                        {vokasiAdminCount.toLocaleString("id-ID")}
                         <span className="text-xs text-emerald-400 font-semibold ml-2">Vokasi</span>
                       </div>
                       <p className="text-xs text-slate-300 font-medium mt-1">
-                        Jumlah Vokasi dari Siap Latih yang Sudah Terdata
+                        Jumlah Vokasi dari User Level Admin Lembaga Vokasi
                       </p>
                     </div>
                   </div>
 
                   <div className="w-full pt-3 border-t border-slate-800/80 flex items-center justify-between text-[11px] font-semibold text-emerald-300 mt-2">
-                    <span>Lihat Daftar Vokasi Suplai</span>
+                    <span>Lihat Daftar Lembaga Vokasi</span>
                     <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
                   </div>
                 </button>

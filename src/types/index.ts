@@ -155,6 +155,8 @@ export interface VocationalProvider {
   registrationSource?: 'siskop2mi' | 'disnaker' | 'umum' | string;
   registrationSourceId?: string;
   inputLevel?: 'kabupaten_kota' | 'provinsi' | 'lembaga_vokasi' | 'nasional' | string;
+  hasAdminAccount?: boolean;
+  adminUserCount?: number;
 }
 
 // ==========================================
@@ -706,6 +708,8 @@ export interface PublicPreviewInstitution {
   registrationSource?: 'siskop2mi' | 'disnaker' | 'umum' | string;
   registrationSourceId?: string;
   inputLevel?: 'kabupaten_kota' | 'provinsi' | 'lembaga_vokasi' | 'nasional' | string;
+  hasAdminAccount?: boolean;
+  adminUserCount?: number;
 }
 
 export interface PublicPreviewProgram {

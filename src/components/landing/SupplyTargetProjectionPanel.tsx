@@ -32,6 +32,7 @@ import {
 interface SupplyTargetProjectionPanelProps {
   projection: LandingProjectionData;
   className?: string;
+  periodSelector?: React.ReactNode;
 }
 
 export const TARGET_4_COUNTRIES = [
@@ -107,6 +108,7 @@ export const TARGET_COUNTRIES_CONFIG: Record<(typeof TARGET_4_COUNTRIES)[number]
 export function SupplyTargetProjectionPanel({
   projection,
   className,
+  periodSelector,
 }: SupplyTargetProjectionPanelProps) {
   // Selected country: "ALL" for all 4 countries, or specific country
   const [selectedCountry, setSelectedCountry] = useState<string>("ALL");
@@ -335,8 +337,9 @@ export function SupplyTargetProjectionPanel({
             </p>
           </div>
 
-          {/* Pill Toggle Semua Negara */}
-          <div className="flex items-center gap-2 shrink-0">
+          {/* Pill Toggle & Periode Selector */}
+          <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+            {periodSelector}
             <button
               type="button"
               onClick={() => {

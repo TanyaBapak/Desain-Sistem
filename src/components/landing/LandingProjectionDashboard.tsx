@@ -69,45 +69,37 @@ export function LandingProjectionDashboard({ projection }: LandingProjectionDash
     );
   }
 
+  const periodSelector = (
+    <div className="flex items-center gap-1.5 text-xs font-medium">
+      <span className="text-muted-foreground hidden sm:inline">Periode:</span>
+      <select
+        aria-label="Pilih periode proyeksi"
+        className="h-8.5 rounded-xl border border-input bg-background px-2.5 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
+        value={projection.year?.toString() ?? "all"}
+        onChange={(event) => changePeriod(event.target.value)}
+      >
+        <option value="all">Semua Periode</option>
+        {years.map((year) => (
+          <option key={year} value={year}>
+            {year}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+
   return (
     <section
       id="proyeksi-penempatan"
-      className="border-b border-border bg-background py-12 text-foreground sm:py-14"
-      aria-labelledby="projection-heading"
+      className="border-b border-border bg-background py-8 text-foreground sm:py-10"
+      aria-label="Proyeksi Penempatan Negara Target"
     >
-      <div className="mx-auto max-w-7xl space-y-6 px-4 sm:px-6 lg:px-8">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div className="max-w-3xl space-y-2">
-            <span className="block text-xs font-bold uppercase tracking-wider text-primary">
-              PROYEKSI INTERNASIONAL DAN SEKTOR
-            </span>
-            <h2 id="projection-heading" className="text-2xl font-black tracking-tight sm:text-3xl">
-              Data Suplai Penempatan Negara Target
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              Pemetaan data target suplai penempatan tenaga kerja ke 4 negara target utama berdasarkan pilihan negara, sektor jabatan, daerah asal, dan sumber data pendaftaran.
-            </p>
-          </div>
-          <label className="flex shrink-0 flex-col gap-1.5 text-sm font-medium">
-            <span>Periode tahunan</span>
-            <select
-              aria-label="Pilih periode proyeksi"
-              className="h-10 min-w-36 rounded-md border border-input bg-background px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              value={projection.year?.toString() ?? "all"}
-              onChange={(event) => changePeriod(event.target.value)}
-            >
-              <option value="all">Semua periode</option>
-              {years.map((year) => (
-                <option key={year} value={year}>
-                  {year}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-
-        {/* Panel Penelusuran Suplai 4 Negara Target (Format Preview Cards seperti Alur Ekosistem) */}
-        <SupplyTargetProjectionPanel projection={projection} />
+      <div className="mx-auto max-w-7xl space-y-4 px-4 sm:px-6 lg:px-8">
+        {/* Panel Penelusuran Suplai 4 Negara Target */}
+        <SupplyTargetProjectionPanel
+          projection={projection}
+          periodSelector={periodSelector}
+        />
 
         <p className="text-xs text-muted-foreground">
           Proyeksi menunjukkan sisa target dari kuota yang tercatat, bukan perkiraan otomatis
