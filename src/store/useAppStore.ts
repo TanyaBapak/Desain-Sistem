@@ -30,6 +30,8 @@ import {
   mockDemand,
 } from '../data';
 import { visitAppTab, visitPath } from '../lib/navigation';
+import { INDONESIA_38_PROVINCES, ProvinceOption } from '../lib/constants/provinces';
+import { INDONESIA_DISTRICTS, DistrictOption } from '../lib/constants/districts';
 
 export interface AppState {
   // Navigation & Role Modes (Kemendagri Portal Concept)
@@ -224,6 +226,9 @@ export const DEFAULT_SYSTEM_COUNTRIES = [
   { id: 'TR', name: 'Turki' },
 ];
 
+export const DEFAULT_PROVINCES = INDONESIA_38_PROVINCES.map((p: ProvinceOption) => ({ id: p.id, name: p.name }));
+export const DEFAULT_DISTRICTS = INDONESIA_DISTRICTS.map((d: DistrictOption) => ({ id: d.id, province_id: d.province_id, name: d.name }));
+
 export const useAppStore = create<AppState>((set, get) => ({
   // Navigation & Role Defaults
   viewMode: 'landing', // Opens landing page first by default
@@ -254,7 +259,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   providers: [],
   demands: [],
   businessDataLoaded: false,
-  businessOptions: { provinces: [], districts: [], sectors: [], occupations: [], countries: DEFAULT_SYSTEM_COUNTRIES, institutions: [] },
+  businessOptions: { provinces: DEFAULT_PROVINCES, districts: DEFAULT_DISTRICTS, sectors: [], occupations: [], countries: DEFAULT_SYSTEM_COUNTRIES, institutions: [] },
   setBusinessData: (data) => set((state) => {
     const hasIncomingCandidates = Array.isArray(data.candidates) && data.candidates.length > 0;
     const candidates = hasIncomingCandidates
@@ -341,8 +346,16 @@ export const useAppStore = create<AppState>((set, get) => ({
       allocations,
       auditLogs: Array.isArray(data.auditLogs) && data.auditLogs.length > 0 ? data.auditLogs : state.auditLogs,
       businessOptions: {
-        provinces: Array.isArray(data.options?.provinces) && data.options.provinces.length > 0 ? data.options.provinces : (state.businessOptions?.provinces ?? []),
-        districts: Array.isArray(data.options?.districts) && data.options.districts.length > 0 ? data.options.districts : (state.businessOptions?.districts ?? []),
+        provinces: Array.isArray(data.options?.provinces) && data.options.provinces.length > 0
+          ? data.options.provinces
+          : (state.businessOptions?.provinces && state.businessOptions.provinces.length > 0
+              ? state.businessOptions.provinces
+              : DEFAULT_PROVINCES),
+        districts: Array.isArray(data.options?.districts) && data.options.districts.length > 0
+          ? data.options.districts
+          : (state.businessOptions?.districts && state.businessOptions.districts.length > 0
+              ? state.businessOptions.districts
+              : DEFAULT_DISTRICTS),
         sectors: Array.isArray(data.options?.sectors) && data.options.sectors.length > 0 ? data.options.sectors : (state.businessOptions?.sectors ?? []),
         occupations: Array.isArray(data.options?.occupations) && data.options.occupations.length > 0 ? data.options.occupations : (state.businessOptions?.occupations ?? []),
         countries: Array.isArray(data.options?.countries) && data.options.countries.length > 0

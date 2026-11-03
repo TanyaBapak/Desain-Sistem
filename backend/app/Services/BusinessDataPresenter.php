@@ -1442,8 +1442,8 @@ class BusinessDataPresenter
                 'monitoring' => $needsMonitoring ? $this->monitoring($role, $user, $filters) : null,
                 'auditLogs' => $needsAuditLogs ? $this->auditLogs($role, $user) : [],
                 'options' => [
-                    'provinces' => DB::table('provinces')->orderBy('name')->get(['id', 'name']),
-                    'districts' => DB::table('districts')->orderBy('name')->get(['id', 'province_id', 'name']),
+                    'provinces' => $this->provinceOptions(),
+                    'districts' => $this->districtOptions(),
                     'sectors' => DB::table('sectors')->orderBy('name')->get(['id', 'name']),
                     'occupations' => DB::table('occupations')->orderBy('title')->get(['id', 'sector_id', 'title']),
                     'countries' => $this->systemCountryOptions(),
@@ -2568,6 +2568,61 @@ class BusinessDataPresenter
         } catch (\Throwable $e) {
             return $defaultCountries;
         }
+    }
+
+    /**
+     * @return array<int, array{id: string, name: string}>
+     */
+    private function provinceOptions(): array
+    {
+        try {
+            $provinces = DB::table('provinces')->orderBy('name')->get(['id', 'name'])->map(fn ($p) => [
+                'id' => (string) $p->id,
+                'name' => (string) $p->name,
+            ])->all();
+
+            if (! empty($provinces)) {
+                return $provinces;
+            }
+        } catch (\Throwable $e) {}
+
+        $wilayahFile = storage_path('app/reference/wilayah.json');
+        if (is_file($wilayahFile)) {
+            $data = json_decode((string) file_get_contents($wilayahFile), true);
+            if (! empty($data['provinces'])) {
+                return $data['provinces'];
+            }
+        }
+
+        return [];
+    }
+
+    /**
+     * @return array<int, array{id: string, province_id: string, name: string}>
+     */
+    private function districtOptions(): array
+    {
+        try {
+            $districts = DB::table('districts')->orderBy('name')->get(['id', 'province_id', 'name'])->map(fn ($d) => [
+                'id' => (string) $d->id,
+                'province_id' => (string) $d->province_id,
+                'name' => (string) $d->name,
+            ])->all();
+
+            if (! empty($districts)) {
+                return $districts;
+            }
+        } catch (\Throwable $e) {}
+
+        $wilayahFile = storage_path('app/reference/wilayah.json');
+        if (is_file($wilayahFile)) {
+            $data = json_decode((string) file_get_contents($wilayahFile), true);
+            if (! empty($data['districts'])) {
+                return $data['districts'];
+            }
+        }
+
+        return [];
     }
 
     private function reportSummary(

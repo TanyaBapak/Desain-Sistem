@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { VocationalProvider, ProviderType } from '../../types';
+import { INDONESIA_38_PROVINCES } from '../../lib/constants/provinces';
+import { INDONESIA_DISTRICTS } from '../../lib/constants/districts';
 import { useAppStore } from '../../store/useAppStore';
 import { X, Building2, Save, ShieldCheck } from 'lucide-react';
 
@@ -73,10 +75,15 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
   const [supportedCountries, setSupportedCountries] = useState<string[]>([]);
   const [facilitiesInput, setFacilitiesInput] = useState('');
 
-  const provincesList = Array.isArray(businessOptions?.provinces) ? businessOptions.provinces : [];
-  const districtsList = Array.isArray(businessOptions?.districts) ? businessOptions.districts : [];
+  const provincesList = Array.isArray(businessOptions?.provinces) && businessOptions.provinces.length > 0
+    ? businessOptions.provinces
+    : INDONESIA_38_PROVINCES;
+  const districtsList = Array.isArray(businessOptions?.districts) && businessOptions.districts.length > 0
+    ? businessOptions.districts
+    : INDONESIA_DISTRICTS;
+  const currentProvinceId = provincesList.find((province: { name: string; id: string }) => province.name.toLowerCase() === provinsi.toLowerCase())?.id;
   const availableDistricts = districtsList.filter(
-    (district) => provincesList.find((province) => province.name === provinsi)?.id === district.province_id,
+    (district: { province_id: string }) => district.province_id === currentProvinceId,
   );
 
   useEffect(() => {
@@ -491,7 +498,7 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
                 {!businessOptions.provinces.some((p) => p.name === provinsi) && provinsi && (
                   <option value={provinsi}>{provinsi}</option>
                 )}
-                {businessOptions.provinces.map((province) => (
+                {provincesList.map((province: { id: string; name: string }) => (
                   <option key={province.id} value={province.name}>{province.name}</option>
                 ))}
               </select>
@@ -517,10 +524,10 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
                   onChange={(e) => setKabupatenKota(e.target.value)}
                   className="w-full text-xs p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-slate-50"
                 >
-                  {!availableDistricts.some((d) => d.name === kabupatenKota) && kabupatenKota && (
+                  {!availableDistricts.some((d: { name: string }) => d.name === kabupatenKota) && kabupatenKota && (
                     <option value={kabupatenKota}>{kabupatenKota}</option>
                   )}
-                  {availableDistricts.map((district) => (
+                  {availableDistricts.map((district: { id: string; name: string }) => (
                     <option key={district.id} value={district.name}>{district.name}</option>
                   ))}
                 </select>

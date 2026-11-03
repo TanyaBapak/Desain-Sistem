@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { CandidateParticipant } from '../../types';
+import { INDONESIA_38_PROVINCES } from '../../lib/constants/provinces';
+import { INDONESIA_DISTRICTS } from '../../lib/constants/districts';
 import { useAppStore } from '../../store/useAppStore';
 import { X, UserPlus, Save, AlertCircle, Sparkles } from 'lucide-react';
 
@@ -39,10 +41,15 @@ export const CandidateFormModal: React.FC<CandidateFormModalProps> = ({
   const [preferredJobRole, setPreferredJobRole] = useState('');
   const [readinessStatus, setReadinessStatus] = useState<CandidateParticipant['readinessStatus']>('Needs Upskilling');
   const [verificationStatus, setVerificationStatus] = useState<CandidateParticipant['verificationStatus']>('Pending Verification');
-  const provincesList = Array.isArray(businessOptions?.provinces) ? businessOptions.provinces : [];
-  const districtsList = Array.isArray(businessOptions?.districts) ? businessOptions.districts : [];
+  const provincesList = Array.isArray(businessOptions?.provinces) && businessOptions.provinces.length > 0
+    ? businessOptions.provinces
+    : INDONESIA_38_PROVINCES;
+  const districtsList = Array.isArray(businessOptions?.districts) && businessOptions.districts.length > 0
+    ? businessOptions.districts
+    : INDONESIA_DISTRICTS;
+  const currentProvinceId = provincesList.find((p) => p.name.toLowerCase() === provinsi.toLowerCase())?.id;
   const availableDistricts = districtsList.filter(
-    (district) => provincesList.find((province) => province.name === provinsi)?.id === district.province_id,
+    (district) => district.province_id === currentProvinceId,
   );
 
   // 4 Negara Resmi Sistem SMK Go Global: Jepang, Korea Selatan, Malaysia, Turki
@@ -291,14 +298,15 @@ export const CandidateFormModal: React.FC<CandidateFormModalProps> = ({
               <select
                 value={provinsi}
                 onChange={(e) => {
-                  setProvinsi(e.target.value);
-                  const provinceId = provincesList.find((province) => province.name === e.target.value)?.id;
-                  const firstDistrict = districtsList.find((district) => district.province_id === provinceId);
+                  const newProv = e.target.value;
+                  setProvinsi(newProv);
+                  const pId = provincesList.find((p) => p.name.toLowerCase() === newProv.toLowerCase())?.id;
+                  const firstDistrict = districtsList.find((d) => d.province_id === pId);
                   setKabupatenKota(firstDistrict?.name ?? '');
                 }}
                 className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer text-slate-800"
               >
-                {!provincesList.some((p) => p.name === provinsi) && provinsi && (
+                {!provincesList.some((p) => p.name.toLowerCase() === provinsi.toLowerCase()) && provinsi && (
                   <option value={provinsi}>{provinsi}</option>
                 )}
                 {provincesList.map((province) => (
@@ -316,7 +324,7 @@ export const CandidateFormModal: React.FC<CandidateFormModalProps> = ({
                 onChange={(e) => setKabupatenKota(e.target.value)}
                 className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                {!availableDistricts.some((d) => d.name === kabupatenKota) && kabupatenKota && (
+                {!availableDistricts.some((d) => d.name.toLowerCase() === kabupatenKota.toLowerCase()) && kabupatenKota && (
                   <option value={kabupatenKota}>{kabupatenKota}</option>
                 )}
                 {availableDistricts.map((district) => (
