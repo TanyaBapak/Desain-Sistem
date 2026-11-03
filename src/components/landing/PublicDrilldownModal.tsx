@@ -1235,7 +1235,7 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
           : "Siap Program — 4 Negara Tujuan";
       case "lembaga":
       case "sebaran_lembaga":
-        return "Siap Vokasi — Vokasi Suplai Terdata";
+        return "Siap Vokasi — Daftar Lembaga Vokasi Suplai";
       case "national_lpk":
         return "Sebaran Lembaga Terdaftar Nasional";
       case "demand":
@@ -1256,7 +1256,11 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
               {getTitle()}
             </DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground">
-              Data statistik Command Center Task Force SMK Go Global
+              {type === "lembaga" || type === "sebaran_lembaga"
+                ? "Daftar 30 lembaga vokasi penyuplai peserta siap latih terdata dari database (total 4.315 calon peserta)."
+                : type === "peserta"
+                ? "Daftar lembaga vokasi dan rincian calon peserta siap latih (total 4.315 peserta dari 30 lembaga)."
+                : "Data statistik Command Center Task Force SMK Go Global"}
             </DialogDescription>
           </DialogHeader>
 

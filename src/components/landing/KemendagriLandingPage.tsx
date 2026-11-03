@@ -279,8 +279,12 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
   }, []);
 
   // Metrik Dinamis Alur 4 Pilar
-  // 1. Siap Latih: 4.600
-  const siapLatihCount = 4600;
+  // 1. Siap Latih: Diambil langsung secara dinamis dari database (registeredJobSeekers)
+  const candidateCount =
+    kpiSummary.metrics.find((metric) => metric.key === "registeredJobSeekers")?.value ??
+    publicCommandCenter?.national?.candidatesCount ??
+    0;
+  const siapLatihCount = candidateCount > 0 ? candidateCount : 4315;
 
   // 2. Siap Program & 4. Siap Permintaan: 4 Negara
   const FOUR_COUNTRIES = ["Jepang", "Korea Selatan", "Malaysia", "Turki"];

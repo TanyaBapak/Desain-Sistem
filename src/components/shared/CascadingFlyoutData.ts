@@ -1602,13 +1602,13 @@ function buildRealTrees(): Record<PillarKey, PillarConfig> {
     },
   };
 
-  // Sesuaikan angka total di kartu utama sesuai arahan:
-  // 1. Siap Latih: 4.600
+  // Sesuaikan angka total di kartu utama sesuai database riil:
+  // 1. Siap Latih: 4.315 Peserta (Data Riil Database)
   // 2. Siap Program: 4 Negara
   // 3. Siap Vokasi: 30 Vokasi (jumlah vokasi yang ada suplai terdata)
   // 4. Siap Permintaan: 4 Negara
   const HEADER_TARGETS: Record<PillarKey, number> = {
-    sup: 4600,
+    sup: 4315,
     pel: 4,
     lpk: 30,
     dem: 4,

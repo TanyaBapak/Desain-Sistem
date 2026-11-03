@@ -389,6 +389,7 @@ class BusinessDataPresenter
                     'registeredNationalLpkCount' => $registeredNationalLpkCount,
                     'demandsCount' => $nationalDemands,
                     'allocationsCount' => $nationalAllocations,
+                    'vokasiWithSupplyCount' => $vokasiWithSupply,
                 ];
             } else {
                 $selectedProvince = $cleanProvince;
@@ -408,11 +409,28 @@ class BusinessDataPresenter
             }
 
             // Preview directory lists (public safe, no PII)
+            $instWithSupplyIds = rescue(fn () => DB::table('job_seekers')
+                ->whereNull('deleted_at')
+                ->whereNotNull('institution_id')
+                ->where('institution_id', '!=', '')
+                ->distinct('institution_id')
+                ->pluck('institution_id'), collect());
+
             $instQuery = DB::table('institutions')
                 ->leftJoin('provinces', 'provinces.id', '=', 'institutions.province_id')
                 ->leftJoin('districts', 'districts.id', '=', 'institutions.district_id')
-                ->where('institutions.status', 'Aktif')
-                ->where('institutions.evokasi_status', 'Terverifikasi e-Vokasi');
+                ->where(function ($q) use ($instWithSupplyIds) {
+                    if ($instWithSupplyIds->isNotEmpty()) {
+                        $q->whereIn('institutions.id', $instWithSupplyIds)
+                          ->orWhere(function ($sub) {
+                              $sub->where('institutions.status', 'Aktif')
+                                  ->where('institutions.evokasi_status', 'Terverifikasi e-Vokasi');
+                          });
+                    } else {
+                        $q->where('institutions.status', 'Aktif')
+                          ->where('institutions.evokasi_status', 'Terverifikasi e-Vokasi');
+                    }
+                });
             if ($selectedProvince !== 'all') {
                 $instQuery->where('provinces.name', $selectedProvince);
             }
@@ -431,9 +449,13 @@ class BusinessDataPresenter
                     'readiness_status',
                 ]), collect());
 
+            $instWithSupplyList = $instWithSupplyIds->isNotEmpty()
+                ? "'" . implode("','", $instWithSupplyIds->all()) . "'"
+                : "''";
+
             $sampleInstitutions = $instQuery
                 ->orderByRaw("CASE 
-                    WHEN institutions.id IN ('INS-D1B455831B68B81E', 'INS-11B789B1BA61DA82', 'VOC-DEMO-001') THEN 1
+                    WHEN institutions.id IN ({$instWithSupplyList}) THEN 1
                     WHEN institutions.evokasi_status = 'Terverifikasi e-Vokasi' THEN 2 
                     ELSE 3 
                 END")
@@ -473,25 +495,11 @@ class BusinessDataPresenter
                     $supportedSectorsDecoded = $this->decodeArray($row->supportedSectors);
 
                     $matched = $candidatesRows->filter(function ($c) use ($row): bool {
-                        if (! empty($c->institution_id) && (string) $c->institution_id === (string) $row->id) {
-                            return true;
+                        if (! empty($c->institution_id)) {
+                            return (string) $c->institution_id === (string) $row->id;
                         }
                         if (! empty($c->institution_name)) {
-                            if (stripos($row->name, (string) $c->institution_name) !== false || stripos((string) $c->institution_name, $row->name) !== false) {
-                                return true;
-                            }
-                            if (stripos($row->name, 'Indonusa') !== false && stripos((string) $c->institution_name, 'Indonusa') !== false) {
-                                return true;
-                            }
-                            if (stripos($row->name, 'Omega') !== false && stripos((string) $c->institution_name, 'Omega') !== false) {
-                                return true;
-                            }
-                            if (stripos($row->name, 'Victoria') !== false && stripos((string) $c->institution_name, 'Victoria') !== false) {
-                                return true;
-                            }
-                            if (stripos($row->name, 'Duta') !== false && stripos((string) $c->institution_name, 'Duta') !== false) {
-                                return true;
-                            }
+                            return stripos($row->name, (string) $c->institution_name) !== false || stripos((string) $c->institution_name, $row->name) !== false;
                         }
 
                         return false;
@@ -519,7 +527,7 @@ class BusinessDataPresenter
 
                     $source = 'umum';
                     $inputLevel = 'lembaga_vokasi';
-                    if (! empty($row->externalSource) && stripos((string) $row->externalSource, 'kp2mi') !== false) {
+                    if (! empty($row->externalSource) && (stripos((string) $row->externalSource, 'kp2mi') !== false || stripos((string) $row->externalSource, 'gardata') !== false || stripos((string) $row->externalSource, 'sippmi') !== false)) {
                         $source = 'siskop2mi';
                         $inputLevel = 'nasional';
                     } elseif (! empty($row->externalSource) && stripos((string) $row->externalSource, 'disnaker') !== false) {
@@ -537,6 +545,8 @@ class BusinessDataPresenter
                         'inputLevel' => $inputLevel,
                     ];
                 })
+                ->sortByDesc('studentCount')
+                ->values()
                 ->all();
 
             $progQuery = DB::table('training_programs')
