@@ -86,22 +86,25 @@ export function normalizeStudentCountry(raw?: string): string {
 
 export function normalizeStudentSector(sec?: string, maj?: string): string {
   const str = `${sec || ""} ${maj || ""}`.toLowerCase();
-  if (/(hospit|hotel|pariwisata|waiter|cook|boga|fnb|housekeep|barista|spa)/.test(str)) {
+  if (/(hospit|hotel|pariwisata|waiter|cook|boga|fnb|housekeep|barista|spa|cruise|culinary|kuliner)/.test(str)) {
     return "Hospitality & Pariwisata";
   }
-  if (/(kesehatan|caregiver|cargiver|perawat|keperawatan|medis|kaigo)/.test(str)) {
+  if (/(kesehatan|caregiver|cargiver|perawat|keperawatan|medis|kaigo|farmasi|kebidanan|rekam medis|hospital administration|administrasi rumah sakit)/.test(str)) {
     return "Kesehatan & Caregiver";
   }
-  if (/(bahasa|sastra|inggris)/.test(str)) {
+  if (/(bahasa|sastra|inggris|jepang|korea|komunikasi)/.test(str)) {
     return "Bahasa & Komunikasi";
   }
-  if (/(manufaktur|mesin|weld|las|cnc|bubut|pabrik)/.test(str)) {
+  if (/(manufaktur|mesin|pemesinan|weld|las|cnc|bubut|pabrik|operator produksi|elektronika|listrik|industri)/.test(str)) {
     return "Manufaktur & Pengelasan";
   }
-  if (/(otomotif|tkr|tsm|motor|kendaraan)/.test(str)) {
+  if (/(otomotif|tkr|tsm|motor|kendaraan|mekanik|alat berat|driver|pengemudi)/.test(str)) {
     return "Otomotif & Transportasi";
   }
-  return "Sektor Lainnya";
+  if (/(kebun|perkebunan|tani|pertanian|agri|sawit|fisherman|ikan|perikanan|abk)/.test(str)) {
+    return "Pertanian & Perikanan";
+  }
+  return "Administrasi, IT & Lainnya";
 }
 
 export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
@@ -214,34 +217,81 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
     return list;
   }, [institutions]);
 
-  const nationalSummary = useMemo(() => {
-    const countryCounts: Record<string, number> = {
+  const filteredNationalStudents = useMemo(() => {
+    const q = institutionSearchQuery.toLowerCase().trim();
+    return allNationalStudents.filter((s) => {
+      if (nationalFilterCountry !== "ALL" && s.normalizedCountry !== nationalFilterCountry) {
+        return false;
+      }
+      if (nationalFilterSector !== "ALL" && s.normalizedSector !== nationalFilterSector) {
+        return false;
+      }
+      if (q) {
+        return (
+          s.name.toLowerCase().includes(q) ||
+          s.id.toLowerCase().includes(q) ||
+          s.institutionName.toLowerCase().includes(q) ||
+          (s.district && s.district.toLowerCase().includes(q)) ||
+          s.targetCountry.toLowerCase().includes(q) ||
+          s.sector.toLowerCase().includes(q) ||
+          s.occupation.toLowerCase().includes(q)
+        );
+      }
+      return true;
+    });
+  }, [allNationalStudents, nationalFilterCountry, nationalFilterSector, institutionSearchQuery]);
+
+  const dynamicCountryCounts = useMemo(() => {
+    const base = allNationalStudents.filter((s) => {
+      if (nationalFilterSector !== "ALL" && s.normalizedSector !== nationalFilterSector) {
+        return false;
+      }
+      return true;
+    });
+
+    const counts: Record<string, number> = {
       Jepang: 0,
       Turki: 0,
       "Korea Selatan": 0,
       Malaysia: 0,
       Lainnya: 0,
     };
-    const sectorCounts: Record<string, number> = {
-      "Hospitality & Pariwisata": 0,
-      "Kesehatan & Caregiver": 0,
-      "Bahasa & Komunikasi": 0,
-      "Manufaktur & Pengelasan": 0,
-      "Otomotif & Transportasi": 0,
-      "Sektor Lainnya": 0,
-    };
-
-    allNationalStudents.forEach((st) => {
-      countryCounts[st.normalizedCountry] = (countryCounts[st.normalizedCountry] ?? 0) + 1;
-      sectorCounts[st.normalizedSector] = (sectorCounts[st.normalizedSector] ?? 0) + 1;
+    base.forEach((s) => {
+      counts[s.normalizedCountry] = (counts[s.normalizedCountry] ?? 0) + 1;
     });
 
     return {
-      total: allNationalStudents.length,
-      countries: Object.entries(countryCounts).sort((a, b) => b[1] - a[1]),
-      sectors: Object.entries(sectorCounts).sort((a, b) => b[1] - a[1]),
+      total: base.length,
+      items: Object.entries(counts).sort((a, b) => b[1] - a[1]),
     };
-  }, [allNationalStudents]);
+  }, [allNationalStudents, nationalFilterSector]);
+
+  const dynamicSectorCounts = useMemo(() => {
+    const base = allNationalStudents.filter((s) => {
+      if (nationalFilterCountry !== "ALL" && s.normalizedCountry !== nationalFilterCountry) {
+        return false;
+      }
+      return true;
+    });
+
+    const counts: Record<string, number> = {};
+    base.forEach((s) => {
+      counts[s.normalizedSector] = (counts[s.normalizedSector] ?? 0) + 1;
+    });
+
+    return {
+      total: base.length,
+      items: Object.entries(counts).sort((a, b) => b[1] - a[1]),
+    };
+  }, [allNationalStudents, nationalFilterCountry]);
+
+  const nationalSummary = useMemo(() => {
+    return {
+      total: allNationalStudents.length,
+      countries: dynamicCountryCounts.items,
+      sectors: dynamicSectorCounts.items,
+    };
+  }, [allNationalStudents.length, dynamicCountryCounts.items, dynamicSectorCounts.items]);
 
   const verifiedInstitutions = useMemo(
     () => institutions.filter((institution) => institution.evokasiStatus === "Terverifikasi e-Vokasi"),
@@ -1141,28 +1191,8 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
     );
   };
 
-  const renderNationalAllCandidates = (studentsToRender: typeof allNationalStudents) => {
-    const q = institutionSearchQuery.toLowerCase().trim();
-    const filtered = studentsToRender.filter((s) => {
-      if (nationalFilterCountry !== "ALL" && s.normalizedCountry !== nationalFilterCountry) {
-        return false;
-      }
-      if (nationalFilterSector !== "ALL" && s.normalizedSector !== nationalFilterSector) {
-        return false;
-      }
-      if (q) {
-        return (
-          s.name.toLowerCase().includes(q) ||
-          s.id.toLowerCase().includes(q) ||
-          s.institutionName.toLowerCase().includes(q) ||
-          (s.district && s.district.toLowerCase().includes(q)) ||
-          s.targetCountry.toLowerCase().includes(q) ||
-          s.sector.toLowerCase().includes(q) ||
-          s.occupation.toLowerCase().includes(q)
-        );
-      }
-      return true;
-    });
+  const renderNationalAllCandidates = (_studentsToRender?: typeof allNationalStudents) => {
+    const filtered = filteredNationalStudents;
 
     const totalStudents = filtered.length;
     const isShowingAll = nationalStudentPageSize >= 99999;
@@ -1360,9 +1390,14 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
                         </span>
                       </td>
                       <td className="py-2 px-3 text-muted-foreground">
-                        <span className="truncate max-w-[120px] block" title={s.sector}>
-                          {s.sector}
+                        <span className="font-medium text-foreground truncate max-w-[150px] block" title={s.normalizedSector}>
+                          {s.normalizedSector}
                         </span>
+                        {s.sector && s.sector !== s.normalizedSector && (
+                          <span className="text-[10px] text-muted-foreground truncate max-w-[150px] block" title={s.sector}>
+                            {s.sector}
+                          </span>
+                        )}
                       </td>
                       <td className="py-2 px-3 font-medium text-foreground">
                         <span className="truncate max-w-[130px] block" title={s.occupation}>
@@ -1425,9 +1460,14 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
                     </div>
                     <div className="bg-muted/30 rounded p-1.5">
                       <span className="text-[10px] text-muted-foreground block font-medium">Sektor & Kejuruan:</span>
-                      <span className="font-medium text-foreground truncate block mt-0.5" title={s.sector}>
-                        {s.sector}
+                      <span className="font-semibold text-foreground truncate block mt-0.5" title={s.normalizedSector}>
+                        {s.normalizedSector}
                       </span>
+                      {s.sector && s.sector !== s.normalizedSector && (
+                        <span className="text-[10px] text-muted-foreground truncate block" title={s.sector}>
+                          {s.sector}
+                        </span>
+                      )}
                     </div>
                     <div className="bg-muted/30 rounded p-1.5">
                       <span className="text-[10px] text-muted-foreground block font-medium">Jabatan / Kompetensi:</span>
@@ -1578,7 +1618,10 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
                 <h4 className="text-sm font-bold text-foreground flex items-center gap-2">
                   <span>Rekapitulasi Suplai Calon Peserta Nasional</span>
                   <Badge className="bg-emerald-600 text-white font-mono text-[11px] font-bold">
-                    {nationalSummary.total.toLocaleString("id-ID")} Calon
+                    {filteredNationalStudents.length.toLocaleString("id-ID")} Calon
+                    {(nationalFilterCountry !== "ALL" || nationalFilterSector !== "ALL" || institutionSearchQuery) && (
+                      <span className="ml-1 opacity-80 font-normal">/ {allNationalStudents.length.toLocaleString("id-ID")}</span>
+                    )}
                   </Badge>
                 </h4>
                 <p className="text-[11px] text-muted-foreground">
@@ -1592,17 +1635,17 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
               type="button"
               variant="outline"
               size="sm"
-              disabled={isExportingExcel}
-              onClick={() => handleExportNationalStudentsExcel(allNationalStudents)}
+              disabled={isExportingExcel || filteredNationalStudents.length === 0}
+              onClick={() => handleExportNationalStudentsExcel(filteredNationalStudents)}
               className="h-8 px-2.5 text-xs gap-1.5 border-emerald-500/40 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/10 cursor-pointer font-medium self-start sm:self-auto"
-              title="Ekspor seluruh 4.315 data calon peserta nasional ke file Excel (.xlsx)"
+              title={`Ekspor ${filteredNationalStudents.length.toLocaleString("id-ID")} data calon peserta sesuai filter ke file Excel (.xlsx)`}
             >
               {isExportingExcel ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin text-emerald-600" />
               ) : (
                 <Download className="h-3.5 w-3.5 text-emerald-600" />
               )}
-              <span>Ekspor Excel ({nationalSummary.total.toLocaleString("id-ID")})</span>
+              <span>Ekspor Excel ({filteredNationalStudents.length.toLocaleString("id-ID")})</span>
             </Button>
           </div>
 
@@ -1645,12 +1688,12 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
               >
                 <span>Semua Negara</span>
                 <span className="px-1.5 py-0.2 rounded-md bg-black/10 dark:bg-white/20 text-[10px] font-mono">
-                  {nationalSummary.total.toLocaleString("id-ID")}
+                  {dynamicCountryCounts.total.toLocaleString("id-ID")}
                 </span>
               </button>
 
-              {nationalSummary.countries.map(([cName, cCount]) => {
-                const pct = Math.round((cCount / nationalSummary.total) * 100);
+              {dynamicCountryCounts.items.map(([cName, cCount]) => {
+                const pct = dynamicCountryCounts.total > 0 ? Math.round((cCount / dynamicCountryCounts.total) * 100) : 0;
                 const isSelected = nationalFilterCountry === cName;
                 return (
                   <button
@@ -1724,12 +1767,12 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
               >
                 <span>Semua Sektor</span>
                 <span className="px-1.5 py-0.2 rounded-md bg-black/10 dark:bg-white/20 text-[10px] font-mono">
-                  {nationalSummary.total.toLocaleString("id-ID")}
+                  {dynamicSectorCounts.total.toLocaleString("id-ID")}
                 </span>
               </button>
 
-              {nationalSummary.sectors.map(([sName, sCount]) => {
-                const pct = Math.round((sCount / nationalSummary.total) * 100);
+              {dynamicSectorCounts.items.map(([sName, sCount]) => {
+                const pct = dynamicSectorCounts.total > 0 ? Math.round((sCount / dynamicSectorCounts.total) * 100) : 0;
                 const isSelected = nationalFilterSector === sName;
                 return (
                   <button
@@ -1793,7 +1836,7 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
                   )}
                 >
                   <Users className="w-3.5 h-3.5" />
-                  <span>Direktori Seluruh Peserta ({nationalSummary.total.toLocaleString("id-ID")})</span>
+                  <span>Direktori Seluruh Peserta ({filteredNationalStudents.length.toLocaleString("id-ID")})</span>
                 </button>
               </div>
             </div>
