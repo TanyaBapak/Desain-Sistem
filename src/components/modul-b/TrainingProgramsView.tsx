@@ -3,7 +3,7 @@ import { useAppStore } from '../../store/useAppStore';
 import { router } from '@inertiajs/react';
 import { RefreshCw } from 'lucide-react';
 import { ProgramCard } from './ProgramCard';
-import { Bp2miTargetProgramsTable } from './Bp2miTargetProgramsTable';
+import { Bp2miTargetProgramsTable, DEFAULT_BP2MI_TARGET_PROGRAMS } from './Bp2miTargetProgramsTable';
 import { CurriculumModal } from './CurriculumModal';
 import { ProgramFormModal } from './ProgramFormModal';
 import { DeleteConfirmModal } from '../ui/DeleteConfirmModal';
@@ -109,24 +109,49 @@ export const TrainingProgramsView: React.FC = () => {
     'Pelatihan Bahasa',
   ];
 
+  const effectivePrograms = useMemo(() => {
+    const dbById = new Map(programs.map((p) => [p.id, p]));
+    const mergedBp2mi = DEFAULT_BP2MI_TARGET_PROGRAMS.map((def) => {
+      const fromDb = dbById.get(def.id);
+      if (!fromDb) return def;
+      return {
+        ...def,
+        ...fromDb,
+        isBp2miTarget: true,
+        targetSector: fromDb.targetSector || def.targetSector,
+        targetJobRole: fromDb.targetJobRole || def.targetJobRole,
+        projectionPlacement: fromDb.projectionPlacement || fromDb.targetCountry || def.projectionPlacement,
+        classCount: fromDb.classCount ?? def.classCount,
+        technicalJP: fromDb.technicalJP ?? def.technicalJP,
+        technicalCertificationJP: fromDb.technicalCertificationJP ?? def.technicalCertificationJP,
+        languageJP: fromDb.languageJP ?? def.languageJP,
+        languageCertificationJP: fromDb.languageCertificationJP ?? def.languageCertificationJP,
+        quota: fromDb.quota > 0 ? fromDb.quota : def.quota,
+        durationJP: fromDb.durationJP > 0 ? fromDb.durationJP : def.durationJP,
+      };
+    });
+    const nonBp2mi = programs.filter((p) => !p.id.startsWith('BP2MI-PROG-'));
+    return [...mergedBp2mi, ...nonBp2mi];
+  }, [programs]);
+
   const bp2miTargetPrograms = useMemo(
-    () => programs.filter((p) => p.isBp2miTarget || p.id.startsWith('BP2MI-PROG-')),
-    [programs],
+    () => effectivePrograms.filter((p) => p.isBp2miTarget || p.id.startsWith('BP2MI-PROG-')),
+    [effectivePrograms],
   );
 
   const activeScheduledCount = useMemo(
     () =>
-      programs.filter(
+      effectivePrograms.filter(
         (p) =>
           !p.isBp2miTarget &&
           !p.id.startsWith('BP2MI-PROG-') &&
           ((p.durationJP && p.durationJP > 0) || Boolean(p.scheduleStart)),
       ).length,
-    [programs],
+    [effectivePrograms],
   );
 
   const filteredPrograms = useMemo(() => {
-    return programs.filter((p) => {
+    return effectivePrograms.filter((p) => {
       const search = searchProgram.toLowerCase();
       const matchSearch =
         !searchProgram ||
@@ -157,7 +182,7 @@ export const TrainingProgramsView: React.FC = () => {
 
       return matchSearch && matchType && matchCountry && matchSchedule;
     });
-  }, [programs, searchProgram, filterProgramType, filterProgramCountry, scheduleFilter]);
+  }, [effectivePrograms, searchProgram, filterProgramType, filterProgramCountry, scheduleFilter]);
 
   const totalPages = Math.max(1, Math.ceil(filteredPrograms.length / perPage));
   const safePage = Math.min(currentPage, totalPages);

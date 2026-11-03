@@ -1364,7 +1364,7 @@ class BusinessDataPresenter
             $role = 'institution_admin';
         }
 
-        $isModulA = in_array($tab, ['modul-a', 'supply', 'candidates'], true);
+        $isModulA = in_array($tab, ['modul-a', 'modul-b', 'supply', 'candidates', 'program', 'programs'], true);
         $isImpersonating = request()->hasSession() && request()->session()->has('impersonator_id');
 
         // Pastikan scope institusi dan auto-linking selalu dijalankan segar untuk akun lembaga
@@ -2087,26 +2087,20 @@ class BusinessDataPresenter
                 function ($query) use ($user) {
                     $scope = $this->resolveInstitutionScope($user);
                     $query->where(function ($q) use ($scope, $user) {
-                        $hasCondition = false;
+                        $q->where('training_programs.id', 'like', 'BP2MI-PROG-%');
                         if (! empty($scope['ids'])) {
-                            $q->whereIn('training_programs.institution_id', $scope['ids']);
-                            $hasCondition = true;
+                            $q->orWhereIn('training_programs.institution_id', $scope['ids']);
                         }
                         if (! empty($scope['patterns'])) {
                             foreach ($scope['patterns'] as $pattern) {
                                 $clean = trim((string) $pattern);
                                 if ($clean !== '') {
-                                    if ($hasCondition) {
-                                        $q->orWhere('institutions.name', $clean);
-                                    } else {
-                                        $q->where('institutions.name', $clean);
-                                        $hasCondition = true;
-                                    }
+                                    $q->orWhere('institutions.name', $clean);
                                 }
                             }
                         }
-                        if (! $hasCondition) {
-                            $q->where('training_programs.institution_id', $user->institution_id ?? '');
+                        if (empty($scope['ids']) && empty($scope['patterns']) && ! empty($user->institution_id)) {
+                            $q->orWhere('training_programs.institution_id', $user->institution_id);
                         }
                     });
                 },
@@ -2152,6 +2146,7 @@ class BusinessDataPresenter
             ->orderByRaw("CASE WHEN training_programs.id LIKE 'BP2MI-PROG-%' THEN training_programs.id ELSE '' END ASC")
             ->orderByDesc('training_programs.start_date')
             ->orderByDesc('training_programs.created_at')
+            ->limit(300)
             ->get($selectColumns)
             ->map(function (object $row) use ($hasBp2miColumns): array {
                 $isBp2miTarget = str_starts_with((string) $row->id, 'BP2MI-PROG-');

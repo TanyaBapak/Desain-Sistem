@@ -6,6 +6,7 @@ import { AdminLayout } from "@/components/layout/AdminLayout";
 import { KemendagriLandingPage } from "@/components/landing/KemendagriLandingPage";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { UnifiedLoginPage } from "@/components/auth/UnifiedLoginPage";
+import { TrainingProgramsView } from "@/components/modul-b/TrainingProgramsView";
 
 // Lazy-loaded tab & registration components to optimize bundle size
 const InstitutionRegistrationPage = React.lazy(() =>
@@ -28,9 +29,6 @@ const SippmiMonitoringPage = React.lazy(() =>
 );
 const SupplyTable = React.lazy(() =>
   import("@/components/modul-a/SupplyTable").then((m) => ({ default: m.SupplyTable }))
-);
-const TrainingProgramsView = React.lazy(() =>
-  import("@/components/modul-b/TrainingProgramsView").then((m) => ({ default: m.TrainingProgramsView }))
 );
 const ProvidersView = React.lazy(() =>
   import("@/components/modul-c/ProvidersView").then((m) => ({ default: m.ProvidersView }))

@@ -1,6 +1,139 @@
 import React, { useMemo } from 'react';
-import { TrainingProgram } from '../../types';
+import { TrainingProgram, ProgramType } from '../../types';
 import { Calendar, BookOpen } from 'lucide-react';
+
+type RawBp2miRow = [
+  string, // sector
+  string, // occupation
+  string, // projectionPlacement
+  number, // target
+  number, // classCount
+  number | null, // technicalJP
+  number | null, // technicalCertificationJP
+  number | null, // languageJP
+  number | null, // languageCertificationJP
+  number, // totalJP
+];
+
+const RAW_BP2MI_ROWS: RawBp2miRow[] = [
+  // 1. Kesehatan (11.600 | 580 Kelas)
+  ['Kesehatan', 'Caregiver (lvl pelaksana)', 'Jepang (SSW)', 540, 27, 160, 20, 640, 20, 840],
+  ['Kesehatan', 'Caregiver (lvl pelaksana)', 'Belanda, Singapura', 420, 21, 160, 20, 640, 20, 840],
+  ['Kesehatan', 'Caregiver/Caretaker', 'Taiwan', 4900, 245, 260, 20, 640, 20, 940],
+  ['Kesehatan', 'Elderly Caretaker', 'Malaysia', 4120, 206, 260, 20, 640, 20, 940],
+  ['Kesehatan', 'Nursing Home', 'Taiwan (Nursing Home)', 1620, 81, 160, 20, 640, 20, 840],
+  // 2. Hospitality (13.140 | 657 Kelas)
+  ['Hospitality', 'Spa Therapist', 'Turki, Malaysia, Maladewa, Kuwait, Eropa Timur', 1460, 73, 180, 20, 640, 20, 860],
+  ['Hospitality', 'Housekeeping', 'Turki, Eropa Timur, Arab Saudi', 8020, 401, 180, 20, 640, 20, 860],
+  ['Hospitality', 'Cleaner', 'Turki, Eropa Timur, Arab Saudi, UAE, Malaysia, Brunei Darussalam', 720, 36, 40, 20, 640, 20, 720],
+  ['Hospitality', 'Cook', 'Kroasia, Bulgaria, Turki', 40, 2, 280, 20, 640, 20, 960],
+  ['Hospitality', 'Waiter', 'Turki, Brunei Darussalam, Eropa Timur, UEA', 2600, 130, 180, 20, 640, 20, 860],
+  ['Hospitality', 'Barista', 'Arab Saudi, Kuwait, UEA', 300, 15, 50, 20, 640, 20, 730],
+  // 3. Manufaktur (6.000 | 300 Kelas)
+  ['Manufaktur', 'Welder', 'Korea Selatan', 300, 15, 160, 20, 640, 20, 840],
+  ['Manufaktur', 'Welder', 'Qatar', 200, 10, 160, 20, 640, 20, 840],
+  ['Manufaktur', 'Molding', 'Korea Selatan', 40, 2, 320, 20, 640, 20, 1000],
+  ['Manufaktur', 'Operation Production', 'Taiwan', 3200, 160, 100, 20, 640, 20, 780],
+  ['Manufaktur', 'Operation Production', 'Malaysia, Slowakia', 2260, 113, 100, 20, 640, 20, 780],
+  // 4. Transportasi (60 | 3 Kelas)
+  ['Transportasi', 'Driver', 'Jepang', 20, 1, 200, 20, 640, 20, 880],
+  ['Transportasi', 'Bus Driver', 'Arab Saudi', 20, 1, 200, 20, 640, 20, 880],
+  ['Transportasi', 'Truck Driver', 'Jepang', 20, 1, 160, 20, 640, 20, 840],
+  // 5. Agriculture (4.000 | 200 Kelas)
+  ['Agriculture', 'Plantation Worker Sawit', 'Malaysia/Papua Nugini', 2400, 120, 140, 20, 40, 20, 220],
+  ['Agriculture', 'Peternakan', 'Taiwan', 300, 15, 140, 20, 640, 20, 820],
+  ['Agriculture', 'Aquaculture', 'Taiwan', 500, 25, 140, 20, 640, 20, 820],
+  ['Agriculture', 'Kehutanan', 'Taiwan', 260, 13, 140, 20, 640, 20, 820],
+  ['Agriculture', 'Farmer/Farming', 'Jepang', 40, 2, 140, 20, 640, 20, 820],
+  ['Agriculture', 'Budidaya Tanaman/Agriculture', 'Taiwan', 500, 25, 140, 20, 640, 20, 820],
+  // 6. Bahasa (1.700 | 85 Kelas)
+  ['Bahasa', 'Bahasa Inggris', 'Eropa Timur, Malaysia, Singapur, Timur Tengah, Italia', 500, 25, null, null, 640, 20, 660],
+  ['Bahasa', 'Bahasa Jerman', 'Jerman', 100, 5, null, null, 640, 20, 660],
+  ['Bahasa', 'Bahasa Jepang', 'Jepang', 500, 25, null, null, 640, 20, 660],
+  ['Bahasa', 'Bahasa Korea', 'Korea Selatan', 300, 15, null, null, 640, 20, 660],
+  ['Bahasa', 'Bahasa Mandarin', 'Taiwan', 300, 15, null, null, 640, 20, 660],
+  // 7. Pelatihan dan Sertifikasi Teknis (2.000 | 100 Kelas)
+  ['Pelatihan dan Sertifikasi Teknis', 'Kesehatan', 'Jepang (SSW), Belanda, Singapura, Taiwan, Malaysia, Jerman, Brunei Darussalam', 700, 35, 260, 20, null, null, 280],
+  ['Pelatihan dan Sertifikasi Teknis', 'Manufaktur', 'Korea Selatan, Qatar, Taiwan, Malaysia, Slowakia', 300, 15, 320, 20, null, null, 340],
+  ['Pelatihan dan Sertifikasi Teknis', 'Hospitality', 'Turki, Malaysia, Maladewa, Kuwait, Eropa Timur, Arab Saudi, UEA, Brunei Darussalam, Kroasia, Bulgaria', 600, 30, 280, 20, null, null, 200],
+  ['Pelatihan dan Sertifikasi Teknis', 'Konstruksi', 'Taiwan, Malaysia, Brunei Darussalam, Eropa Timur, Jerman', 400, 20, 320, 20, null, null, 340],
+  // 8. Sertifikasi Teknis (1.500 | 75 Kelas)
+  ['Sertifikasi Teknis', 'Kesehatan', 'Jepang (SSW), Belanda, Singapura, Taiwan, Malaysia, Jerman, Brunei Darussalam', 480, 24, null, 20, null, null, 20],
+  ['Sertifikasi Teknis', 'Manufaktur', 'Korea Selatan, Qatar, Taiwan, Malaysia, Slowakia', 100, 5, null, 20, null, null, 20],
+  ['Sertifikasi Teknis', 'Hospitality', 'Turki, Malaysia, Maladewa, Kuwait, Eropa Timur, Arab Saudi, UEA, Brunei Darussalam, Kroasia, Bulgaria', 400, 20, null, 20, null, null, 20],
+  ['Sertifikasi Teknis', 'Agrikultur', 'Malaysia, Taiwan, Jepang', 300, 15, null, 20, null, null, 20],
+  ['Sertifikasi Teknis', 'ABK Fishermen', 'Taiwan', 120, 6, null, 20, null, null, 20],
+  ['Sertifikasi Teknis', 'ABK Niaga', 'Italia', 100, 5, null, 20, null, null, 20],
+];
+
+export const DEFAULT_BP2MI_TARGET_PROGRAMS: TrainingProgram[] = RAW_BP2MI_ROWS.map(
+  (
+    [
+      sector,
+      occupation,
+      projectionPlacement,
+      target,
+      classCount,
+      technicalJP,
+      technicalCertificationJP,
+      languageJP,
+      languageCertificationJP,
+      totalJP,
+    ],
+    idx,
+  ) => {
+    const id = `BP2MI-PROG-${String(idx + 1).padStart(2, '0')}`;
+    const programType: ProgramType =
+      sector === 'Bahasa'
+        ? 'Pelatihan Bahasa'
+        : sector === 'Pelatihan dan Sertifikasi Teknis'
+        ? 'Upskilling'
+        : sector === 'Sertifikasi Teknis'
+        ? 'Reskilling'
+        : 'Teknis Terpadu';
+
+    const certParts: string[] = [];
+    if (technicalCertificationJP) certParts.push(`Sertifikasi Teknis (${technicalCertificationJP} JP)`);
+    if (languageCertificationJP) certParts.push(`Sertifikasi Bahasa (${languageCertificationJP} JP)`);
+
+    const syllabus: string[] = [
+      `Sektor: ${sector} — Jenis Jabatan: ${occupation}`,
+      `Proyeksi Penempatan: ${projectionPlacement}`,
+      `Target Penyiapan: ${target.toLocaleString('id-ID')} Peserta (${classCount} Kelas @ 20 Org/Kls)`,
+    ];
+    if (technicalJP != null) syllabus.push(`JP Pelatihan Teknis: ${technicalJP} JP`);
+    if (technicalCertificationJP != null) syllabus.push(`Sertifikasi Teknis: ${technicalCertificationJP} JP`);
+    if (languageJP != null) syllabus.push(`JP Bahasa: ${languageJP} JP`);
+    if (languageCertificationJP != null) syllabus.push(`Sertifikasi Bahasa: ${languageCertificationJP} JP`);
+    syllabus.push(`Total Jam Pelajaran: ${totalJP} JP`);
+
+    return {
+      id,
+      title: `${occupation} — ${projectionPlacement}`,
+      programType,
+      targetSector: sector,
+      targetJobRole: occupation,
+      targetCountry: projectionPlacement,
+      projectionPlacement,
+      isBp2miTarget: true,
+      classCount,
+      technicalJP,
+      technicalCertificationJP,
+      languageJP,
+      languageCertificationJP,
+      institutionId: '',
+      institutionName: 'Target Nasional BP2MI (Penyiapan Program)',
+      durationJP: totalJP,
+      certificationTarget: certParts.join(' + ') || 'Sertifikasi Kompetensi BNSP',
+      estimatedCostPerParticipant: 0,
+      quota: target,
+      enrolledCount: 0,
+      scheduleStart: '',
+      scheduleEnd: '',
+      curriculumOutline: syllabus,
+    };
+  },
+);
 
 interface Bp2miTargetProgramsTableProps {
   programs: TrainingProgram[];

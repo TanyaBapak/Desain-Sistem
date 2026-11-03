@@ -207,6 +207,10 @@ class BusinessDataController extends Controller
     {
         $this->authorizeWrite($request, 'programs', 'update');
         $existing = DB::table('training_programs')->where('id', $id)->first();
+        if (! $existing && str_starts_with($id, 'BP2MI-PROG-') && class_exists(\Database\Seeders\ProgramPlacementTargetSeeder::class)) {
+            (new \Database\Seeders\ProgramPlacementTargetSeeder)->run();
+            $existing = DB::table('training_programs')->where('id', $id)->first();
+        }
         abort_unless($existing, 404);
         $this->assertRecordScope($request, 'programs', $existing);
 

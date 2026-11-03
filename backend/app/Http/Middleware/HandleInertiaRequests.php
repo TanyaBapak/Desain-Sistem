@@ -11,6 +11,16 @@ class HandleInertiaRequests extends Middleware
 {
     protected $rootView = 'app';
 
+    public function version(Request $request): ?string
+    {
+        $manifest = public_path('build/manifest.json');
+        if (file_exists($manifest)) {
+            return md5_file($manifest) ?: parent::version($request);
+        }
+
+        return parent::version($request);
+    }
+
     public function share(Request $request): array
     {
         $user = $request->user();
