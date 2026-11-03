@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { CandidateParticipant } from '../../types';
 import { useAppStore } from '../../store/useAppStore';
 import { X, UserPlus, Save, AlertCircle, Sparkles } from 'lucide-react';
@@ -46,48 +46,66 @@ export const CandidateFormModal: React.FC<CandidateFormModalProps> = ({
   );
 
   // 4 Negara Resmi Sistem SMK Go Global: Jepang, Korea Selatan, Malaysia, Turki
-  const official4Countries = React.useMemo(() => [
+  const official4Countries = useMemo(() => [
     { id: 'JP', name: 'Jepang' },
     { id: 'KR', name: 'Korea Selatan' },
     { id: 'MY', name: 'Malaysia' },
     { id: 'TR', name: 'Turki' },
   ], []);
 
-  const availableCountries = React.useMemo(() => {
-    const list = [...official4Countries];
+  const availableCountries = useMemo(() => {
+    const fromStore = Array.isArray(businessOptions?.countries) && businessOptions.countries.length > 0
+      ? businessOptions.countries
+      : official4Countries;
+    const map = new Map<string, { id: string; name: string }>();
+
+    fromStore.forEach((c) => {
+      if (!c?.name) return;
+      const normalizedName = c.name === 'Korea' ? 'Korea Selatan' : c.name.trim();
+      map.set(normalizedName.toLowerCase(), {
+        id: c.id || normalizedName,
+        name: normalizedName,
+      });
+    });
+
     if (preferredCountry) {
-      const isKorea = preferredCountry.toLowerCase() === 'korea';
-      const alreadyHas = list.some(
-        (c) => c.name.toLowerCase() === preferredCountry.toLowerCase() || (isKorea && c.id === 'KR')
-      );
-      if (!alreadyHas) {
-        list.push({ id: preferredCountry, name: preferredCountry });
+      const clean = preferredCountry.toLowerCase() === 'korea' ? 'Korea Selatan' : preferredCountry.trim();
+      if (!map.has(clean.toLowerCase())) {
+        map.set(clean.toLowerCase(), { id: clean, name: clean });
       }
     }
-    return list;
-  }, [official4Countries, preferredCountry]);
+
+    return Array.from(map.values());
+  }, [businessOptions?.countries, official4Countries, preferredCountry]);
 
   useEffect(() => {
     if (initialData && mode === 'edit') {
-      setFullName(initialData.fullName);
-      setNik(initialData.nik);
-      setGender(initialData.gender);
-      setProvinsi(initialData.provinsi);
-      setKabupatenKota(initialData.kabupatenKota);
-      setEducationLevel(initialData.educationLevel);
-      setInstitutionName(initialData.institutionName);
+      setFullName(initialData.fullName || '');
+      setNik(initialData.nik || '');
+      setGender(initialData.gender || 'L');
+      setProvinsi(initialData.provinsi || 'Jawa Barat');
+      setKabupatenKota(initialData.kabupatenKota || '');
+      setEducationLevel(initialData.educationLevel || 'SMK');
+      setInstitutionName(initialData.institutionName || '');
       setSourceType(initialData.sourceType || 'Disnaker Pemda');
-      setMajor(initialData.major);
-      setSkillsInput(initialData.skills.join(', '));
-      if (initialData.languageProficiency.length > 0) {
+      setMajor(initialData.major || '');
+      setSkillsInput(Array.isArray(initialData.skills) ? initialData.skills.join(', ') : '');
+      if (initialData.languageProficiency && initialData.languageProficiency.length > 0) {
         setLanguage(initialData.languageProficiency[0].language);
         setLangLevel(initialData.languageProficiency[0].level);
       }
-      const rawCountry = initialData.preferredCountry[0] || 'Jepang';
-      setPreferredCountry(rawCountry.toLowerCase() === 'korea' ? 'Korea Selatan' : rawCountry);
-      setPreferredJobRole(initialData.preferredJobRole[0] || 'Welder');
-      setReadinessStatus(initialData.readinessStatus);
-      setVerificationStatus(initialData.verificationStatus);
+      const rawCountry = Array.isArray(initialData.preferredCountry) && initialData.preferredCountry.length > 0
+        ? initialData.preferredCountry[0]
+        : (typeof initialData.preferredCountry === 'string' ? initialData.preferredCountry : '');
+      const normalizedCountry = rawCountry.toLowerCase() === 'korea' ? 'Korea Selatan' : (rawCountry || 'Jepang');
+      setPreferredCountry(normalizedCountry);
+      setPreferredJobRole(
+        Array.isArray(initialData.preferredJobRole) && initialData.preferredJobRole.length > 0
+          ? initialData.preferredJobRole[0]
+          : (typeof initialData.preferredJobRole === 'string' ? initialData.preferredJobRole : 'Welder')
+      );
+      setReadinessStatus(initialData.readinessStatus || 'Needs Upskilling');
+      setVerificationStatus(initialData.verificationStatus || 'Pending Verification');
     } else {
       // Default reset
       setFullName('');
@@ -107,7 +125,7 @@ export const CandidateFormModal: React.FC<CandidateFormModalProps> = ({
       setReadinessStatus('Needs Upskilling');
       setVerificationStatus('Pending Verification');
     }
-  }, [initialData, mode, isOpen]);
+  }, [initialData, mode, isOpen, defaultInstitutionName]);
 
   if (!isOpen) return null;
 
@@ -274,16 +292,16 @@ export const CandidateFormModal: React.FC<CandidateFormModalProps> = ({
                 value={provinsi}
                 onChange={(e) => {
                   setProvinsi(e.target.value);
-                  const provinceId = (Array.isArray(businessOptions?.provinces) ? businessOptions.provinces : []).find((province) => province.name === e.target.value)?.id;
-                  const firstDistrict = (Array.isArray(businessOptions?.districts) ? businessOptions.districts : []).find((district) => district.province_id === provinceId);
+                  const provinceId = provincesList.find((province) => province.name === e.target.value)?.id;
+                  const firstDistrict = districtsList.find((district) => district.province_id === provinceId);
                   setKabupatenKota(firstDistrict?.name ?? '');
                 }}
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer text-slate-800"
               >
-                {!businessOptions.provinces.some((p) => p.name === provinsi) && provinsi && (
+                {!provincesList.some((p) => p.name === provinsi) && provinsi && (
                   <option value={provinsi}>{provinsi}</option>
                 )}
-                {businessOptions.provinces.map((province) => (
+                {provincesList.map((province) => (
                   <option key={province.id} value={province.name}>{province.name}</option>
                 ))}
               </select>
@@ -355,19 +373,21 @@ export const CandidateFormModal: React.FC<CandidateFormModalProps> = ({
                 <select
                   value={preferredCountry.toLowerCase() === 'korea' ? 'Korea Selatan' : preferredCountry}
                   onChange={(e) => setPreferredCountry(e.target.value)}
-                  className="px-2.5 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-2.5 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer text-slate-800 font-medium"
                 >
-                    <option value="">Pilih negara</option>
-                    {availableCountries.map((country) => (
-                      <option key={country.id} value={country.name}>{country.name}</option>
-                    ))}
+                  <option value="">Pilih negara target...</option>
+                  {availableCountries.map((country) => (
+                    <option key={country.id || country.name} value={country.name}>
+                      {country.name}
+                    </option>
+                  ))}
                 </select>
                 <input
                   type="text"
                   value={preferredJobRole}
                   onChange={(e) => setPreferredJobRole(e.target.value)}
                   placeholder="Welder / Caregiver..."
-                  className="px-2.5 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-2.5 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
                 />
               </div>
             </div>

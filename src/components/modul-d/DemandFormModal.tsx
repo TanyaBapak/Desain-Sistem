@@ -19,14 +19,6 @@ export const DemandFormModal: React.FC<DemandFormModalProps> = ({
   mode,
 }) => {
   const { businessOptions } = useAppStore();
-  const availableCountries = Array.isArray(businessOptions?.countries) && businessOptions.countries.length > 0
-    ? businessOptions.countries
-    : [
-        { id: 'JP', name: 'Jepang' },
-        { id: 'KR', name: 'Korea Selatan' },
-        { id: 'MY', name: 'Malaysia' },
-        { id: 'TR', name: 'Turki' },
-      ];
   const [jobTitle, setJobTitle] = useState('');
   const [employerName, setEmployerName] = useState('');
   const [country, setCountry] = useState('Jepang');
@@ -39,8 +31,30 @@ export const DemandFormModal: React.FC<DemandFormModalProps> = ({
   const [deadlineDate, setDeadlineDate] = useState('');
   const [skillsInput, setSkillsInput] = useState('');
   const [certsInput, setCertsInput] = useState('');
-  const availableOccupations = businessOptions.occupations.filter(
-    (occupation) => businessOptions.sectors.find((item) => item.name === sector)?.id === occupation.sector_id,
+
+  const availableCountries = React.useMemo(() => {
+    const list = Array.isArray(businessOptions?.countries) && businessOptions.countries.length > 0
+      ? [...businessOptions.countries]
+      : [
+          { id: 'JP', name: 'Jepang' },
+          { id: 'KR', name: 'Korea Selatan' },
+          { id: 'MY', name: 'Malaysia' },
+          { id: 'TR', name: 'Turki' },
+        ];
+    if (country) {
+      const isKorea = country.toLowerCase() === 'korea';
+      const exists = list.some(
+        (c) => c.name.toLowerCase() === country.toLowerCase() || (isKorea && c.id === 'KR')
+      );
+      if (!exists) {
+        list.push({ id: country, name: country });
+      }
+    }
+    return list;
+  }, [businessOptions?.countries, country]);
+
+  const availableOccupations = (Array.isArray(businessOptions?.occupations) ? businessOptions.occupations : []).filter(
+    (occupation) => (Array.isArray(businessOptions?.sectors) ? businessOptions.sectors : []).find((item) => item.name === sector)?.id === occupation.sector_id,
   );
 
   useEffect(() => {
@@ -185,10 +199,10 @@ export const DemandFormModal: React.FC<DemandFormModalProps> = ({
               <select
                 value={country}
                 onChange={(e) => setCountry(e.target.value)}
-                className="w-full rounded-xl border border-input bg-background p-2.5 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="w-full rounded-xl border border-input bg-background p-2.5 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
               >
                 {availableCountries.map((item) => (
-                  <option key={item.id} value={item.name}>{item.name}</option>
+                  <option key={item.id || item.name} value={item.name}>{item.name}</option>
                 ))}
               </select>
             </div>
