@@ -219,6 +219,11 @@ export interface AppState {
   deleteDemand: (id: string) => { success: boolean; message: string };
 }
 
+export const DEFAULT_SYSTEM_PROVINCES = INDONESIA_38_PROVINCES.map((p) => ({
+  id: p.id,
+  name: p.name,
+}));
+
 export const DEFAULT_SYSTEM_COUNTRIES = [
   { id: 'JP', name: 'Jepang' },
   { id: 'KR', name: 'Korea Selatan' },

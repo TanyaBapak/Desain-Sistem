@@ -41,16 +41,61 @@ export const CandidateFormModal: React.FC<CandidateFormModalProps> = ({
   const [preferredJobRole, setPreferredJobRole] = useState('');
   const [readinessStatus, setReadinessStatus] = useState<CandidateParticipant['readinessStatus']>('Needs Upskilling');
   const [verificationStatus, setVerificationStatus] = useState<CandidateParticipant['verificationStatus']>('Pending Verification');
-  const provincesList = Array.isArray(businessOptions?.provinces) && businessOptions.provinces.length > 0
-    ? businessOptions.provinces
-    : INDONESIA_38_PROVINCES;
-  const districtsList = Array.isArray(businessOptions?.districts) && businessOptions.districts.length > 0
-    ? businessOptions.districts
-    : INDONESIA_DISTRICTS;
-  const currentProvinceId = provincesList.find((p) => p.name.toLowerCase() === provinsi.toLowerCase())?.id;
-  const availableDistricts = districtsList.filter(
-    (district) => district.province_id === currentProvinceId,
-  );
+  const provincesList = useMemo(() => {
+    const list: Array<{ id: string; name: string }> = [];
+    const seenNames = new Set<string>();
+
+    const addProvince = (id: string | number, name: string) => {
+      const cleanName = (name || '').trim();
+      if (!cleanName) return;
+      const key = cleanName.toLowerCase();
+      if (!seenNames.has(key)) {
+        seenNames.add(key);
+        list.push({ id: String(id || cleanName), name: cleanName });
+      }
+    };
+
+    // 1. Standard 38 provinces of Indonesia
+    INDONESIA_38_PROVINCES.forEach((p) => addProvince(p.id, p.name));
+
+    // 2. Business options provinces from store/backend
+    if (Array.isArray(businessOptions?.provinces)) {
+      businessOptions.provinces.forEach((p) => {
+        if (p?.name) {
+          addProvince(p.id, p.name);
+        }
+      });
+    }
+
+    // 3. Preserve current candidate's province if present
+    if (provinsi) {
+      addProvince(provinsi, provinsi);
+    }
+
+    // Sort alphabetically for clean selection
+    return list.sort((a, b) => a.name.localeCompare(b.name, 'id'));
+  }, [businessOptions?.provinces, provinsi]);
+
+  const districtsList = useMemo(() => {
+    if (Array.isArray(businessOptions?.districts) && businessOptions.districts.length > 0) {
+      return businessOptions.districts;
+    }
+    return INDONESIA_DISTRICTS;
+  }, [businessOptions?.districts]);
+
+  const selectedProvinceId = useMemo(() => {
+    const cleanProv = (provinsi || '').trim().toLowerCase();
+    if (!cleanProv) return '';
+    const match = provincesList.find((p) => p.name.trim().toLowerCase() === cleanProv);
+    return match ? String(match.id).trim() : '';
+  }, [provincesList, provinsi]);
+
+  const availableDistricts = useMemo(() => {
+    if (!selectedProvinceId) return [];
+    return districtsList.filter(
+      (district) => String(district.province_id).trim() === selectedProvinceId,
+    );
+  }, [districtsList, selectedProvinceId]);
 
   // 4 Negara Resmi Sistem SMK Go Global: Jepang, Korea Selatan, Malaysia, Turki
   const official4Countries = useMemo(() => [
@@ -90,8 +135,12 @@ export const CandidateFormModal: React.FC<CandidateFormModalProps> = ({
       setFullName(initialData.fullName || '');
       setNik(initialData.nik || '');
       setGender(initialData.gender || 'L');
-      setProvinsi(initialData.provinsi || 'Jawa Barat');
-      setKabupatenKota(initialData.kabupatenKota || '');
+      const rawProv = (initialData.provinsi || '').trim();
+      const matchedProv = INDONESIA_38_PROVINCES.find(
+        (p) => p.name.toLowerCase() === rawProv.toLowerCase()
+      )?.name || rawProv || 'Jawa Barat';
+      setProvinsi(matchedProv);
+      setKabupatenKota((initialData.kabupatenKota || '').trim());
       setEducationLevel(initialData.educationLevel || 'SMK');
       setInstitutionName(initialData.institutionName || '');
       setSourceType(initialData.sourceType || 'Disnaker Pemda');
@@ -294,43 +343,67 @@ export const CandidateFormModal: React.FC<CandidateFormModalProps> = ({
 
             {/* Provinsi */}
             <div>
-              <label className="block font-bold text-slate-700 mb-1">Provinsi Domisili</label>
+              <label className="block font-bold text-slate-700 mb-1">Provinsi Domisili *</label>
               <select
+                required
                 value={provinsi}
                 onChange={(e) => {
                   const newProv = e.target.value;
                   setProvinsi(newProv);
-                  const pId = provincesList.find((p) => p.name.toLowerCase() === newProv.toLowerCase())?.id;
-                  const firstDistrict = districtsList.find((d) => d.province_id === pId);
-                  setKabupatenKota(firstDistrict?.name ?? '');
+                  const provObj = provincesList.find(
+                    (p) => p.name.trim().toLowerCase() === newProv.trim().toLowerCase()
+                  );
+                  const pId = provObj ? String(provObj.id).trim() : '';
+                  const matchingDistricts = districtsList.filter(
+                    (d) => String(d.province_id).trim() === pId
+                  );
+                  if (matchingDistricts.length > 0) {
+                    setKabupatenKota(matchingDistricts[0].name);
+                  } else {
+                    setKabupatenKota('');
+                  }
                 }}
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer text-slate-800"
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer font-medium text-slate-800"
               >
-                {!provincesList.some((p) => p.name.toLowerCase() === provinsi.toLowerCase()) && provinsi && (
-                  <option value={provinsi}>{provinsi}</option>
-                )}
                 {provincesList.map((province) => (
-                  <option key={province.id} value={province.name}>{province.name}</option>
+                  <option key={province.id} value={province.name}>
+                    {province.name}
+                  </option>
                 ))}
               </select>
             </div>
 
             {/* Kabupaten/Kota */}
             <div>
-              <label className="block font-bold text-slate-700 mb-1">Kabupaten / Kota</label>
-              <select
-                required
-                value={kabupatenKota}
-                onChange={(e) => setKabupatenKota(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                {!availableDistricts.some((d) => d.name.toLowerCase() === kabupatenKota.toLowerCase()) && kabupatenKota && (
-                  <option value={kabupatenKota}>{kabupatenKota}</option>
-                )}
-                {availableDistricts.map((district) => (
-                  <option key={district.id} value={district.name}>{district.name}</option>
-                ))}
-              </select>
+              <label className="block font-bold text-slate-700 mb-1">Kabupaten / Kota *</label>
+              {availableDistricts.length > 0 ? (
+                <select
+                  required
+                  value={kabupatenKota}
+                  onChange={(e) => setKabupatenKota(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer font-medium text-slate-800"
+                >
+                  {!availableDistricts.some(
+                    (d) => d.name.trim().toLowerCase() === (kabupatenKota || '').trim().toLowerCase()
+                  ) && Boolean(kabupatenKota) && (
+                    <option value={kabupatenKota}>{kabupatenKota}</option>
+                  )}
+                  {availableDistricts.map((district) => (
+                    <option key={district.id} value={district.name}>
+                      {district.name}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  type="text"
+                  required
+                  value={kabupatenKota}
+                  onChange={(e) => setKabupatenKota(e.target.value)}
+                  placeholder="Masukkan Kabupaten / Kota..."
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-slate-800"
+                />
+              )}
             </div>
           </div>
 

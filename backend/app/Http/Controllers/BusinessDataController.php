@@ -1093,8 +1093,8 @@ class BusinessDataController extends Controller
                 })
                 ->first();
 
-            // If not found in this province, search across all provinces
-            if (! $district) {
+            // If not found in this province and province was NOT explicitly specified, search across all provinces
+            if (! $district && ! $province) {
                 $districtInAnyProv = DB::table('districts')
                     ->where(function ($q) use ($districtInput, $cleanKab) {
                         $q->where('name', $districtInput)
@@ -1112,16 +1112,22 @@ class BusinessDataController extends Controller
             }
         }
 
-        // Fallbacks for district
-        if (! $district) {
-            if ($institution?->district_id) {
-                $district = DB::table('districts')->where('id', $institution->district_id)->first();
-            } elseif ($user?->district_id) {
-                $district = DB::table('districts')->where('id', $user->district_id)->first();
-            }
-        }
+        // Fallbacks for district strictly within resolved province
         if (! $district) {
             $district = DB::table('districts')->where('province_id', $provinceId)->first();
+        }
+        if (! $district) {
+            if ($institution?->district_id) {
+                $instDistrict = DB::table('districts')->where('id', $institution->district_id)->first();
+                if ($instDistrict && (string) $instDistrict->province_id === $provinceId) {
+                    $district = $instDistrict;
+                }
+            } elseif ($user?->district_id) {
+                $userDistrict = DB::table('districts')->where('id', $user->district_id)->first();
+                if ($userDistrict && (string) $userDistrict->province_id === $provinceId) {
+                    $district = $userDistrict;
+                }
+            }
         }
         if (! $district) {
             // As a last-resort guarantee, create a valid district record so foreign key never fails
