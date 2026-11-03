@@ -186,7 +186,7 @@ export function PanelContent({
                 )}
               </div>
             </div>
-          ) : (
+          ) : pillar.t !== "2. Siap Program" && pillar.t !== "4. Siap Permintaan" ? (
             /* Funnel bars fallback for other non-candidate pillars */
             <div className="space-y-2 pt-1">
               {pillar.k.map(([x, l]) => {
@@ -205,7 +205,7 @@ export function PanelContent({
                 );
               })}
             </div>
-          )}
+          ) : null}
 
           {onOpenFullModal && (
             <button
@@ -233,10 +233,13 @@ export function PanelContent({
 
   // Internal Node (List of children)
   const internalNode = node as { name: string; ch: TreeNode[] };
+  const isQualitativePillar = pillar.t === "2. Siap Program" || pillar.t === "4. Siap Permintaan";
   const maxVal = Math.max(1, ...internalNode.ch.map((c) => (c.m ? c.m[metricKey] : 0)));
-  const sortedItems = internalNode.ch
-    .map((c, i) => ({ c, i }))
-    .sort((a, b) => ((b.c.m ? b.c.m[metricKey] : 0) - (a.c.m ? a.c.m[metricKey] : 0)));
+  const sortedItems = isQualitativePillar
+    ? internalNode.ch.map((c, i) => ({ c, i }))
+    : internalNode.ch
+        .map((c, i) => ({ c, i }))
+        .sort((a, b) => ((b.c.m ? b.c.m[metricKey] : 0) - (a.c.m ? a.c.m[metricKey] : 0)));
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -259,7 +262,7 @@ export function PanelContent({
         </div>
 
         {/* Metric selection chips on level 0 */}
-        {levelIndex === 0 && (
+        {levelIndex === 0 && pillar.k.length > 1 && (
           <div className="flex flex-wrap gap-1.5 mt-2">
             {pillar.k.map(([x, l]) => (
               <button
@@ -285,7 +288,20 @@ export function PanelContent({
           const val = c.m ? c.m[metricKey] : 0;
           const isSelected = selectedChildIndex === i;
           const isLeafChild = Boolean("leaf" in c && c.leaf);
-          const barWidth = Math.max(3, Math.round((val / maxVal) * 100));
+          const barWidth = isQualitativePillar ? 0 : Math.max(3, Math.round((val / maxVal) * 100));
+          const childList = "ch" in c && c.ch ? c.ch : [];
+          const sectorSummary =
+            isQualitativePillar && levelIndex === 0 && childList.length > 0
+              ? childList.map((sec) => sec.name.replace(/^Sektor\s+/i, "")).join(", ")
+              : null;
+
+          const rightBadgeText = isQualitativePillar
+            ? childList.length > 0
+              ? levelIndex === 0
+                ? `${childList.length} Sektor`
+                : `${childList.length} Program`
+              : ""
+            : formatNum(val);
 
           return (
             <div
@@ -307,20 +323,26 @@ export function PanelContent({
               )}
             >
               {/* Proportional background bar */}
-              <div
-                className="absolute inset-y-0 left-0 bg-primary/15 dark:bg-primary/25 rounded-xl pointer-events-none transition-all"
-                style={{ width: `${barWidth}%` }}
-              />
+              {barWidth > 0 && (
+                <div
+                  className="absolute inset-y-0 left-0 bg-primary/15 dark:bg-primary/25 rounded-xl pointer-events-none transition-all"
+                  style={{ width: `${barWidth}%` }}
+                />
+              )}
 
               <div className="relative min-w-0">
                 <div className="text-xs font-semibold text-foreground truncate">{c.name}</div>
-                <div className="text-[11px] text-muted-foreground">
-                  {"ch" in c && c.ch ? `${c.ch.length} ${pillar.lv[levelIndex + 1]?.toLowerCase() || "item"}` : "Rincian"}
+                <div className="text-[11px] text-muted-foreground truncate">
+                  {sectorSummary
+                    ? `Sektor: ${sectorSummary}`
+                    : childList.length > 0
+                    ? `${childList.length} ${pillar.lv[levelIndex + 1]?.toLowerCase() || "item"}`
+                    : "Jenis Program Pelatihan"}
                 </div>
               </div>
 
               <div className="relative text-xs font-bold tabular-nums text-foreground">
-                {formatNum(val)}
+                {rightBadgeText}
               </div>
 
               <div className="relative text-xs text-muted-foreground">

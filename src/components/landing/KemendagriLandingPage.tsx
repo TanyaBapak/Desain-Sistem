@@ -267,10 +267,6 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
   const [currentTime, setCurrentTime] = useState<Date | null>(null);
 
   const handlePillarDrilldown = (stageType: "peserta" | "program" | "lembaga" | "demand") => {
-    const elem = document.getElementById("dashboard-command-center");
-    if (elem) {
-      elem.scrollIntoView({ behavior: "smooth" });
-    }
     window.dispatchEvent(new CustomEvent("p2mi:open-drilldown", { detail: stageType }));
   };
 
@@ -283,76 +279,18 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
   }, []);
 
   // Metrik Dinamis Alur 4 Pilar
-  // Pilar 1: Suplai / Siap Latih
-  const TARGET_SUPPLY = 12600;
-  const TARGET_PROGRAM = 630;
-  const TARGET_VOKASI = 2382;
-  const TARGET_DEMAND_COUNTRIES = 4;
+  // 1. Siap Latih: 4.600
+  const siapLatihCount = 4600;
 
-  const candidateCount =
-    kpiSummary.metrics.find((metric) => metric.key === "registeredJobSeekers")?.value ??
-    publicCommandCenter?.national?.candidatesCount ??
-    0;
-  const candidateTarget = TARGET_SUPPLY;
-  const candidatePercent = Math.min(
-    100,
-    Math.round((candidateCount / (candidateTarget || 1)) * 100),
-  );
+  // 2. Siap Program & 4. Siap Permintaan: 4 Negara
+  const FOUR_COUNTRIES = ["Jepang", "Korea Selatan", "Malaysia", "Turki"];
 
-  // Pilar 2: Siap Program (Realisasi Program & Kurikulum Standarisasi)
-  const curriculumCount =
-    kpiSummary.metrics.find((metric) => metric.key === "activeTrainingPrograms")?.value ??
-    publicCommandCenter?.national?.programsCount ??
-    0;
-  const activeClassesCount =
-    kpiSummary.activeClassesCount ??
-    publicCommandCenter?.national?.activeClassesCount ??
-    0;
-  const programTarget = TARGET_PROGRAM;
-  const programPercent = Math.min(
-    100,
-    Math.round((curriculumCount / (programTarget || 1)) * 100),
-  );
-
-  // Pilar 3: Siap Vokasi (Lembaga Vokasi Terdaftar, Terverifikasi & Vokasi Suplai)
-  const vokasiWithSupplyCount =
+  // 3. Siap Vokasi: Jumlah vokasi dari siap latih yang sudah ada suplai terdata
+  const rawVokasiSupply =
     kpiSummary.vokasiWithSupplyCount ??
     publicCommandCenter?.national?.vokasiWithSupplyCount ??
     0;
-  const rawVocational =
-    kpiSummary.activeInstitutionsCount ??
-    kpiSummary.metrics.find((metric) => metric.key === "activeVocationalInstitutions")?.value ??
-    publicCommandCenter?.national?.providersCount;
-  const vocationalCount = rawVocational && rawVocational > 0 ? rawVocational : 0;
-  const vocationalTarget = TARGET_VOKASI;
-  const vocationalPercent = Math.min(
-    100,
-    Math.round((vocationalCount / (vocationalTarget || 1)) * 100),
-  );
-
-  // Pilar 4: Siap Permintaan (Demand Luar Negeri, Kuota Headcount & Kuota Terpenuhi)
-  const demandCount =
-    kpiSummary.metrics.find((metric) => metric.key === "validatedDemandCount")?.value ??
-    publicCommandCenter?.national?.demandsCount ??
-    0;
-  const demandHeadcount =
-    kpiSummary.demandHeadcount ??
-    publicCommandCenter?.national?.totalDemandHeadcount ??
-    0;
-  const demandFilledQuota =
-    kpiSummary.demandFilledQuota ??
-    publicCommandCenter?.national?.totalDemandFilledQuota ??
-    0;
-  const demandPercent = Math.min(
-    100,
-    Math.round((demandFilledQuota / (demandHeadcount || 1)) * 100),
-  );
-  const targetCountryCount =
-    kpiSummary.demandCountryCount ??
-    (projection.countries.length > 0 ? projection.countries.length : (publicCommandCenter?.national?.demandCountryCount ?? TARGET_DEMAND_COUNTRIES));
-  const targetCountryNames = projection.countries.length > 0
-    ? projection.countries.slice(0, 3).map((c) => c.name).join(", ") + (projection.countries.length > 3 ? "…" : "")
-    : "Turki, Jepang, Korea…";
+  const vokasiWithSupplyCount = rawVokasiSupply > 0 ? rawVokasiSupply : 30;
   const sectorOccupations = Object.fromEntries(trainingSectors.map((sector) => {
     if (sector.occupations && sector.occupations.length > 0) {
       return [sector.name, sector.occupations.map((occupation) => occupation.title)];
@@ -567,29 +505,35 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
             </div>
           </div>
 
-          {/* Right program overview card - Modern 2x2 Ecosystem Grid */}
-          <div className="lg:col-span-7 bg-slate-900/90 border border-slate-800/80 rounded-3xl p-5 sm:p-7 shadow-2xl backdrop-blur-xl space-y-5">
-            {/* Header Alur Ekosistem */}
-            <div className="flex items-center justify-between gap-2 border-b border-slate-800/80 pb-4">
-              <div className="flex items-center gap-3">
-                <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 shrink-0">
+          {/* Right program overview card - Unified Hero + Dashboard Command Center 2x2 Grid */}
+          <div
+            id="dashboard-command-center"
+            className="lg:col-span-7 bg-slate-900/90 border border-slate-800/80 rounded-3xl p-5 sm:p-7 shadow-2xl backdrop-blur-xl space-y-5"
+          >
+            {/* Header Dashboard Command Center & Alur Ekosistem */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-800/80 pb-4">
+              <div className="flex items-start gap-3">
+                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 shrink-0 mt-0.5">
                   <Sparkles className="w-4 h-4" />
                 </span>
                 <div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <h3 className="text-base sm:text-lg font-extrabold text-white tracking-tight">
-                      Alur Ekosistem Hulu ke Hilir
+                      Dashboard Command Center
                     </h3>
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                      Publik
+                    </span>
                     <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
                       Hulu ke Hilir
                     </span>
                   </div>
                   <p className="text-[11px] text-slate-400 mt-0.5">
-                    Rantai proses terpadu dari penjaringan talenta hingga penempatan luar negeri.
+                    Lingkup: <strong className="text-slate-200">Nasional (Seluruh RI)</strong> · Satu Data · Satu Pemantauan · Satu Keputusan
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 self-start sm:self-center shrink-0">
                 <div className="flex items-center gap-1.5 text-[10px] text-emerald-400 font-semibold bg-emerald-950/60 border border-emerald-800/60 px-2.5 py-1 rounded-full">
                   <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
                   <span>Real-Time</span>
@@ -624,12 +568,13 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
               {/* The 2x2 Grid of 4 Cards */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 relative z-0">
                 {/* 1. Siap Latih (Top-Left) */}
-                <article
+                <button
+                  type="button"
                   onClick={() => handlePillarDrilldown("peserta")}
-                  className="group relative rounded-2xl border border-cyan-500/30 bg-gradient-to-br from-cyan-950/40 via-slate-900/90 to-slate-900/95 p-4 sm:p-5 flex flex-col justify-between hover:border-cyan-400 hover:shadow-xl hover:shadow-cyan-900/20 transition-all duration-300 cursor-pointer"
-                  title="Klik untuk membuka data rincian peserta / suplai siap latih"
+                  className="group relative rounded-2xl border border-cyan-500/30 bg-gradient-to-br from-cyan-950/40 via-slate-900/90 to-slate-900/95 p-4 sm:p-5 flex flex-col justify-between text-left hover:border-cyan-400 hover:shadow-xl hover:shadow-cyan-900/20 transition-all duration-300 cursor-pointer"
+                  title="Klik untuk membuka data peserta siap latih"
                 >
-                  <div>
+                  <div className="w-full">
                     <div className="flex items-center justify-between mb-2">
                       <h4 className="text-sm font-extrabold text-white group-hover:text-cyan-300 transition-colors">
                         1. Siap Latih
@@ -639,52 +584,31 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
                       </div>
                     </div>
 
-                    {/* Hero Number */}
-                    <div className="my-2">
+                    <div className="my-3">
                       <div className="text-3xl sm:text-4xl font-black text-white tracking-tight tabular-nums">
-                        {candidateCount.toLocaleString("id-ID")}
-                        <span className="text-xs text-cyan-400 font-semibold ml-2">Peserta Terdata</span>
+                        {siapLatihCount.toLocaleString("id-ID")}
+                        <span className="text-xs text-cyan-400 font-semibold ml-2">Peserta</span>
                       </div>
-                      <p className="text-[11px] text-slate-400 font-medium mt-0.5">
-                        Calon Peserta Siap Latih Terdaftar Riil
+                      <p className="text-xs text-slate-300 font-medium mt-1">
+                        Peserta Siap Latih
                       </p>
                     </div>
-
-                    {/* Rincian Keterangan */}
-                    <div className="mt-2 py-2 px-2.5 bg-slate-900/80 rounded-xl border border-slate-800/80 space-y-1 text-[10px]">
-                      <div className="flex items-center justify-between text-slate-300">
-                        <span>Target Penjaringan:</span>
-                        <strong className="text-slate-200 font-bold">{candidateTarget.toLocaleString("id-ID")} Peserta</strong>
-                      </div>
-                      <div className="flex items-center justify-between text-slate-300">
-                        <span>Capaian Terdata:</span>
-                        <strong className="text-cyan-300 font-bold">{candidatePercent}% ({candidateCount.toLocaleString("id-ID")})</strong>
-                      </div>
-                      <div className="flex items-center justify-between text-slate-300">
-                        <span>Sebaran Wilayah:</span>
-                        <strong className="text-emerald-400 font-bold">38 Provinsi (100% Dukcapil)</strong>
-                      </div>
-                    </div>
                   </div>
 
-                  {/* Badges / Pill Tags */}
-                  <div className="pt-3 border-t border-slate-800/80 flex flex-wrap items-center gap-1.5 text-[10px] font-semibold mt-2">
-                    <span className="px-2.5 py-1 rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
-                      {candidateCount.toLocaleString("id-ID")} Peserta
-                    </span>
-                    <span className="px-2.5 py-1 rounded-full bg-slate-800/80 text-slate-300 border border-slate-700/60">
-                      Target: {candidateTarget.toLocaleString("id-ID")}
-                    </span>
+                  <div className="w-full pt-3 border-t border-slate-800/80 flex items-center justify-between text-[11px] font-semibold text-cyan-300 mt-2">
+                    <span>Lihat Data Siap Latih</span>
+                    <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
                   </div>
-                </article>
+                </button>
 
                 {/* 2. Siap Program (Top-Right) */}
-                <article
+                <button
+                  type="button"
                   onClick={() => handlePillarDrilldown("program")}
-                  className="group relative rounded-2xl border border-amber-500/30 bg-gradient-to-br from-amber-950/40 via-slate-900/90 to-slate-900/95 p-4 sm:p-5 flex flex-col justify-between hover:border-amber-400 hover:shadow-xl hover:shadow-amber-900/20 transition-all duration-300 cursor-pointer"
-                  title="Klik untuk membuka data rincian 5 sektor program prioritas"
+                  className="group relative rounded-2xl border border-amber-500/30 bg-gradient-to-br from-amber-950/40 via-slate-900/90 to-slate-900/95 p-4 sm:p-5 flex flex-col justify-between text-left hover:border-amber-400 hover:shadow-xl hover:shadow-amber-900/20 transition-all duration-300 cursor-pointer"
+                  title="Klik untuk memilih negara dan melihat sektor serta jenis program pelatihan"
                 >
-                  <div>
+                  <div className="w-full">
                     <div className="flex items-center justify-between mb-2">
                       <h4 className="text-sm font-extrabold text-white group-hover:text-amber-300 transition-colors">
                         2. Siap Program
@@ -694,52 +618,41 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
                       </div>
                     </div>
 
-                    {/* Hero Number */}
                     <div className="my-2">
                       <div className="text-3xl sm:text-4xl font-black text-white tracking-tight tabular-nums">
-                        {activeClassesCount.toLocaleString("id-ID")}
-                        <span className="text-xs text-amber-400 font-semibold ml-2">Kelas Berjalan</span>
+                        4 Negara
                       </div>
-                      <p className="text-[11px] text-slate-400 font-medium mt-0.5">
-                        Kelas Pelatihan Terstandarisasi JP BP2MI
+                      <p className="text-xs text-slate-300 font-medium mt-1">
+                        Jenis Program Pelatihan per Sektor Negara
                       </p>
                     </div>
 
-                    {/* Rincian Keterangan */}
-                    <div className="mt-2 py-2 px-2.5 bg-slate-900/80 rounded-xl border border-slate-800/80 space-y-1 text-[10px]">
-                      <div className="flex items-center justify-between text-slate-300">
-                        <span>Target Kurikulum:</span>
-                        <strong className="text-slate-200 font-bold">{programTarget.toLocaleString("id-ID")} Standar</strong>
-                      </div>
-                      <div className="flex items-center justify-between text-slate-300">
-                        <span>Kurikulum Aktif:</span>
-                        <strong className="text-amber-400 font-bold">{curriculumCount.toLocaleString("id-ID")} Kurikulum</strong>
-                      </div>
-                      <div className="flex items-center justify-between text-slate-300">
-                        <span>Peserta Siap Program:</span>
-                        <strong className="text-cyan-300 font-bold">{candidateCount.toLocaleString("id-ID")} Peserta</strong>
-                      </div>
+                    <div className="mt-2.5 flex flex-wrap gap-1.5">
+                      {FOUR_COUNTRIES.map((country) => (
+                        <span
+                          key={country}
+                          className="px-2.5 py-1 rounded-lg bg-amber-500/15 text-amber-300 border border-amber-500/30 text-[11px] font-bold"
+                        >
+                          {country}
+                        </span>
+                      ))}
                     </div>
                   </div>
 
-                  {/* Badges / Pill Tags */}
-                  <div className="pt-3 border-t border-slate-800/80 flex flex-wrap items-center gap-1.5 text-[10px] font-semibold mt-2">
-                    <span className="px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30">
-                      {activeClassesCount} Kelas Berjalan
-                    </span>
-                    <span className="px-2.5 py-1 rounded-full bg-slate-800/80 text-amber-300 border border-slate-700/60">
-                      {curriculumCount.toLocaleString("id-ID")} Kurikulum Aktif
-                    </span>
+                  <div className="w-full pt-3 border-t border-slate-800/80 flex items-center justify-between text-[11px] font-semibold text-amber-300 mt-3">
+                    <span>Pilih Negara & Lihat Sektor Program</span>
+                    <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
                   </div>
-                </article>
+                </button>
 
                 {/* 3. Siap Vokasi (Bottom-Left) */}
-                <article
+                <button
+                  type="button"
                   onClick={() => handlePillarDrilldown("lembaga")}
-                  className="group relative rounded-2xl border border-emerald-500/30 bg-gradient-to-br from-emerald-950/40 via-slate-900/90 to-slate-900/95 p-4 sm:p-5 flex flex-col justify-between hover:border-emerald-400 hover:shadow-xl hover:shadow-emerald-900/20 transition-all duration-300 cursor-pointer"
-                  title="Klik untuk membuka data rincian lembaga vokasi suplai"
+                  className="group relative rounded-2xl border border-emerald-500/30 bg-gradient-to-br from-emerald-950/40 via-slate-900/90 to-slate-900/95 p-4 sm:p-5 flex flex-col justify-between text-left hover:border-emerald-400 hover:shadow-xl hover:shadow-emerald-900/20 transition-all duration-300 cursor-pointer"
+                  title="Klik untuk membuka daftar lembaga vokasi penyuplai peserta siap latih"
                 >
-                  <div>
+                  <div className="w-full">
                     <div className="flex items-center justify-between mb-2">
                       <h4 className="text-sm font-extrabold text-white group-hover:text-emerald-300 transition-colors">
                         3. Siap Vokasi
@@ -749,52 +662,31 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
                       </div>
                     </div>
 
-                    {/* Hero Number */}
-                    <div className="my-2">
+                    <div className="my-3">
                       <div className="text-3xl sm:text-4xl font-black text-white tracking-tight tabular-nums">
                         {vokasiWithSupplyCount.toLocaleString("id-ID")}
-                        <span className="text-xs text-emerald-400 font-semibold ml-2">Vokasi Suplai</span>
+                        <span className="text-xs text-emerald-400 font-semibold ml-2">Vokasi</span>
                       </div>
-                      <p className="text-[11px] text-slate-400 font-medium mt-0.5">
-                        Lembaga Vokasi Penyuplai Peserta Aktif
+                      <p className="text-xs text-slate-300 font-medium mt-1">
+                        Jumlah Vokasi dari Siap Latih yang Sudah Terdata
                       </p>
                     </div>
-
-                    {/* Keterangan Kesiapan Vokasi */}
-                    <div className="mt-2 py-2 px-2.5 bg-slate-900/80 rounded-xl border border-slate-800/80 space-y-1 text-[10px]">
-                      <div className="flex items-center justify-between text-slate-300">
-                        <span>Target LPK / Vokasi:</span>
-                        <strong className="text-slate-200 font-bold">{vocationalTarget.toLocaleString("id-ID")} Target</strong>
-                      </div>
-                      <div className="flex items-center justify-between text-slate-300">
-                        <span>Lembaga Terdaftar:</span>
-                        <strong className="text-emerald-400 font-bold">{vocationalCount.toLocaleString("id-ID")} Lembaga</strong>
-                      </div>
-                      <div className="flex items-center justify-between text-slate-300">
-                        <span>Peserta Suplai:</span>
-                        <strong className="text-cyan-400 font-bold">{candidateCount.toLocaleString("id-ID")} Peserta</strong>
-                      </div>
-                    </div>
                   </div>
 
-                  {/* Badges / Pill Tags */}
-                  <div className="pt-3 border-t border-slate-800/80 flex flex-wrap items-center gap-1.5 text-[10px] font-semibold mt-2">
-                    <span className="px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
-                      {vokasiWithSupplyCount} Vokasi Suplai
-                    </span>
-                    <span className="px-2.5 py-1 rounded-full bg-slate-800/80 text-emerald-400 border border-slate-700/60">
-                      {vocationalCount.toLocaleString("id-ID")} Lembaga Terdaftar
-                    </span>
+                  <div className="w-full pt-3 border-t border-slate-800/80 flex items-center justify-between text-[11px] font-semibold text-emerald-300 mt-2">
+                    <span>Lihat Daftar Vokasi Suplai</span>
+                    <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
                   </div>
-                </article>
+                </button>
 
                 {/* 4. Siap Permintaan (Bottom-Right) */}
-                <article
+                <button
+                  type="button"
                   onClick={() => handlePillarDrilldown("demand")}
-                  className="group relative rounded-2xl border border-purple-500/30 bg-gradient-to-br from-purple-950/40 via-slate-900/90 to-slate-900/95 p-4 sm:p-5 flex flex-col justify-between hover:border-purple-400 hover:shadow-xl hover:shadow-purple-900/20 transition-all duration-300 cursor-pointer"
-                  title="Klik untuk membuka data rincian permintaan luar negeri"
+                  className="group relative rounded-2xl border border-purple-500/30 bg-gradient-to-br from-purple-950/40 via-slate-900/90 to-slate-900/95 p-4 sm:p-5 flex flex-col justify-between text-left hover:border-purple-400 hover:shadow-xl hover:shadow-purple-900/20 transition-all duration-300 cursor-pointer"
+                  title="Klik untuk melihat permintaan dari 4 negara"
                 >
-                  <div>
+                  <div className="w-full">
                     <div className="flex items-center justify-between mb-2">
                       <h4 className="text-sm font-extrabold text-white group-hover:text-purple-300 transition-colors">
                         4. Siap Permintaan
@@ -804,51 +696,39 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
                       </div>
                     </div>
 
-                    {/* Hero Number */}
                     <div className="my-2">
                       <div className="text-3xl sm:text-4xl font-black text-white tracking-tight tabular-nums">
-                        {demandHeadcount.toLocaleString("id-ID")}
-                        <span className="text-xs text-purple-400 font-semibold ml-2">Kuota Demand</span>
+                        4 Negara
                       </div>
-                      <p className="text-[11px] text-slate-400 font-medium mt-0.5">
-                        Kebutuhan Pekerja Migran Luar Negeri
+                      <p className="text-xs text-slate-300 font-medium mt-1">
+                        Permintaan dari 4 Negara Tujuan
                       </p>
                     </div>
 
-                    {/* Keterangan Demand Luar Negeri */}
-                    <div className="mt-2 py-2 px-2.5 bg-slate-900/80 rounded-xl border border-slate-800/80 space-y-1 text-[10px]">
-                      <div className="flex items-center justify-between text-slate-300">
-                        <span>Negara Mitra Resmi:</span>
-                        <strong className="text-cyan-300 font-bold">{targetCountryCount} Negara ({targetCountryNames})</strong>
-                      </div>
-                      <div className="flex items-center justify-between text-slate-300">
-                        <span>Headcount Order Batch I:</span>
-                        <strong className="text-amber-400 font-bold">{demandHeadcount} Kuota ({demandCount} Order)</strong>
-                      </div>
-                      <div className="flex items-center justify-between text-slate-300">
-                        <span>Kuota Terisi:</span>
-                        <strong className="text-emerald-400 font-bold">{demandFilledQuota} Kuota ({demandPercent}%)</strong>
-                      </div>
+                    <div className="mt-2.5 flex flex-wrap gap-1.5">
+                      {FOUR_COUNTRIES.map((country) => (
+                        <span
+                          key={country}
+                          className="px-2.5 py-1 rounded-lg bg-purple-500/15 text-purple-300 border border-purple-500/30 text-[11px] font-bold"
+                        >
+                          {country}
+                        </span>
+                      ))}
                     </div>
                   </div>
 
-                  {/* Badges / Pill Tags */}
-                  <div className="pt-3 border-t border-slate-800/80 flex flex-wrap items-center gap-1.5 text-[10px] font-semibold mt-2">
-                    <span className="px-2.5 py-1 rounded-full bg-purple-500/15 text-purple-300 border border-purple-500/30">
-                      {demandCount} Order ({demandHeadcount.toLocaleString("id-ID")} Kuota)
-                    </span>
-                    <span className="px-2.5 py-1 rounded-full bg-slate-800/80 text-purple-300 border border-slate-700/60">
-                      {targetCountryCount} Negara Mitra
-                    </span>
+                  <div className="w-full pt-3 border-t border-slate-800/80 flex items-center justify-between text-[11px] font-semibold text-purple-300 mt-3">
+                    <span>Lihat Permintaan 4 Negara</span>
+                    <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
                   </div>
-                </article>
+                </button>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* 5. PUBLIC COMMAND CENTER DASHBOARD & SEBARAN WILAYAH */}
+      {/* Modal Drilldown Publik (diaktifkan dari Hero Command Center) */}
       <PublicCommandCenterSection
         initialData={publicCommandCenter}
         programsCount={trainingSectors.length}

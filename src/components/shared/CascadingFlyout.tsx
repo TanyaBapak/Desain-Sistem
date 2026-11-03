@@ -2,13 +2,21 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   PILLARS_DATA,
   PillarKey,
-  PillarConfig,
   TreeNode,
   MetricSpec,
   formatNum,
 } from "@/components/shared/CascadingFlyoutData";
 import { PanelContent } from "@/components/shared/CascadingFlyoutPanel";
 import { cn } from "@/lib/utils";
+import {
+  Users,
+  GraduationCap,
+  Building2,
+  Globe2,
+  ChevronRight,
+} from "lucide-react";
+
+const FOUR_COUNTRIES = ["Jepang", "Korea Selatan", "Malaysia", "Turki"];
 
 interface CascadingFlyoutProps {
   className?: string;
@@ -159,41 +167,221 @@ export function CascadingFlyout({ className, vokasiSupplyCount, onOpenDrilldownM
     return shiftedPositions;
   }, [anchors, currentNodes.length, isMobile]);
 
+  const siapLatihCount = PILLARS_DATA.sup.root.m.a;
+  const resolvedVokasiSupply =
+    typeof vokasiSupplyCount === "number" && vokasiSupplyCount > 0
+      ? vokasiSupplyCount
+      : PILLARS_DATA.lpk.root.m.a;
+
   return (
-    <div className={cn("space-y-4 select-none", className)}>
-      {/* 4 Pillar Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-        {(Object.entries(PILLARS_DATA) as [PillarKey, PillarConfig][]).map(([k, p]) => {
-          const isActive = curPillar === k;
-          return (
-            <button
-              key={k}
-              ref={(el) => {
-                cardRefs.current[k] = el;
-              }}
-              type="button"
-              onClick={(e) => handleCardClick(k, e.currentTarget)}
-              className={cn(
-                "p-4 rounded-2xl text-left border-2 transition-all duration-150 cursor-pointer bg-white dark:bg-slate-900 shadow-xs group",
-                isActive
-                  ? "border-primary bg-blue-50/90 dark:bg-slate-800 shadow-md scale-[1.01]"
-                  : "border-border hover:border-primary/60 hover:-translate-y-0.5"
-              )}
-            >
-              <small className="text-xs font-semibold text-muted-foreground block">{p.t}</small>
-              <b className="block text-2xl sm:text-3xl font-extrabold text-foreground mt-0.5 tabular-nums">
-                {formatNum(k === "lpk" && typeof vokasiSupplyCount === "number" && vokasiSupplyCount > 0 ? vokasiSupplyCount : p.root.m.a)}
-              </b>
-              <small className="text-[11.5px] text-muted-foreground block mt-1 line-clamp-1">
-                {p.k[0][1].toLowerCase()} · {p.root.ch.length} {p.lv[0].toLowerCase()}
-              </small>
-              <div className="flex items-center justify-between text-xs font-semibold text-primary mt-3 pt-2 border-t border-border/50">
-                <span>Jelajahi Data</span>
-                <span className="group-hover:translate-x-1 transition-transform">›</span>
+    <div className={cn("relative select-none", className)}>
+      {/* Connector lines between cards (Desktop) */}
+      {/* Top Row Connector Arrow: Card 1 -> Card 2 */}
+      <div className="hidden md:flex absolute top-[24%] left-[48%] -translate-x-1/2 -translate-y-1/2 items-center justify-center z-20 pointer-events-none">
+        <div className="flex items-center gap-1 bg-slate-900/95 border border-cyan-500/40 px-2 py-0.5 rounded-full shadow-lg shadow-cyan-950/60 text-cyan-400 text-[10px] font-extrabold">
+          <span className="animate-pulse">---▶</span>
+        </div>
+      </div>
+
+      {/* S-curve connector badge: Card 2 (top-right) -> Card 3 (bottom-left) */}
+      <div className="hidden md:flex absolute top-[50%] left-[48%] -translate-x-1/2 -translate-y-1/2 items-center justify-center z-20 pointer-events-none">
+        <div className="flex items-center gap-1.5 bg-slate-900/95 border border-slate-700/80 px-2.5 py-0.5 rounded-full text-slate-300 text-[9px] font-semibold shadow-md">
+          <span className="text-cyan-400 font-bold">↺</span> Standardisasi ke Fasilitas
+        </div>
+      </div>
+
+      {/* Bottom Row Connector Arrow: Card 3 -> Card 4 */}
+      <div className="hidden md:flex absolute top-[76%] left-[48%] -translate-x-1/2 -translate-y-1/2 items-center justify-center z-20 pointer-events-none">
+        <div className="flex items-center gap-1 bg-slate-900/95 border border-purple-500/40 px-2 py-0.5 rounded-full shadow-lg shadow-purple-950/60 text-purple-400 text-[10px] font-extrabold">
+          <span className="animate-pulse">---▶</span>
+        </div>
+      </div>
+
+      {/* Unified 2x2 Grid of 4 Cards (Hero + Command Center Flyout) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 relative z-0">
+        {/* 1. Siap Latih (Top-Left) */}
+        <button
+          ref={(el) => {
+            cardRefs.current.sup = el;
+          }}
+          type="button"
+          onClick={(e) => handleCardClick("sup", e.currentTarget)}
+          className={cn(
+            "group relative rounded-2xl border p-4 sm:p-5 flex flex-col justify-between text-left transition-all duration-300 cursor-pointer bg-gradient-to-br from-cyan-950/40 via-slate-900/90 to-slate-900/95",
+            curPillar === "sup"
+              ? "border-cyan-400 shadow-xl shadow-cyan-900/30 ring-2 ring-cyan-400/40"
+              : "border-cyan-500/30 hover:border-cyan-400 hover:shadow-xl hover:shadow-cyan-900/20"
+          )}
+        >
+          <div className="w-full">
+            <div className="flex items-center justify-between mb-2">
+              <h4 className="text-sm font-extrabold text-white group-hover:text-cyan-300 transition-colors">
+                1. Siap Latih
+              </h4>
+              <div className="w-8 h-8 rounded-xl bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 flex items-center justify-center shadow-inner">
+                <Users className="w-4 h-4" />
               </div>
-            </button>
-          );
-        })}
+            </div>
+
+            <div className="my-3">
+              <div className="text-3xl sm:text-4xl font-black text-white tracking-tight tabular-nums">
+                {formatNum(siapLatihCount)}
+                <span className="text-xs text-cyan-400 font-semibold ml-2">Peserta</span>
+              </div>
+              <p className="text-xs text-slate-300 font-medium mt-1">
+                Peserta Siap Latih
+              </p>
+            </div>
+          </div>
+
+          <div className="w-full pt-3 border-t border-slate-800/80 flex items-center justify-between text-[11px] font-semibold text-cyan-300 mt-2">
+            <span>Jelajahi Data Siap Latih</span>
+            <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+          </div>
+        </button>
+
+        {/* 2. Siap Program (Top-Right) */}
+        <button
+          ref={(el) => {
+            cardRefs.current.pel = el;
+          }}
+          type="button"
+          onClick={(e) => handleCardClick("pel", e.currentTarget)}
+          className={cn(
+            "group relative rounded-2xl border p-4 sm:p-5 flex flex-col justify-between text-left transition-all duration-300 cursor-pointer bg-gradient-to-br from-amber-950/40 via-slate-900/90 to-slate-900/95",
+            curPillar === "pel"
+              ? "border-amber-400 shadow-xl shadow-amber-900/30 ring-2 ring-amber-400/40"
+              : "border-amber-500/30 hover:border-amber-400 hover:shadow-xl hover:shadow-amber-900/20"
+          )}
+        >
+          <div className="w-full">
+            <div className="flex items-center justify-between mb-2">
+              <h4 className="text-sm font-extrabold text-white group-hover:text-amber-300 transition-colors">
+                2. Siap Program
+              </h4>
+              <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center shadow-inner">
+                <GraduationCap className="w-4 h-4" />
+              </div>
+            </div>
+
+            <div className="my-2">
+              <div className="text-3xl sm:text-4xl font-black text-white tracking-tight tabular-nums">
+                4 Negara
+              </div>
+              <p className="text-xs text-slate-300 font-medium mt-1">
+                Jenis Program Pelatihan per Sektor Negara
+              </p>
+            </div>
+
+            <div className="mt-2.5 flex flex-wrap gap-1.5">
+              {FOUR_COUNTRIES.map((country) => (
+                <span
+                  key={country}
+                  className="px-2.5 py-1 rounded-lg bg-amber-500/15 text-amber-300 border border-amber-500/30 text-[11px] font-bold"
+                >
+                  {country}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          <div className="w-full pt-3 border-t border-slate-800/80 flex items-center justify-between text-[11px] font-semibold text-amber-300 mt-3">
+            <span>Pilih Negara & Lihat Sektor</span>
+            <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+          </div>
+        </button>
+
+        {/* 3. Siap Vokasi (Bottom-Left) */}
+        <button
+          ref={(el) => {
+            cardRefs.current.lpk = el;
+          }}
+          type="button"
+          onClick={(e) => handleCardClick("lpk", e.currentTarget)}
+          className={cn(
+            "group relative rounded-2xl border p-4 sm:p-5 flex flex-col justify-between text-left transition-all duration-300 cursor-pointer bg-gradient-to-br from-emerald-950/40 via-slate-900/90 to-slate-900/95",
+            curPillar === "lpk"
+              ? "border-emerald-400 shadow-xl shadow-emerald-900/30 ring-2 ring-emerald-400/40"
+              : "border-emerald-500/30 hover:border-emerald-400 hover:shadow-xl hover:shadow-emerald-900/20"
+          )}
+        >
+          <div className="w-full">
+            <div className="flex items-center justify-between mb-2">
+              <h4 className="text-sm font-extrabold text-white group-hover:text-emerald-300 transition-colors">
+                3. Siap Vokasi
+              </h4>
+              <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center shadow-inner">
+                <Building2 className="w-4 h-4" />
+              </div>
+            </div>
+
+            <div className="my-3">
+              <div className="text-3xl sm:text-4xl font-black text-white tracking-tight tabular-nums">
+                {formatNum(resolvedVokasiSupply)}
+                <span className="text-xs text-emerald-400 font-semibold ml-2">Vokasi</span>
+              </div>
+              <p className="text-xs text-slate-300 font-medium mt-1">
+                Jumlah Vokasi dari Siap Latih yang Sudah Terdata
+              </p>
+            </div>
+          </div>
+
+          <div className="w-full pt-3 border-t border-slate-800/80 flex items-center justify-between text-[11px] font-semibold text-emerald-300 mt-2">
+            <span>Jelajahi Vokasi Suplai</span>
+            <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+          </div>
+        </button>
+
+        {/* 4. Siap Permintaan (Bottom-Right) */}
+        <button
+          ref={(el) => {
+            cardRefs.current.dem = el;
+          }}
+          type="button"
+          onClick={(e) => handleCardClick("dem", e.currentTarget)}
+          className={cn(
+            "group relative rounded-2xl border p-4 sm:p-5 flex flex-col justify-between text-left transition-all duration-300 cursor-pointer bg-gradient-to-br from-purple-950/40 via-slate-900/90 to-slate-900/95",
+            curPillar === "dem"
+              ? "border-purple-400 shadow-xl shadow-purple-900/30 ring-2 ring-purple-400/40"
+              : "border-purple-500/30 hover:border-purple-400 hover:shadow-xl hover:shadow-purple-900/20"
+          )}
+        >
+          <div className="w-full">
+            <div className="flex items-center justify-between mb-2">
+              <h4 className="text-sm font-extrabold text-white group-hover:text-purple-300 transition-colors">
+                4. Siap Permintaan
+              </h4>
+              <div className="w-8 h-8 rounded-xl bg-purple-500/20 text-purple-400 border border-purple-500/30 flex items-center justify-center shadow-inner">
+                <Globe2 className="w-4 h-4" />
+              </div>
+            </div>
+
+            <div className="my-2">
+              <div className="text-3xl sm:text-4xl font-black text-white tracking-tight tabular-nums">
+                4 Negara
+              </div>
+              <p className="text-xs text-slate-300 font-medium mt-1">
+                Permintaan dari 4 Negara Tujuan
+              </p>
+            </div>
+
+            <div className="mt-2.5 flex flex-wrap gap-1.5">
+              {FOUR_COUNTRIES.map((country) => (
+                <span
+                  key={country}
+                  className="px-2.5 py-1 rounded-lg bg-purple-500/15 text-purple-300 border border-purple-500/30 text-[11px] font-bold"
+                >
+                  {country}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          <div className="w-full pt-3 border-t border-slate-800/80 flex items-center justify-between text-[11px] font-semibold text-purple-300 mt-3">
+            <span>Jelajahi Permintaan 4 Negara</span>
+            <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+          </div>
+        </button>
       </div>
 
       {/* Flyout Layer Backdrop and Panels */}
@@ -225,7 +413,11 @@ export function CascadingFlyout({ className, vokasiSupplyCount, onOpenDrilldownM
                   }
                 }}
                 onSetMetric={setMetricKey}
-                onOpenFullModal={() => onOpenDrilldownModal?.(curPillar)}
+                onOpenFullModal={() => {
+                  const targetPillar = curPillar;
+                  closeAll();
+                  onOpenDrilldownModal?.(targetPillar);
+                }}
                 isMobile={true}
               />
             </div>
@@ -262,7 +454,11 @@ export function CascadingFlyout({ className, vokasiSupplyCount, onOpenDrilldownM
                       }
                     }}
                     onSetMetric={setMetricKey}
-                    onOpenFullModal={() => onOpenDrilldownModal?.(curPillar)}
+                    onOpenFullModal={() => {
+                      const targetPillar = curPillar;
+                      closeAll();
+                      onOpenDrilldownModal?.(targetPillar);
+                    }}
                     isMobile={false}
                   />
                 </div>

@@ -75,6 +75,7 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
   sectorOccupations,
   trainingSectors,
 }) => {
+  const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
   const [selectedSector, setSelectedSector] = useState<string | null>(
     initialSector,
   );
@@ -88,11 +89,12 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
   const [selectedProvinceForLpk, setSelectedProvinceForLpk] = useState<string | null>(null);
   const [institutionSourceFilter, setInstitutionSourceFilter] = useState<"ALL" | "siskop2mi" | "disnaker" | "umum">(initialSourceFilter);
   const [institutionLevelFilter, setInstitutionLevelFilter] = useState<"ALL" | InstitutionInputLevel>("ALL");
-  const [institutionStatusFilter, setInstitutionStatusFilter] = useState<"ALL" | "supply" | "verified">("ALL");
+  const [institutionStatusFilter, setInstitutionStatusFilter] = useState<"ALL" | "supply" | "verified">("supply");
   const [institutionSearchQuery, setInstitutionSearchQuery] = useState<string>("");
   const [institutionPage, setInstitutionPage] = useState<number>(1);
 
   useEffect(() => {
+    setSelectedCountry(null);
     setSelectedSector(initialSector);
     setSelectedOccupation(null);
     setSelectedInstitutionForStudents(null);
@@ -102,7 +104,7 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
     setSelectedCandidateForDetail(null);
     setInstitutionSourceFilter(initialSourceFilter);
     setInstitutionLevelFilter("ALL");
-    setInstitutionStatusFilter(type === "peserta" ? "supply" : "ALL");
+    setInstitutionStatusFilter("supply");
     setInstitutionSearchQuery("");
     setInstitutionPage(1);
   }, [type, initialSector, initialSourceFilter]);
@@ -451,24 +453,21 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
   };
 
   const renderInstitutionList = (items: PublicPreviewInstitution[]) => {
-    const supplyCount = items.filter(
+    const supplyOnlyItems = items.filter(
       (it) => (it.students?.length ?? it.studentCount ?? 0) > 0
-    ).length;
-    const verifiedCount = items.filter(
-      (it) => it.evokasiStatus === "Terverifikasi e-Vokasi"
-    ).length;
-    const siskop2miCount = items.filter(
+    );
+    const siskop2miCount = supplyOnlyItems.filter(
       (it) => resolveInstitutionSource({ registrationSource: it.registrationSource, id: it.id }) === "siskop2mi"
     ).length;
-    const disnakerCount = items.filter(
+    const disnakerCount = supplyOnlyItems.filter(
       (it) => resolveInstitutionSource({ registrationSource: it.registrationSource, id: it.id }) === "disnaker"
     ).length;
-    const umumCount = items.filter(
+    const umumCount = supplyOnlyItems.filter(
       (it) => resolveInstitutionSource({ registrationSource: it.registrationSource, id: it.id }) === "umum"
     ).length;
 
     const q = institutionSearchQuery.toLowerCase().trim();
-    const filtered = items.filter((it) => {
+    const filtered = supplyOnlyItems.filter((it) => {
       const matchSearch =
         !q ||
         it.name.toLowerCase().includes(q) ||
@@ -489,12 +488,7 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
           inputLevel: it.inputLevel,
         }) === institutionLevelFilter;
 
-      const matchStatus =
-        institutionStatusFilter === "ALL" ||
-        (institutionStatusFilter === "supply" && (it.students?.length ?? it.studentCount ?? 0) > 0) ||
-        (institutionStatusFilter === "verified" && it.evokasiStatus === "Terverifikasi e-Vokasi");
-
-      return matchSearch && matchSource && matchLevel && matchStatus;
+      return matchSearch && matchSource && matchLevel;
     });
 
     const pageSize = 15;
@@ -530,53 +524,15 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
           )}
         </div>
 
-        {/* Status Kesiapan Filter Bar */}
-        <div className="flex flex-wrap items-center gap-1.5 p-2 rounded-xl bg-muted/40 border border-border/60 text-xs">
-          <span className="text-[11px] font-semibold text-muted-foreground mr-1">Status Kesiapan:</span>
-          <button
-            type="button"
-            onClick={() => {
-              setInstitutionStatusFilter("ALL");
-              setInstitutionPage(1);
-            }}
-            className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer ${
-              institutionStatusFilter === "ALL"
-                ? "bg-primary text-primary-foreground shadow-xs"
-                : "bg-background border border-border text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            Semua Direktori ({items.length})
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setInstitutionStatusFilter("supply");
-              setInstitutionPage(1);
-            }}
-            className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 ${
-              institutionStatusFilter === "supply"
-                ? "bg-emerald-600 text-white shadow-xs font-bold"
-                : "bg-background border border-border text-muted-foreground hover:text-emerald-600"
-            }`}
-          >
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-            <span>Suplai Peserta ({supplyCount})</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setInstitutionStatusFilter("verified");
-              setInstitutionPage(1);
-            }}
-            className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 ${
-              institutionStatusFilter === "verified"
-                ? "bg-blue-600 text-white shadow-xs font-bold"
-                : "bg-background border border-border text-muted-foreground hover:text-blue-600"
-            }`}
-          >
-            <span className="w-1.5 h-1.5 rounded-full bg-blue-400" />
-            <span>Terverifikasi e-Vokasi ({verifiedCount})</span>
-          </button>
+        {/* Info Jumlah Vokasi yang Ada Suplai Terdata */}
+        <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-xs">
+          <span className="font-semibold text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-emerald-500" />
+            <span>Vokasi dengan Suplai Siap Latih Terdata</span>
+          </span>
+          <Badge className="bg-emerald-600 text-white font-bold text-xs">
+            {supplyOnlyItems.length} Vokasi
+          </Badge>
         </div>
 
         {/* Source & Level Filter Quick Bar */}
@@ -596,7 +552,7 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
                   : "bg-background border border-border text-muted-foreground hover:text-foreground"
               }`}
             >
-              Semua Sumber ({items.length})
+              Semua Sumber ({supplyOnlyItems.length})
             </button>
             <button
               type="button"
@@ -879,189 +835,220 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
           </div>
         );
 
-      case "program":
+      case "program": {
+        const COUNTRY_PROGRAM_CATALOG: {
+          country: string;
+          sectors: {
+            sectorName: string;
+            programTypes: string[];
+          }[];
+        }[] = [
+          {
+            country: "Jepang",
+            sectors: [
+              {
+                sectorName: "Kesehatan",
+                programTypes: [
+                  "Pelatihan Teknis — Caregiver (Lvl Pelaksana)",
+                  "Pelatihan Bahasa — Bahasa Jepang (JLPT N4 / JFT-Basic)",
+                  "Sertifikasi Teknis — Uji Kompetensi SSW Kaigo & BNSP",
+                ],
+              },
+              {
+                sectorName: "Manufaktur",
+                programTypes: [
+                  "Pelatihan Teknis — Operator Produksi & Mesin Presisi",
+                  "Pelatihan Bahasa — Bahasa Jepang Industri",
+                  "Sertifikasi Teknis — SSW Manufaktur & BNSP",
+                ],
+              },
+              {
+                sectorName: "Transportasi",
+                programTypes: [
+                  "Pelatihan Teknis — Driver & Pengemudi Angkutan (Truck Driver)",
+                  "Pelatihan Bahasa — Bahasa Jepang Layanan Transportasi",
+                ],
+              },
+              {
+                sectorName: "Agriculture (Pertanian)",
+                programTypes: [
+                  "Pelatihan Teknis — Farmer / Farming (Pertanian Modern)",
+                  "Pelatihan Bahasa — Bahasa Jepang Pertanian (ASAT)",
+                ],
+              },
+            ],
+          },
+          {
+            country: "Korea Selatan",
+            sectors: [
+              {
+                sectorName: "Manufaktur",
+                programTypes: [
+                  "Pelatihan Teknis — Welder (SMAW/FCAW) & Molding Presisi",
+                  "Pelatihan Bahasa — Bahasa Korea (EPS-TOPIK Manufaktur)",
+                  "Sertifikasi Teknis — Sertifikasi Pengelasan AWS / BNSP",
+                ],
+              },
+              {
+                sectorName: "Fisherman (Perikanan)",
+                programTypes: [
+                  "Pelatihan & Sertifikasi Teknis — ABK Perikanan Tangkap",
+                  "Pelatihan Bahasa — Bahasa Korea (EPS-TOPIK Perikanan)",
+                ],
+              },
+            ],
+          },
+          {
+            country: "Malaysia",
+            sectors: [
+              {
+                sectorName: "Kesehatan",
+                programTypes: [
+                  "Pelatihan Teknis — Elderly Caretaker (Perawat Lansia)",
+                  "Pelatihan Bahasa — Komunikasi Bahasa Inggris & Melayu Medis",
+                ],
+              },
+              {
+                sectorName: "Manufaktur",
+                programTypes: [
+                  "Pelatihan Teknis — Operation Production (Operator Produksi)",
+                  "Sertifikasi Teknis — Sertifikasi Kompetensi Industri BNSP",
+                ],
+              },
+              {
+                sectorName: "Hospitality",
+                programTypes: [
+                  "Pelatihan Teknis — Cleaner & Layanan Perhotelan",
+                  "Pelatihan Bahasa — Bahasa Inggris Perhotelan",
+                ],
+              },
+              {
+                sectorName: "Agriculture (Perkebunan)",
+                programTypes: [
+                  "Pelatihan Teknis — Plantation Worker Kelapa Sawit",
+                  "Sertifikasi Teknis — K3 & Kompetensi Perkebunan",
+                ],
+              },
+            ],
+          },
+          {
+            country: "Turki",
+            sectors: [
+              {
+                sectorName: "Hospitality",
+                programTypes: [
+                  "Pelatihan Teknis — Housekeeping & Tata Graha",
+                  "Pelatihan Teknis — Waiter / Food & Beverage Service",
+                  "Pelatihan Teknis — Spa Therapist Internasional",
+                  "Pelatihan Teknis — Culinary Cook & Public Area Cleaner",
+                  "Pelatihan Bahasa — Bahasa Inggris Perhotelan & Bahasa Turki Dasar",
+                  "Sertifikasi Teknis — Uji Kompetensi Perhotelan BNSP & CIBTAC",
+                ],
+              },
+            ],
+          },
+        ];
+
+        const activeCountryItem = COUNTRY_PROGRAM_CATALOG.find(
+          (item) => item.country === selectedCountry
+        );
+
         return (
           <div className="space-y-4">
-            {selectedSector && selectedOccupation ? (
+            {activeCountryItem ? (
               <>
                 <Button
                   type="button"
                   variant="ghost"
                   size="sm"
-                  onClick={() => {
-                    setSelectedOccupation(null);
-                    setCandidateSearchQuery("");
-                  }}
+                  onClick={() => setSelectedCountry(null)}
                   className="-ml-2 w-fit gap-1.5 text-xs text-primary hover:text-primary hover:bg-primary/10 cursor-pointer"
                 >
-                  <ArrowLeft className="mr-1.5 h-4 w-4" aria-hidden="true" />
-                  Kembali ke daftar jabatan ({selectedSector})
+                  <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+                  <span>Kembali ke 4 Negara</span>
                 </Button>
 
-                {/* Search Box */}
-                {matchingCandidates.length > 2 && (
-                  <div className="relative">
-                    <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                      type="text"
-                      value={candidateSearchQuery}
-                      onChange={(e) => setCandidateSearchQuery(e.target.value)}
-                      placeholder="Cari nama peserta, NIK, atau lembaga vokasi..."
-                      className="pl-8 text-xs h-9 bg-background"
-                    />
+                <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3.5 flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-500/20 text-amber-600 dark:text-amber-400">
+                      <Globe2 className="h-4 w-4" />
+                    </span>
+                    <div>
+                      <h4 className="text-sm font-bold text-foreground">
+                        Negara Tujuan: {activeCountryItem.country}
+                      </h4>
+                      <p className="text-xs text-muted-foreground">
+                        Daftar Sektor & Jenis Program Pelatihan
+                      </p>
+                    </div>
                   </div>
-                )}
+                  <Badge variant="outline" className="text-xs font-semibold">
+                    {activeCountryItem.sectors.length} Sektor
+                  </Badge>
+                </div>
 
-                {/* Candidate Cards List */}
-                {filteredCandidates.length > 0 ? (
-                  <div className="space-y-2 max-h-[480px] overflow-y-auto pr-1">
-                    {filteredCandidates.map((c) => (
-                      <div
-                        key={c.id}
-                        role="button"
-                        tabIndex={0}
-                        onClick={() => setSelectedCandidateForDetail(c)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" || e.key === " ") {
-                            e.preventDefault();
-                            setSelectedCandidateForDetail(c);
-                          }
-                        }}
-                        className="p-3 rounded-xl border border-border bg-white dark:bg-slate-900/90 hover:border-primary/50 hover:bg-primary/5 transition cursor-pointer flex flex-col gap-2 shadow-2xs group"
-                      >
-                        {/* Header: Name, NIK, Status */}
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex items-center gap-2.5 min-w-0">
-                            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-700 to-indigo-600 text-white font-extrabold text-xs flex items-center justify-center shadow-xs shrink-0">
-                              {c.fullName.charAt(0)}
-                            </div>
-                            <div className="min-w-0">
-                              <div className="text-xs font-bold text-foreground truncate group-hover:text-primary transition-colors">
-                                {c.fullName}
-                              </div>
-                              <div className="text-[10.5px] font-mono text-muted-foreground tabular-nums">
-                                NIK: {c.nik}
-                              </div>
-                            </div>
-                          </div>
-
-                          <Badge
-                            variant="outline"
-                            className={cn(
-                              "text-[10px] px-1.5 py-0 font-semibold shrink-0",
-                              c.readinessStatus === "Ready for Placement"
-                                ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30"
-                                : "bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/30"
-                            )}
-                          >
-                            {c.readinessStatus === "Ready for Placement" ? "Siap Kerja" : "Pelatihan"}
-                          </Badge>
-                        </div>
-
-                        {/* Lembaga Vokasi Asal - Mencolok */}
-                        <div className="flex items-center gap-2 p-2 rounded-lg bg-blue-50/80 dark:bg-slate-800/80 border border-blue-200/60 dark:border-blue-900/40 text-xs">
-                          <Building2 className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
-                          <div className="min-w-0 flex-1">
-                            <span className="font-bold text-foreground">
-                              {c.institutionName || c.sourceType || "Lembaga Vokasi Terdaftar"}
-                            </span>
-                            <span className="text-muted-foreground ml-1.5 text-[11px]">
-                              ({c.kabupatenKota}, {c.provinsi})
-                            </span>
-                          </div>
-                          <Badge variant="outline" className="text-[10px] bg-white dark:bg-slate-900 shrink-0 font-medium">
-                            {c.educationLevel}
-                          </Badge>
-                        </div>
-
-                        {/* Major, Target Country, Link */}
-                        <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-border/40 text-[11.5px]">
-                          <span className="text-muted-foreground truncate max-w-[280px]">
-                            {c.major}
-                          </span>
-                          <div className="flex items-center gap-2.5">
-                            <span className="text-muted-foreground">
-                              Tujuan: <b className="text-foreground">{c.preferredCountry.join(", ")}</b>
-                            </span>
-                            <span className="text-[11px] font-bold text-primary group-hover:underline flex items-center">
-                              Lihat Profil ›
-                            </span>
-                          </div>
-                        </div>
+                <div className="space-y-3">
+                  {activeCountryItem.sectors.map((sec) => (
+                    <div
+                      key={sec.sectorName}
+                      className="rounded-xl border border-border bg-white dark:bg-slate-900 p-3.5 space-y-2.5 shadow-2xs"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+                          <BriefcaseBusiness className="h-3.5 w-3.5" />
+                        </span>
+                        <h5 className="text-sm font-bold text-foreground">
+                          Sektor {sec.sectorName}
+                        </h5>
                       </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="rounded-lg border border-dashed border-border p-8 text-center text-xs text-muted-foreground">
-                    Tidak ditemukan data peserta untuk jabatan {selectedOccupation}.
-                  </div>
-                )}
-              </>
-            ) : selectedSector ? (
-              <>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setSelectedSector(null)}
-                  className="-ml-2 w-fit"
-                >
-                  <ArrowLeft className="mr-2 h-4 w-4" aria-hidden="true" />
-                  Kembali ke daftar sektor
-                </Button>
-                {(sectorOccupations[selectedSector] ?? []).length > 0 ? (
-                  <div className="space-y-2">
-                    {(sectorOccupations[selectedSector] ?? []).map((occupation) => (
-                      <button
-                        key={occupation}
-                        type="button"
-                        onClick={() => setSelectedOccupation(occupation)}
-                        className="flex w-full items-center gap-3 rounded-lg border border-border p-3 text-left hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                      >
-                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
-                          <Briefcase className="h-4 w-4" aria-hidden="true" />
-                        </span>
-                        <span className="min-w-0 flex-1 break-words text-sm font-semibold">
-                          {occupation}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="rounded-lg border border-dashed border-border p-5 text-center text-sm text-muted-foreground">
-                    Belum ada jabatan yang terdaftar pada sektor ini.
-                  </p>
-                )}
+                      <ul className="space-y-1.5 pl-9">
+                        {sec.programTypes.map((prog) => (
+                          <li
+                            key={prog}
+                            className="text-xs text-foreground flex items-center gap-2 py-1 px-2.5 rounded-lg bg-muted/40 border border-border/50"
+                          >
+                            <GraduationCap className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                            <span className="font-medium">{prog}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
               </>
             ) : (
-              <>
-                {sectors.length === 0 ? (
-                  <p className="rounded-lg border border-dashed border-border p-5 text-center text-sm text-muted-foreground">
-                    Belum ada sektor yang terdaftar pada target negara.
-                  </p>
-                ) : (
-                  <div className="space-y-2">
-                    {sectors.map((sector) => (
-                      <button
-                        key={sector}
-                        type="button"
-                        onClick={() => setSelectedSector(sector)}
-                        className="flex w-full items-center gap-3 rounded-lg border border-border p-3 text-left hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                      >
-                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
-                          <BriefcaseBusiness className="h-4 w-4" aria-hidden="true" />
-                        </span>
-                        <span className="min-w-0 flex-1 break-words text-sm font-semibold">
-                          {sector}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </>
+              <div className="space-y-2.5">
+                <p className="text-xs text-muted-foreground">
+                  Pilih salah satu dari 4 negara tujuan untuk melihat keterangan sektor dan jenis program pelatihannya:
+                </p>
+                {COUNTRY_PROGRAM_CATALOG.map((item) => (
+                  <button
+                    key={item.country}
+                    type="button"
+                    onClick={() => setSelectedCountry(item.country)}
+                    className="flex w-full items-center justify-between gap-3 rounded-xl border border-border bg-white dark:bg-slate-900 p-3.5 text-left hover:border-primary/60 hover:bg-muted/40 transition cursor-pointer group shadow-2xs"
+                  >
+                    <div className="flex items-start gap-3 min-w-0">
+                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">
+                        <Globe2 className="h-5 w-5" aria-hidden="true" />
+                      </span>
+                      <div className="min-w-0">
+                        <div className="text-sm font-bold text-foreground group-hover:text-primary transition-colors">
+                          {item.country}
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-0.5">
+                          Sektor: {item.sectors.map((s) => s.sectorName).join(" · ")}
+                        </div>
+                      </div>
+                    </div>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-transform shrink-0" />
+                  </button>
+                ))}
+              </div>
             )}
           </div>
         );
+      }
 
       case "national_lpk":
         if (selectedInstitutionForStudents) {
@@ -1146,9 +1133,58 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
           </div>
         );
 
-      case "demand":
-        // Konten popup demand disembunyikan sesuai permintaan
-        return null;
+      case "demand": {
+        const DEMAND_COUNTRY_SUMMARY = [
+          {
+            country: "Jepang",
+            sectors: ["Kesehatan (Caregiver Kaigo)", "Manufaktur (Operator CNC & Welder)", "Transportasi", "Agriculture (Pertanian)"],
+          },
+          {
+            country: "Korea Selatan",
+            sectors: ["Manufaktur (Welder & Molding)", "Fisherman / Perikanan (ABK Kapal)"],
+          },
+          {
+            country: "Malaysia",
+            sectors: ["Kesehatan (Elderly Caretaker)", "Hospitality", "Manufaktur (Operator Produksi)", "Agriculture (Plantation Sawit)"],
+          },
+          {
+            country: "Turki",
+            sectors: ["Hospitality (Housekeeping, Waiter, Spa Therapist, Cook, Cleaner)"],
+          },
+        ];
+
+        return (
+          <div className="space-y-3">
+            <p className="text-xs text-muted-foreground">
+              Permintaan pekerja luar negeri berasal dari 4 negara tujuan berikut:
+            </p>
+            <div className="grid grid-cols-1 gap-2.5">
+              {DEMAND_COUNTRY_SUMMARY.map((item) => (
+                <div
+                  key={item.country}
+                  className="rounded-xl border border-border bg-white dark:bg-slate-900 p-3.5 space-y-2 shadow-2xs"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-500/15 text-purple-600 dark:text-purple-400 border border-purple-500/30">
+                      <Globe2 className="h-4 w-4" />
+                    </span>
+                    <h4 className="text-sm font-bold text-foreground">
+                      {item.country}
+                    </h4>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5 pl-10">
+                    {item.sectors.map((sec) => (
+                      <Badge key={sec} variant="secondary" className="text-[11px] font-medium">
+                        {sec}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      }
 
       case "alokasi":
         return (
@@ -1192,21 +1228,18 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
     }
     switch (type) {
       case "peserta":
-        return "Direktori Lembaga Vokasi Mitra";
+        return "Siap Latih — Vokasi Suplai Peserta";
       case "program":
-        if (selectedSector && selectedOccupation) {
-          return `Peserta Siap Latih — ${selectedOccupation}`;
-        }
-        return selectedSector
-          ? `Jabatan — ${selectedSector}`
-          : "Sektor Pelatihan Target Negara";
+        return selectedCountry
+          ? `Siap Program — Negara ${selectedCountry}`
+          : "Siap Program — 4 Negara Tujuan";
       case "lembaga":
       case "sebaran_lembaga":
-        return "Direktori Lembaga Vokasi Mitra";
+        return "Siap Vokasi — Vokasi Suplai Terdata";
       case "national_lpk":
         return "Sebaran Lembaga Terdaftar Nasional";
       case "demand":
-        return "Permintaan Kerja Luar Negeri";
+        return "Siap Permintaan — 4 Negara Tujuan";
       case "alokasi":
         return "Status Alokasi Penempatan";
       default:

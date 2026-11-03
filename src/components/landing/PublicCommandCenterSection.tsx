@@ -105,67 +105,24 @@ export const PublicCommandCenterSection: React.FC<PublicCommandCenterSectionProp
     return () => window.removeEventListener("p2mi:open-drilldown", handleCustomDrilldown);
   }, []);
 
+  if (!activeDrilldown) {
+    return null;
+  }
+
   return (
-    <section
-      id="dashboard-command-center"
-      className="border-b border-border bg-slate-50 dark:bg-slate-950 py-10 sm:py-12"
-      aria-labelledby="command-center-heading"
-    >
-      <div className="w-full px-4 sm:px-6 lg:px-8 space-y-6 max-w-7xl mx-auto">
-        {/* Section Header */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-2 border-b border-border/60">
-          <div>
-            <div className="flex items-center gap-2">
-              <h2
-                id="command-center-heading"
-                className="text-2xl font-bold tracking-tight text-foreground"
-              >
-                Dashboard Command Center
-              </h2>
-              <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-500/20">
-                Publik
-              </span>
-            </div>
-            <p className="text-sm text-muted-foreground mt-1">
-              Selamat datang di Portal Publik Task Force SMK Go Global. Lingkup:{" "}
-              <strong className="text-foreground">{scopeLabel}</strong>
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <span className="px-3 py-1 rounded-md bg-card border border-border font-medium flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5 text-primary" />
-              <span>Satu Data · Satu Pemantauan · Satu Keputusan</span>
-            </span>
-          </div>
-        </div>
-
-        {/* 1. Cascading Flyout 4 Pillars Component */}
-        <CascadingFlyout
-          vokasiSupplyCount={initialData?.national?.vokasiWithSupplyCount}
-          onOpenDrilldownModal={handleOpenDrilldownFromFlyout}
-        />
-
-        {/* Bagian Kanal Asal / Sumber Pendaftaran & Kesenjangan Supply vs Demand di-hidden sesuai permintaan */}
-      </div>
-
-      {/* Drilldown Modal for Public */}
-      {activeDrilldown && (
-        <PublicDrilldownModal
-          type={activeDrilldown}
-          onClose={() => {
-            setActiveDrilldown(null);
-            setActiveProgramSector(null);
-            setActiveSourceFilter("ALL");
-          }}
-          scopeName={scopeLabel}
-          data={synthesizedData}
-          initialSector={activeProgramSector}
-          initialSourceFilter={activeSourceFilter}
-          sectorOccupations={sectorOccupations}
-          trainingSectors={trainingSectors}
-        />
-      )}
-    </section>
+    <PublicDrilldownModal
+      type={activeDrilldown}
+      onClose={() => {
+        setActiveDrilldown(null);
+        setActiveProgramSector(null);
+        setActiveSourceFilter("ALL");
+      }}
+      scopeName={scopeLabel}
+      data={synthesizedData}
+      initialSector={activeProgramSector}
+      initialSourceFilter={activeSourceFilter}
+      sectorOccupations={sectorOccupations}
+      trainingSectors={trainingSectors}
+    />
   );
 };
