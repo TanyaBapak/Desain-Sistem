@@ -22,7 +22,15 @@ import {
   Search,
   ChevronLeft,
   ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+  LayoutList,
+  TableProperties,
+  FileSpreadsheet,
+  Download,
+  Loader2,
 } from "lucide-react";
+import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import type {
   PublicCommandCenterData,
@@ -84,6 +92,9 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
   );
   const [selectedInstitutionForStudents, setSelectedInstitutionForStudents] = useState<PublicPreviewInstitution | null>(null);
   const [studentSearchQuery, setStudentSearchQuery] = useState<string>("");
+  const [studentPage, setStudentPage] = useState<number>(1);
+  const [studentPageSize, setStudentPageSize] = useState<number>(25);
+  const [studentViewMode, setStudentViewMode] = useState<"card" | "table">("card");
   const [candidateSearchQuery, setCandidateSearchQuery] = useState<string>("");
   const [selectedCandidateForDetail, setSelectedCandidateForDetail] = useState<CandidateParticipant | null>(null);
   const [selectedProvinceForLpk, setSelectedProvinceForLpk] = useState<string | null>(null);
@@ -100,6 +111,9 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
     setSelectedInstitutionForStudents(null);
     setSelectedProvinceForLpk(null);
     setStudentSearchQuery("");
+    setStudentPage(1);
+    setStudentPageSize(25);
+    setStudentViewMode("card");
     setCandidateSearchQuery("");
     setSelectedCandidateForDetail(null);
     setInstitutionSourceFilter(initialSourceFilter);
@@ -323,6 +337,75 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
     });
   }, [selectedProvinceForLpk, institutions]);
 
+  const [isExportingExcel, setIsExportingExcel] = useState<boolean>(false);
+
+  const handleExportStudentsExcel = async () => {
+    if (!selectedInstitutionForStudents) return;
+    const studentsToExport = selectedInstitutionForStudents.students ?? [];
+    if (studentsToExport.length === 0) {
+      toast.warning("Tidak ada data calon peserta untuk diekspor.");
+      return;
+    }
+
+    try {
+      setIsExportingExcel(true);
+      const XLSX = await import("xlsx");
+
+      const rows = studentsToExport.map((s, idx) => ({
+        "No.": idx + 1,
+        "ID Peserta": s.id,
+        "Nama Calon Peserta": s.name,
+        "Lembaga Vokasi": selectedInstitutionForStudents.name,
+        "Kabupaten / Kota": selectedInstitutionForStudents.district || "—",
+        "Provinsi": selectedInstitutionForStudents.province || scopeName,
+        "Negara Target": s.targetCountry,
+        "Sektor": s.sector,
+        "Jabatan / Pekerjaan": s.occupation,
+        "Jurusan / Keahlian": s.major || "—",
+        "Status Kesiapan": s.status || "Siap Penempatan",
+      }));
+
+      const worksheet = XLSX.utils.json_to_sheet(rows);
+
+      // Set optimal column widths
+      worksheet["!cols"] = [
+        { wch: 6 },  // No.
+        { wch: 18 }, // ID Peserta
+        { wch: 28 }, // Nama Calon Peserta
+        { wch: 35 }, // Lembaga Vokasi
+        { wch: 22 }, // Kab / Kota
+        { wch: 22 }, // Provinsi
+        { wch: 22 }, // Negara Target
+        { wch: 25 }, // Sektor
+        { wch: 28 }, // Jabatan / Pekerjaan
+        { wch: 25 }, // Jurusan / Keahlian
+        { wch: 20 }, // Status Kesiapan
+      ];
+
+      const workbook = XLSX.utils.book_new();
+      const safeSheetName = (selectedInstitutionForStudents.name || "Calon Peserta")
+        .slice(0, 31)
+        .replace(/[:\\\/?*\[\]]/g, "");
+      XLSX.utils.book_append_sheet(workbook, worksheet, safeSheetName || "Calon Peserta");
+
+      const slugName = (selectedInstitutionForStudents.name || "calon-peserta")
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "");
+      const fileName = `calon-peserta-${slugName}.xlsx`;
+      XLSX.writeFile(workbook, fileName);
+
+      toast.success(
+        `Berhasil mengunduh ${studentsToExport.length.toLocaleString("id-ID")} data calon peserta ke ${fileName}!`
+      );
+    } catch (err) {
+      console.error("Export Excel error:", err);
+      toast.error("Gagal mengekspor data ke Excel. Silakan coba lagi.");
+    } finally {
+      setIsExportingExcel(false);
+    }
+  };
+
   const renderStudentList = () => {
     if (!selectedInstitutionForStudents) return null;
     const students = selectedInstitutionForStudents.students ?? [];
@@ -333,9 +416,20 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
             s.name.toLowerCase().includes(q) ||
             s.targetCountry.toLowerCase().includes(q) ||
             s.sector.toLowerCase().includes(q) ||
-            s.occupation.toLowerCase().includes(q)
+            s.occupation.toLowerCase().includes(q) ||
+            (s.id && s.id.toLowerCase().includes(q))
         )
       : students;
+
+    const totalStudents = filtered.length;
+    const isShowingAll = studentPageSize >= 999999;
+    const totalPages = isShowingAll ? 1 : Math.max(1, Math.ceil(totalStudents / studentPageSize));
+    const safePage = Math.min(Math.max(1, studentPage), totalPages);
+    const startIndex = totalStudents === 0 ? 0 : (safePage - 1) * studentPageSize + 1;
+    const endIndex = isShowingAll ? totalStudents : Math.min(totalStudents, safePage * studentPageSize);
+    const paginatedStudents = isShowingAll
+      ? filtered
+      : filtered.slice((safePage - 1) * studentPageSize, safePage * studentPageSize);
 
     return (
       <div className="space-y-3">
@@ -346,8 +440,9 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
           onClick={() => {
             setSelectedInstitutionForStudents(null);
             setStudentSearchQuery("");
+            setStudentPage(1);
           }}
-          className="-ml-2 w-fit gap-1.5 text-xs text-primary hover:text-primary hover:bg-primary/10"
+          className="-ml-2 w-fit gap-1.5 text-xs text-primary hover:text-primary hover:bg-primary/10 cursor-pointer"
         >
           <ArrowLeft className="h-4 w-4" />
           <span>Kembali ke daftar lembaga vokasi</span>
@@ -373,81 +468,326 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
                 {selectedInstitutionForStudents.province || scopeName} • {selectedInstitutionForStudents.type}
               </p>
             </div>
-            <Badge variant="outline" className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 border-emerald-500/20 bg-emerald-500/10 shrink-0">
-              {students.length} Calon Peserta
-            </Badge>
+            <div className="flex flex-col sm:flex-row items-end sm:items-center gap-2 shrink-0">
+              <Badge variant="outline" className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 border-emerald-500/20 bg-emerald-500/10">
+                {students.length.toLocaleString("id-ID")} Calon Peserta
+              </Badge>
+              <Button
+                type="button"
+                size="sm"
+                onClick={handleExportStudentsExcel}
+                disabled={isExportingExcel || students.length === 0}
+                className="h-7 px-2.5 text-xs font-semibold gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs cursor-pointer transition-colors"
+                title="Unduh seluruh data calon peserta lembaga ini dalam berkas Excel (.xlsx)"
+              >
+                {isExportingExcel ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <FileSpreadsheet className="h-3.5 w-3.5" />
+                )}
+                <span>Ekspor Excel (.xlsx)</span>
+              </Button>
+            </div>
           </div>
         </div>
 
-        {/* Search Bar */}
-        <div className="relative">
-          <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
-          <Input
-            placeholder="Cari nama siswa, target negara, sektor, atau jabatan..."
-            value={studentSearchQuery}
-            onChange={(e) => setStudentSearchQuery(e.target.value)}
-            className="pl-8 h-8 text-xs bg-background"
-          />
+        {/* Search & Control Toolbar */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
+          {/* Search Bar */}
+          <div className="relative flex-1">
+            <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+            <Input
+              placeholder="Cari nama, ID, target negara, sektor, jabatan..."
+              value={studentSearchQuery}
+              onChange={(e) => {
+                setStudentSearchQuery(e.target.value);
+                setStudentPage(1);
+              }}
+              className="pl-8 h-8 text-xs bg-background"
+            />
+            {studentSearchQuery && (
+              <button
+                type="button"
+                onClick={() => {
+                  setStudentSearchQuery("");
+                  setStudentPage(1);
+                }}
+                className="absolute right-2.5 top-2 text-xs text-muted-foreground hover:text-foreground"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+
+          {/* View Mode & Page Size Toolbar */}
+          <div className="flex items-center gap-1.5 shrink-0 self-end sm:self-auto">
+            {/* View Mode Toggle */}
+            <div className="flex items-center rounded-lg border border-border p-0.5 bg-muted/30">
+              <button
+                type="button"
+                onClick={() => setStudentViewMode("card")}
+                title="Tampilan Kartu"
+                className={cn(
+                  "p-1.5 rounded-md text-xs transition cursor-pointer flex items-center gap-1",
+                  studentViewMode === "card"
+                    ? "bg-white dark:bg-slate-800 text-foreground font-semibold shadow-xs"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <LayoutList className="h-3.5 w-3.5" />
+                <span className="hidden md:inline text-[11px]">Kartu</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setStudentViewMode("table")}
+                title="Tampilan Tabel Rapat (Mudah Cek Urutan)"
+                className={cn(
+                  "p-1.5 rounded-md text-xs transition cursor-pointer flex items-center gap-1",
+                  studentViewMode === "table"
+                    ? "bg-white dark:bg-slate-800 text-foreground font-semibold shadow-xs"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <TableProperties className="h-3.5 w-3.5" />
+                <span className="hidden md:inline text-[11px]">Tabel</span>
+              </button>
+            </div>
+
+            {/* Per-Page Selector */}
+            <div className="flex items-center gap-1 text-[11px] text-muted-foreground border-l border-border/60 pl-2">
+              <span className="hidden sm:inline">Per hal:</span>
+              {[25, 50, 100].map((size) => (
+                <button
+                  key={size}
+                  type="button"
+                  onClick={() => {
+                    setStudentPageSize(size);
+                    setStudentPage(1);
+                  }}
+                  className={cn(
+                    "px-2 py-1 rounded-md text-[11px] font-mono transition cursor-pointer",
+                    studentPageSize === size
+                      ? "bg-primary text-primary-foreground font-bold shadow-xs"
+                      : "bg-muted/40 hover:bg-muted text-muted-foreground"
+                  )}
+                >
+                  {size}
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={() => {
+                  setStudentPageSize(999999);
+                  setStudentPage(1);
+                }}
+                className={cn(
+                  "px-2 py-1 rounded-md text-[11px] transition cursor-pointer",
+                  isShowingAll
+                    ? "bg-primary text-primary-foreground font-bold shadow-xs"
+                    : "bg-muted/40 hover:bg-muted text-muted-foreground"
+                )}
+                title="Tampilkan seluruh data tanpa paginasi"
+              >
+                Semua
+              </button>
+            </div>
+          </div>
         </div>
 
-        {/* Student Cards */}
-        <div className="space-y-2 max-h-[50vh] overflow-y-auto pr-1">
-          {filtered.length === 0 ? (
-            <div className="p-6 text-center text-xs text-muted-foreground rounded-lg border border-dashed border-border">
-              Tidak ada data calon peserta yang cocok dengan pencarian.
+        {/* Status Counter Bar */}
+        <div className="flex items-center justify-between text-[11px] text-muted-foreground px-1 bg-muted/20 py-1.5 rounded-md border border-border/40">
+          <div>
+            Menampilkan <span className="font-bold text-foreground font-mono">#{startIndex.toLocaleString("id-ID")}</span> –{" "}
+            <span className="font-bold text-foreground font-mono">#{endIndex.toLocaleString("id-ID")}</span> dari{" "}
+            <span className="font-bold text-foreground font-mono">{totalStudents.toLocaleString("id-ID")}</span> calon peserta
+            {studentSearchQuery && (
+              <span className="ml-1 text-primary">
+                (difilter dari total {students.length.toLocaleString("id-ID")})
+              </span>
+            )}
+          </div>
+          {!isShowingAll && totalPages > 1 && (
+            <div className="text-[11px] font-medium text-muted-foreground">
+              Hal. <span className="font-bold text-foreground">{safePage}</span> / {totalPages}
             </div>
-          ) : (
-            filtered.map((s, idx) => (
-              <div
-                key={s.id || idx}
-                className="rounded-lg border border-border bg-white dark:bg-slate-900 p-3 space-y-2 hover:border-primary/40 transition-colors shadow-xs"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-bold shrink-0">
-                      {s.name.charAt(0)}
+          )}
+        </div>
+
+        {/* Content Body: Empty or Card or Table */}
+        {paginatedStudents.length === 0 ? (
+          <div className="p-8 text-center text-xs text-muted-foreground rounded-lg border border-dashed border-border">
+            Tidak ada data calon peserta yang cocok dengan pencarian &quot;{studentSearchQuery}&quot;.
+          </div>
+        ) : studentViewMode === "table" ? (
+          /* Table View: Sangat ringkas dan nomor urut langsung terlihat sejajar */
+          <div className="overflow-x-auto rounded-lg border border-border bg-white dark:bg-slate-900 max-h-[50vh] overflow-y-auto">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead className="sticky top-0 bg-muted/80 backdrop-blur-xs text-muted-foreground font-semibold border-b border-border z-10">
+                <tr>
+                  <th className="py-2.5 px-3 w-16 text-center font-mono">No.</th>
+                  <th className="py-2.5 px-3">Nama & ID Peserta</th>
+                  <th className="py-2.5 px-3">Negara Target</th>
+                  <th className="py-2.5 px-3">Sektor</th>
+                  <th className="py-2.5 px-3">Jabatan</th>
+                  <th className="py-2.5 px-3 text-right">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/60">
+                {paginatedStudents.map((s, idx) => {
+                  const globalNo = (safePage - 1) * (isShowingAll ? totalStudents : studentPageSize) + idx + 1;
+                  return (
+                    <tr key={s.id || idx} className="hover:bg-muted/30 transition-colors">
+                      <td className="py-2 px-3 text-center font-mono font-bold text-slate-700 dark:text-slate-300 bg-muted/10">
+                        #{globalNo}
+                      </td>
+                      <td className="py-2 px-3">
+                        <div className="font-semibold text-foreground">{s.name}</div>
+                        <div className="text-[10px] text-muted-foreground font-mono">ID: {s.id}</div>
+                      </td>
+                      <td className="py-2 px-3">
+                        <span className="font-medium text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                          <Globe2 className="h-3 w-3 shrink-0" />
+                          <span className="truncate max-w-[140px]">{s.targetCountry}</span>
+                        </span>
+                      </td>
+                      <td className="py-2 px-3 text-muted-foreground">
+                        <span className="truncate max-w-[130px] block">{s.sector}</span>
+                      </td>
+                      <td className="py-2 px-3 font-medium text-foreground">
+                        <span className="truncate max-w-[140px] block">{s.occupation}</span>
+                      </td>
+                      <td className="py-2 px-3 text-right">
+                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5 whitespace-nowrap">
+                          {s.status || "Siap Penempatan"}
+                        </Badge>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          /* Card View: Dilengkapi badge nomor urut #1, #2 ... #1399 */
+          <div className="space-y-2 max-h-[50vh] overflow-y-auto pr-1">
+            {paginatedStudents.map((s, idx) => {
+              const globalNo = (safePage - 1) * (isShowingAll ? totalStudents : studentPageSize) + idx + 1;
+              return (
+                <div
+                  key={s.id || idx}
+                  className="rounded-lg border border-border bg-white dark:bg-slate-900 p-3 space-y-2 hover:border-primary/40 transition-colors shadow-xs"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="flex items-center justify-center min-w-[2.75rem] px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 text-xs font-mono font-bold shrink-0 shadow-2xs">
+                        #{globalNo}
+                      </span>
+                      <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-bold shrink-0">
+                        {s.name.charAt(0)}
+                      </div>
+                      <div>
+                        <h5 className="text-sm font-bold text-foreground leading-tight">
+                          {s.name}
+                        </h5>
+                        <span className="text-[10px] text-muted-foreground font-mono">
+                          ID: {s.id}
+                        </span>
+                      </div>
                     </div>
-                    <div>
-                      <h5 className="text-sm font-bold text-foreground leading-tight">
-                        {s.name}
-                      </h5>
-                      <span className="text-[10px] text-muted-foreground font-mono">
-                        ID: {s.id}
+                    <Badge variant="secondary" className="text-[10px] px-2 py-0.5 shrink-0">
+                      {s.status || "Siap Penempatan"}
+                    </Badge>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 pt-1.5 border-t border-border/40 text-xs">
+                    <div className="bg-muted/30 rounded p-1.5">
+                      <span className="text-[10px] text-muted-foreground block font-medium">Tujuan Negara Target:</span>
+                      <span className="font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1 mt-0.5">
+                        <Globe2 className="h-3 w-3 shrink-0" />
+                        <span className="truncate">{s.targetCountry}</span>
+                      </span>
+                    </div>
+                    <div className="bg-muted/30 rounded p-1.5">
+                      <span className="text-[10px] text-muted-foreground block font-medium">Sektor:</span>
+                      <span className="font-semibold text-foreground flex items-center gap-1 mt-0.5">
+                        <Briefcase className="h-3 w-3 shrink-0 text-muted-foreground" />
+                        <span className="truncate">{s.sector}</span>
+                      </span>
+                    </div>
+                    <div className="bg-muted/30 rounded p-1.5">
+                      <span className="text-[10px] text-muted-foreground block font-medium">Jabatan:</span>
+                      <span className="font-semibold text-primary flex items-center gap-1 mt-0.5">
+                        <GraduationCap className="h-3 w-3 shrink-0" />
+                        <span className="truncate">{s.occupation}</span>
                       </span>
                     </div>
                   </div>
-                  <Badge variant="secondary" className="text-[10px] px-2 py-0.5 shrink-0">
-                    {s.status || "Siap Penempatan"}
-                  </Badge>
                 </div>
+              );
+            })}
+          </div>
+        )}
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 pt-1.5 border-t border-border/40 text-xs">
-                  <div className="bg-muted/30 rounded p-1.5">
-                    <span className="text-[10px] text-muted-foreground block font-medium">Tujuan Negara Target:</span>
-                    <span className="font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1 mt-0.5">
-                      <Globe2 className="h-3 w-3 shrink-0" />
-                      <span className="truncate">{s.targetCountry}</span>
-                    </span>
-                  </div>
-                  <div className="bg-muted/30 rounded p-1.5">
-                    <span className="text-[10px] text-muted-foreground block font-medium">Sektor:</span>
-                    <span className="font-semibold text-foreground flex items-center gap-1 mt-0.5">
-                      <Briefcase className="h-3 w-3 shrink-0 text-muted-foreground" />
-                      <span className="truncate">{s.sector}</span>
-                    </span>
-                  </div>
-                  <div className="bg-muted/30 rounded p-1.5">
-                    <span className="text-[10px] text-muted-foreground block font-medium">Jabatan:</span>
-                    <span className="font-semibold text-primary flex items-center gap-1 mt-0.5">
-                      <GraduationCap className="h-3 w-3 shrink-0" />
-                      <span className="truncate">{s.occupation}</span>
-                    </span>
-                  </div>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
+        {/* Pagination Navigation Bar */}
+        {!isShowingAll && totalPages > 1 && (
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-2 pt-2 border-t border-border text-xs text-muted-foreground">
+            <div className="flex items-center gap-1">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setStudentPage(1)}
+                disabled={safePage <= 1}
+                title="Lompat ke halaman awal (No. 1)"
+                className="h-7 px-2 text-xs gap-1 cursor-pointer"
+              >
+                <ChevronsLeft className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Awal (#1)</span>
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setStudentPage((p) => Math.max(1, p - 1))}
+                disabled={safePage <= 1}
+                className="h-7 px-2.5 text-xs gap-1 cursor-pointer"
+              >
+                <ChevronLeft className="h-3.5 w-3.5" />
+                <span>Sebelumnya</span>
+              </Button>
+            </div>
+
+            <span className="font-semibold text-foreground text-center">
+              Halaman {safePage} dari {totalPages}
+            </span>
+
+            <div className="flex items-center gap-1">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setStudentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={safePage >= totalPages}
+                className="h-7 px-2.5 text-xs gap-1 cursor-pointer"
+              >
+                <span>Selanjutnya</span>
+                <ChevronRight className="h-3.5 w-3.5" />
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setStudentPage(totalPages)}
+                disabled={safePage >= totalPages}
+                title={`Lompat ke halaman terakhir (No. ${totalStudents.toLocaleString("id-ID")})`}
+                className="h-7 px-2 text-xs gap-1 cursor-pointer font-bold text-primary hover:text-primary"
+              >
+                <span className="hidden sm:inline">Ke Akhir (#{totalStudents.toLocaleString("id-ID")})</span>
+                <ChevronsRight className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
     );
   };
@@ -707,6 +1047,7 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
                       if (hasStudents) {
                         setSelectedInstitutionForStudents(institution);
                         setStudentSearchQuery("");
+                        setStudentPage(1);
                       }
                     }}
                     className={cn(
