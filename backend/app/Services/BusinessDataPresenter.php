@@ -1446,7 +1446,7 @@ class BusinessDataPresenter
                     'districts' => DB::table('districts')->orderBy('name')->get(['id', 'province_id', 'name']),
                     'sectors' => DB::table('sectors')->orderBy('name')->get(['id', 'name']),
                     'occupations' => DB::table('occupations')->orderBy('title')->get(['id', 'sector_id', 'title']),
-                    'countries' => DB::table('countries')->orderBy('name')->get(['id', 'name']),
+                    'countries' => $this->systemCountryOptions(),
                     'institutions' => $this->institutionOptions($role, $user),
                 ],
                 'bp3miScope' => [
@@ -2531,6 +2531,43 @@ class BusinessDataPresenter
             ->orderBy('institutions.name')
             ->get(['institutions.id', 'institutions.name'])
             ->all();
+    }
+
+    /**
+     * @return array<int, array{id: string, name: string}>
+     */
+    private function systemCountryOptions(): array
+    {
+        $defaultCountries = [
+            ['id' => 'JP', 'name' => 'Jepang'],
+            ['id' => 'KR', 'name' => 'Korea Selatan'],
+            ['id' => 'MY', 'name' => 'Malaysia'],
+            ['id' => 'TR', 'name' => 'Turki'],
+        ];
+
+        try {
+            $dbCountries = DB::table('countries')
+                ->whereIn('id', ['JP', 'KR', 'MY', 'TR'])
+                ->orWhereIn('name', ['Jepang', 'Korea', 'Korea Selatan', 'Malaysia', 'Turki'])
+                ->orderBy('name')
+                ->get(['id', 'name'])
+                ->map(function ($c): array {
+                    $name = (string) $c->name;
+                    if (strcasecmp($name, 'korea') === 0) {
+                        $name = 'Korea Selatan';
+                    }
+                    return [
+                        'id' => (string) $c->id,
+                        'name' => $name,
+                    ];
+                })
+                ->values()
+                ->all();
+
+            return ! empty($dbCountries) ? $dbCountries : $defaultCountries;
+        } catch (\Throwable $e) {
+            return $defaultCountries;
+        }
     }
 
     private function reportSummary(

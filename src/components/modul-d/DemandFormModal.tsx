@@ -19,6 +19,14 @@ export const DemandFormModal: React.FC<DemandFormModalProps> = ({
   mode,
 }) => {
   const { businessOptions } = useAppStore();
+  const availableCountries = Array.isArray(businessOptions?.countries) && businessOptions.countries.length > 0
+    ? businessOptions.countries
+    : [
+        { id: 'JP', name: 'Jepang' },
+        { id: 'KR', name: 'Korea Selatan' },
+        { id: 'MY', name: 'Malaysia' },
+        { id: 'TR', name: 'Turki' },
+      ];
   const [jobTitle, setJobTitle] = useState('');
   const [employerName, setEmployerName] = useState('');
   const [country, setCountry] = useState('Jepang');
@@ -179,7 +187,7 @@ export const DemandFormModal: React.FC<DemandFormModalProps> = ({
                 onChange={(e) => setCountry(e.target.value)}
                 className="w-full rounded-xl border border-input bg-background p-2.5 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                {businessOptions.countries.map((item) => (
+                {availableCountries.map((item) => (
                   <option key={item.id} value={item.name}>{item.name}</option>
                 ))}
               </select>

@@ -45,6 +45,28 @@ export const CandidateFormModal: React.FC<CandidateFormModalProps> = ({
     (district) => provincesList.find((province) => province.name === provinsi)?.id === district.province_id,
   );
 
+  // 4 Negara Resmi Sistem SMK Go Global: Jepang, Korea Selatan, Malaysia, Turki
+  const official4Countries = React.useMemo(() => [
+    { id: 'JP', name: 'Jepang' },
+    { id: 'KR', name: 'Korea Selatan' },
+    { id: 'MY', name: 'Malaysia' },
+    { id: 'TR', name: 'Turki' },
+  ], []);
+
+  const availableCountries = React.useMemo(() => {
+    const list = [...official4Countries];
+    if (preferredCountry) {
+      const isKorea = preferredCountry.toLowerCase() === 'korea';
+      const alreadyHas = list.some(
+        (c) => c.name.toLowerCase() === preferredCountry.toLowerCase() || (isKorea && c.id === 'KR')
+      );
+      if (!alreadyHas) {
+        list.push({ id: preferredCountry, name: preferredCountry });
+      }
+    }
+    return list;
+  }, [official4Countries, preferredCountry]);
+
   useEffect(() => {
     if (initialData && mode === 'edit') {
       setFullName(initialData.fullName);
@@ -61,7 +83,8 @@ export const CandidateFormModal: React.FC<CandidateFormModalProps> = ({
         setLanguage(initialData.languageProficiency[0].language);
         setLangLevel(initialData.languageProficiency[0].level);
       }
-      setPreferredCountry(initialData.preferredCountry[0] || 'Jepang');
+      const rawCountry = initialData.preferredCountry[0] || 'Jepang';
+      setPreferredCountry(rawCountry.toLowerCase() === 'korea' ? 'Korea Selatan' : rawCountry);
       setPreferredJobRole(initialData.preferredJobRole[0] || 'Welder');
       setReadinessStatus(initialData.readinessStatus);
       setVerificationStatus(initialData.verificationStatus);
@@ -330,12 +353,12 @@ export const CandidateFormModal: React.FC<CandidateFormModalProps> = ({
               <label className="block font-bold text-slate-700 mb-1">Target Negara & Jabatan</label>
               <div className="grid grid-cols-2 gap-2">
                 <select
-                  value={preferredCountry}
+                  value={preferredCountry.toLowerCase() === 'korea' ? 'Korea Selatan' : preferredCountry}
                   onChange={(e) => setPreferredCountry(e.target.value)}
                   className="px-2.5 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                     <option value="">Pilih negara</option>
-                    {businessOptions.countries.map((country) => (
+                    {availableCountries.map((country) => (
                       <option key={country.id} value={country.name}>{country.name}</option>
                     ))}
                 </select>

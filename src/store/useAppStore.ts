@@ -216,6 +216,13 @@ export interface AppState {
   deleteDemand: (id: string) => { success: boolean; message: string };
 }
 
+export const DEFAULT_SYSTEM_COUNTRIES = [
+  { id: 'JP', name: 'Jepang' },
+  { id: 'KR', name: 'Korea Selatan' },
+  { id: 'MY', name: 'Malaysia' },
+  { id: 'TR', name: 'Turki' },
+];
+
 export const useAppStore = create<AppState>((set, get) => ({
   // Navigation & Role Defaults
   viewMode: 'landing', // Opens landing page first by default
@@ -246,7 +253,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   providers: [],
   demands: [],
   businessDataLoaded: false,
-  businessOptions: { provinces: [], districts: [], sectors: [], occupations: [], countries: [], institutions: [] },
+  businessOptions: { provinces: [], districts: [], sectors: [], occupations: [], countries: DEFAULT_SYSTEM_COUNTRIES, institutions: [] },
   setBusinessData: (data) => set((state) => {
     const hasIncomingCandidates = Array.isArray(data.candidates) && data.candidates.length > 0;
     const candidates = hasIncomingCandidates
@@ -337,7 +344,11 @@ export const useAppStore = create<AppState>((set, get) => ({
         districts: Array.isArray(data.options?.districts) && data.options.districts.length > 0 ? data.options.districts : (state.businessOptions?.districts ?? []),
         sectors: Array.isArray(data.options?.sectors) && data.options.sectors.length > 0 ? data.options.sectors : (state.businessOptions?.sectors ?? []),
         occupations: Array.isArray(data.options?.occupations) && data.options.occupations.length > 0 ? data.options.occupations : (state.businessOptions?.occupations ?? []),
-        countries: Array.isArray(data.options?.countries) && data.options.countries.length > 0 ? data.options.countries : (state.businessOptions?.countries ?? []),
+        countries: Array.isArray(data.options?.countries) && data.options.countries.length > 0
+          ? data.options.countries
+          : (state.businessOptions?.countries && state.businessOptions.countries.length > 0
+              ? state.businessOptions.countries
+              : DEFAULT_SYSTEM_COUNTRIES),
         institutions: Array.isArray(data.options?.institutions) && data.options.institutions.length > 0 ? data.options.institutions : (state.businessOptions?.institutions ?? []),
       },
       businessDataLoaded: true,

@@ -22,7 +22,14 @@ export const ProgramFormModal: React.FC<ProgramFormModalProps> = ({
   const occupationsList = Array.isArray(businessOptions?.occupations) ? businessOptions.occupations : [];
   const sectorsList = Array.isArray(businessOptions?.sectors) ? businessOptions.sectors : [];
   const institutionsList = Array.isArray(businessOptions?.institutions) ? businessOptions.institutions : [];
-  const countriesList = Array.isArray(businessOptions?.countries) ? businessOptions.countries : [];
+  const countriesList = Array.isArray(businessOptions?.countries) && businessOptions.countries.length > 0
+    ? businessOptions.countries
+    : [
+        { id: 'JP', name: 'Jepang' },
+        { id: 'KR', name: 'Korea Selatan' },
+        { id: 'MY', name: 'Malaysia' },
+        { id: 'TR', name: 'Turki' },
+      ];
   const [title, setTitle] = useState('');
   const [programType, setProgramType] = useState<ProgramType>('Teknis Terpadu');
   const [targetSector, setTargetSector] = useState('Manufaktur / Pengelasan');
