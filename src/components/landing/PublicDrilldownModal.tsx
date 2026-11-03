@@ -1904,70 +1904,6 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
               </Badge>
             </div>
 
-            {/* Kategori Filter Bar: Lembaga vs Vokasi */}
-            <div className="p-2.5 rounded-xl bg-muted/30 border border-border/60 text-xs flex flex-wrap items-center justify-between gap-2">
-              <div className="flex flex-wrap items-center gap-1.5">
-                <span className="text-[11px] font-semibold text-muted-foreground mr-1">Filter Kategori:</span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setInstitutionCategoryFilter("ALL");
-                    setInstitutionPage(1);
-                  }}
-                  className={`px-3 py-1 rounded-lg text-xs font-semibold transition cursor-pointer ${
-                    institutionCategoryFilter === "ALL"
-                      ? "bg-foreground text-background shadow-xs"
-                      : "bg-background border border-border text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  Semua ({supplyOnlyItems.length})
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setInstitutionCategoryFilter("lembaga");
-                    setInstitutionPage(1);
-                  }}
-                  className={`px-3 py-1 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 ${
-                    institutionCategoryFilter === "lembaga"
-                      ? "bg-blue-600 text-white shadow-xs font-bold"
-                      : "bg-background border border-border text-muted-foreground hover:text-blue-600"
-                  }`}
-                >
-                  <Building2 className="w-3.5 h-3.5" />
-                  <span>Lembaga ({lembagaCount})</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setInstitutionCategoryFilter("vokasi");
-                    setInstitutionPage(1);
-                  }}
-                  className={`px-3 py-1 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 ${
-                    institutionCategoryFilter === "vokasi"
-                      ? "bg-emerald-600 text-white shadow-xs font-bold"
-                      : "bg-background border border-border text-muted-foreground hover:text-emerald-600"
-                  }`}
-                >
-                  <BookOpen className="w-3.5 h-3.5" />
-                  <span>Vokasi ({vokasiCount})</span>
-                </button>
-              </div>
-
-              {institutionCategoryFilter !== "ALL" && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setInstitutionCategoryFilter("ALL");
-                    setInstitutionPage(1);
-                  }}
-                  className="text-[11px] text-muted-foreground hover:text-foreground hover:underline cursor-pointer"
-                >
-                  Reset Filter
-                </button>
-              )}
-            </div>
-
             <div className="rounded-lg border border-border p-2">
               {filtered.length === 0 ? (
                 <p className="p-5 text-center text-sm text-muted-foreground">
@@ -2168,17 +2104,377 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
     );
   };
 
+  const renderVokasiInstitutionDirectory = (items: PublicPreviewInstitution[]) => {
+    if (selectedInstitutionForStudents) {
+      return renderStudentList();
+    }
+
+    const supplyOnlyItems = items.filter(
+      (it) => (it.students?.length ?? it.studentCount ?? 0) > 0 || it.hasAdminAccount
+    );
+    const lembagaCount = supplyOnlyItems.filter((it) => isLembagaInstitution(it)).length;
+    const vokasiCount = supplyOnlyItems.filter((it) => isVokasiInstitution(it)).length;
+
+    const q = institutionSearchQuery.toLowerCase().trim();
+    const filtered = supplyOnlyItems.filter((it) => {
+      const matchSearch =
+        !q ||
+        it.name.toLowerCase().includes(q) ||
+        (it.province && it.province.toLowerCase().includes(q)) ||
+        (it.district && it.district.toLowerCase().includes(q)) ||
+        (it.type && it.type.toLowerCase().includes(q));
+
+      const matchCategory =
+        institutionCategoryFilter === "ALL" ||
+        (institutionCategoryFilter === "lembaga" && isLembagaInstitution(it)) ||
+        (institutionCategoryFilter === "vokasi" && isVokasiInstitution(it));
+
+      return matchSearch && matchCategory;
+    });
+
+    const pageSize = 15;
+    const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+    const safeCurrentPage = Math.min(institutionPage, totalPages);
+    const paginated = filtered.slice((safeCurrentPage - 1) * pageSize, safeCurrentPage * pageSize);
+
+    return (
+      <div className="space-y-3.5">
+        {/* Header Direktori Lembaga Vokasi */}
+        <div className="p-3.5 rounded-xl border border-border bg-slate-50/80 dark:bg-slate-900/80 space-y-3 shadow-xs">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div className="flex items-center gap-2.5">
+              <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/30">
+                <Building2 className="h-5 w-5" />
+              </span>
+              <div>
+                <h4 className="text-sm font-bold text-foreground flex items-center gap-2">
+                  <span>Daftar Lembaga Vokasi Suplai</span>
+                  <Badge className="bg-blue-600 text-white font-mono text-[11px] font-bold">
+                    {supplyOnlyItems.length} Lembaga Terdaftar
+                  </Badge>
+                </h4>
+                <p className="text-[11px] text-muted-foreground">
+                  Daftar lembaga pelatihan kerja (LPK/LKP) dan satuan pendidikan vokasi (SMK/Politeknik/PT Vokasi)
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Filter Kategori: HANYA Lembaga dan Vokasi */}
+          <div className="pt-2 border-t border-border/60 flex flex-wrap items-center justify-between gap-2">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-[11px] font-semibold text-muted-foreground mr-1">Filter Kategori:</span>
+              <button
+                type="button"
+                onClick={() => {
+                  setInstitutionCategoryFilter("ALL");
+                  setInstitutionPage(1);
+                }}
+                className={`px-3 py-1 rounded-lg text-xs font-semibold transition cursor-pointer ${
+                  institutionCategoryFilter === "ALL"
+                    ? "bg-foreground text-background shadow-xs font-bold"
+                    : "bg-background border border-border text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Semua ({supplyOnlyItems.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setInstitutionCategoryFilter("lembaga");
+                  setInstitutionPage(1);
+                }}
+                className={`px-3 py-1 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 ${
+                  institutionCategoryFilter === "lembaga"
+                    ? "bg-blue-600 text-white shadow-xs font-bold"
+                    : "bg-background border border-border text-muted-foreground hover:text-blue-600"
+                }`}
+              >
+                <Building2 className="w-3.5 h-3.5" />
+                <span>Lembaga ({lembagaCount})</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setInstitutionCategoryFilter("vokasi");
+                  setInstitutionPage(1);
+                }}
+                className={`px-3 py-1 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 ${
+                  institutionCategoryFilter === "vokasi"
+                    ? "bg-emerald-600 text-white shadow-xs font-bold"
+                    : "bg-background border border-border text-muted-foreground hover:text-emerald-600"
+                }`}
+              >
+                <BookOpen className="w-3.5 h-3.5" />
+                <span>Vokasi ({vokasiCount})</span>
+              </button>
+            </div>
+
+            {institutionCategoryFilter !== "ALL" && (
+              <button
+                type="button"
+                onClick={() => {
+                  setInstitutionCategoryFilter("ALL");
+                  setInstitutionPage(1);
+                }}
+                className="text-[11px] text-blue-600 hover:underline cursor-pointer"
+              >
+                Reset Filter
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Search Bar */}
+        <div className="relative">
+          <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Cari nama lembaga vokasi, politeknik, SMK, kabupaten/kota, atau kejuruan..."
+            value={institutionSearchQuery}
+            onChange={(e) => {
+              setInstitutionSearchQuery(e.target.value);
+              setInstitutionPage(1);
+            }}
+            className="h-8.5 pl-8 pr-8 text-xs bg-background"
+          />
+          {institutionSearchQuery && (
+            <button
+              type="button"
+              onClick={() => {
+                setInstitutionSearchQuery("");
+                setInstitutionPage(1);
+              }}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground hover:text-foreground cursor-pointer"
+            >
+              ×
+            </button>
+          )}
+        </div>
+
+        {/* Info Filter Status */}
+        <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 rounded-xl bg-blue-500/10 border border-blue-500/30 text-xs">
+          <span className="font-semibold text-blue-700 dark:text-blue-400 flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-blue-500" />
+            <span>
+              {institutionCategoryFilter === "lembaga"
+                ? "Daftar Lembaga Pelatihan (LPK / LKP)"
+                : institutionCategoryFilter === "vokasi"
+                ? "Daftar Satuan Pendidikan Vokasi (Politeknik / Perguruan Tinggi / SMK)"
+                : "Semua Lembaga Pelatihan & Pendidikan Vokasi Terdaftar"}
+            </span>
+          </span>
+          <Badge className="bg-blue-600 text-white font-bold text-xs">
+            {filtered.length} Lembaga
+          </Badge>
+        </div>
+
+        {/* Cards list */}
+        <div className="rounded-lg border border-border p-2">
+          {filtered.length === 0 ? (
+            <p className="p-5 text-center text-sm text-muted-foreground">
+              Belum ada lembaga yang sesuai dengan kriteria pencarian atau kategori ini.
+            </p>
+          ) : (
+            <div className="space-y-2.5">
+              {paginated.map((institution) => {
+                const isVerified = institution.evokasiStatus === "Terverifikasi e-Vokasi";
+                const studentCount = institution.students?.length ?? institution.studentCount ?? 0;
+                const hasStudents = studentCount > 0;
+
+                return (
+                  <div
+                    key={institution.id}
+                    onClick={() => {
+                      if (hasStudents) {
+                        setSelectedInstitutionForStudents(institution);
+                        setStudentSearchQuery("");
+                        setStudentPage(1);
+                      }
+                    }}
+                    className={cn(
+                      "rounded-lg border border-border bg-white dark:bg-slate-900 p-3 space-y-2 transition-all",
+                      hasStudents
+                        ? "hover:border-primary/60 hover:shadow-md cursor-pointer group"
+                        : "border-border/70"
+                    )}
+                  >
+                    <div className="flex min-w-0 items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-1.5 mb-1">
+                          <InstitutionSourceBadge
+                            source={institution.registrationSource}
+                            sourceId={institution.registrationSourceId || institution.id}
+                            level={institution.inputLevel}
+                            showLevel
+                            showId={Boolean(institution.registrationSourceId)}
+                          />
+                          <Badge
+                            variant="outline"
+                            className={cn(
+                              "text-[10px] font-semibold",
+                              isLembagaInstitution(institution)
+                                ? "bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/30"
+                                : "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30"
+                            )}
+                          >
+                            {isLembagaInstitution(institution) ? "Lembaga (LPK/LKP)" : "Vokasi (PT/Poltek/SMK)"}
+                          </Badge>
+                        </div>
+                        <h6 className="break-words text-sm font-semibold text-foreground group-hover:text-primary transition-colors flex items-center gap-1.5">
+                          <span>{institution.name}</span>
+                          {hasStudents && (
+                            <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-transform group-hover:translate-x-0.5" />
+                          )}
+                        </h6>
+                        <p className="mt-0.5 text-xs text-muted-foreground">
+                          {institution.district ? `${institution.district}, ` : ""}
+                          {institution.province || scopeName}
+                        </p>
+                      </div>
+                      <Badge
+                        variant={isVerified ? "default" : "outline"}
+                        className={
+                          isVerified
+                            ? "max-w-[45%] shrink-0 whitespace-normal break-words bg-emerald-600/10 text-right text-xs text-emerald-700 dark:text-emerald-400 border border-emerald-500/20"
+                            : "max-w-[45%] shrink-0 whitespace-normal break-words text-right text-xs"
+                        }
+                      >
+                        {institution.evokasiStatus || "Terdaftar"}
+                      </Badge>
+                    </div>
+
+                    <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-t border-border/40 pt-1.5 text-xs text-muted-foreground">
+                      <div className="flex items-center gap-3">
+                        <span>
+                          Jenis: <strong>{institution.type}</strong>
+                        </span>
+                        {institution.accreditation && (
+                          <span>
+                            Akreditasi: <strong>{institution.accreditation}</strong>
+                          </span>
+                        )}
+                      </div>
+                      {hasStudents ? (
+                        <span className="text-primary font-semibold text-xs flex items-center gap-1 group-hover:underline cursor-pointer">
+                          <Users className="h-3.5 w-3.5" />
+                          {studentCount} Calon Peserta &rarr;
+                        </span>
+                      ) : institution.hasAdminAccount ? (
+                        <span className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                          Admin Lembaga Terdaftar
+                        </span>
+                      ) : (
+                        <span className="text-xs text-muted-foreground flex items-center gap-1">
+                          <Building2 className="h-3.5 w-3.5 opacity-60" />
+                          {institution.workshopCapacity
+                            ? `Kapasitas: ${institution.workshopCapacity} / Batch`
+                            : "Terdaftar Siap Diklat"}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Tautan Dokumen Inaproc e-Katalog dan Berkas MoU */}
+                    {(institution.procurementCatalogUrl || institution.mouDriveUrl || institution.procurementMethod) && (
+                      <div className="flex flex-wrap items-center gap-2 pt-1.5 border-t border-border/30 text-xs">
+                        <span className="text-[11px] font-medium text-muted-foreground">Dokumen & Pengadaan:</span>
+                        {institution.procurementCatalogUrl && (
+                          <a
+                            href={institution.procurementCatalogUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-700 dark:text-blue-300 hover:bg-blue-500/20 text-[11px] font-medium border border-blue-500/30 transition-colors"
+                            title="Buka tautan Inaproc e-Katalog LKPP"
+                          >
+                            <ExternalLink className="h-3 w-3" />
+                            <span>Inaproc e-Katalog</span>
+                          </a>
+                        )}
+                        {institution.mouDriveUrl && (
+                          <a
+                            href={institution.mouDriveUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/20 text-[11px] font-medium border border-emerald-500/30 transition-colors"
+                            title="Lihat Berkas Dokumen MoU"
+                          >
+                            <FileText className="h-3 w-3" />
+                            <span>Berkas MoU</span>
+                          </a>
+                        )}
+                        {institution.procurementMethod && (
+                          <Badge variant="outline" className="text-[10px] text-muted-foreground border-border/80">
+                            Metode: {institution.procurementMethod}
+                          </Badge>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Pagination Bar */}
+        {filtered.length > pageSize && (
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-muted-foreground px-1 pt-1 border-t border-border/40">
+            <span>
+              Menampilkan {((safeCurrentPage - 1) * pageSize) + 1} -{" "}
+              {Math.min(filtered.length, safeCurrentPage * pageSize)} dari {filtered.length} lembaga
+            </span>
+            <div className="flex items-center gap-1.5">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setInstitutionPage((p) => Math.max(1, p - 1))}
+                disabled={safeCurrentPage <= 1}
+                className="h-7 px-2.5 text-xs gap-1 cursor-pointer"
+              >
+                <ChevronLeft className="h-3.5 w-3.5" />
+                Sebelumnya
+              </Button>
+              <span className="px-2 font-medium text-foreground">
+                Halaman {safeCurrentPage} / {totalPages}
+              </span>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setInstitutionPage((p) => Math.min(totalPages, p + 1))}
+                disabled={safeCurrentPage >= totalPages}
+                className="h-7 px-2.5 text-xs gap-1 cursor-pointer"
+              >
+                Selanjutnya
+                <ChevronRight className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const renderContent = () => {
     switch (activeDrilldownType || type) {
       case "peserta":
-      case "lembaga":
-      case "sebaran_lembaga":
         if (selectedInstitutionForStudents) {
           return renderStudentList();
         }
         return (
           <div className="space-y-4">
             {renderInstitutionList(institutions)}
+          </div>
+        );
+
+      case "lembaga":
+      case "sebaran_lembaga":
+        return (
+          <div className="space-y-4">
+            {renderVokasiInstitutionDirectory(institutions)}
           </div>
         );
 
