@@ -72,14 +72,16 @@ return new class extends Migration
 
         foreach ($coreGrdInstitutions as $inst) {
             $createdAt = DB::table('institutions')->where('id', $inst['id'])->value('created_at') ?? $now;
+            $hasProvince = DB::table('provinces')->where('id', $inst['province_id'])->exists();
+            $hasDistrict = DB::table('districts')->where('id', $inst['district_id'])->exists();
             DB::table('institutions')->updateOrInsert(
                 ['id' => $inst['id']],
                 [
                     'name' => $inst['name'],
                     'institution_type' => $inst['type'],
                     'ownership_type' => $inst['ownership'],
-                    'province_id' => $inst['province_id'],
-                    'district_id' => $inst['district_id'],
+                    'province_id' => $hasProvince ? $inst['province_id'] : null,
+                    'district_id' => $hasDistrict ? $inst['district_id'] : null,
                     'status' => 'Aktif',
                     'verification_status' => 'Verified',
                     'accreditation' => 'A',

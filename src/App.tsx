@@ -86,6 +86,8 @@ interface LandingProjectionData {
     occupationName: string;
     projectionPlacement: string;
     target: number;
+    scheduleStart?: string | null;
+    scheduleEnd?: string | null;
   }[];
   participants: {
     id: string;

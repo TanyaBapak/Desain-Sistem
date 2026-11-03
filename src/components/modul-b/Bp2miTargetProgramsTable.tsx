@@ -139,6 +139,7 @@ interface Bp2miTargetProgramsTableProps {
   programs: TrainingProgram[];
   canManageSchedule: boolean;
   onEditSchedule?: (program: TrainingProgram) => void;
+  onEditSectorSchedule?: (sectorName: string, programs: TrainingProgram[]) => void;
   onViewCurriculum: (program: TrainingProgram) => void;
 }
 
@@ -168,6 +169,7 @@ export const Bp2miTargetProgramsTable: React.FC<Bp2miTargetProgramsTableProps> =
   programs,
   canManageSchedule,
   onEditSchedule,
+  onEditSectorSchedule,
   onViewCurriculum,
 }) => {
   const groupedBySector = useMemo(() => {
@@ -248,13 +250,16 @@ export const Bp2miTargetProgramsTable: React.FC<Bp2miTargetProgramsTableProps> =
               const sectorTargetSum = sectorPrograms.reduce((acc, p) => acc + (p.quota || 0), 0);
               const sectorClassSum = sectorPrograms.reduce((acc, p) => acc + (p.classCount || 0), 0);
 
+              const sectorStart = sectorPrograms.find((p) => p.scheduleStart)?.scheduleStart;
+              const sectorEnd = sectorPrograms.find((p) => p.scheduleEnd)?.scheduleEnd;
+              const sectorStartStr = formatDateShort(sectorStart);
+              const sectorEndStr = formatDateShort(sectorEnd);
+              const hasSectorDate = Boolean(sectorStartStr || sectorEndStr);
+
               return (
                 <React.Fragment key={sectorName}>
                   {sectorPrograms.map((program, idx) => {
                     runningRowNo += 1;
-                    const startStr = formatDateShort(program.scheduleStart);
-                    const endStr = formatDateShort(program.scheduleEnd);
-                    const hasDate = Boolean(startStr || endStr);
 
                     return (
                       <tr
@@ -317,29 +322,41 @@ export const Bp2miTargetProgramsTable: React.FC<Bp2miTargetProgramsTableProps> =
                         <td className="py-2.5 px-3 text-center font-extrabold bg-amber-300/80 dark:bg-amber-500/20 text-slate-950 dark:text-amber-300 border-r border-amber-300 dark:border-amber-800/50 tabular-nums">
                           {program.durationJP} JP
                         </td>
-                        <td className="py-2 px-3 text-center">
-                          <div className="flex items-center justify-between gap-2">
-                            {hasDate ? (
-                              <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-400 tabular-nums">
-                                {startStr || '-'} s/d {endStr || '-'}
-                              </span>
-                            ) : (
-                              <span className="text-[11px] text-amber-600 dark:text-amber-400">
-                                Belum diatur
-                              </span>
-                            )}
-                            {canManageSchedule && onEditSchedule && (
-                              <button
-                                type="button"
-                                onClick={() => onEditSchedule(program)}
-                                className="px-2 py-1 rounded-md text-[11px] font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 dark:bg-indigo-950/70 dark:hover:bg-indigo-900 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 transition inline-flex items-center gap-1 shrink-0"
-                              >
-                                <Calendar className="w-3 h-3" />
-                                <span>{hasDate ? 'Ubah' : 'Atur Tanggal'}</span>
-                              </button>
-                            )}
-                          </div>
-                        </td>
+                        {idx === 0 && (
+                          <td
+                            rowSpan={sectorPrograms.length}
+                            className="py-2.5 px-3 text-center border-l border-slate-200 dark:border-slate-800 align-middle bg-slate-50/40 dark:bg-slate-900/40"
+                          >
+                            <div className="flex flex-col items-center justify-center gap-1.5">
+                              {hasSectorDate ? (
+                                <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-400 tabular-nums bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800/60 px-2 py-0.5 rounded-md">
+                                  {sectorStartStr || '-'} s/d {sectorEndStr || '-'}
+                                </span>
+                              ) : (
+                                <span className="text-[11px] text-amber-600 dark:text-amber-400 font-medium">
+                                  Belum diatur
+                                </span>
+                              )}
+                              {canManageSchedule && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (onEditSectorSchedule) {
+                                      onEditSectorSchedule(sectorName, sectorPrograms);
+                                    } else if (onEditSchedule) {
+                                      onEditSchedule(sectorPrograms[0]);
+                                    }
+                                  }}
+                                  className="px-2.5 py-1 rounded-md text-[11px] font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 dark:bg-indigo-950/70 dark:hover:bg-indigo-900 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 transition inline-flex items-center gap-1 shrink-0 shadow-sm"
+                                  title={`Atur tanggal pelaksanaan sektor ${sectorName}`}
+                                >
+                                  <Calendar className="w-3 h-3" />
+                                  <span>{hasSectorDate ? 'Ubah Tanggal' : 'Atur Tanggal Sektor'}</span>
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        )}
                       </tr>
                     );
                   })}

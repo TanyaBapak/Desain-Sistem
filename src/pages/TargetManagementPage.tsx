@@ -34,7 +34,7 @@ export function TargetManagementPage({ adminTargets }: TargetManagementPageProps
           className="inline-flex items-center gap-2 self-start sm:self-auto"
         >
           <Calendar className="h-4 w-4" />
-          <span>Atur Tanggal Program Pelatihan</span>
+          <span>Atur Tanggal Sektor Pelatihan</span>
           <ArrowRight className="h-4 w-4" />
         </Button>
       </header>
@@ -47,10 +47,10 @@ export function TargetManagementPage({ adminTargets }: TargetManagementPageProps
             </div>
             <div>
               <h2 className="text-sm font-semibold text-foreground">
-                Jadwal & Tanggal Pelaksanaan Program Pelatihan (JP)
+                Jadwal & Tanggal Pelaksanaan Pelatihan per Sektor (JP)
               </h2>
               <p className="text-xs text-muted-foreground">
-                Atur Tanggal Mulai, Tanggal Selesai, dan Jam Pelajaran (JP) pada setiap program pelatihan melalui menu Program Pelatihan.
+                Atur Tanggal Mulai dan Tanggal Selesai secara serentak per sektor pelatihan melalui menu Program Pelatihan.
               </p>
             </div>
           </div>
@@ -62,7 +62,7 @@ export function TargetManagementPage({ adminTargets }: TargetManagementPageProps
             className="shrink-0 gap-1.5"
           >
             <Calendar className="h-3.5 w-3.5" />
-            <span>Buka Program Pelatihan</span>
+            <span>Buka Jadwal Sektor</span>
           </Button>
         </CardContent>
       </Card>

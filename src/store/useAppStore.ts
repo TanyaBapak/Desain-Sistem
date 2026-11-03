@@ -203,6 +203,7 @@ export interface AppState {
   // CRUD Actions - Modul B: Program Pelatihan
   createProgram: (program: Omit<TrainingProgram, 'id'>) => TrainingProgram;
   updateProgram: (id: string, updates: Partial<TrainingProgram>) => void;
+  updateProgramsSectorSchedule: (sectorName: string, scheduleStart: string, scheduleEnd: string) => void;
   deleteProgram: (id: string) => { success: boolean; message: string };
 
   // CRUD Actions - Modul C: Lembaga Vokasi
@@ -923,6 +924,24 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({
       programs: get().programs.map((p) => (p.id === id ? updated : p)),
       auditLogs: [auditEntry, ...get().auditLogs],
+    });
+  },
+
+  updateProgramsSectorSchedule: (sectorName, scheduleStart, scheduleEnd) => {
+    set({
+      programs: get().programs.map((p) => {
+        const matchSector =
+          (p.targetSector && p.targetSector.toLowerCase() === sectorName.toLowerCase()) ||
+          (p.title && p.title.toLowerCase().includes(sectorName.toLowerCase()));
+        if (matchSector) {
+          return {
+            ...p,
+            scheduleStart,
+            scheduleEnd,
+          };
+        }
+        return p;
+      }),
     });
   },
 

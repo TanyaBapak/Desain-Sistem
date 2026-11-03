@@ -13,6 +13,7 @@ import {
   RotateCcw,
   ExternalLink,
   Layers,
+  Calendar,
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/Badge";
@@ -105,6 +106,39 @@ export const TARGET_COUNTRIES_CONFIG: Record<(typeof TARGET_4_COUNTRIES)[number]
   },
 };
 
+const DEFAULT_SECTOR_DATES: Record<string, { start: string; end: string }> = {
+  kesehatan: { start: "2027-02-01", end: "2027-07-31" },
+  hospitality: { start: "2027-02-15", end: "2027-08-15" },
+  manufaktur: { start: "2027-03-01", end: "2027-09-30" },
+  transportasi: { start: "2027-03-15", end: "2027-08-31" },
+  agriculture: { start: "2027-04-01", end: "2027-09-30" },
+  fisherman: { start: "2027-04-01", end: "2027-09-30" },
+  bahasa: { start: "2027-01-15", end: "2027-06-15" },
+  "pelatihan dan sertifikasi teknis": { start: "2027-02-01", end: "2027-07-31" },
+  "sertifikasi teknis": { start: "2027-03-01", end: "2027-06-30" },
+};
+
+function formatScheduleRange(start?: string | null, end?: string | null): string {
+  if (!start && !end) return "Jadwal Belum Diatur";
+  const parsePart = (d: string) => {
+    try {
+      const date = new Date(d);
+      if (isNaN(date.getTime())) return d;
+      return new Intl.DateTimeFormat("id-ID", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      }).format(date);
+    } catch {
+      return d;
+    }
+  };
+  if (start && end) {
+    return `${parsePart(start)} s/d ${parsePart(end)}`;
+  }
+  return parsePart(start || end || "");
+}
+
 export function SupplyTargetProjectionPanel({
   projection,
   className,
@@ -114,7 +148,7 @@ export function SupplyTargetProjectionPanel({
   const [selectedCountry, setSelectedCountry] = useState<string>("ALL");
   const [selectedSectorJob, setSelectedSectorJob] = useState<string>("Semua Sektor & Jabatan");
   const [selectedRegion, setSelectedRegion] = useState<string>("Semua Daerah Asal");
-  const [selectedSource, setSelectedSource] = useState<string>("Semua Sumber Data");
+  const [selectedSchedule, setSelectedSchedule] = useState<string>("Semua Tanggal");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [showFilters, setShowFilters] = useState<boolean>(false);
@@ -137,7 +171,9 @@ export function SupplyTargetProjectionPanel({
       technicalJp: number | null;
       languageJp: number | null;
       region: string;
-      source: string;
+      scheduleRange: string;
+      scheduleStart: string;
+      scheduleEnd: string;
     }[] = [];
 
     projection.placementTargets.forEach((pt, index) => {
@@ -154,11 +190,11 @@ export function SupplyTargetProjectionPanel({
         defaultRegion = index % 2 === 0 ? "Jawa Timur" : "Jawa Tengah";
       }
 
-      let defaultSource = "Lembaga Vokasi / SMK";
-      if (index % 4 === 0) defaultSource = "Disnaker Pemda";
-      else if (index % 4 === 1) defaultSource = "Lembaga Vokasi / SMK";
-      else if (index % 4 === 2) defaultSource = "Mandiri / Umum";
-      else defaultSource = "Integrasi BP3MI";
+      const secNorm = pt.sectorName.toLowerCase().trim();
+      const fallback = DEFAULT_SECTOR_DATES[secNorm] || { start: "2027-02-01", end: "2027-07-31" };
+      const start = pt.scheduleStart || fallback.start;
+      const end = pt.scheduleEnd || fallback.end;
+      const scheduleRange = formatScheduleRange(start, end);
 
       list.push({
         id: `TARGET-4-${pt.year}-${index + 1}`,
@@ -171,7 +207,9 @@ export function SupplyTargetProjectionPanel({
         technicalJp: pt.technicalJp ?? null,
         languageJp: pt.languageJp ?? null,
         region: defaultRegion,
-        source: defaultSource,
+        scheduleRange,
+        scheduleStart: start,
+        scheduleEnd: end,
       });
     });
 
@@ -220,13 +258,13 @@ export function SupplyTargetProjectionPanel({
     "Nusa Tenggara Barat",
   ];
 
-  const sourcesOptions = [
-    "Semua Sumber Data",
-    "Disnaker Pemda",
-    "Lembaga Vokasi / SMK",
-    "Mandiri / Umum",
-    "Integrasi BP3MI",
-  ];
+  const scheduleOptions = useMemo(() => {
+    const set = new Set<string>();
+    enrichedTargets.forEach((pt) => {
+      if (pt.scheduleRange) set.add(pt.scheduleRange);
+    });
+    return ["Semua Tanggal", ...Array.from(set).sort((a, b) => a.localeCompare(b, "id"))];
+  }, [enrichedTargets]);
 
   // Filter baris
   const filteredTargets = useMemo(() => {
@@ -241,7 +279,7 @@ export function SupplyTargetProjectionPanel({
       if (selectedRegion !== "Semua Daerah Asal" && row.region !== selectedRegion) {
         return false;
       }
-      if (selectedSource !== "Semua Sumber Data" && row.source !== selectedSource) {
+      if (selectedSchedule !== "Semua Tanggal" && row.scheduleRange !== selectedSchedule) {
         return false;
       }
       if (searchQuery.trim()) {
@@ -253,7 +291,7 @@ export function SupplyTargetProjectionPanel({
       }
       return true;
     });
-  }, [enrichedTargets, selectedCountry, selectedSectorJob, selectedRegion, selectedSource, searchQuery]);
+  }, [enrichedTargets, selectedCountry, selectedSectorJob, selectedRegion, selectedSchedule, searchQuery]);
 
   const stats = useMemo(() => {
     const totalSlots = filteredTargets.reduce((acc, r) => acc + r.targetQuota, 0);
@@ -287,7 +325,7 @@ export function SupplyTargetProjectionPanel({
     setSelectedCountry("ALL");
     setSelectedSectorJob("Semua Sektor & Jabatan");
     setSelectedRegion("Semua Daerah Asal");
-    setSelectedSource("Semua Sumber Data");
+    setSelectedSchedule("Semua Tanggal");
     setSearchQuery("");
     setCurrentPage(1);
   };
@@ -539,19 +577,19 @@ export function SupplyTargetProjectionPanel({
 
               <div className="space-y-1">
                 <label className="text-[11px] font-bold text-muted-foreground flex items-center gap-1">
-                  <Database className="h-3 w-3" />
-                  <span>Sumber Data Penjaringan</span>
+                  <Calendar className="h-3 w-3" />
+                  <span>Tanggal Pelaksanaan Pelatihan</span>
                 </label>
                 <select
-                  aria-label="Pilih Sumber Data"
-                  value={selectedSource}
+                  aria-label="Pilih Tanggal Pelaksanaan"
+                  value={selectedSchedule}
                   onChange={(e) => {
-                    setSelectedSource(e.target.value);
+                    setSelectedSchedule(e.target.value);
                     setCurrentPage(1);
                   }}
                   className="w-full h-8 rounded-md border border-input bg-background px-2 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
                 >
-                  {sourcesOptions.map((s) => (
+                  {scheduleOptions.map((s) => (
                     <option key={s} value={s}>
                       {s}
                     </option>
@@ -573,7 +611,7 @@ export function SupplyTargetProjectionPanel({
                     <th className="py-2.5 px-3 text-right">Target Suplai</th>
                     <th className="py-2.5 px-3 text-right">Total JP</th>
                     <th className="py-2.5 px-3">Daerah Asal</th>
-                    <th className="py-2.5 px-3">Sumber Data</th>
+                    <th className="py-2.5 px-3">Tanggal Pelaksanaan</th>
                     <th className="py-2.5 px-3 text-center">Tahun</th>
                   </tr>
                 </thead>
@@ -602,8 +640,9 @@ export function SupplyTargetProjectionPanel({
                         </td>
                         <td className="py-2.5 px-3 text-muted-foreground">{row.region}</td>
                         <td className="py-2.5 px-3">
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-primary/10 text-primary border border-primary/20">
-                            {row.source}
+                          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 tabular-nums">
+                            <Calendar className="w-3 h-3 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                            <span>{row.scheduleRange}</span>
                           </span>
                         </td>
                         <td className="py-2.5 px-3 text-center text-muted-foreground tabular-nums">

@@ -10,6 +10,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -236,7 +237,7 @@ class BusinessDataController extends Controller
                 'updated_at' => now(),
             ]);
 
-            if ($existing->institution_id && ($totalJp > 0 || ! empty($validated['scheduleStart']))) {
+            if ($existing->institution_id && ($totalJp > 0 || ! empty($validated['scheduleStart'])) && Schema::hasColumn('training_classes', 'program_id')) {
                 $existingClass = DB::table('training_classes')->where('program_id', $id)->first();
                 if ($existingClass) {
                     DB::table('training_classes')->where('id', $existingClass->id)->update([
@@ -277,6 +278,59 @@ class BusinessDataController extends Controller
         app(BusinessDataPresenter::class)->forgetAll();
 
         return back()->with('success', 'Jadwal tanggal program pelatihan berhasil disimpan.');
+    }
+
+    public function updateSectorSchedule(Request $request): RedirectResponse
+    {
+        $this->authorizeWrite($request, 'programs', 'update');
+
+        $validated = $request->validate([
+            'sectorName' => ['required', 'string', 'max:150'],
+            'scheduleStart' => ['required', 'date'],
+            'scheduleEnd' => ['required', 'date', 'after_or_equal:scheduleStart'],
+        ], [
+            'sectorName.required' => 'Nama sektor pelatihan wajib diisi.',
+            'scheduleStart.required' => 'Tanggal mulai pelatihan wajib diisi.',
+            'scheduleStart.date' => 'Format tanggal mulai pelatihan tidak valid.',
+            'scheduleEnd.required' => 'Tanggal selesai pelatihan wajib diisi.',
+            'scheduleEnd.date' => 'Format tanggal selesai pelatihan tidak valid.',
+            'scheduleEnd.after_or_equal' => 'Tanggal selesai pelatihan tidak boleh lebih awal dari tanggal mulai.',
+        ]);
+
+        $sectorName = trim($validated['sectorName']);
+
+        DB::transaction(function () use ($request, $sectorName, $validated): void {
+            $affectedCount = DB::table('training_programs')
+                ->where(function ($q) use ($sectorName) {
+                    $q->where('sector_label', $sectorName)
+                        ->orWhere('name', 'like', "%{$sectorName}%");
+                    $sectorId = DB::table('sectors')->where('name', $sectorName)->value('id');
+                    if ($sectorId) {
+                        $q->orWhere('sector_id', $sectorId);
+                    }
+                })
+                ->update([
+                    'start_date' => $validated['scheduleStart'],
+                    'end_date' => $validated['scheduleEnd'],
+                    'updated_at' => now(),
+                ]);
+
+            $newRange = $validated['scheduleStart'].' s/d '.$validated['scheduleEnd'];
+            $this->writeAudit(
+                $request,
+                'programs',
+                'SECTOR-'.strtoupper(substr(md5($sectorName), 0, 8)),
+                'UPDATE_DATA',
+                "Pengaturan jadwal pelaksanaan sektor {$sectorName} ({$affectedCount} program diselaraskan ke {$newRange}).",
+                'Jadwal Pelaksanaan Sektor',
+                '-',
+                $newRange,
+            );
+        });
+
+        app(BusinessDataPresenter::class)->forgetAll();
+
+        return back()->with('success', "Jadwal tanggal pelaksanaan untuk sektor {$sectorName} berhasil disimpan.");
     }
 
     public function destroy(Request $request, string $type, string $id): RedirectResponse
@@ -1266,7 +1320,7 @@ class BusinessDataController extends Controller
             DB::table('training_programs')->where('id', $id)->update($attributes);
         }
 
-        if ($institutionId && ((int) ($data['durationJP'] ?? 0) > 0 || ! empty($data['scheduleStart']))) {
+        if ($institutionId && ((int) ($data['durationJP'] ?? 0) > 0 || ! empty($data['scheduleStart'])) && Schema::hasColumn('training_classes', 'program_id')) {
             $existingClass = DB::table('training_classes')->where('program_id', $id)->first();
             if ($existingClass) {
                 DB::table('training_classes')->where('id', $existingClass->id)->update([

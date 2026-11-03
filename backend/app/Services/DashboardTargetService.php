@@ -803,6 +803,18 @@ class DashboardTargetService
      */
     public function landingPlacementProjection(?int $year): array
     {
+        $sectorSchedules = DB::table('training_programs')
+            ->whereNotNull('sector_label')
+            ->whereNotNull('start_date')
+            ->select(
+                'sector_label',
+                DB::raw('MIN(start_date) as start_date'),
+                DB::raw('MAX(end_date) as end_date')
+            )
+            ->groupBy('sector_label')
+            ->get()
+            ->keyBy(fn ($r) => strtolower(trim((string) $r->sector_label)));
+
         return DB::table('landing_placement_targets')
             ->when($year !== null, fn ($query) => $query->where('year', $year))
             ->orderByDesc('year')
@@ -810,19 +822,26 @@ class DashboardTargetService
             ->orderBy('occupation_name')
             ->orderBy('projection_placement')
             ->get()
-            ->map(fn (object $row): array => [
-                'year' => (int) $row->year,
-                'sectorName' => $row->sector_name,
-                'occupationName' => $row->occupation_name,
-                'projectionPlacement' => $row->projection_placement,
-                'target' => (int) $row->target,
-                'classCount' => isset($row->class_count) && $row->class_count !== null ? (int) $row->class_count : null,
-                'technicalJp' => isset($row->technical_jp) && $row->technical_jp !== null ? (int) $row->technical_jp : null,
-                'technicalCertificationJp' => isset($row->technical_certification_jp) && $row->technical_certification_jp !== null ? (int) $row->technical_certification_jp : null,
-                'languageJp' => isset($row->language_jp) && $row->language_jp !== null ? (int) $row->language_jp : null,
-                'languageCertificationJp' => isset($row->language_certification_jp) && $row->language_certification_jp !== null ? (int) $row->language_certification_jp : null,
-                'totalJp' => isset($row->total_jp) && $row->total_jp !== null ? (int) $row->total_jp : null,
-            ])
+            ->map(function (object $row) use ($sectorSchedules): array {
+                $secKey = strtolower(trim((string) $row->sector_name));
+                $schedule = $sectorSchedules->get($secKey);
+
+                return [
+                    'year' => (int) $row->year,
+                    'sectorName' => $row->sector_name,
+                    'occupationName' => $row->occupation_name,
+                    'projectionPlacement' => $row->projection_placement,
+                    'target' => (int) $row->target,
+                    'classCount' => isset($row->class_count) && $row->class_count !== null ? (int) $row->class_count : null,
+                    'technicalJp' => isset($row->technical_jp) && $row->technical_jp !== null ? (int) $row->technical_jp : null,
+                    'technicalCertificationJp' => isset($row->technical_certification_jp) && $row->technical_certification_jp !== null ? (int) $row->technical_certification_jp : null,
+                    'languageJp' => isset($row->language_jp) && $row->language_jp !== null ? (int) $row->language_jp : null,
+                    'languageCertificationJp' => isset($row->language_certification_jp) && $row->language_certification_jp !== null ? (int) $row->language_certification_jp : null,
+                    'totalJp' => isset($row->total_jp) && $row->total_jp !== null ? (int) $row->total_jp : null,
+                    'scheduleStart' => $schedule?->start_date,
+                    'scheduleEnd' => $schedule?->end_date,
+                ];
+            })
             ->all();
     }
 

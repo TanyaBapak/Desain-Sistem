@@ -43,6 +43,8 @@ export interface LandingProjectionData {
     languageJp?: number | null;
     languageCertificationJp?: number | null;
     totalJp?: number | null;
+    scheduleStart?: string | null;
+    scheduleEnd?: string | null;
   }[];
   participants: LandingProjectionParticipant[];
 }
