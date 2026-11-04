@@ -78,7 +78,7 @@ export function PublicPillarDemand({
               { name: "Turki (Hospitality Staff)", quota: "5.000 slot" },
               { name: "Malaysia (Hospitality & Caretaker)", quota: "5.000 slot" },
               { name: "Jepang (SSW Kaigo & Welder)", quota: "2.000 slot" },
-              { name: "Korea Selatan (E-7 / E-9)", quota: "600 slot" },
+              { name: "Korea (E-7 / E-9)", quota: "600 slot" },
             ].map((country) => (
               <div
                 key={country.name}

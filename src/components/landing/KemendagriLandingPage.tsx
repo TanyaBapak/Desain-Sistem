@@ -43,7 +43,7 @@ interface KemendagriLandingPageProps {
 }
 
 const TRAINING_SECTORS = ["Hospitality", "Kesehatan", "Manufaktur", "Konstruksi", "Fisherman"];
-const DEMAND_COUNTRIES = ["Turki", "Jepang", "Malaysia", "Korea Selatan"];
+const DEMAND_COUNTRIES = ["Turki", "Jepang", "Malaysia", "Korea"];
 
 interface ProgramTrackItem {
   type: 'teknis' | 'bahasa';
@@ -151,7 +151,7 @@ const PILLAR_COUNTRY_PROGRAMS: CountryProgramPillar[] = [
     ],
   },
   {
-    country: "Korea Selatan",
+    country: "Korea",
     sectors: [
       {
         sector: "Fisherman",
@@ -287,7 +287,7 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
   const siapLatihCount = candidateCount > 0 ? candidateCount : 4315;
 
   // 2. Siap Program & 4. Siap Permintaan: 4 Negara
-  const FOUR_COUNTRIES = ["Jepang", "Korea Selatan", "Malaysia", "Turki"];
+  const FOUR_COUNTRIES = ["Jepang", "Korea", "Malaysia", "Turki"];
 
   // 3. Siap Vokasi: Jumlah vokasi dihitung dari user level Admin Lembaga Vokasi
   const rawVokasiAdmin =
@@ -730,7 +730,7 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
                         { country: "Turki", quota: "5.000" },
                         { country: "Malaysia", quota: "5.000" },
                         { country: "Jepang", quota: "2.000" },
-                        { country: "Korea Selatan", quota: "600" },
+                        { country: "Korea", quota: "600" },
                       ].map((item) => (
                         <span
                           key={item.country}

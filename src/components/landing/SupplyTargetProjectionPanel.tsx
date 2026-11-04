@@ -39,7 +39,7 @@ interface SupplyTargetProjectionPanelProps {
 export const TARGET_4_COUNTRIES = [
   "Turki",
   "Malaysia",
-  "Korea Selatan",
+  "Korea",
   "Jepang",
 ] as const;
 
@@ -47,7 +47,7 @@ export function match4Country(name: string): (typeof TARGET_4_COUNTRIES)[number]
   const norm = name.toLowerCase().trim();
   if (norm.includes("turki") || norm.includes("turkey")) return "Turki";
   if (norm.includes("malaysia")) return "Malaysia";
-  if (norm.includes("korea")) return "Korea Selatan";
+  if (norm.includes("korea")) return "Korea";
   if (norm.includes("jepang") || norm.includes("japan")) return "Jepang";
   return null;
 }
@@ -94,8 +94,8 @@ export const TARGET_COUNTRIES_CONFIG: Record<(typeof TARGET_4_COUNTRIES)[number]
     borderClass: "border-emerald-500/30 hover:border-emerald-500/60",
     defaultTarget: 5000,
   },
-  "Korea Selatan": {
-    name: "Korea Selatan",
+  Korea: {
+    name: "Korea",
     code: "KR",
     tag: "Permesinan & Galangan",
     keySectors: "Operator CNC · Welder FCAW · ABK",
@@ -222,7 +222,7 @@ export function SupplyTargetProjectionPanel({
       Turki: 0,
       Jepang: 0,
       Malaysia: 0,
-      "Korea Selatan": 0,
+      Korea: 0,
     };
     enrichedTargets.forEach((r) => {
       totals[r.country] = (totals[r.country] || 0) + r.targetQuota;

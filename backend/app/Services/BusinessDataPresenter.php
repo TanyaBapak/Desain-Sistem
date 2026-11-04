@@ -530,7 +530,7 @@ class BusinessDataPresenter
                         $sectors = $this->decodeArray($c->preferred_sectors);
                         $jobs = $this->decodeArray($c->preferred_job_roles);
 
-                        $targetCountry = ! empty($countries) ? implode(', ', $countries) : 'Jepang, Korea Selatan';
+                        $targetCountry = ! empty($countries) ? implode(', ', $countries) : 'Jepang, Korea';
                         $sector = ! empty($sectors) ? implode(', ', $sectors) : ($c->major ?: 'Perhotelan & Pariwisata');
                         $occupation = ! empty($jobs) ? implode(', ', $jobs) : ($c->major ?: 'Staf Operasional');
 
@@ -2544,7 +2544,7 @@ class BusinessDataPresenter
     {
         $defaultCountries = [
             ['id' => 'JP', 'name' => 'Jepang'],
-            ['id' => 'KR', 'name' => 'Korea Selatan'],
+            ['id' => 'KR', 'name' => 'Korea'],
             ['id' => 'MY', 'name' => 'Malaysia'],
             ['id' => 'TR', 'name' => 'Turki'],
         ];
@@ -2557,8 +2557,8 @@ class BusinessDataPresenter
                 ->get(['id', 'name'])
                 ->map(function ($c): array {
                     $name = (string) $c->name;
-                    if (strcasecmp($name, 'korea') === 0) {
-                        $name = 'Korea Selatan';
+                    if (strcasecmp($name, 'korea selatan') === 0 || strcasecmp($name, 'korea') === 0) {
+                        $name = 'Korea';
                     }
                     return [
                         'id' => (string) $c->id,

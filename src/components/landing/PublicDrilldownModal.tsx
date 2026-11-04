@@ -82,7 +82,7 @@ export function normalizeStudentCountry(raw?: string): string {
   const l = raw.toLowerCase();
   if (l.includes("jepang") || l.includes("japan")) return "Jepang";
   if (l.includes("turki") || l.includes("turkey") || l.includes("turky") || l.includes("turkiye")) return "Turki";
-  if (l.includes("korea") || l.includes("korsel")) return "Korea Selatan";
+  if (l.includes("korea") || l.includes("korsel")) return "Korea";
   if (l.includes("malaysia")) return "Malaysia";
   return "Lainnya";
 }
@@ -275,7 +275,7 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
     const counts: Record<string, number> = {
       Jepang: 0,
       Turki: 0,
-      "Korea Selatan": 0,
+      Korea: 0,
       Malaysia: 0,
       Lainnya: 0,
     };
@@ -2530,7 +2530,7 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
             ],
           },
           {
-            country: "Korea Selatan",
+            country: "Korea",
             sectors: [
               {
                 sectorName: "Hospitality & Layanan",
@@ -3060,9 +3060,9 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
             statusNote: "Suplai calon peserta melimpah (169% target). Prioritas akselerasi pelatihan bahasa Jepang (JFT-Basic / N4) dan sertifikasi SSW.",
           },
           {
-            country: "Korea Selatan",
+            country: "Korea",
             quota: 600,
-            supplyCount: nationalSummary.countries.find(([c]) => c === "Korea Selatan")?.[1] ?? 75,
+            supplyCount: nationalSummary.countries.find(([c]) => c === "Korea")?.[1] ?? 75,
             keySectors: "Manufaktur & Perikanan Tangkap",
             occupations: "Welder Galangan Kapal (Visa E-7), Molding Presisi, ABK Penangkapan Ikan (Visa E-9)",
             sampleEmployers: ["Hyundai Mobis Parts Manufacturing", "Daewoo Shipbuilding & Marine", "Busan Fishery Federation"],
