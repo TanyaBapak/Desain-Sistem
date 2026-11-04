@@ -417,6 +417,7 @@ class BusinessDataPresenter
             $registeredNationalLpkCount = array_sum(array_column($nationalLpkByProvince, 'registeredCount'));
 
             $nationalCandidates = (int) DB::table('job_seekers')->whereNull('deleted_at')->count();
+            $countryCounts = $this->resolveCandidatesByCountry($nationalCandidates);
             $nationalPrograms = (int) DB::table('training_programs')->where('status', 'Aktif')->count();
             $nationalProviders = (int) DB::table('institutions')->where('status', 'Aktif')->count();
             $nationalRegisteredProviders = (int) DB::table('institutions')
@@ -764,13 +765,12 @@ class BusinessDataPresenter
                 ])
                 ->all(), []);
 
-            $countryCounts = $this->resolveCandidatesByCountry($nationalCandidates);
-
             return [
                 'selectedProvince' => $selectedProvince,
                 'provinces' => $provincesList,
                 'national' => [
                     'candidatesCount' => $nationalCandidates,
+                    'candidatesByCountry' => $countryCounts,
                     'programsCount' => $nationalPrograms,
                     'providersCount' => $nationalProviders,
                     'registeredProvidersCount' => $nationalRegisteredProviders,
