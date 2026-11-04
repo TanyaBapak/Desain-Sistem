@@ -333,14 +333,14 @@ class BusinessDataController extends Controller
         return back()->with('success', "Jadwal tanggal pelaksanaan untuk sektor {$sectorName} berhasil disimpan.");
     }
 
-    public function destroy(Request $request, string $type, string $id): RedirectResponse
+    public function destroy(Request $request, string $type, string $id): RedirectResponse|JsonResponse
     {
         $this->authorizeWrite($request, $type, 'delete');
         $table = self::ENTITY_TABLES[$type];
         $record = DB::table($table)->where('id', $id)->first();
         abort_unless($record && ! ($type === 'candidates' && $record->deleted_at), 404);
         $this->assertRecordScope($request, $type, $record);
-        $reason = $request->validate(['reason' => ['nullable', 'string', 'max:1000']])['reason'] ?? 'Data diarsipkan atau dinonaktifkan.';
+        $reason = $request->input('reason') ?: ($request->validate(['reason' => ['nullable', 'string', 'max:1000']])['reason'] ?? 'Data diarsipkan atau dinonaktifkan.');
 
         DB::transaction(function () use ($request, $type, $id, $reason): void {
             $now = now();
@@ -367,6 +367,13 @@ class BusinessDataController extends Controller
         });
         app(BusinessDataPresenter::class)->forgetAll();
 
+        if ($request->wantsJson() || ($request->ajax() && ! $request->header('X-Inertia'))) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Data berhasil dinonaktifkan.',
+            ]);
+        }
+
         return back()->with('success', 'Data berhasil dinonaktifkan.');
     }
 
@@ -375,7 +382,7 @@ class BusinessDataController extends Controller
         $user = $request->user();
         $role = $user->roles()->value('name');
 
-        abort_unless(in_array($role, ['task_force', 'directorate_admin', 'institution_admin', 'verifier', 'vokasi', 'lembaga_vokasi', 'training_operator'], true), 403);
+        abort_unless(in_array($role, ['super_admin', 'superadmin', 'task_force', 'taskforce', 'directorate_admin', 'direktorat', 'institution_admin', 'verifier', 'vokasi', 'lembaga_vokasi', 'training_operator'], true), 403);
 
         $page = max(1, (int) $request->query('page', 1));
         $perPage = min(24, max(12, (int) $request->query('per_page', 12)));
@@ -1793,15 +1800,15 @@ class BusinessDataController extends Controller
         abort_unless(isset(self::ENTITY_TABLES[$type]), 404);
         $role = $request->user()->roles()->value('name');
 
-        if (in_array($role, ['super_admin', 'directorate_admin'], true) || $request->session()->has('impersonator_id')) {
+        if (in_array($role, ['super_admin', 'superadmin', 'directorate_admin', 'direktorat'], true) || $request->session()->has('impersonator_id')) {
             return;
         }
 
         $allowedRoles = match ($type) {
-            'candidates' => ['super_admin', 'task_force', 'province_admin', 'district_admin', 'institution_admin', 'verifier', 'vokasi', 'lembaga_vokasi'],
-            'programs' => ['super_admin', 'task_force', 'directorate_admin', 'institution_admin', 'training_operator', 'vokasi', 'lembaga_vokasi'],
-            'providers' => ['super_admin', 'task_force', 'directorate_admin', 'institution_admin', 'vokasi', 'lembaga_vokasi'],
-            'demands' => ['super_admin', 'task_force', 'demand_admin'],
+            'candidates' => ['super_admin', 'superadmin', 'task_force', 'taskforce', 'province_admin', 'district_admin', 'institution_admin', 'verifier', 'vokasi', 'lembaga_vokasi'],
+            'programs' => ['super_admin', 'superadmin', 'task_force', 'taskforce', 'directorate_admin', 'direktorat', 'institution_admin', 'training_operator', 'vokasi', 'lembaga_vokasi'],
+            'providers' => ['super_admin', 'superadmin', 'task_force', 'taskforce', 'directorate_admin', 'direktorat', 'institution_admin', 'vokasi', 'lembaga_vokasi'],
+            'demands' => ['super_admin', 'superadmin', 'task_force', 'taskforce', 'demand_admin'],
         };
 
         abort_unless(in_array($role, $allowedRoles, true), 403);
@@ -1897,7 +1904,7 @@ class BusinessDataController extends Controller
     {
         $user = $request->user();
         $role = $user->roles()->value('name');
-        if (in_array($role, ['super_admin', 'directorate_admin'], true) || $request->session()->has('impersonator_id')) {
+        if (in_array($role, ['super_admin', 'superadmin', 'directorate_admin', 'direktorat'], true) || $request->session()->has('impersonator_id')) {
             return;
         }
 
@@ -1905,7 +1912,7 @@ class BusinessDataController extends Controller
 
         $allowed = match ($type) {
             'candidates' => match ($role) {
-                'task_force' => app(Bp3miScope::class)->allowsProvinceId($user, $record->province_id),
+                'task_force', 'taskforce' => app(Bp3miScope::class)->allowsProvinceId($user, $record->province_id),
                 'province_admin' => $record->province_id === $user->province_id,
                 'district_admin' => $record->district_id === $user->district_id,
                 'institution_admin', 'vokasi', 'lembaga_vokasi' => $record->institution_id === $user->institution_id
@@ -1915,7 +1922,7 @@ class BusinessDataController extends Controller
                     : true,
             },
             'programs' => match ($role) {
-                'task_force' => app(Bp3miScope::class)->allowsProvinceId(
+                'task_force', 'taskforce' => app(Bp3miScope::class)->allowsProvinceId(
                     $user,
                     DB::table('institutions')->where('id', $record->institution_id)->value('province_id'),
                 ),
@@ -1924,7 +1931,7 @@ class BusinessDataController extends Controller
                 default => true,
             },
             'providers' => match ($role) {
-                'task_force' => app(Bp3miScope::class)->allowsProvinceId($user, $record->province_id),
+                'task_force', 'taskforce' => app(Bp3miScope::class)->allowsProvinceId($user, $record->province_id),
                 'institution_admin', 'vokasi', 'lembaga_vokasi' => $record->id === $user->institution_id
                     || in_array($record->id, $instScope['ids'], true)
                     || (! empty($user->organization) && stripos($record->name, $user->organization) !== false)
@@ -1933,7 +1940,7 @@ class BusinessDataController extends Controller
                 default => true,
             },
             'demands' => match ($role) {
-                'task_force' => app(Bp3miScope::class)->allowsDemandCountry($user, $record->country_id),
+                'task_force', 'taskforce' => app(Bp3miScope::class)->allowsDemandCountry($user, $record->country_id),
                 'demand_admin' => $record->employer_id === $user->employer_id,
                 default => true,
             },

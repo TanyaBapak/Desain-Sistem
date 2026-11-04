@@ -1,3 +1,4 @@
+import axios from "axios";
 import { router } from "@inertiajs/react";
 import { toast } from "sonner";
 
@@ -42,21 +43,40 @@ export function saveBusinessData<T extends object>(
   router.post(`/business-data/${resource}`, data, options);
 }
 
-export function archiveBusinessData(
+export async function archiveBusinessData(
   resource: BusinessDataResource,
   id: string,
   reason?: string,
   onSuccess?: () => void,
-): void {
-  router.delete(`/business-data/${resource}/${encodeURIComponent(id)}`, {
+): Promise<void> {
+  const url = `/business-data/${resource}/${encodeURIComponent(id)}`;
+  try {
+    const res = await axios.delete(url, {
+      data: { reason },
+      params: { reason },
+      headers: { Accept: "application/json" },
+    });
+    toast.success(res.data?.message || "Data berhasil dinonaktifkan.");
+    onSuccess?.();
+    return;
+  } catch (err: unknown) {
+    const error = err as { response?: { status?: number; data?: { message?: string } } };
+    if (error.response?.status === 403) {
+      toast.error(error.response.data?.message || "Anda tidak memiliki hak akses untuk menonaktifkan data ini.");
+      return;
+    }
+  }
+
+  router.delete(url, {
     data: reason ? { reason } : {},
     preserveScroll: true,
     onSuccess: () => {
       toast.success("Data berhasil dinonaktifkan.");
       onSuccess?.();
     },
-    onError: () => {
-      toast.error("Data belum dapat dinonaktifkan. Periksa hak akses dan relasi data.");
+    onError: (errors: Record<string, string>) => {
+      const message = Object.values(errors).find(Boolean);
+      toast.error(message ?? "Data belum dapat dinonaktifkan. Periksa hak akses dan relasi data.");
     },
   });
 }

@@ -567,9 +567,15 @@ export const ProvidersView: React.FC = () => {
         title="Konfirmasi Nonaktifkan / Hapus Lembaga Vokasi"
         description="Menonaktifkan lembaga vokasi akan mencabut status verifikasi penyelenggara dari sistem alokasi batch pelatihan nasional."
         confirmText="Ya, Nonaktifkan Lembaga"
-        onConfirm={() => {
+        onConfirm={(reason) => {
           if (deletingProvider) {
-            archiveBusinessData('providers', deletingProvider.id, undefined, () => setDeletingProvider(null));
+            const targetId = deletingProvider.id;
+            archiveBusinessData('providers', targetId, reason, () => {
+              setDeletingProvider(null);
+              setProvidersList((prev) => prev.filter((p) => p.id !== targetId));
+              setTotalItems((prev) => Math.max(0, prev - 1));
+              fetchProviders();
+            });
           }
         }}
       />

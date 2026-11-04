@@ -5,7 +5,7 @@ import { Trash2, AlertTriangle } from 'lucide-react';
 interface DeleteConfirmModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: (reason: string) => void;
+  onConfirm: (reason: string) => void | Promise<void>;
   title?: string;
   entityName: string;
   entityId: string;
@@ -24,13 +24,20 @@ export const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
   confirmText = 'Ya, Hapus Data',
 }) => {
   const [reason, setReason] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   if (!isOpen) return null;
 
-  const handleConfirm = () => {
-    onConfirm(reason.trim() || 'Penghapusan data melalui antarmuka pengguna Command Center');
-    setReason('');
-    onClose();
+  const handleConfirm = async () => {
+    const finalReason = reason.trim() || 'Penghapusan data melalui antarmuka pengguna Command Center';
+    setSubmitting(true);
+    try {
+      await onConfirm(finalReason);
+      setReason('');
+      onClose();
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -63,8 +70,9 @@ export const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
           <textarea
             value={reason}
             onChange={(e) => setReason(e.target.value)}
+            disabled={submitting}
             placeholder="Contoh: Pembatalan kuota pemberi kerja / pengalihan data ganda / calon peserta mengundurkan diri..."
-            className="w-full rounded-xl border border-input bg-background p-2.5 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="w-full rounded-xl border border-input bg-background p-2.5 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60"
             rows={3}
           />
         </div>
@@ -73,17 +81,19 @@ export const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-xl px-4 py-2 text-sm font-medium text-muted-foreground transition hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            disabled={submitting}
+            className="rounded-xl px-4 py-2 text-sm font-medium text-muted-foreground transition hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
           >
             Batal
           </button>
           <button
             type="button"
             onClick={handleConfirm}
-            className="flex items-center gap-1.5 rounded-xl bg-destructive px-4 py-2 text-sm font-semibold text-destructive-foreground shadow-sm transition hover:bg-destructive/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            disabled={submitting}
+            className="flex items-center gap-1.5 rounded-xl bg-destructive px-4 py-2 text-sm font-semibold text-destructive-foreground shadow-sm transition hover:bg-destructive/90 disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <Trash2 className="w-3.5 h-3.5" />
-            <span>{confirmText}</span>
+            <span>{submitting ? 'Memproses...' : confirmText}</span>
           </button>
         </div>
       </div>
