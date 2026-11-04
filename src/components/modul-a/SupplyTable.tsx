@@ -426,10 +426,32 @@ export const SupplyTable: React.FC<SupplyTableProps> = ({
     Unverified: 'Belum Diverifikasi',
   };
 
-  const canManageCandidates = ['disnaker', 'vokasi', 'taskforce', 'superadmin'].includes(currentRole);
+  const canManageCandidates = [
+    'disnaker',
+    'vokasi',
+    'institution_admin',
+    'lembaga_vokasi',
+    'province_admin',
+    'district_admin',
+    'taskforce',
+    'task_force',
+    'superadmin',
+    'super_admin',
+  ].includes(currentRole as string);
   const canVerifyCandidates = ['taskforce', 'verifikator'].includes(currentRole);
   const canMatchCandidates = ['taskforce', 'matching', 'verifikator'].includes(currentRole);
-  const canArchiveCandidates = ['taskforce', 'superadmin'].includes(currentRole);
+  const canArchiveCandidates = [
+    'disnaker',
+    'vokasi',
+    'institution_admin',
+    'lembaga_vokasi',
+    'province_admin',
+    'district_admin',
+    'taskforce',
+    'task_force',
+    'superadmin',
+    'super_admin',
+  ].includes(currentRole as string);
   const canSyncGardata = ['taskforce', 'superadmin', 'vokasi'].includes(currentRole);
 
   const syncGardata = () => {
@@ -1286,6 +1308,16 @@ export const SupplyTable: React.FC<SupplyTableProps> = ({
         candidate={activeCandidate}
         isOpen={!!activeCandidate}
         onClose={() => setActiveCandidate(null)}
+        onEdit={(candidate) => {
+          setActiveCandidate(null);
+          setCandidateToEdit(candidate);
+          setFormMode('edit');
+          setIsFormOpen(true);
+        }}
+        onDelete={(candidate) => {
+          setActiveCandidate(null);
+          setDeletingCandidate(candidate);
+        }}
       />
 
       {/* Candidate Form Modal (Create / Edit) */}
@@ -1328,9 +1360,13 @@ export const SupplyTable: React.FC<SupplyTableProps> = ({
         onClose={() => setDeletingCandidate(null)}
         entityName={deletingCandidate?.fullName || ''}
         entityId={deletingCandidate?.id || ''}
-        onConfirm={(reason) => {
+        onConfirm={async (reason) => {
           if (deletingCandidate) {
-            archiveBusinessData('candidates', deletingCandidate.id, reason, () => setDeletingCandidate(null));
+            const candidateId = deletingCandidate.id;
+            await archiveBusinessData('candidates', candidateId, reason, () => {
+              store.deleteCandidate(candidateId, reason);
+              setDeletingCandidate(null);
+            });
           }
         }}
       />

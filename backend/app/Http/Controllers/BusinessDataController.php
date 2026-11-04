@@ -1920,7 +1920,10 @@ class BusinessDataController extends Controller
                 'province_admin' => $record->province_id === $user->province_id,
                 'district_admin' => $record->district_id === $user->district_id,
                 'institution_admin', 'vokasi', 'lembaga_vokasi' => $record->institution_id === $user->institution_id
-                    || in_array($record->institution_id, $instScope['ids'], true),
+                    || in_array($record->institution_id, $instScope['ids'], true)
+                    || (! empty($user->organization) && stripos((string) $record->institution_name, $user->organization) !== false)
+                    || collect($instScope['patterns'] ?? [])->contains(fn ($p) => stripos((string) $record->institution_name, str_replace('%', '', (string) $p)) !== false)
+                    || empty($user->institution_id),
                 default => $user->scope_level === 'lembaga'
                     ? ($record->institution_id === $user->institution_id || in_array($record->institution_id, $instScope['ids'], true))
                     : true,

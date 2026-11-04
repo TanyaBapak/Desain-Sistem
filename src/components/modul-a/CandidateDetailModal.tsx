@@ -15,7 +15,9 @@ import {
   Briefcase,
   Award,
   Layers,
-  Building
+  Building,
+  Edit2,
+  Trash2,
 } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
 import { saveBusinessData } from '../../lib/business-data';
@@ -24,16 +26,32 @@ interface CandidateDetailModalProps {
   candidate: CandidateParticipant | null;
   isOpen: boolean;
   onClose: () => void;
+  onEdit?: (candidate: CandidateParticipant) => void;
+  onDelete?: (candidate: CandidateParticipant) => void;
 }
 
 export const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({
   candidate,
   isOpen,
   onClose,
+  onEdit,
+  onDelete,
 }) => {
   const { currentRole, toggleCandidateSelection, selectedCandidateIds } = useAppStore();
   const canVerify = ['taskforce', 'verifikator'].includes(currentRole);
   const canMatch = currentRole === 'taskforce';
+  const canManage = [
+    'disnaker',
+    'vokasi',
+    'institution_admin',
+    'lembaga_vokasi',
+    'province_admin',
+    'district_admin',
+    'taskforce',
+    'task_force',
+    'superadmin',
+    'super_admin',
+  ].includes(currentRole as string);
 
   if (!candidate) return null;
 
@@ -352,9 +370,29 @@ export const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({
                 <span>{isSelected ? 'Keluarkan dari Matching Pool' : 'Pilih ke Matching Pool (Tahap 3)'}</span>
               </button>
             )}
+            {onEdit && canManage && (
+              <button
+                type="button"
+                onClick={() => onEdit(candidate)}
+                className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 transition flex items-center gap-1.5"
+              >
+                <Edit2 className="w-3.5 h-3.5" />
+                <span>Ubah Data</span>
+              </button>
+            )}
+            {onDelete && canManage && (
+              <button
+                type="button"
+                onClick={() => onDelete(candidate)}
+                className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 hover:bg-rose-600 hover:text-white transition flex items-center gap-1.5 shadow-xs"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Hapus Peserta</span>
+              </button>
+            )}
             <button
               onClick={onClose}
-              className="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 transition"
+              className="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition"
             >
               Tutup
             </button>
