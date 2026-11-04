@@ -654,6 +654,12 @@ export interface PublicProvinceItem {
 export interface PublicCommandCenterStats {
   scopeName?: string;
   candidatesCount: number;
+  candidatesByCountry?: {
+    Jepang: number;
+    Turki: number;
+    Korea: number;
+    Malaysia: number;
+  };
   programsCount: number;
   providersCount: number;
   registeredProvidersCount: number;

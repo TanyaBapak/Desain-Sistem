@@ -272,6 +272,8 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
       return true;
     });
 
+    const nationalByCountry = data.national?.candidatesByCountry;
+
     const counts: Record<string, number> = {
       Jepang: 0,
       Turki: 0,
@@ -279,9 +281,17 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
       Malaysia: 0,
       Lainnya: 0,
     };
-    base.forEach((s) => {
-      counts[s.normalizedCountry] = (counts[s.normalizedCountry] ?? 0) + 1;
-    });
+
+    if (nationalFilterSector === "ALL" && nationalByCountry) {
+      counts.Jepang = nationalByCountry.Jepang || 0;
+      counts.Turki = nationalByCountry.Turki || 0;
+      counts.Korea = nationalByCountry.Korea || 0;
+      counts.Malaysia = nationalByCountry.Malaysia || 0;
+    } else {
+      base.forEach((s) => {
+        counts[s.normalizedCountry] = (counts[s.normalizedCountry] ?? 0) + 1;
+      });
+    }
 
     return {
       total: base.length,
@@ -2905,9 +2915,11 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
                 </p>
                 {COUNTRY_PROGRAM_CATALOG.map((item) => {
                   const itemCountryNorm = normalizeStudentCountry(item.country);
-                  const itemStudentCount = allNationalStudents.filter(
-                    (s) => s.normalizedCountry === itemCountryNorm
-                  ).length;
+                  const nationalByCountry = data.national?.candidatesByCountry;
+                  const itemStudentCount =
+                    (nationalByCountry && typeof nationalByCountry[itemCountryNorm as keyof typeof nationalByCountry] === "number")
+                      ? nationalByCountry[itemCountryNorm as keyof typeof nationalByCountry]
+                      : allNationalStudents.filter((s) => s.normalizedCountry === itemCountryNorm).length;
 
                   return (
                     <button

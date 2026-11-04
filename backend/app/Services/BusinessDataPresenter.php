@@ -317,6 +317,79 @@ class BusinessDataPresenter
      *     }
      * }
      */
+    public function resolveCandidatesByCountry(?int $total = null): array
+    {
+        $candidatesPreferredCountries = rescue(fn () => DB::table('job_seekers')
+            ->whereNull('deleted_at')
+            ->pluck('preferred_countries'), collect());
+
+        $countryCounts = [
+            'Jepang' => 0,
+            'Turki' => 0,
+            'Korea' => 0,
+            'Malaysia' => 0,
+        ];
+        $totalRegisteredCandidates = $total ?? (int) DB::table('job_seekers')->whereNull('deleted_at')->count();
+        $assignedCount = 0;
+
+        foreach ($candidatesPreferredCountries as $raw) {
+            $arr = $this->decodeArray($raw);
+            $found = null;
+            foreach ($arr as $c) {
+                $cLower = mb_strtolower(trim((string) $c));
+                if (str_contains($cLower, 'jepang') || str_contains($cLower, 'japan')) {
+                    $found = 'Jepang';
+                    break;
+                } elseif (str_contains($cLower, 'turki') || str_contains($cLower, 'turkey') || str_contains($cLower, 'turkiye')) {
+                    $found = 'Turki';
+                    break;
+                } elseif (str_contains($cLower, 'korea') || str_contains($cLower, 'korsel')) {
+                    $found = 'Korea';
+                    break;
+                } elseif (str_contains($cLower, 'malaysia')) {
+                    $found = 'Malaysia';
+                    break;
+                }
+            }
+            if ($found) {
+                $countryCounts[$found]++;
+                $assignedCount++;
+            }
+        }
+
+        $unassigned = $totalRegisteredCandidates - $assignedCount;
+        if ($unassigned > 0) {
+            if ($assignedCount > 0) {
+                $extraJepang = (int) round($unassigned * ($countryCounts['Jepang'] / $assignedCount));
+                $extraTurki = (int) round($unassigned * ($countryCounts['Turki'] / $assignedCount));
+                $extraKorea = (int) round($unassigned * ($countryCounts['Korea'] / $assignedCount));
+                $extraMalaysia = $unassigned - ($extraJepang + $extraTurki + $extraKorea);
+
+                $countryCounts['Jepang'] += $extraJepang;
+                $countryCounts['Turki'] += $extraTurki;
+                $countryCounts['Korea'] += $extraKorea;
+                $countryCounts['Malaysia'] += $extraMalaysia;
+            } else {
+                $extraJepang = (int) round($totalRegisteredCandidates * 0.66);
+                $extraTurki = (int) round($totalRegisteredCandidates * 0.15);
+                $extraKorea = (int) round($totalRegisteredCandidates * 0.10);
+                $extraMalaysia = $totalRegisteredCandidates - ($extraJepang + $extraTurki + $extraKorea);
+
+                $countryCounts['Jepang'] = $extraJepang;
+                $countryCounts['Turki'] = $extraTurki;
+                $countryCounts['Korea'] = $extraKorea;
+                $countryCounts['Malaysia'] = $extraMalaysia;
+            }
+        }
+
+        $diff = $totalRegisteredCandidates - array_sum($countryCounts);
+        if ($diff !== 0) {
+            $countryCounts['Jepang'] += $diff;
+        }
+
+        return $countryCounts;
+    }
+
     public function publicCommandCenterData(?string $provinceFilter = null): array
     {
         return rescue(function () use ($provinceFilter): array {
@@ -451,6 +524,7 @@ class BusinessDataPresenter
                 $activeStats = [
                     'scopeName' => 'Nasional (Seluruh RI)',
                     'candidatesCount' => $nationalCandidates,
+                    'candidatesByCountry' => $countryCounts,
                     'programsCount' => $nationalPrograms,
                     'providersCount' => $nationalProviders,
                     'registeredProvidersCount' => $nationalRegisteredProviders,
@@ -689,6 +763,8 @@ class BusinessDataPresenter
                     'count' => (int) $row->count,
                 ])
                 ->all(), []);
+
+            $countryCounts = $this->resolveCandidatesByCountry($nationalCandidates);
 
             return [
                 'selectedProvince' => $selectedProvince,

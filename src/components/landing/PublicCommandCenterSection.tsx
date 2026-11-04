@@ -33,6 +33,7 @@ export const PublicCommandCenterSection: React.FC<PublicCommandCenterSectionProp
     return {
       scopeName: scopeLabel,
       candidatesCount: initialData?.national?.candidatesCount ?? 12600,
+      candidatesByCountry: initialData?.national?.candidatesByCountry,
       programsCount: initialData?.national?.programsCount ?? 630,
       providersCount: initialData?.national?.providersCount ?? 2382,
       registeredProvidersCount: initialData?.national?.registeredProvidersCount ?? 24,
