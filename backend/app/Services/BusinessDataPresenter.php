@@ -2273,6 +2273,8 @@ class BusinessDataPresenter
                 'institutions.district_id',
                 'institutions.accreditation',
                 'institutions.procurement_method',
+                'institutions.procurement_catalog_url',
+                'institutions.mou_drive_url',
                 'institutions.evokasi_status',
                 'institutions.verification_status',
                 'institutions.instructor_count',
@@ -2347,6 +2349,8 @@ class BusinessDataPresenter
                     'verificationStatus' => $row->verification_status,
                     'accreditation' => $row->accreditation,
                     'procurementMethod' => $row->procurement_method,
+                    'procurementCatalogUrl' => $row->procurement_catalog_url ?? ($metadata['procurementCatalogUrl'] ?? null),
+                    'mouDriveUrl' => $row->mou_drive_url ?? ($metadata['mouDriveUrl'] ?? null),
                     'capacityPerBatch' => $row->workshop_capacity === null ? null : (int) $row->workshop_capacity,
                     'classCount' => $row->class_count === null ? null : (int) $row->class_count,
                     'readyParticipantCount' => $candidateCountsByInstitution->get($row->id)?->ready_students !== null

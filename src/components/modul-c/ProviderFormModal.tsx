@@ -3,7 +3,7 @@ import { VocationalProvider, ProviderType } from '../../types';
 import { INDONESIA_38_PROVINCES } from '../../lib/constants/provinces';
 import { INDONESIA_DISTRICTS } from '../../lib/constants/districts';
 import { useAppStore } from '../../store/useAppStore';
-import { X, Building2, Save, ShieldCheck } from 'lucide-react';
+import { X, Building2, Save, ShieldCheck, ExternalLink, FileText, Link2 } from 'lucide-react';
 
 const COUNTRY_OPTIONS = [
   { id: 'JP', name: 'Jepang' },
@@ -73,6 +73,9 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
   const [operationalReadinessScore, setOperationalReadinessScore] = useState<number | string>('');
   const [supportedSectors, setSupportedSectors] = useState<string[]>([]);
   const [supportedCountries, setSupportedCountries] = useState<string[]>([]);
+  const [procurementCatalogUrl, setProcurementCatalogUrl] = useState('');
+  const [mouDriveUrl, setMouDriveUrl] = useState('');
+  const [procurementMethod, setProcurementMethod] = useState('');
   const [facilitiesInput, setFacilitiesInput] = useState('');
 
   const provincesList = Array.isArray(businessOptions?.provinces) && businessOptions.provinces.length > 0
@@ -130,6 +133,9 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
       setRegistrationSourceId(initialData.registrationSourceId || initialData.id || '');
       const defaultLvl = sourceVal === 'disnaker' ? 'kabupaten_kota' : sourceVal === 'siskop2mi' ? 'nasional' : 'lembaga_vokasi';
       setInputLevel((initialData.inputLevel as 'kabupaten_kota' | 'provinsi' | 'lembaga_vokasi' | 'nasional') || defaultLvl);
+      setProcurementCatalogUrl(initialData.procurementCatalogUrl || '');
+      setMouDriveUrl(initialData.mouDriveUrl || '');
+      setProcurementMethod(initialData.procurementMethod || '');
       setFacilitiesInput(initialData.facilities ? initialData.facilities.join(', ') : '');
     } else {
       setName('');
@@ -148,6 +154,9 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
       setOperationalReadinessScore('');
       setSupportedSectors([]);
       setSupportedCountries([]);
+      setProcurementCatalogUrl('');
+      setMouDriveUrl('');
+      setProcurementMethod('');
       setFacilitiesInput('');
     }
   }, [isOpen, initialData?.id, mode]);
@@ -190,6 +199,9 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
       registrationSource,
       registrationSourceId: registrationSourceId.trim(),
       inputLevel,
+      procurementCatalogUrl: procurementCatalogUrl.trim() || null,
+      mouDriveUrl: mouDriveUrl.trim() || null,
+      procurementMethod: procurementMethod.trim() || null,
     });
   };
 
@@ -718,6 +730,77 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
                 })}
               </div>
             </fieldset>
+          </div>
+
+          {/* Kemitraan & Pengadaan (Inaproc & MoU) */}
+          <div className="rounded-xl border border-blue-200/80 bg-blue-50/40 p-3.5 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Link2 className="w-4 h-4 text-blue-600" />
+                <h4 className="text-xs font-bold text-slate-800">
+                  Kemitraan & Pengadaan (e-Katalog Inaproc & Dokumen MoU)
+                </h4>
+              </div>
+              <span className="text-[11px] text-blue-700 font-semibold bg-blue-100/70 px-2 py-0.5 rounded-md">
+                LKPP & Kerja Sama
+              </span>
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-2">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center justify-between">
+                  <span className="flex items-center gap-1.5">
+                    <ExternalLink className="w-3.5 h-3.5 text-blue-600" />
+                    <span>Link Inaproc (e-Katalog LKPP)</span>
+                  </span>
+                  <span className="text-[10px] text-slate-400 font-normal">Opsional</span>
+                </label>
+                <input
+                  type="url"
+                  value={procurementCatalogUrl}
+                  onChange={(e) => setProcurementCatalogUrl(e.target.value)}
+                  placeholder="https://katalog.inaproc.id/..."
+                  className="w-full text-xs p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white text-slate-800"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center justify-between">
+                  <span className="flex items-center gap-1.5">
+                    <FileText className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Link Berkas Dokumen MoU</span>
+                  </span>
+                  <span className="text-[10px] text-slate-400 font-normal">Opsional</span>
+                </label>
+                <input
+                  type="url"
+                  value={mouDriveUrl}
+                  onChange={(e) => setMouDriveUrl(e.target.value)}
+                  placeholder="https://drive.google.com/..."
+                  className="w-full text-xs p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-white text-slate-800"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                Skema Penyelenggaraan / Pengadaan
+              </label>
+              <select
+                value={procurementMethod}
+                onChange={(e) => setProcurementMethod(e.target.value)}
+                className="w-full text-xs p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white text-slate-800"
+              >
+                <option value="">Pilih Skema Penyelenggaraan (Opsional)</option>
+                <option value="Swakelola Tipe 1">Swakelola Tipe 1</option>
+                <option value="Swakelola Tipe 2">Swakelola Tipe 2</option>
+                <option value="Swakelola Tipe 3">Swakelola Tipe 3</option>
+                <option value="Swakelola Tipe 4">Swakelola Tipe 4</option>
+                <option value="Pengadaan Langsung">Pengadaan Langsung</option>
+                <option value="Tender / Seleksi">Tender / Seleksi</option>
+                <option value="e-Purchasing / Katalog LKPP">e-Purchasing / Katalog LKPP</option>
+              </select>
+            </div>
           </div>
 
           {/* Fasilitas Bengkel & Lab */}

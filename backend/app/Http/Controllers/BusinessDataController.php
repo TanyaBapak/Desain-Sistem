@@ -973,6 +973,9 @@ class BusinessDataController extends Controller
                 'slug' => ['nullable', 'string', 'max:255'],
                 'website' => ['nullable', 'string', 'max:255'],
                 'institutionForm' => ['nullable', 'string', 'max:150'],
+                'procurementMethod' => ['nullable', 'string', 'max:100'],
+                'procurementCatalogUrl' => ['nullable', 'string', 'max:2000'],
+                'mouDriveUrl' => ['nullable', 'string', 'max:2000'],
                 'sectorals' => ['array'],
                 'programs' => ['array'],
             ],
@@ -1435,6 +1438,15 @@ class BusinessDataController extends Controller
         if (! empty($data['institutionStatus'])) {
             $metadata['sourceStatus'] = $data['institutionStatus'];
         }
+        if (array_key_exists('procurementCatalogUrl', $data)) {
+            $metadata['procurementCatalogUrl'] = ! empty($data['procurementCatalogUrl']) ? trim((string) $data['procurementCatalogUrl']) : null;
+        }
+        if (array_key_exists('mouDriveUrl', $data)) {
+            $metadata['mouDriveUrl'] = ! empty($data['mouDriveUrl']) ? trim((string) $data['mouDriveUrl']) : null;
+        }
+        if (array_key_exists('procurementMethod', $data)) {
+            $metadata['procurementMethod'] = ! empty($data['procurementMethod']) ? trim((string) $data['procurementMethod']) : null;
+        }
 
         $institutionType = match ($data['providerType']) {
             'BLK', 'Balai', 'BLKLN' => 'BLK',
@@ -1464,6 +1476,13 @@ class BusinessDataController extends Controller
             'phone' => $data['phone'] ?? null,
             'email' => $data['email'] ?? null,
             'accreditation' => $data['accreditation'],
+            'procurement_method' => $data['procurementMethod'] ?? $existing?->procurement_method,
+            'procurement_catalog_url' => array_key_exists('procurementCatalogUrl', $data)
+                ? (! empty($data['procurementCatalogUrl']) ? trim((string) $data['procurementCatalogUrl']) : null)
+                : $existing?->procurement_catalog_url,
+            'mou_drive_url' => array_key_exists('mouDriveUrl', $data)
+                ? (! empty($data['mouDriveUrl']) ? trim((string) $data['mouDriveUrl']) : null)
+                : $existing?->mou_drive_url,
             'evokasi_status' => $data['evokasiVerificationStatus'],
             'instructor_count' => $data['certifiedInstructorsCount'],
             'class_count' => $data['classCount'],
@@ -1520,6 +1539,16 @@ class BusinessDataController extends Controller
                 $oldValue = $existing->accreditation;
                 $newValue = $data['accreditation'];
                 $reason = "Perubahan status akreditasi dari {$oldValue} menjadi {$newValue}.";
+            } elseif (($existing->procurement_catalog_url ?? null) !== ($attributes['procurement_catalog_url'] ?? null)) {
+                $fieldChanged = 'Link Inaproc e-Katalog';
+                $oldValue = $existing->procurement_catalog_url;
+                $newValue = $attributes['procurement_catalog_url'];
+                $reason = "Perubahan tautan Inaproc e-Katalog LKPP menjadi {$newValue}.";
+            } elseif (($existing->mou_drive_url ?? null) !== ($attributes['mou_drive_url'] ?? null)) {
+                $fieldChanged = 'Link Dokumen MoU';
+                $oldValue = $existing->mou_drive_url;
+                $newValue = $attributes['mou_drive_url'];
+                $reason = "Perubahan tautan berkas dokumen MoU menjadi {$newValue}.";
             } else {
                 $fieldChanged = 'Sarana & Prasarana';
                 $oldValue = "Kelas: {$existing->class_count}, Instruktur: {$existing->instructor_count}";
