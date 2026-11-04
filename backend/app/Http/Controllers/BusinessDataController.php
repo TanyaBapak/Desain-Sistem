@@ -206,6 +206,8 @@ class BusinessDataController extends Controller
 
     public function updateProgramSchedule(Request $request, string $id): RedirectResponse
     {
+        $role = $request->user()->roles()->value('name');
+        abort_if(in_array($role, ['institution_admin', 'vokasi', 'lembaga_vokasi', 'training_operator'], true), 403, 'Lembaga vokasi tidak memiliki hak akses untuk mengubah jadwal tanggal pelaksanaan.');
         $this->authorizeWrite($request, 'programs', 'update');
         $existing = DB::table('training_programs')->where('id', $id)->first();
         if (! $existing && str_starts_with($id, 'BP2MI-PROG-') && class_exists(\Database\Seeders\ProgramPlacementTargetSeeder::class)) {
@@ -282,6 +284,8 @@ class BusinessDataController extends Controller
 
     public function updateSectorSchedule(Request $request): RedirectResponse
     {
+        $role = $request->user()->roles()->value('name');
+        abort_if(in_array($role, ['institution_admin', 'vokasi', 'lembaga_vokasi', 'training_operator'], true), 403, 'Lembaga vokasi tidak memiliki hak akses untuk mengubah jadwal tanggal pelaksanaan.');
         $this->authorizeWrite($request, 'programs', 'update');
 
         $validated = $request->validate([

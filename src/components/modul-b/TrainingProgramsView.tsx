@@ -61,12 +61,10 @@ export const TrainingProgramsView: React.FC = () => {
 
   const canManageSchedule = [
     'superadmin',
-    'taskforce',
-    'vokasi',
-    'admin',
-    'direktorat',
     'super_admin',
+    'taskforce',
     'task_force',
+    'direktorat',
     'directorate_admin',
   ].includes(currentRole as string);
 
@@ -247,65 +245,92 @@ export const TrainingProgramsView: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header Banner */}
-      <div className="bg-gradient-to-r from-slate-900 to-indigo-950 text-white p-6 rounded-2xl border border-slate-800 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2 text-blue-400 text-xs font-bold uppercase tracking-wider mb-1">
-            <GraduationCap className="w-4 h-4" />
-            <span>Modul B: Training Program Intelligence</span>
+      <div className="bg-gradient-to-r from-slate-900 to-indigo-950 text-white p-6 rounded-2xl border border-slate-800 shadow-xl space-y-5">
+        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2 text-blue-400 text-xs font-bold uppercase tracking-wider">
+              <GraduationCap className="w-4 h-4" />
+              <span>Modul B: Training Program Intelligence</span>
+            </div>
+            <h2 className="text-xl sm:text-2xl font-black text-white">
+              Katalog Standardisasi Kurikulum & Pelatihan PMI Vokasi
+            </h2>
+            <p className="text-xs text-slate-300 max-w-2xl leading-relaxed">
+              Menyediakan program pelatihan tersertifikasi BNSP dan standar negara penempatan luar negeri. Dirancang untuk menutup kesenjangan teknis (*upskilling/reskilling*) dan bahasa calon pekerja migran.
+            </p>
           </div>
-          <h2 className="text-xl sm:text-2xl font-black text-white">
-            Katalog Standardisasi Kurikulum & Pelatihan PMI Vokasi
-          </h2>
-          <p className="text-xs text-slate-300 mt-1 max-w-2xl leading-relaxed">
-            Menyediakan program pelatihan tersertifikasi BNSP dan standar negara penempatan luar negeri. Dirancang untuk menutup kesenjangan teknis (*upskilling/reskilling*) dan bahasa calon pekerja migran.
-          </p>
+
+          <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+            <button
+              onClick={() => {
+                setProgramToEdit(null);
+                setFormMode('create');
+                setIsFormOpen(true);
+              }}
+              className="px-4 py-2.5 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white transition flex items-center gap-2 shadow-md shrink-0"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Tambah Program</span>
+            </button>
+            {(currentRole === 'superadmin' || currentRole === 'taskforce' || (currentRole as string) === 'direktorat' || (currentRole as string) === 'directorate_admin') && (
+              <button
+                onClick={handleSyncFromProviders}
+                disabled={syncing}
+                className="flex items-center gap-2 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl transition text-xs font-bold shadow-sm disabled:opacity-60 shrink-0"
+              >
+                <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
+                <span>{syncing ? 'Menarik...' : 'Tarik Program LPK'}</span>
+              </button>
+            )}
+          </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="bg-slate-800/80 border border-slate-700 px-4 py-2.5 rounded-xl text-center">
-            <span className="text-[10px] text-slate-400 block font-bold uppercase">Target Penyiapan BP2MI</span>
-            <span className="text-xl font-extrabold text-emerald-400 tabular-nums">
-              {bp2miTargetPrograms.length} Program · 2.000 Kelas
-            </span>
+        {/* 3 Metric Cards Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+          <div className="bg-slate-800/80 backdrop-blur-sm border border-slate-700/80 px-4 py-3 rounded-xl flex items-center justify-between">
+            <div>
+              <span className="text-[10px] text-slate-400 block font-bold uppercase tracking-wider">Target Penyiapan BP2MI</span>
+              <span className="text-xl font-extrabold text-emerald-400 tabular-nums">
+                {bp2miTargetPrograms.length} Program
+              </span>
+            </div>
+            <div className="text-right">
+              <span className="text-[11px] font-semibold text-emerald-300/80 bg-emerald-950/60 border border-emerald-800/60 px-2 py-0.5 rounded-md">
+                2.000 Kelas
+              </span>
+            </div>
           </div>
 
-          <div className="bg-slate-800/80 border border-slate-700 px-4 py-2.5 rounded-xl text-center">
-            <span className="text-[10px] text-slate-400 block font-bold uppercase">Kelas Berjalan (LPK)</span>
-            <span className="text-xl font-extrabold text-amber-400 tabular-nums">{activeScheduledCount} Kelas</span>
+          <div className="bg-slate-800/80 backdrop-blur-sm border border-slate-700/80 px-4 py-3 rounded-xl flex items-center justify-between">
+            <div>
+              <span className="text-[10px] text-slate-400 block font-bold uppercase tracking-wider">Kelas Berjalan (LPK)</span>
+              <span className="text-xl font-extrabold text-amber-400 tabular-nums">{activeScheduledCount} Kelas</span>
+            </div>
+            <div className="text-right">
+              <span className="text-[11px] font-semibold text-amber-300/80 bg-amber-950/60 border border-amber-800/60 px-2 py-0.5 rounded-md">
+                Terjadwal
+              </span>
+            </div>
           </div>
 
-          <div className="bg-slate-800/80 border border-slate-700 px-4 py-2.5 rounded-xl text-center">
-            <span className="text-[10px] text-slate-400 block font-bold uppercase">Total Kurikulum</span>
-            <span className="text-xl font-extrabold text-blue-400 tabular-nums">{programs.length.toLocaleString('id-ID')} Paket</span>
+          <div className="bg-slate-800/80 backdrop-blur-sm border border-slate-700/80 px-4 py-3 rounded-xl flex items-center justify-between">
+            <div>
+              <span className="text-[10px] text-slate-400 block font-bold uppercase tracking-wider">Total Kurikulum</span>
+              <span className="text-xl font-extrabold text-blue-400 tabular-nums">{programs.length.toLocaleString('id-ID')} Paket</span>
+            </div>
+            <div className="text-right">
+              <span className="text-[11px] font-semibold text-blue-300/80 bg-blue-950/60 border border-blue-800/60 px-2 py-0.5 rounded-md">
+                Aktif
+              </span>
+            </div>
           </div>
-
-          <button
-            onClick={() => {
-              setProgramToEdit(null);
-              setFormMode('create');
-              setIsFormOpen(true);
-            }}
-            className="px-4 py-2.5 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white transition flex items-center gap-1.5 shadow-md shrink-0"
-          >
-            <Plus className="w-4 h-4" />
-            <span>+ Tambah Program</span>
-          </button>
-          {(currentRole === 'superadmin' || currentRole === 'taskforce' || (currentRole as string) === 'direktorat' || (currentRole as string) === 'directorate_admin') && (
-            <button
-              onClick={handleSyncFromProviders}
-              disabled={syncing}
-              className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm disabled:opacity-60"
-            >
-              <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
-              <span>{syncing ? 'Menarik Program...' : 'Tarik Program dari Lembaga Vokasi'}</span>
-            </button>
-          )}
         </div>
       </div>
 
       {/* Control & Tab Filter Bar */}
-      <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+      <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-3.5">
+        {/* Row 1: Category Tabs & View Mode Switch */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
           {/* Category Tabs */}
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 no-scrollbar">
             {programCategories.map((cat) => {
@@ -327,72 +352,108 @@ export const TrainingProgramsView: React.FC = () => {
             })}
           </div>
 
-          {/* Target Country, Schedule Filter & View Mode */}
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="inline-flex rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 p-0.5">
-              <button
-                type="button"
-                onClick={() => setDisplayMode('table')}
-                className={`px-2.5 py-1 rounded-md text-xs font-bold inline-flex items-center gap-1 transition ${
-                  displayMode === 'table'
-                    ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-xs'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
-                }`}
-              >
-                <Table2 className="w-3.5 h-3.5" />
-                <span>Tabel Target BP2MI</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setDisplayMode('cards')}
-                className={`px-2.5 py-1 rounded-md text-xs font-bold inline-flex items-center gap-1 transition ${
-                  displayMode === 'cards'
-                    ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-xs'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
-                }`}
-              >
-                <LayoutGrid className="w-3.5 h-3.5" />
-                <span>Kartu Program</span>
-              </button>
-            </div>
-
-            <label className="text-xs text-slate-500 dark:text-slate-400 font-semibold whitespace-nowrap">Kelompok:</label>
-            <select
-              value={scheduleFilter}
-              onChange={(e) => {
-                const next = e.target.value as 'BP2MI_TARGET' | 'ALL' | 'SCHEDULED' | 'UNSCHEDULED';
-                setScheduleFilter(next);
-                if (next !== 'BP2MI_TARGET') {
-                  setDisplayMode('cards');
-                }
-                setCurrentPage(1);
-              }}
-              className="text-xs py-1.5 px-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+          {/* View Mode Switcher */}
+          <div className="inline-flex rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 p-0.5 shrink-0 self-start sm:self-auto">
+            <button
+              type="button"
+              onClick={() => setDisplayMode('table')}
+              className={`px-3 py-1.5 rounded-md text-xs font-bold inline-flex items-center gap-1.5 transition ${
+                displayMode === 'table'
+                  ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+              }`}
             >
-              <option value="BP2MI_TARGET">Target Penyiapan BP2MI ({bp2miTargetPrograms.length} Program · 2.000 Kelas)</option>
-              <option value="SCHEDULED">Kelas Berjalan LPK ({activeScheduledCount} Kelas)</option>
-              <option value="ALL">Semua Program ({programs.length.toLocaleString('id-ID')})</option>
-              <option value="UNSCHEDULED">Katalog Lainnya (Belum Dijadwalkan)</option>
-            </select>
-
-            <label className="text-xs text-slate-500 dark:text-slate-400 font-semibold whitespace-nowrap ml-1">Negara:</label>
-            <select
-              value={filterProgramCountry}
-              onChange={(e) => {
-                setFilterProgramCountry(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="text-xs py-1.5 px-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+              <Table2 className="w-3.5 h-3.5" />
+              <span>Tabel Target BP2MI</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setDisplayMode('cards')}
+              className={`px-3 py-1.5 rounded-md text-xs font-bold inline-flex items-center gap-1.5 transition ${
+                displayMode === 'cards'
+                  ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+              }`}
             >
-              <option value="ALL">Semua Negara</option>
-              {businessOptions.countries.map((country) => (
-                <option key={country.id} value={country.name}>{country.name}</option>
-              ))}
-            </select>
+              <LayoutGrid className="w-3.5 h-3.5" />
+              <span>Kartu Program</span>
+            </button>
           </div>
         </div>
 
-        {/* 4 Negara Target Utama Shortcut Pills */}
+        {/* Row 2: Search Input & Quick Select Dropdowns */}
+        <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-3">
+          {/* Search Input */}
+          <div className="relative flex-1">
+            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              value={searchProgram}
+              onChange={(e) => {
+                setSearchProgram(e.target.value);
+                setCurrentPage(1);
+              }}
+              placeholder="Cari program pelatihan, lembaga vokasi, sertifikasi (misal: SSW Tokutei Ginou, BNSP), atau sektor..."
+              className="w-full pl-10 pr-9 py-2 text-xs sm:text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white dark:focus:bg-slate-800 transition"
+            />
+            {searchProgram && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchProgram('');
+                  setCurrentPage(1);
+                }}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5 rounded-full"
+                title="Hapus pencarian"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+
+          {/* Dropdown Filters: Kelompok & Negara */}
+          <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 shrink-0">
+            <div className="flex items-center gap-1.5 w-full sm:w-auto">
+              <label className="text-xs text-slate-500 dark:text-slate-400 font-semibold whitespace-nowrap">Kelompok:</label>
+              <select
+                value={scheduleFilter}
+                onChange={(e) => {
+                  const next = e.target.value as 'BP2MI_TARGET' | 'ALL' | 'SCHEDULED' | 'UNSCHEDULED';
+                  setScheduleFilter(next);
+                  if (next !== 'BP2MI_TARGET') {
+                    setDisplayMode('cards');
+                  }
+                  setCurrentPage(1);
+                }}
+                className="text-xs py-2 px-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium w-full sm:w-auto"
+              >
+                <option value="BP2MI_TARGET">Target Penyiapan BP2MI ({bp2miTargetPrograms.length} Program · 2.000 Kelas)</option>
+                <option value="SCHEDULED">Kelas Berjalan LPK ({activeScheduledCount} Kelas)</option>
+                <option value="ALL">Semua Program ({programs.length.toLocaleString('id-ID')})</option>
+                <option value="UNSCHEDULED">Katalog Lainnya (Belum Dijadwalkan)</option>
+              </select>
+            </div>
+
+            <div className="flex items-center gap-1.5 w-full sm:w-auto">
+              <label className="text-xs text-slate-500 dark:text-slate-400 font-semibold whitespace-nowrap">Negara:</label>
+              <select
+                value={filterProgramCountry}
+                onChange={(e) => {
+                  setFilterProgramCountry(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="text-xs py-2 px-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium w-full sm:w-auto"
+              >
+                <option value="ALL">Semua Negara</option>
+                {businessOptions.countries.map((country) => (
+                  <option key={country.id} value={country.name}>{country.name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {/* Row 3: 4 Negara Target Utama Shortcut Pills */}
         <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-slate-100 dark:border-slate-800">
           <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 mr-1 flex items-center gap-1">
             <Globe2 className="w-3.5 h-3.5 text-blue-500" />
@@ -427,21 +488,6 @@ export const TrainingProgramsView: React.FC = () => {
               </button>
             );
           })}
-        </div>
-
-        {/* Search Bar */}
-        <div className="relative">
-          <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input
-            type="text"
-            value={searchProgram}
-            onChange={(e) => {
-              setSearchProgram(e.target.value);
-              setCurrentPage(1);
-            }}
-            placeholder="Cari program pelatihan, lembaga vokasi, sertifikasi (misal: SSW Tokutei Ginou, BNSP), atau sektor..."
-            className="w-full pl-10 pr-4 py-2 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white dark:focus:bg-slate-800 transition"
-          />
         </div>
       </div>
 
