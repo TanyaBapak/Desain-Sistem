@@ -107,6 +107,42 @@ export const CandidateFormModal: React.FC<CandidateFormModalProps> = ({
     { id: 'TR', name: 'Turki' },
   ], []);
 
+  const availableOccupations = useMemo(() => {
+    const list: string[] = [];
+    const seen = new Set<string>();
+
+    const addOccupation = (title?: string) => {
+      const clean = (title || '').trim();
+      if (!clean) return;
+      const key = clean.toLowerCase();
+      if (!seen.has(key)) {
+        seen.add(key);
+        list.push(clean);
+      }
+    };
+
+    if (Array.isArray(businessOptions?.occupations)) {
+      businessOptions.occupations.forEach((occ: any) => addOccupation(occ?.title || occ?.name));
+    }
+
+    [
+      'Housekeeping',
+      'Welder',
+      'Caregiver',
+      'Perawat',
+      'Perhotelan',
+      'Hospitality',
+      'Operator Mesin',
+      'Pengolahan Makanan',
+      'Konstruksi',
+      'Teknisi Listrik',
+      'Pertanian Modern',
+      'Waitress / Waiter',
+    ].forEach(addOccupation);
+
+    return list.sort((a, b) => a.localeCompare(b, 'id'));
+  }, [businessOptions?.occupations]);
+
   const availableCountries = useMemo(() => {
     const fromStore = Array.isArray(businessOptions?.countries) && businessOptions.countries.length > 0
       ? businessOptions.countries
@@ -465,13 +501,21 @@ export const CandidateFormModal: React.FC<CandidateFormModalProps> = ({
                     </option>
                   ))}
                 </select>
-                <input
-                  type="text"
-                  value={preferredJobRole}
-                  onChange={(e) => setPreferredJobRole(e.target.value)}
-                  placeholder="Welder / Caregiver..."
-                  className="w-full px-2.5 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
-                />
+                <div>
+                  <input
+                    type="text"
+                    list="candidate-job-roles"
+                    value={preferredJobRole}
+                    onChange={(e) => setPreferredJobRole(e.target.value)}
+                    placeholder="Pilih atau ketik jabatan..."
+                    className="w-full px-2.5 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+                  />
+                  <datalist id="candidate-job-roles">
+                    {availableOccupations.map((title) => (
+                      <option key={title} value={title} />
+                    ))}
+                  </datalist>
+                </div>
               </div>
             </div>
 
