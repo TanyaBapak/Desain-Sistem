@@ -1575,7 +1575,7 @@ class BusinessDataPresenter
             $nationalLpkCount = $isOverview ? $this->nationalLpkCount() : 0;
 
             return [
-                'candidates' => $needsCandidates ? $this->candidates($role, $user) : [],
+                'candidates' => $needsCandidates ? $this->candidates($role, $user, $tab) : [],
                 'programs' => $needsPrograms ? $this->programs($role, $user) : [],
                 'providers' => $needsProviders ? $this->providers($role, $user) : [],
                 'demands' => $needsDemands ? $this->demands($role, $user) : [],
@@ -2111,13 +2111,15 @@ class BusinessDataPresenter
         ];
     }
 
-    private function candidates(?string $role, User $user): array
+    private function candidates(?string $role, User $user, ?string $tab = null): array
     {
         if (! in_array($role, ['super_admin', 'superadmin', 'leadership', 'pimpinan', 'task_force', 'taskforce', 'province_admin', 'district_admin', 'institution_admin', 'training_operator', 'verifier', 'directorate_admin', 'direktorat', 'bp3mi_admin', 'placement_officer', 'vokasi', 'lembaga_vokasi'], true)) {
             return [];
         }
 
-        $rows = DB::table('job_seekers')
+        $isLightweight = in_array($tab, ['dashboard', 'overview'], true);
+
+        $query = DB::table('job_seekers')
             ->whereNull('deleted_at')
             ->when($role === 'province_admin', fn ($query) => $query->where('job_seekers.province_id', $user->province_id))
             ->when($role === 'district_admin', fn ($query) => $query->where('job_seekers.district_id', $user->district_id))
@@ -2175,8 +2177,31 @@ class BusinessDataPresenter
             ->leftJoin('districts', 'districts.id', '=', 'job_seekers.district_id')
             ->when(in_array($role, ['task_force', 'taskforce'], true) && $this->bp3miScope->hasActiveAreaFilter($user), fn ($query) => $this->bp3miScope->applyToJobSeekers($query, $user))
             ->orderByDesc(DB::raw("COALESCE(job_seekers.updated_at, job_seekers.created_at)"))
-            ->limit(15000)
-            ->get([
+            ->limit(15000);
+
+        if ($isLightweight) {
+            return $query->get([
+                'job_seekers.id',
+                'provinces.name as province_name',
+                'job_seekers.institution_name',
+                'job_seekers.institution_id',
+                'job_seekers.readiness_status',
+                'job_seekers.lifecycle_status',
+                'job_seekers.preferred_countries',
+            ])->map(function (object $row): array {
+                return [
+                    'id' => (string) $row->id,
+                    'provinsi' => (string) ($row->province_name ?? ''),
+                    'institutionName' => (string) ($row->institution_name ?? ''),
+                    'institutionId' => $row->institution_id ? (string) $row->institution_id : null,
+                    'readinessStatus' => (string) ($row->readiness_status ?? 'Ready for Placement'),
+                    'lifecycleStatus' => (string) ($row->lifecycle_status ?? 'Siap Latih'),
+                    'preferredCountry' => $this->decodeArray($row->preferred_countries),
+                ];
+            })->all();
+        }
+
+        $rows = $query->get([
                 'job_seekers.id',
                 'job_seekers.nik',
                 'job_seekers.full_name',
