@@ -164,10 +164,21 @@ export const SupplyTable: React.FC<SupplyTableProps> = ({
     () => Array.from(new Set(candidates.flatMap((candidate) => candidate.skills))).filter(Boolean).sort(),
     [candidates],
   );
-  const jobRoleOptions = useMemo(
-    () => Array.from(new Set(candidates.flatMap((candidate) => candidate.preferredJobRole))).filter(Boolean).sort(),
-    [candidates],
-  );
+  const jobRoleOptions = useMemo(() => {
+    const rawRoles = Array.from(new Set(candidates.flatMap((candidate) => candidate.preferredJobRole))).filter(Boolean);
+    // Group normalized roles (e.g. Waiter / Waiters / WAITER mapped to standard capitalization)
+    const map = new Map<string, string>();
+    for (const role of rawRoles) {
+      const lower = role.trim().toLowerCase();
+      const standard = (lower === "waiter" || lower === "waiters" || lower === "waitress" || lower === "waiterss")
+        ? "Waiter"
+        : role;
+      if (!map.has(standard.toLowerCase())) {
+        map.set(standard.toLowerCase(), standard);
+      }
+    }
+    return Array.from(map.values()).sort((a, b) => a.localeCompare(b, "id"));
+  }, [candidates]);
   const languageLevelOptions = useMemo(
     () => Array.from(new Set(candidates.flatMap((candidate) => candidate.languageProficiency.map((language) => language.level))))
       .filter(Boolean)
@@ -314,7 +325,20 @@ export const SupplyTable: React.FC<SupplyTableProps> = ({
         c.languageProficiency.some((lp) => lp.language === filterLanguage);
       const matchLanguageLevel = filterLanguageLevel === 'ALL' ||
         c.languageProficiency.some((language) => language.level === filterLanguageLevel);
-      const matchJobRole = filterJobRole === 'ALL' || c.preferredJobRole.includes(filterJobRole);
+      const matchJobRole =
+        filterJobRole === 'ALL' ||
+        c.preferredJobRole.some((role) => {
+          if (role === filterJobRole) return true;
+          const roleLower = role.trim().toLowerCase();
+          const filterLower = filterJobRole.trim().toLowerCase();
+          if (
+            (filterLower === 'waiter' || filterLower === 'waiters') &&
+            (roleLower === 'waiter' || roleLower === 'waiters' || roleLower === 'waitress' || roleLower === 'waiterss')
+          ) {
+            return true;
+          }
+          return roleLower === filterLower;
+        });
 
       return (
         matchSearch &&

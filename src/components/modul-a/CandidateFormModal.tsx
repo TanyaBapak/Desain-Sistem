@@ -97,10 +97,10 @@ export const CandidateFormModal: React.FC<CandidateFormModalProps> = ({
     );
   }, [districtsList, selectedProvinceId]);
 
-  // 4 Negara Resmi Sistem SMK Go Global: Jepang, Korea Selatan, Malaysia, Turki
+  // 4 Negara Resmi Sistem SMK Go Global: Jepang, Korea, Malaysia, Turki
   const official4Countries = useMemo(() => [
     { id: 'JP', name: 'Jepang' },
-    { id: 'KR', name: 'Korea Selatan' },
+    { id: 'KR', name: 'Korea' },
     { id: 'MY', name: 'Malaysia' },
     { id: 'TR', name: 'Turki' },
   ], []);
@@ -113,7 +113,7 @@ export const CandidateFormModal: React.FC<CandidateFormModalProps> = ({
 
     fromStore.forEach((c) => {
       if (!c?.name) return;
-      const normalizedName = c.name === 'Korea' ? 'Korea Selatan' : c.name.trim();
+      const normalizedName = (c.name === 'Korea Selatan' || c.name === 'Korsel') ? 'Korea' : c.name.trim();
       map.set(normalizedName.toLowerCase(), {
         id: c.id || normalizedName,
         name: normalizedName,
@@ -121,7 +121,7 @@ export const CandidateFormModal: React.FC<CandidateFormModalProps> = ({
     });
 
     if (preferredCountry) {
-      const clean = preferredCountry.toLowerCase() === 'korea' ? 'Korea Selatan' : preferredCountry.trim();
+      const clean = (preferredCountry.toLowerCase() === 'korea selatan' || preferredCountry.toLowerCase() === 'korsel') ? 'Korea' : preferredCountry.trim();
       if (!map.has(clean.toLowerCase())) {
         map.set(clean.toLowerCase(), { id: clean, name: clean });
       }
@@ -153,7 +153,7 @@ export const CandidateFormModal: React.FC<CandidateFormModalProps> = ({
       const rawCountry = Array.isArray(initialData.preferredCountry) && initialData.preferredCountry.length > 0
         ? initialData.preferredCountry[0]
         : (typeof initialData.preferredCountry === 'string' ? initialData.preferredCountry : '');
-      const normalizedCountry = rawCountry.toLowerCase() === 'korea' ? 'Korea Selatan' : (rawCountry || 'Jepang');
+      const normalizedCountry = (rawCountry.toLowerCase() === 'korea selatan' || rawCountry.toLowerCase() === 'korsel') ? 'Korea' : (rawCountry || 'Jepang');
       setPreferredCountry(normalizedCountry);
       setPreferredJobRole(
         Array.isArray(initialData.preferredJobRole) && initialData.preferredJobRole.length > 0
@@ -452,7 +452,7 @@ export const CandidateFormModal: React.FC<CandidateFormModalProps> = ({
               <label className="block font-bold text-slate-700 mb-1">Target Negara & Jabatan</label>
               <div className="grid grid-cols-2 gap-2">
                 <select
-                  value={preferredCountry.toLowerCase() === 'korea' ? 'Korea Selatan' : preferredCountry}
+                  value={(preferredCountry.toLowerCase() === 'korea selatan' || preferredCountry.toLowerCase() === 'korsel') ? 'Korea' : preferredCountry}
                   onChange={(e) => setPreferredCountry(e.target.value)}
                   className="w-full px-2.5 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer text-slate-800 font-medium"
                 >
