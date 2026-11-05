@@ -3469,7 +3469,7 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
               {(activeDrilldownType || type) === "demand"
                 ? "Analisis gap kuota permintaan mitra internasional (Turki, Malaysia, Jepang, Korea) terhadap suplai calon peserta siap latih nasional."
                 : (activeDrilldownType || type) === "lembaga" || (activeDrilldownType || type) === "sebaran_lembaga"
-                ? "Daftar lembaga vokasi dengan akun user level Admin Lembaga Vokasi (total 55 vokasi terdaftar)."
+                ? `Daftar lembaga vokasi mitra penyuplai peserta dan penyelenggara pelatihan SMK Go Global (total ${institutions.filter((it) => (it.students?.length ?? it.studentCount ?? 0) > 0 || it.hasAdminAccount).length || 71} lembaga terdaftar).`
                 : (activeDrilldownType || type) === "peserta"
                 ? "Daftar calon peserta siap latih (realisasi 4.315 dari target 12.600 peserta) per negara target & kejuruan."
                 : "Data statistik Command Center Task Force SMK Go Global"}

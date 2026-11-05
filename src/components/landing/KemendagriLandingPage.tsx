@@ -338,12 +338,20 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
   // 2. Siap Program & 4. Siap Permintaan: 4 Negara
   const FOUR_COUNTRIES = ["Jepang", "Korea", "Malaysia", "Turki"];
 
-  // 3. Siap Vokasi: Jumlah vokasi dihitung dari user level Admin Lembaga Vokasi
+  // 3. Siap Vokasi: Jumlah lembaga vokasi mitra penyuplai & penyelenggara
+  const previewSupplyCount = useMemo(() => {
+    const list = publicCommandCenter?.previewDirectories?.institutions ?? [];
+    if (list.length === 0) return 0;
+    return list.filter(
+      (it: any) => (it.students?.length ?? it.studentCount ?? 0) > 0 || it.hasAdminAccount
+    ).length;
+  }, [publicCommandCenter?.previewDirectories?.institutions]);
+
   const rawVokasiAdmin =
     kpiSummary.vokasiWithSupplyCount ??
     publicCommandCenter?.national?.vokasiWithSupplyCount ??
     0;
-  const vokasiAdminCount = rawVokasiAdmin > 0 ? rawVokasiAdmin : 55;
+  const vokasiAdminCount = previewSupplyCount > 0 ? previewSupplyCount : (rawVokasiAdmin > 0 ? rawVokasiAdmin : 71);
   const sectorOccupations = Object.fromEntries(trainingSectors.map((sector) => {
     if (sector.occupations && sector.occupations.length > 0) {
       return [sector.name, sector.occupations.map((occupation) => occupation.title)];
@@ -734,10 +742,10 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
                     <div className="my-3">
                       <div className="text-3xl sm:text-4xl font-black text-white tracking-tight tabular-nums">
                         {vokasiAdminCount.toLocaleString("id-ID")}
-                        <span className="text-xs text-emerald-400 font-semibold ml-2">Vokasi</span>
+                        <span className="text-xs text-emerald-400 font-semibold ml-2">Lembaga</span>
                       </div>
                       <p className="text-xs text-slate-300 font-medium mt-1">
-                        Jumlah Vokasi dari User Level Admin Lembaga Vokasi
+                        Lembaga Vokasi Penyuplai & Penyelenggara
                       </p>
                     </div>
                   </div>

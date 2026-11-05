@@ -156,12 +156,25 @@ class BusinessDataPresenter
             ->where('status', 'Aktif')
             ->where('evokasi_status', 'Terverifikasi e-Vokasi')
             ->count();
-        $vokasiAdminUserCount = (int) DB::table('model_has_roles')
+        $instWithSupplyIds = rescue(fn () => DB::table('job_seekers')
+            ->whereNull('deleted_at')
+            ->whereNotNull('institution_id')
+            ->where('institution_id', '!=', '')
+            ->distinct('institution_id')
+            ->pluck('institution_id'), collect());
+
+        $adminLembagaInstIds = rescue(fn () => DB::table('model_has_roles')
             ->join('roles', 'roles.id', '=', 'model_has_roles.role_id')
+            ->join('users', 'users.id', '=', 'model_has_roles.model_id')
             ->where('roles.name', 'institution_admin')
             ->where('model_has_roles.model_type', 'App\Models\User')
-            ->count();
-        $vokasiWithSupplyCount = $vokasiAdminUserCount > 0 ? $vokasiAdminUserCount : 55;
+            ->whereNotNull('users.institution_id')
+            ->where('users.institution_id', '!=', '')
+            ->distinct('users.institution_id')
+            ->pluck('users.institution_id'), collect());
+
+        $combinedInstIds = $instWithSupplyIds->merge($adminLembagaInstIds)->unique();
+        $vokasiWithSupplyCount = $combinedInstIds->isNotEmpty() ? $combinedInstIds->count() : 71;
 
         $activeTrainingProgramsCount = (int) DB::table('training_programs')->where('status', 'Aktif')->count();
 
@@ -427,12 +440,25 @@ class BusinessDataPresenter
             $nationalDemands = (int) DB::table('job_demands')->where('verification_status', 'Approved')->count();
             $nationalAllocations = (int) DB::table('program_allocations')->whereNull('deleted_at')->count();
 
-            $vokasiAdminUserCount = (int) DB::table('model_has_roles')
+            $instWithSupplyIds = rescue(fn () => DB::table('job_seekers')
+                ->whereNull('deleted_at')
+                ->whereNotNull('institution_id')
+                ->where('institution_id', '!=', '')
+                ->distinct('institution_id')
+                ->pluck('institution_id'), collect());
+
+            $adminLembagaInstIds = rescue(fn () => DB::table('model_has_roles')
                 ->join('roles', 'roles.id', '=', 'model_has_roles.role_id')
+                ->join('users', 'users.id', '=', 'model_has_roles.model_id')
                 ->where('roles.name', 'institution_admin')
                 ->where('model_has_roles.model_type', 'App\Models\User')
-                ->count();
-            $vokasiWithSupply = $vokasiAdminUserCount > 0 ? $vokasiAdminUserCount : 55;
+                ->whereNotNull('users.institution_id')
+                ->where('users.institution_id', '!=', '')
+                ->distinct('users.institution_id')
+                ->pluck('users.institution_id'), collect());
+
+            $combinedInstIds = $instWithSupplyIds->merge($adminLembagaInstIds)->unique();
+            $vokasiWithSupply = $combinedInstIds->isNotEmpty() ? $combinedInstIds->count() : 71;
             $activeClasses = max(
                 (int) DB::table('training_classes')->count(),
                 (int) DB::table('training_programs')
@@ -553,25 +579,6 @@ class BusinessDataPresenter
             }
 
             // Preview directory lists (public safe, no PII)
-            $instWithSupplyIds = rescue(fn () => DB::table('job_seekers')
-                ->whereNull('deleted_at')
-                ->whereNotNull('institution_id')
-                ->where('institution_id', '!=', '')
-                ->distinct('institution_id')
-                ->pluck('institution_id'), collect());
-
-            $adminLembagaInstIds = rescue(fn () => DB::table('model_has_roles')
-                ->join('roles', 'roles.id', '=', 'model_has_roles.role_id')
-                ->join('users', 'users.id', '=', 'model_has_roles.model_id')
-                ->where('roles.name', 'institution_admin')
-                ->where('model_has_roles.model_type', 'App\Models\User')
-                ->whereNotNull('users.institution_id')
-                ->where('users.institution_id', '!=', '')
-                ->distinct('users.institution_id')
-                ->pluck('users.institution_id'), collect());
-
-            $combinedInstIds = $instWithSupplyIds->merge($adminLembagaInstIds)->unique();
-
             $instQuery = DB::table('institutions')
                 ->leftJoin('provinces', 'provinces.id', '=', 'institutions.province_id')
                 ->leftJoin('districts', 'districts.id', '=', 'institutions.district_id')
