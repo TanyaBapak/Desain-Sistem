@@ -2493,7 +2493,8 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
           country: string;
           sectors: {
             sectorName: string;
-            programTypes: string[];
+            totalJp: number;
+            programTypes: { name: string; jp?: number }[];
           }[];
         }[] = [
           {
@@ -2501,40 +2502,47 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
             sectors: [
               {
                 sectorName: "Hospitality & Pariwisata",
+                totalJp: 860,
                 programTypes: [
-                  "Pelatihan Teknis — Accommodation & Hotel Service (SSW Hospitality)",
-                  "Pelatihan Bahasa — Bahasa Jepang Perhotelan & Restoran (JLPT/JFT)",
-                  "Sertifikasi Teknis — Uji Kompetensi Food Service & Accommodation",
+                  { name: "Pelatihan Teknis — Accommodation & Hotel Service (SSW Hospitality)", jp: 180 },
+                  { name: "Pelatihan Bahasa — Bahasa Jepang Perhotelan & Restoran (JLPT/JFT)", jp: 640 },
+                  { name: "Sertifikasi Teknis — Uji Kompetensi Food Service & Accommodation", jp: 40 },
                 ],
               },
               {
                 sectorName: "Kesehatan",
+                totalJp: 840,
                 programTypes: [
-                  "Pelatihan Teknis — Caregiver (Lvl Pelaksana)",
-                  "Pelatihan Bahasa — Bahasa Jepang (JLPT N4 / JFT-Basic)",
-                  "Sertifikasi Teknis — Uji Kompetensi SSW Kaigo & BNSP",
+                  { name: "Pelatihan Teknis — Caregiver (Lvl Pelaksana)", jp: 160 },
+                  { name: "Pelatihan Bahasa — Bahasa Jepang (JLPT N4 / JFT-Basic)", jp: 640 },
+                  { name: "Sertifikasi Teknis — Uji Kompetensi SSW Kaigo & BNSP", jp: 40 },
                 ],
               },
               {
                 sectorName: "Manufaktur",
+                totalJp: 840,
                 programTypes: [
-                  "Pelatihan Teknis — Operator Produksi & Mesin Presisi",
-                  "Pelatihan Bahasa — Bahasa Jepang Industri",
-                  "Sertifikasi Teknis — SSW Manufaktur & BNSP",
+                  { name: "Pelatihan Teknis — Operator Produksi & Mesin Presisi", jp: 160 },
+                  { name: "Pelatihan Bahasa — Bahasa Jepang Industri", jp: 640 },
+                  { name: "Sertifikasi Teknis — SSW Manufaktur & BNSP", jp: 40 },
                 ],
               },
               {
                 sectorName: "Transportasi",
+                totalJp: 860,
                 programTypes: [
-                  "Pelatihan Teknis — Driver & Pengemudi Angkutan (Truck Driver)",
-                  "Pelatihan Bahasa — Bahasa Jepang Layanan Transportasi",
+                  { name: "Pelatihan Teknis — Driver & Pengemudi Angkutan (Truck Driver)", jp: 180 },
+                  { name: "Pelatihan Bahasa — Bahasa Jepang Layanan Transportasi", jp: 640 },
+                  { name: "Sertifikasi Teknis — Uji SIM Internasional & Sertifikasi K3", jp: 40 },
                 ],
               },
               {
                 sectorName: "Agriculture (Pertanian)",
+                totalJp: 820,
                 programTypes: [
-                  "Pelatihan Teknis — Farmer / Farming (Pertanian Modern)",
-                  "Pelatihan Bahasa — Bahasa Jepang Pertanian (ASAT)",
+                  { name: "Pelatihan Teknis — Farmer / Farming (Pertanian Modern)", jp: 140 },
+                  { name: "Pelatihan Bahasa — Bahasa Jepang Pertanian (ASAT)", jp: 640 },
+                  { name: "Sertifikasi Teknis — Uji Kompetensi SSW Pertanian & BNSP", jp: 40 },
                 ],
               },
             ],
@@ -2544,24 +2552,29 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
             sectors: [
               {
                 sectorName: "Hospitality & Layanan",
+                totalJp: 860,
                 programTypes: [
-                  "Pelatihan Teknis — Hotel Staff & Food Service Attendant",
-                  "Pelatihan Bahasa — Bahasa Korea Perhotelan",
+                  { name: "Pelatihan Teknis — Hotel Staff & Food Service Attendant", jp: 180 },
+                  { name: "Pelatihan Bahasa — Bahasa Korea Perhotelan", jp: 640 },
+                  { name: "Sertifikasi Teknis — Sertifikasi Layanan Perhotelan", jp: 40 },
                 ],
               },
               {
                 sectorName: "Manufaktur",
+                totalJp: 840,
                 programTypes: [
-                  "Pelatihan Teknis — Welder (SMAW/FCAW) & Molding Presisi",
-                  "Pelatihan Bahasa — Bahasa Korea (EPS-TOPIK Manufaktur)",
-                  "Sertifikasi Teknis — Sertifikasi Pengelasan AWS / BNSP",
+                  { name: "Pelatihan Teknis — Welder (SMAW/FCAW) & Molding Presisi", jp: 160 },
+                  { name: "Pelatihan Bahasa — Bahasa Korea (EPS-TOPIK Manufaktur)", jp: 640 },
+                  { name: "Sertifikasi Teknis — Sertifikasi Pengelasan AWS / BNSP", jp: 40 },
                 ],
               },
               {
                 sectorName: "Fisherman (Perikanan)",
+                totalJp: 720,
                 programTypes: [
-                  "Pelatihan & Sertifikasi Teknis — ABK Perikanan Tangkap",
-                  "Pelatihan Bahasa — Bahasa Korea (EPS-TOPIK Perikanan)",
+                  { name: "Pelatihan & Sertifikasi Teknis — ABK Perikanan Tangkap", jp: 160 },
+                  { name: "Pelatihan Bahasa — Bahasa Korea (EPS-TOPIK Perikanan)", jp: 520 },
+                  { name: "Sertifikasi Teknis — BST & Sertifikasi Pelaut Internasional", jp: 40 },
                 ],
               },
             ],
@@ -2571,30 +2584,38 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
             sectors: [
               {
                 sectorName: "Hospitality",
+                totalJp: 720,
                 programTypes: [
-                  "Pelatihan Teknis — Cleaner & Layanan Perhotelan",
-                  "Pelatihan Bahasa — Bahasa Inggris Perhotelan",
+                  { name: "Pelatihan Teknis — Cleaner & Layanan Perhotelan", jp: 40 },
+                  { name: "Pelatihan Bahasa — Bahasa Inggris Perhotelan", jp: 640 },
+                  { name: "Sertifikasi Teknis — Sertifikasi Layanan Kebersihan & K3", jp: 40 },
                 ],
               },
               {
                 sectorName: "Kesehatan",
+                totalJp: 940,
                 programTypes: [
-                  "Pelatihan Teknis — Elderly Caretaker (Perawat Lansia)",
-                  "Pelatihan Bahasa — Komunikasi Bahasa Inggris & Melayu Medis",
+                  { name: "Pelatihan Teknis — Elderly Caretaker (Perawat Lansia)", jp: 260 },
+                  { name: "Pelatihan Bahasa — Komunikasi Bahasa Inggris & Melayu Medis", jp: 640 },
+                  { name: "Sertifikasi Teknis — Uji Kompetensi Caregiver Internasional", jp: 40 },
                 ],
               },
               {
                 sectorName: "Manufaktur",
+                totalJp: 780,
                 programTypes: [
-                  "Pelatihan Teknis — Operation Production (Operator Produksi)",
-                  "Sertifikasi Teknis — Sertifikasi Kompetensi Industri BNSP",
+                  { name: "Pelatihan Teknis — Operation Production (Operator Produksi)", jp: 100 },
+                  { name: "Pelatihan Bahasa — Bahasa Inggris Komunikasi Industri", jp: 640 },
+                  { name: "Sertifikasi Teknis — Sertifikasi Kompetensi Industri BNSP", jp: 40 },
                 ],
               },
               {
                 sectorName: "Agriculture (Perkebunan)",
+                totalJp: 220,
                 programTypes: [
-                  "Pelatihan Teknis — Plantation Worker Kelapa Sawit",
-                  "Sertifikasi Teknis — K3 & Kompetensi Perkebunan",
+                  { name: "Pelatihan Teknis — Plantation Worker Kelapa Sawit", jp: 140 },
+                  { name: "Pelatihan Bahasa — Bahasa Melayu / Orientasi Lapangan", jp: 40 },
+                  { name: "Sertifikasi Teknis — K3 & Kompetensi Perkebunan", jp: 40 },
                 ],
               },
             ],
@@ -2604,20 +2625,23 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
             sectors: [
               {
                 sectorName: "Hospitality",
+                totalJp: 860,
                 programTypes: [
-                  "Pelatihan Teknis — Housekeeping & Tata Graha",
-                  "Pelatihan Teknis — Waiter / Food & Beverage Service",
-                  "Pelatihan Teknis — Spa Therapist Internasional",
-                  "Pelatihan Teknis — Culinary Cook & Public Area Cleaner",
-                  "Pelatihan Bahasa — Bahasa Inggris Perhotelan & Bahasa Turki Dasar",
-                  "Sertifikasi Teknis — Uji Kompetensi Perhotelan BNSP & CIBTAC",
+                  { name: "Pelatihan Teknis — Housekeeping & Tata Graha", jp: 180 },
+                  { name: "Pelatihan Teknis — Waiter / Food & Beverage Service", jp: 180 },
+                  { name: "Pelatihan Teknis — Spa Therapist Internasional", jp: 180 },
+                  { name: "Pelatihan Teknis — Culinary Cook & Public Area Cleaner", jp: 280 },
+                  { name: "Pelatihan Bahasa — Bahasa Inggris Perhotelan & Bahasa Turki Dasar", jp: 640 },
+                  { name: "Sertifikasi Teknis — Uji Kompetensi Perhotelan BNSP & CIBTAC", jp: 40 },
                 ],
               },
               {
                 sectorName: "Layanan & Administrasi",
+                totalJp: 720,
                 programTypes: [
-                  "Pelatihan Teknis — Guest Relation Officer & Tourism Service",
-                  "Pelatihan Bahasa — Bahasa Inggris Pariwisata & Komunikasi Turki",
+                  { name: "Pelatihan Teknis — Guest Relation Officer & Tourism Service", jp: 140 },
+                  { name: "Pelatihan Bahasa — Bahasa Inggris Pariwisata & Komunikasi Turki", jp: 540 },
+                  { name: "Sertifikasi Teknis — Uji Kompetensi Layanan Pelanggan", jp: 40 },
                 ],
               },
             ],
@@ -2779,6 +2803,12 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
                               <Badge className="bg-emerald-600/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 text-[11px] font-mono font-bold">
                                 {sec.count.toLocaleString("id-ID")} Calon Peserta
                               </Badge>
+                              {typeof sec.totalJp === "number" && (
+                                <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 text-[11px] font-mono font-bold flex items-center gap-1">
+                                  <Clock className="w-3 h-3 text-amber-600" />
+                                  <span>{sec.totalJp.toLocaleString("id-ID")} JP (Akumulasi Kurikulum)</span>
+                                </Badge>
+                              )}
                             </div>
                           </div>
 
@@ -2814,11 +2844,18 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
                           </div>
                           {sec.programTypes.map((prog) => (
                             <div
-                              key={prog}
-                              className="text-xs text-foreground flex items-center gap-2 py-1.5 px-2.5 rounded-lg bg-muted/40 border border-border/50"
+                              key={prog.name}
+                              className="text-xs text-foreground flex items-center justify-between gap-2 py-1.5 px-2.5 rounded-lg bg-muted/40 border border-border/50"
                             >
-                              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
-                              <span className="font-medium">{prog}</span>
+                              <div className="flex items-center gap-2 min-w-0">
+                                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                                <span className="font-medium truncate">{prog.name}</span>
+                              </div>
+                              {typeof prog.jp === "number" && (
+                                <Badge variant="secondary" className="text-[10px] font-mono shrink-0 font-bold bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
+                                  {prog.jp} JP
+                                </Badge>
+                              )}
                             </div>
                           ))}
                         </div>
