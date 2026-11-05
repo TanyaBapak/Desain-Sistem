@@ -16,31 +16,71 @@ type PayloadValue =
   | { [key: string]: PayloadValue };
 type BusinessDataPayload = Record<string, PayloadValue>;
 
-export function saveBusinessData<T extends object>(
+export interface SaveBusinessDataOptions {
+  onSuccess?: () => void;
+  onError?: (error?: string) => void;
+  onFinally?: () => void;
+}
+
+export async function saveBusinessData<T extends object>(
   resource: BusinessDataResource,
   payload: T,
   id?: string,
-  onSuccess?: () => void,
-): void {
+  onSuccessOrOptions?: (() => void) | SaveBusinessDataOptions,
+  onErrorFallback?: (error?: string) => void,
+): Promise<boolean> {
   const data = payload as BusinessDataPayload;
-  const options = {
-    preserveScroll: true,
-    onSuccess: () => {
-      toast.success("Data berhasil disimpan ke database.");
-      onSuccess?.();
-    },
-    onError: (errors: Record<string, string>) => {
-      const message = Object.values(errors).find(Boolean);
-      toast.error(message ?? "Data belum dapat disimpan. Periksa kembali isian formulir.");
-    },
-  };
+  const options: SaveBusinessDataOptions =
+    typeof onSuccessOrOptions === "function"
+      ? { onSuccess: onSuccessOrOptions, onError: onErrorFallback }
+      : (onSuccessOrOptions ?? {});
 
-  if (id) {
-    router.put(`/business-data/${resource}/${encodeURIComponent(id)}`, data, options);
-    return;
+  const url = id
+    ? `/business-data/${resource}/${encodeURIComponent(id)}`
+    : `/business-data/${resource}`;
+
+  try {
+    const res = id
+      ? await axios.put(url, data, { headers: { Accept: "application/json" } })
+      : await axios.post(url, data, { headers: { Accept: "application/json" } });
+
+    toast.success(res.data?.message || "Data berhasil disimpan ke database.");
+    options.onSuccess?.();
+
+    // Reload businessData across Inertia in background without blocking modal close or UI flow
+    router.reload({ only: ["businessData"] });
+    return true;
+  } catch (err: unknown) {
+    const error = err as {
+      response?: {
+        status?: number;
+        data?: {
+          message?: string;
+          errors?: Record<string, string[] | string>;
+        };
+      };
+    };
+
+    let errorMsg = "Data belum dapat disimpan. Periksa kembali isian formulir.";
+    if (error.response?.data?.message) {
+      errorMsg = error.response.data.message;
+    } else if (error.response?.data?.errors) {
+      const firstErr = Object.values(error.response.data.errors)[0];
+      if (Array.isArray(firstErr) && firstErr.length > 0) {
+        errorMsg = firstErr[0];
+      } else if (typeof firstErr === "string") {
+        errorMsg = firstErr;
+      }
+    } else if (error.response?.status === 403) {
+      errorMsg = "Anda tidak memiliki hak akses untuk mengubah data ini.";
+    }
+
+    toast.error(errorMsg);
+    options.onError?.(errorMsg);
+    return false;
+  } finally {
+    options.onFinally?.();
   }
-
-  router.post(`/business-data/${resource}`, data, options);
 }
 
 export async function archiveBusinessData(

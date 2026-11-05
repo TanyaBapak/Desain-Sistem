@@ -3,6 +3,7 @@ import type { WorkBook } from 'xlsx';
 
 const CANDIDATE_HEADERS = [
   'Nama lengkap',
+  'NIK (opsional)',
   'Provinsi',
   'Kabupaten/Kota',
   'Jenjang pendidikan',
@@ -98,6 +99,7 @@ export function exportCandidatesCsv(candidates: CandidateParticipant[]): void {
     const lang = formatLangText(candidate.languageProficiency);
     return [
       candidate.fullName,
+      candidate.nik || '',
       candidate.provinsi,
       candidate.kabupatenKota,
       candidate.educationLevel,
@@ -127,6 +129,7 @@ export async function exportCandidatesXlsx(candidates: CandidateParticipant[]): 
     const lang = formatLangText(candidate.languageProficiency);
     return {
       'Nama lengkap': candidate.fullName,
+      'NIK (opsional)': candidate.nik || '',
       'Provinsi': candidate.provinsi,
       'Kabupaten/Kota': candidate.kabupatenKota,
       'Jenjang pendidikan': candidate.educationLevel,
@@ -230,9 +233,10 @@ function normalizeReadinessStatus(raw: string): CandidateParticipant['readinessS
 }
 
 function generateDeterministicNik(seedIndex: number): string {
-  const suffix = String(Date.now() % 100000000).padStart(8, '0');
-  const seq = String(seedIndex + 1).padStart(4, '0');
-  return `3300${suffix}${seq}`;
+  const timestamp = Date.now().toString().slice(-6);
+  const randomPart = Math.floor(1000 + Math.random() * 9000).toString();
+  const seq = String(seedIndex + 1).padStart(2, '0').slice(-2);
+  return `3300${timestamp}${randomPart}${seq}`;
 }
 
 export async function parseCandidateSpreadsheet(
@@ -271,7 +275,25 @@ export async function parseCandidateSpreadsheet(
   rawRows.forEach((row, index) => {
     const rowNumber = index + 2;
     const fullName = getCellString(row, ['Nama lengkap', 'Nama Lengkap', 'Nama', 'Full Name', 'full_name']);
-    const rawNik = getCellString(row, ['NIK (opsional)', 'NIK', 'No KTP', 'Nomor Induk Kependudukan']);
+    const rawNik = getCellString(row, [
+      'NIK (opsional)',
+      'NIK',
+      'No KTP',
+      'No. KTP',
+      'Nomor KTP',
+      'No KTP / NIK',
+      'No. KTP / NIK',
+      'No. KTP/NIK',
+      'NIK / No KTP',
+      'NIK/KTP',
+      'NIK Peserta',
+      'Nomor Induk Kependudukan',
+      'Nomor Induk Kependudukan (NIK)',
+      'No Identitas',
+      'No. Identitas',
+      'Nomor Identitas',
+      'KTP',
+    ]);
     const provinsi = getCellString(row, ['Provinsi', 'Provinsi Asal', 'Provinsi Domisili']) || defaults?.provinsi || 'Jawa Tengah';
     const kabupatenKota =
       getCellString(row, ['Kabupaten/Kota', 'Kabupaten / Kota', 'Kab/Kota', 'Kota', 'Kabupaten']) ||
@@ -299,7 +321,14 @@ export async function parseCandidateSpreadsheet(
       return;
     }
 
-    const digitsOnlyNik = rawNik.replace(/\D/g, '');
+    let digitsOnlyNik = rawNik.replace(/\D/g, '');
+    if (!digitsOnlyNik && typeof rawNik === 'string' && /^[0-9]+(\.[0-9]+)?[eE]\+[0-9]+$/.test(rawNik.trim())) {
+      try {
+        digitsOnlyNik = BigInt(Math.floor(Number(rawNik.trim()))).toString();
+      } catch {
+        // ignore
+      }
+    }
     let finalNik = digitsOnlyNik;
     if (digitsOnlyNik.length > 0 && digitsOnlyNik.length !== 16) {
       errors.push({

@@ -103,8 +103,10 @@ export const CandidateImportModal: React.FC<CandidateImportModalProps> = ({
           { candidates: rows as unknown as Record<string, string>[] },
           {
             preserveScroll: true,
-            onSuccess: () => {
-              toast.success(`${total} data calon PMI berhasil diunggah dan disimpan.`);
+            onSuccess: (page) => {
+              const flash = (page?.props as unknown as { flash?: { success?: string } })?.flash;
+              const msg = flash?.success || `${total} data calon PMI berhasil diunggah dan disimpan.`;
+              toast.success(msg);
               resetState();
               onClose();
               router.reload();

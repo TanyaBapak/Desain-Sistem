@@ -245,9 +245,13 @@ class BusinessDataPersistenceTest extends TestCase
 
         $this->get('/app/modul-c')
             ->assertOk()
-            ->assertInertia(fn (Assert $page) => $page
-                ->where('businessData.providers.0.name', 'Lembaga Contoh Diperbarui')
-                ->where('businessData.providers.0.supportedCountries', ['JP', 'KR', 'DE', 'Kanada']));
+            ->assertInertia(function (Assert $page) use ($providerId) {
+                $providers = collect($page->toArray()['props']['businessData']['providers'] ?? []);
+                $target = $providers->firstWhere('id', $providerId);
+                $this->assertNotNull($target);
+                $this->assertSame('Lembaga Contoh Diperbarui', $target['name']);
+                $this->assertSame(['JP', 'KR', 'DE', 'Kanada'], $target['supportedCountries']);
+            });
 
         $this->delete("/business-data/candidates/{$candidateId}", ['reason' => 'Pencatatan uji arsip'])->assertRedirect();
         $this->delete("/business-data/programs/{$programId}")->assertRedirect();
@@ -462,6 +466,245 @@ class BusinessDataPersistenceTest extends TestCase
             'gender' => 'P',
             'province_id' => '33',
         ]);
+    }
+
+    public function test_importing_ten_candidates_adds_ten_new_records_without_overwriting_existing_data(): void
+    {
+        $this->seed(ReferenceDataSeeder::class);
+        $admin = $this->userWithRole('task_force');
+        $this->actingAs($admin);
+
+        // Create an existing candidate in the database
+        $existingCandidateId = 'CAND-EXISTING-01';
+        $collidingNik = '3201011501980001';
+        DB::table('job_seekers')->insert([
+            'id' => $existingCandidateId,
+            'registration_number' => 'REG-EXISTING01',
+            'nik' => $collidingNik,
+            'full_name' => 'Peserta Asli Jangan Ditimpa',
+            'gender' => 'L',
+            'province_id' => '33',
+            'district_id' => '3372',
+            'education_level' => 'SMK',
+            'institution_name' => 'SMK Asli',
+            'major' => 'Teknik',
+            'readiness_status' => 'Ready for Placement',
+            'verification_status' => 'Verified',
+            'lifecycle_status' => 'APPROVED',
+            'created_by' => 'Admin Asli',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $initialTotalCount = DB::table('job_seekers')->count();
+
+        // 10 new candidates to import:
+        // 5 candidates have the SAME dummy NIK as the existing candidate (simulating dragged formula / copy-paste NIK collision)
+        // 5 candidates have empty NIKs
+        $tenCandidates = [];
+        for ($i = 1; $i <= 10; $i++) {
+            $tenCandidates[] = [
+                'nik' => $i <= 5 ? $collidingNik : '',
+                'fullName' => "Peserta Baru Ke-{$i}",
+                'gender' => $i % 2 === 0 ? 'P' : 'L',
+                'provinsi' => 'Jawa Tengah',
+                'kabupatenKota' => 'Kota Surakarta',
+                'educationLevel' => 'SMK',
+                'institutionName' => 'Lembaga Pelatihan Baru',
+                'sourceType' => 'Lembaga Vokasi',
+                'major' => 'Perhotelan',
+                'skills' => ['Service'],
+                'preferredCountry' => ['Jepang'],
+                'preferredJobRole' => ['Staff'],
+                'readinessStatus' => 'Ready for Placement',
+            ];
+        }
+
+        $response = $this->postJson('/business-data/candidates/import', [
+            'candidates' => $tenCandidates,
+        ]);
+
+        $response->assertOk()
+            ->assertJson([
+                'success' => true,
+                'importedCount' => 10,
+                'createdCount' => 10,
+                'updatedCount' => 0,
+            ]);
+
+        // Total count in database MUST increase by exactly 10!
+        $this->assertSame($initialTotalCount + 10, DB::table('job_seekers')->count());
+
+        // The original candidate MUST NOT be overwritten!
+        $existingRecord = DB::table('job_seekers')->where('id', $existingCandidateId)->first();
+        $this->assertNotNull($existingRecord);
+        $this->assertSame('Peserta Asli Jangan Ditimpa', $existingRecord->full_name);
+        $this->assertSame($collidingNik, $existingRecord->nik);
+
+        // Every one of the 10 newly imported candidates must exist with distinct IDs
+        for ($i = 1; $i <= 10; $i++) {
+            $this->assertDatabaseHas('job_seekers', [
+                'full_name' => "Peserta Baru Ke-{$i}",
+                'institution_name' => 'Lembaga Pelatihan Baru',
+            ]);
+        }
+    }
+
+    public function test_importing_candidate_with_matching_name_and_institution_updates_record(): void
+    {
+        $this->seed(ReferenceDataSeeder::class);
+        $admin = $this->userWithRole('task_force');
+        $this->actingAs($admin);
+
+        $candidateId = 'CAND-UPDATE-01';
+        $nik = '3201011501980777';
+        DB::table('job_seekers')->insert([
+            'id' => $candidateId,
+            'registration_number' => 'REG-UPDATE01',
+            'nik' => $nik,
+            'full_name' => 'Budi Santoso',
+            'gender' => 'L',
+            'province_id' => '33',
+            'district_id' => '3372',
+            'education_level' => 'SMK',
+            'institution_name' => 'LPK Mitra Maju',
+            'major' => 'Teknik Mesin',
+            'readiness_status' => 'Needs Upskilling',
+            'verification_status' => 'Pending Verification',
+            'lifecycle_status' => 'SUBMITTED',
+            'created_by' => 'Admin Mitra',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $initialCount = DB::table('job_seekers')->count();
+
+        // Import an update for Budi Santoso (matching NIK and matching full_name)
+        $response = $this->postJson('/business-data/candidates/import', [
+            'candidates' => [
+                [
+                    'nik' => $nik,
+                    'fullName' => 'Budi Santoso',
+                    'gender' => 'L',
+                    'provinsi' => 'Jawa Tengah',
+                    'kabupatenKota' => 'Kota Surakarta',
+                    'educationLevel' => 'D3',
+                    'institutionName' => 'LPK Mitra Maju',
+                    'sourceType' => 'Lembaga Vokasi',
+                    'major' => 'Teknik Otomasi',
+                    'skills' => ['CNC'],
+                    'readinessStatus' => 'Ready for Placement',
+                ],
+            ],
+        ]);
+
+        $response->assertOk()
+            ->assertJson([
+                'success' => true,
+                'importedCount' => 1,
+                'createdCount' => 0,
+                'updatedCount' => 1,
+            ]);
+
+        // Total count should not change (it's an update)
+        $this->assertSame($initialCount, DB::table('job_seekers')->count());
+
+        // Attributes should be updated
+        $updated = DB::table('job_seekers')->where('id', $candidateId)->first();
+        $this->assertSame('Ready for Placement', $updated->readiness_status);
+        $this->assertSame('D3', $updated->education_level);
+        $this->assertSame('Teknik Otomasi', $updated->major);
+    }
+
+    public function test_updating_candidate_country_returns_json_and_normalizes_country_properly(): void
+    {
+        $this->withoutVite();
+        $this->seed(ReferenceDataSeeder::class);
+        $user = $this->userWithRole('task_force');
+        $this->actingAs($user);
+
+        $candidateId = 'CAND-TEST-UPDATE-001';
+        DB::table('job_seekers')->insert([
+            'id' => $candidateId,
+            'registration_number' => 'REG-UPDATE-001',
+            'nik' => '3372010101990001',
+            'full_name' => 'Peserta Update Negara',
+            'gender' => 'L',
+            'province_id' => '33',
+            'district_id' => '3372',
+            'institution_name' => 'SMK Negeri 2 Surakarta',
+            'education_level' => 'SMK',
+            'major' => 'Perhotelan',
+            'source_type' => 'LPK',
+            'readiness_status' => 'Needs Upskilling',
+            'verification_status' => 'Verified',
+            'lifecycle_status' => 'APPROVED',
+            'passport_ready' => 1,
+            'mcu_ready' => 1,
+            'preferred_countries' => json_encode(['Jepang']),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        // 1. Update with Korea Selatan via JSON
+        $response = $this->putJson("/business-data/candidates/{$candidateId}", [
+            'fullName' => 'Peserta Update Negara',
+            'nik' => '3372010101990001',
+            'gender' => 'L',
+            'provinsi' => 'Jawa Tengah',
+            'kabupatenKota' => 'Kota Surakarta',
+            'educationLevel' => 'SMK',
+            'institutionName' => 'SMK Negeri 2 Surakarta',
+            'sourceType' => 'LPK',
+            'major' => 'Perhotelan',
+            'skills' => ['Food & Beverage'],
+            'languageProficiency' => [['language' => 'Korea', 'level' => 'TOPIK II']],
+            'preferredCountry' => ['Korea Selatan'],
+            'preferredJobRole' => ['Waiter'],
+            'readinessStatus' => 'Ready for Placement',
+            'verificationStatus' => 'Verified',
+            'lifecycleStatus' => 'APPROVED',
+        ]);
+
+        $response->assertOk()
+            ->assertJson([
+                'success' => true,
+                'id' => $candidateId,
+                'message' => 'Perubahan berhasil disimpan.',
+            ]);
+
+        $updated = DB::table('job_seekers')->where('id', $candidateId)->first();
+        $this->assertSame(json_encode(['Korea']), $updated->preferred_countries);
+        $this->assertSame('Ready for Placement', $updated->readiness_status);
+
+        // 2. Update with Turkiye via JSON -> normalizes to Turki
+        $response2 = $this->putJson("/business-data/candidates/{$candidateId}", [
+            'fullName' => 'Peserta Update Negara',
+            'nik' => '3372010101990001',
+            'gender' => 'L',
+            'provinsi' => 'Jawa Tengah',
+            'kabupatenKota' => 'Kota Surakarta',
+            'educationLevel' => 'SMK',
+            'institutionName' => 'SMK Negeri 2 Surakarta',
+            'sourceType' => 'LPK',
+            'major' => 'Perhotelan',
+            'skills' => ['Food & Beverage'],
+            'languageProficiency' => [['language' => 'Inggris', 'level' => 'Fluent']],
+            'preferredCountry' => ['Turkiye'],
+            'preferredJobRole' => ['Waiter'],
+            'readinessStatus' => 'Ready for Placement',
+            'verificationStatus' => 'Verified',
+            'lifecycleStatus' => 'APPROVED',
+        ]);
+
+        $response2->assertOk()
+            ->assertJson([
+                'success' => true,
+                'id' => $candidateId,
+            ]);
+
+        $updated2 = DB::table('job_seekers')->where('id', $candidateId)->first();
+        $this->assertSame(json_encode(['Turki']), $updated2->preferred_countries);
     }
 
     private function userWithRole(string $roleName, array $attributes = []): User

@@ -24,7 +24,7 @@ class BusinessDataController extends Controller
         'demands' => 'job_demands',
     ];
 
-    public function store(Request $request, string $type): RedirectResponse
+    public function store(Request $request, string $type): RedirectResponse|JsonResponse
     {
         $this->authorizeWrite($request, $type, 'create');
         $data = $this->validateData($request, $type);
@@ -45,6 +45,14 @@ class BusinessDataController extends Controller
             $this->createApprovalRequest($request, $type, $id);
         });
         app(BusinessDataPresenter::class)->forgetAll();
+
+        if ($request->wantsJson() || ($request->ajax() && ! $request->header('X-Inertia'))) {
+            return response()->json([
+                'success' => true,
+                'id' => $id,
+                'message' => 'Data berhasil disimpan ke database.',
+            ]);
+        }
 
         return back()->with('success', 'Data berhasil disimpan ke database.');
     }
@@ -79,24 +87,61 @@ class BusinessDataController extends Controller
             'candidates.max' => 'Jumlah data calon peserta yang diunggah maksimal 20.000 baris sekaligus.',
         ]);
 
-        $importedCount = 0;
+        $createdCount = 0;
+        $updatedCount = 0;
 
-        DB::transaction(function () use ($request, $validated, &$importedCount): void {
+        DB::transaction(function () use ($request, $validated, &$createdCount, &$updatedCount): void {
             $user = $request->user();
             $role = $user->roles()->value('name');
             $institution = (in_array($role, ['institution_admin', 'training_operator', 'vokasi', 'lembaga_vokasi'], true) || $user->scope_level === 'lembaga')
                 ? $this->resolveUserInstitution($user)
                 : null;
 
+            $usedNiks = [];
+
             foreach ($validated['candidates'] as $idx => $item) {
                 $rawNik = preg_replace('/\D/', '', (string) ($item['nik'] ?? ''));
-                $nik = strlen($rawNik) === 16
-                    ? $rawNik
-                    : '3300'.str_pad((string) ((time() + $idx) % 100000000), 8, '0', STR_PAD_LEFT).str_pad((string) ($idx + 1), 4, '0', STR_PAD_LEFT);
+                $hasValidNik = strlen($rawNik) === 16;
+                $nik = $hasValidNik ? $rawNik : null;
 
-                $existing = DB::table('job_seekers')->where('nik', $nik)->first();
-                $creating = ! $existing;
-                $id = $existing ? $existing->id : Str::upper('CAND-'.Str::random(10));
+                $existing = $nik ? DB::table('job_seekers')->where('nik', $nik)->first() : null;
+
+                // An existing candidate should ONLY be updated if:
+                // 1) The candidate's full name matches (case-insensitive) - preventing different people from overwriting each other
+                // 2) The user has scope/permission to update this record (same institution or super_admin/taskforce)
+                $nameMatches = $existing && mb_strtolower(trim((string) $existing->full_name)) === mb_strtolower(trim((string) $item['fullName']));
+                $userOwnsRecord = $existing && (
+                    empty($existing->institution_id)
+                    || ($institution && $existing->institution_id === $institution->id)
+                    || $user->id === $existing->created_by
+                    || $user->name === $existing->created_by
+                    || in_array($role, ['super_admin', 'superadmin', 'task_force', 'taskforce'], true)
+                );
+
+                $canUpdate = $existing && $nameMatches && $userOwnsRecord;
+
+                if ($canUpdate) {
+                    $creating = false;
+                    $id = $existing->id;
+                    $candidateNik = $nik;
+                    $usedNiks[] = $candidateNik;
+                    $updatedCount++;
+                } else {
+                    $creating = true;
+                    $id = Str::upper('CAND-'.Str::random(10));
+
+                    // If NIK is empty, or if NIK already belongs to another candidate in DB,
+                    // or if NIK was already used by another row in this batch:
+                    // Assign a guaranteed unique non-colliding NIK so this new candidate is safely inserted without overwriting anyone.
+                    if (! $hasValidNik || ($existing && ! $nameMatches) || in_array($nik, $usedNiks, true) || ($nik && DB::table('job_seekers')->where('nik', $nik)->exists())) {
+                        $prefix = $hasValidNik ? substr($rawNik, 0, 4) : '3300';
+                        $candidateNik = $this->generateUniqueSyntheticNik($prefix, $usedNiks);
+                    } else {
+                        $candidateNik = $nik;
+                        $usedNiks[] = $candidateNik;
+                    }
+                    $createdCount++;
+                }
 
                 $resolved = $this->resolveProvinceAndDistrict($item['provinsi'] ?? null, $item['kabupatenKota'] ?? null, $user, $institution);
 
@@ -141,7 +186,7 @@ class BusinessDataController extends Controller
                 }
 
                 $candidateData = [
-                    'nik' => $nik,
+                    'nik' => $candidateNik,
                     'fullName' => $item['fullName'],
                     'gender' => $gender,
                     'provinsi' => $resolved['province_name'],
@@ -164,24 +209,33 @@ class BusinessDataController extends Controller
 
                 $this->saveCandidate($request, $candidateData, $id, $creating);
                 $this->createApprovalRequest($request, 'candidates', $id);
-                $importedCount++;
             }
         });
 
         app(BusinessDataPresenter::class)->forgetAll();
 
+        $totalProcessed = $createdCount + $updatedCount;
+        $message = match (true) {
+            $createdCount > 0 && $updatedCount > 0 => "{$createdCount} data calon PMI baru berhasil ditambahkan dan {$updatedCount} data berhasil diperbarui.",
+            $createdCount > 0 => "{$createdCount} data calon PMI baru berhasil ditambahkan dan disimpan.",
+            $updatedCount > 0 => "{$updatedCount} data calon PMI berhasil diperbarui.",
+            default => "{$totalProcessed} data calon PMI berhasil diproses.",
+        };
+
         if ($request->wantsJson()) {
             return response()->json([
                 'success' => true,
-                'importedCount' => $importedCount,
-                'message' => "{$importedCount} data calon PMI berhasil diunggah dan disimpan.",
+                'importedCount' => $totalProcessed,
+                'createdCount' => $createdCount,
+                'updatedCount' => $updatedCount,
+                'message' => $message,
             ]);
         }
 
-        return back()->with('success', "{$importedCount} data calon PMI berhasil diunggah dan disimpan.");
+        return back()->with('success', $message);
     }
 
-    public function update(Request $request, string $type, string $id): RedirectResponse
+    public function update(Request $request, string $type, string $id): RedirectResponse|JsonResponse
     {
         $this->authorizeWrite($request, $type, 'update');
         $table = self::ENTITY_TABLES[$type];
@@ -200,6 +254,14 @@ class BusinessDataController extends Controller
             $this->createApprovalRequest($request, $type, $id);
         });
         app(BusinessDataPresenter::class)->forgetAll();
+
+        if ($request->wantsJson() || ($request->ajax() && ! $request->header('X-Inertia'))) {
+            return response()->json([
+                'success' => true,
+                'id' => $id,
+                'message' => 'Perubahan berhasil disimpan.',
+            ]);
+        }
 
         return back()->with('success', 'Perubahan berhasil disimpan.');
     }
@@ -743,6 +805,21 @@ class BusinessDataController extends Controller
         ]);
     }
 
+    private function generateUniqueSyntheticNik(string $prefix = '3300', array &$usedNiks = []): string
+    {
+        $cleanPrefix = preg_replace('/\D/', '', $prefix) ?: '3300';
+        $prefix4 = substr(str_pad($cleanPrefix, 4, '0'), 0, 4);
+
+        do {
+            $random = str_pad((string) random_int(0, 999999999999), 12, '0', STR_PAD_LEFT);
+            $candidateNik = substr($prefix4 . $random, 0, 16);
+        } while (in_array($candidateNik, $usedNiks, true) || DB::table('job_seekers')->where('nik', $candidateNik)->exists());
+
+        $usedNiks[] = $candidateNik;
+
+        return $candidateNik;
+    }
+
     private function validateData(Request $request, string $type, ?string $id = null): array
     {
         abort_unless(isset(self::ENTITY_TABLES[$type]), 404);
@@ -759,8 +836,8 @@ class BusinessDataController extends Controller
                 }
             }
             if (strlen(preg_replace('/\D/', '', (string) $request->input('nik'))) !== 16) {
-                $cleanNik = '3372' . str_pad((string) abs(crc32($request->input('fullName', 'peserta').($id ?? 'new'))), 12, '0', STR_PAD_LEFT);
-                $request->merge(['nik' => substr($cleanNik, 0, 16)]);
+                $cleanNik = $this->generateUniqueSyntheticNik('3372');
+                $request->merge(['nik' => $cleanNik]);
             }
 
             // Normalise gender
@@ -882,6 +959,28 @@ class BusinessDataController extends Controller
                     $request->merge([$arrField => is_string($val) && trim($val) !== '' ? [trim($val)] : []]);
                 }
             }
+
+            $rawCountries = (array) $request->input('preferredCountry', []);
+            $normalizedCountries = [];
+            foreach ($rawCountries as $cItem) {
+                if (! is_string($cItem) || trim($cItem) === '') {
+                    continue;
+                }
+                $cClean = trim($cItem);
+                $cLower = mb_strtolower($cClean);
+                $normalized = match ($cLower) {
+                    'korea selatan', 'korsel', 'south korea', 'republic of korea' => 'Korea',
+                    'turkiye', 'turkey' => 'Turki',
+                    'japan' => 'Jepang',
+                    'germany' => 'Jerman',
+                    default => $cClean,
+                };
+                $normalizedCountries[] = $normalized;
+            }
+            if (empty($normalizedCountries) && ! empty($request->input('preferredCountry'))) {
+                $normalizedCountries = ['Korea'];
+            }
+            $request->merge(['preferredCountry' => array_values(array_unique($normalizedCountries))]);
         }
         if ($type === 'providers' && $request->has('supportedCountries') && is_array($request->input('supportedCountries'))) {
             $mappedCountries = array_map(function ($val) {
@@ -1221,9 +1320,9 @@ class BusinessDataController extends Controller
             'gender' => $data['gender'],
             'province_id' => $provinceId,
             'district_id' => $district->id,
-            'institution_id' => $institution?->id,
+            'institution_id' => $institution?->id ?? ($existing?->institution_id),
             'education_level' => $data['educationLevel'],
-            'institution_name' => $institution?->name ?? $data['institutionName'],
+            'institution_name' => $institution?->name ?? ($data['institutionName'] ?: ($existing?->institution_name ?? 'Lembaga Vokasi')),
             'major' => $data['major'],
             'source_type' => in_array($role, ['institution_admin', 'vokasi', 'lembaga_vokasi', 'training_operator'], true)
                 ? 'LPK'
@@ -1916,7 +2015,7 @@ class BusinessDataController extends Controller
 
         $allowed = match ($type) {
             'candidates' => match ($role) {
-                'task_force', 'taskforce' => app(Bp3miScope::class)->allowsProvinceId($user, $record->province_id),
+                'task_force', 'taskforce' => empty($record->province_id) || app(Bp3miScope::class)->allowsProvinceId($user, $record->province_id),
                 'province_admin' => $record->province_id === $user->province_id,
                 'district_admin' => $record->district_id === $user->district_id,
                 'institution_admin', 'vokasi', 'lembaga_vokasi' => $record->institution_id === $user->institution_id
@@ -1938,7 +2037,7 @@ class BusinessDataController extends Controller
                 default => true,
             },
             'providers' => match ($role) {
-                'task_force', 'taskforce' => app(Bp3miScope::class)->allowsProvinceId($user, $record->province_id),
+                'task_force', 'taskforce' => empty($record->province_id) || app(Bp3miScope::class)->allowsProvinceId($user, $record->province_id),
                 'institution_admin', 'vokasi', 'lembaga_vokasi' => $record->id === $user->institution_id
                     || in_array($record->id, $instScope['ids'], true)
                     || (! empty($user->organization) && stripos($record->name, $user->organization) !== false)

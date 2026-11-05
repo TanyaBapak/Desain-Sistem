@@ -3,7 +3,7 @@ import { CandidateParticipant } from '../../types';
 import { INDONESIA_38_PROVINCES } from '../../lib/constants/provinces';
 import { INDONESIA_DISTRICTS } from '../../lib/constants/districts';
 import { useAppStore } from '../../store/useAppStore';
-import { X, UserPlus, Save, AlertCircle, Sparkles } from 'lucide-react';
+import { X, UserPlus, Save, AlertCircle, Sparkles, Loader2 } from 'lucide-react';
 
 interface CandidateFormModalProps {
   isOpen: boolean;
@@ -13,6 +13,7 @@ interface CandidateFormModalProps {
   mode: 'create' | 'edit';
   canVerify?: boolean;
   defaultInstitutionName?: string;
+  isSubmitting?: boolean;
 }
 
 export const CandidateFormModal: React.FC<CandidateFormModalProps> = ({
@@ -23,6 +24,7 @@ export const CandidateFormModal: React.FC<CandidateFormModalProps> = ({
   mode,
   canVerify = false,
   defaultInstitutionName = '',
+  isSubmitting = false,
 }) => {
   const { businessOptions } = useAppStore();
   const [fullName, setFullName] = useState('');
@@ -121,7 +123,7 @@ export const CandidateFormModal: React.FC<CandidateFormModalProps> = ({
     });
 
     if (preferredCountry) {
-      const clean = (preferredCountry.toLowerCase() === 'korea selatan' || preferredCountry.toLowerCase() === 'korsel') ? 'Korea' : preferredCountry.trim();
+      const clean = ((preferredCountry || '').toLowerCase() === 'korea selatan' || (preferredCountry || '').toLowerCase() === 'korsel') ? 'Korea' : preferredCountry.trim();
       if (!map.has(clean.toLowerCase())) {
         map.set(clean.toLowerCase(), { id: clean, name: clean });
       }
@@ -153,7 +155,7 @@ export const CandidateFormModal: React.FC<CandidateFormModalProps> = ({
       const rawCountry = Array.isArray(initialData.preferredCountry) && initialData.preferredCountry.length > 0
         ? initialData.preferredCountry[0]
         : (typeof initialData.preferredCountry === 'string' ? initialData.preferredCountry : '');
-      const normalizedCountry = (rawCountry.toLowerCase() === 'korea selatan' || rawCountry.toLowerCase() === 'korsel') ? 'Korea' : (rawCountry || 'Jepang');
+      const normalizedCountry = ((rawCountry || '').toLowerCase() === 'korea selatan' || (rawCountry || '').toLowerCase() === 'korsel') ? 'Korea' : (rawCountry || 'Jepang');
       setPreferredCountry(normalizedCountry);
       setPreferredJobRole(
         Array.isArray(initialData.preferredJobRole) && initialData.preferredJobRole.length > 0
@@ -187,7 +189,7 @@ export const CandidateFormModal: React.FC<CandidateFormModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!fullName.trim()) return;
+    if (isSubmitting || !fullName.trim()) return;
 
     const skillsArray = skillsInput
       .split(',')
@@ -452,7 +454,7 @@ export const CandidateFormModal: React.FC<CandidateFormModalProps> = ({
               <label className="block font-bold text-slate-700 mb-1">Target Negara & Jabatan</label>
               <div className="grid grid-cols-2 gap-2">
                 <select
-                  value={(preferredCountry.toLowerCase() === 'korea selatan' || preferredCountry.toLowerCase() === 'korsel') ? 'Korea' : preferredCountry}
+                  value={((preferredCountry || '').toLowerCase() === 'korea selatan' || (preferredCountry || '').toLowerCase() === 'korsel') ? 'Korea' : preferredCountry}
                   onChange={(e) => setPreferredCountry(e.target.value)}
                   className="w-full px-2.5 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer text-slate-800 font-medium"
                 >
@@ -513,16 +515,27 @@ export const CandidateFormModal: React.FC<CandidateFormModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl font-bold text-slate-600 hover:bg-slate-100 transition"
+              disabled={isSubmitting}
+              className="px-4 py-2 rounded-xl font-bold text-slate-600 hover:bg-slate-100 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Batalkan
             </button>
             <button
               type="submit"
-              className="px-5 py-2.5 rounded-xl font-black text-white bg-blue-600 hover:bg-blue-700 shadow-md shadow-blue-600/30 transition flex items-center gap-1.5"
+              disabled={isSubmitting}
+              className="px-5 py-2.5 rounded-xl font-black text-white bg-blue-600 hover:bg-blue-700 shadow-md shadow-blue-600/30 transition flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <Save className="w-4 h-4" />
-              <span>{mode === 'create' ? 'Simpan Peserta Baru' : 'Perbarui Data'}</span>
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>{mode === 'create' ? 'Menyimpan...' : 'Memperbarui...'}</span>
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4" />
+                  <span>{mode === 'create' ? 'Simpan Peserta Baru' : 'Perbarui Data'}</span>
+                </>
+              )}
             </button>
           </div>
         </form>

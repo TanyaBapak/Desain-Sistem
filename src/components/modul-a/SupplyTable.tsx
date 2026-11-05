@@ -60,7 +60,12 @@ export const SupplyTable: React.FC<SupplyTableProps> = ({
   const store = useAppStore();
   const currentRole = propRole || store.currentRole;
   const currentScope = propScope || store.currentScope;
-  const candidates = propCandidates !== undefined ? propCandidates : store.candidates;
+  const rawCandidates = propCandidates !== undefined ? propCandidates : store.candidates;
+  const [optimisticUpdates, setOptimisticUpdates] = useState<Record<string, Partial<CandidateParticipant>>>({});
+  const candidates = useMemo(() => {
+    if (Object.keys(optimisticUpdates).length === 0) return rawCandidates;
+    return rawCandidates.map((c) => (optimisticUpdates[c.id] ? { ...c, ...optimisticUpdates[c.id] } : c));
+  }, [rawCandidates, optimisticUpdates]);
   const {
     currentUser,
     selectedCandidateIds,
@@ -97,6 +102,7 @@ export const SupplyTable: React.FC<SupplyTableProps> = ({
 
   const [activeCandidate, setActiveCandidate] = useState<CandidateParticipant | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isSubmittingCandidate, setIsSubmittingCandidate] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [formMode, setFormMode] = useState<'create' | 'edit'>('create');
   const [candidateToEdit, setCandidateToEdit] = useState<CandidateParticipant | null>(null);
@@ -1349,20 +1355,33 @@ export const SupplyTable: React.FC<SupplyTableProps> = ({
         isOpen={isFormOpen}
         mode={formMode}
         initialData={candidateToEdit}
+        isSubmitting={isSubmittingCandidate}
         canVerify={canVerifyCandidates}
         defaultInstitutionName={connectedFeederName}
         onClose={() => {
+          if (isSubmittingCandidate) return;
           setIsFormOpen(false);
           setCandidateToEdit(null);
         }}
-        onSubmit={(data) => {
-          saveBusinessData(
+        onSubmit={async (data) => {
+          setIsSubmittingCandidate(true);
+          const editId = formMode === 'edit' ? candidateToEdit?.id : undefined;
+          await saveBusinessData(
             'candidates',
             data,
-            formMode === 'edit' ? candidateToEdit?.id : undefined,
-            () => {
-              setIsFormOpen(false);
-              setCandidateToEdit(null);
+            editId,
+            {
+              onSuccess: () => {
+                if (editId) {
+                  setOptimisticUpdates((prev) => ({ ...prev, [editId]: data }));
+                  store.updateCandidate(editId, data);
+                }
+                setIsFormOpen(false);
+                setCandidateToEdit(null);
+              },
+              onFinally: () => {
+                setIsSubmittingCandidate(false);
+              },
             },
           );
         }}

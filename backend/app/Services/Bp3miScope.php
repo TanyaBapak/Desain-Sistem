@@ -142,12 +142,13 @@ class Bp3miScope
 
     public function allowsProvinceId(User $user, ?string $provinceId): bool
     {
-        if ($provinceId === null) {
-            return false;
-        }
         $roleName = $user->primaryRole()?->name ?? $user->roles()->value('name');
         if (! in_array($roleName, ['task_force', 'taskforce'], true) || ! $this->hasActiveAreaFilter($user)) {
             return true;
+        }
+
+        if ($provinceId === null) {
+            return false;
         }
 
         return in_array((string) $provinceId, $this->provinceIdsForUser($user), true);
