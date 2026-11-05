@@ -105,7 +105,13 @@ export function DashboardOverviewTab({
   return (
     <div className="space-y-6">
       {/* Animated Pipeline / Timeline Flow (Supply -> Demand -> Penempatan) */}
-      <PillarTimelineFlow onOpenFull={handleStageSelect} />
+      <PillarTimelineFlow
+        onOpenFull={handleStageSelect}
+        candidates={candidates}
+        programs={programs}
+        providers={providers}
+        demands={demands}
+      />
 
       {/* 4 Pilar Utama Command Center KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6 gap-4">

@@ -35,12 +35,15 @@ class HandleInertiaRequests extends Middleware
             ? $role->default_tab
             : ($accessibleTabs[0] ?? 'overview');
 
-        $isLembaga = in_array($role?->name, ['institution_admin', 'training_operator', 'vokasi', 'lembaga_vokasi'], true)
+        $isPrivilegedGlobalRole = in_array($role?->name, ['super_admin', 'superadmin', 'leadership', 'pimpinan', 'task_force', 'taskforce', 'directorate_admin', 'direktorat'], true);
+        $isLembaga = ! $isPrivilegedGlobalRole && (
+            in_array($role?->name, ['institution_admin', 'training_operator', 'vokasi', 'lembaga_vokasi'], true)
             || $user?->scope_level === 'lembaga'
             || ! empty($user?->institution_id)
             || str_contains(strtolower($user?->name ?? ''), 'arief')
             || str_contains(strtolower($user?->organization ?? ''), 'victoria')
-            || str_contains(strtolower($user?->scope_name ?? ''), 'victoria');
+            || str_contains(strtolower($user?->scope_name ?? ''), 'victoria')
+        );
         $instScope = $isLembaga && $user ? app(\App\Services\BusinessDataPresenter::class)->resolveInstitutionScope($user) : null;
         $institutionName = $instScope['institution']?->name ?? $user?->organization ?? 'LPK Victoria Hotel School';
 
@@ -58,16 +61,16 @@ class HandleInertiaRequests extends Middleware
                     // Task Force selalu mulai dari lingkup nasional; area BP3MI
                     // hanya aktif setelah pengguna memilihnya di header.
                     'bp3miCode' => $activeBp3miCode,
-                    'bp3miAssignments' => ($role?->name === 'task_force' || $user->scope_level === 'national') && ! $isLembaga
+                    'bp3miAssignments' => (in_array($role?->name, ['task_force', 'taskforce'], true) || $user->scope_level === 'national') && ! $isLembaga
                         ? $bp3miScope->assignmentOptions()
                         : [],
                     'organization' => $isLembaga ? ($institutionName ?: ($user->organization ?? '')) : ($user->organization ?? ''),
                     'scope' => [
-                        'level' => $isLembaga ? 'lembaga' : ($activeBp3miCode === null && $role?->name === 'task_force'
+                        'level' => $isLembaga ? 'lembaga' : ($activeBp3miCode === null && in_array($role?->name, ['task_force', 'taskforce'], true)
                             ? 'national'
                             : $user->scope_level),
                         'name' => $isLembaga ? $institutionName : ($activeBp3miAssignment['name']
-                            ?? ($role?->name === 'task_force' ? 'Nasional (Seluruh RI)' : ($user->scope_name ?: 'Nasional'))),
+                            ?? (in_array($role?->name, ['task_force', 'taskforce'], true) ? 'Nasional (Seluruh RI)' : ($user->scope_name ?: 'Nasional'))),
                         'provinsi' => $user->province_id,
                         'kabupatenKota' => $user->district_id,
                         'institutionId' => $user->institution_id ?? $instScope['ids'][0] ?? null,

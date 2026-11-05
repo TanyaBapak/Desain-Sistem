@@ -9,6 +9,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/Badge";
 import { useAppStore } from "@/store/useAppStore";
+import { CandidateParticipant, GlobalDemand, TrainingProgram, VocationalProvider } from "@/types";
 
 export interface TimelineStage {
   id: string;
@@ -31,6 +32,10 @@ interface PillarTimelineFlowProps {
   onStageChange?: (stageId: string, pillarKey?: string) => void;
   onOpenFull?: (stageId: string, pillarKey?: string) => void;
   onSelectStage?: (stageId: string, pillarKey?: string) => void;
+  candidates?: CandidateParticipant[];
+  programs?: TrainingProgram[];
+  providers?: VocationalProvider[];
+  demands?: GlobalDemand[];
 }
 
 export function PillarTimelineFlow({
@@ -38,9 +43,17 @@ export function PillarTimelineFlow({
   onStageChange,
   onOpenFull,
   onSelectStage,
+  candidates: propCandidates,
+  programs: propPrograms,
+  providers: propProviders,
+  demands: propDemands,
 }: PillarTimelineFlowProps) {
   const [activeStageId, setActiveStageId] = useState<string>("supply");
-  const { candidates, programs, providers, demands } = useAppStore();
+  const store = useAppStore();
+  const candidates = propCandidates && propCandidates.length > 0 ? propCandidates : store.candidates;
+  const programs = propPrograms && propPrograms.length > 0 ? propPrograms : store.programs;
+  const providers = propProviders && propProviders.length > 0 ? propProviders : store.providers;
+  const demands = propDemands && propDemands.length > 0 ? propDemands : store.demands;
 
   const TARGET_SUPPLY = 12600;
   const TARGET_PROGRAM = 630;

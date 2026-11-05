@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { CandidateParticipant, GlobalDemand, ProgramAllocationDecision, TrainingProgram, VocationalProvider } from "@/types";
 import { useAppStore } from "@/store/useAppStore";
 import {
   LayoutDashboard,
@@ -32,6 +33,11 @@ export type DashboardSubTab = "ringkasan" | "supply" | "program" | "vokasi" | "d
 interface DashboardPageProps {
   currentTab: string;
   setCurrentTab: (tab: string) => void;
+  candidates?: CandidateParticipant[];
+  programs?: TrainingProgram[];
+  providers?: VocationalProvider[];
+  demands?: GlobalDemand[];
+  allocations?: ProgramAllocationDecision[];
   nationalLpkCount: number;
   nationalLpkByProvince?: { province: string; totalCount: number; registeredCount: number }[];
   accessibleTabs?: string[];
@@ -39,12 +45,22 @@ interface DashboardPageProps {
 
 export const DashboardPage: React.FC<DashboardPageProps> = ({
   setCurrentTab,
+  candidates: propCandidates,
+  programs: propPrograms,
+  providers: propProviders,
+  demands: propDemands,
+  allocations: propAllocations,
   nationalLpkCount,
   nationalLpkByProvince,
   accessibleTabs,
 }) => {
-  const { candidates, programs, providers, demands, allocations, currentUser, currentRole, currentScope } =
-    useAppStore();
+  const store = useAppStore();
+  const candidates = propCandidates && propCandidates.length > 0 ? propCandidates : store.candidates;
+  const programs = propPrograms && propPrograms.length > 0 ? propPrograms : store.programs;
+  const providers = propProviders && propProviders.length > 0 ? propProviders : store.providers;
+  const demands = propDemands && propDemands.length > 0 ? propDemands : store.demands;
+  const allocations = propAllocations && propAllocations.length > 0 ? propAllocations : store.allocations;
+  const { currentUser, currentRole, currentScope } = store;
 
   const [activeDrilldown, setActiveDrilldown] = React.useState<DrilldownType | null>(null);
 

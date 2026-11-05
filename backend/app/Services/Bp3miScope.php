@@ -40,8 +40,8 @@ class Bp3miScope
 
     public function activeCodeForUser(User $user): ?string
     {
-        $role = $user->primaryRole()?->name;
-        $isTaskForce = $role === 'task_force';
+        $role = $user->primaryRole()?->name ?? $user->roles()->value('name');
+        $isTaskForce = in_array($role, ['task_force', 'taskforce'], true);
         $isNationalScope = $user->scope_level === 'national';
 
         if (! $isTaskForce && ! $isNationalScope) {
@@ -145,7 +145,8 @@ class Bp3miScope
         if ($provinceId === null) {
             return false;
         }
-        if ($user->roles()->value('name') !== 'task_force' || ! $this->hasActiveAreaFilter($user)) {
+        $roleName = $user->primaryRole()?->name ?? $user->roles()->value('name');
+        if (! in_array($roleName, ['task_force', 'taskforce'], true) || ! $this->hasActiveAreaFilter($user)) {
             return true;
         }
 

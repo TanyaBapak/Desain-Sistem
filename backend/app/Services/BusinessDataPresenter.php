@@ -1520,14 +1520,29 @@ class BusinessDataPresenter
         //     $this->autoHealTenantCandidates(true);
         // }
 
-        $role = $user->primaryRole()?->name ?? $user->roles()->value('name');
+        $rawRole = $user->primaryRole()?->name ?? $user->roles()->value('name');
+        $role = match ($rawRole) {
+            'taskforce', 'task_force' => 'task_force',
+            'pimpinan', 'leadership' => 'leadership',
+            'superadmin', 'super_admin' => 'super_admin',
+            'direktorat', 'directorate_admin' => 'directorate_admin',
+            'vokasi', 'lembaga_vokasi', 'institution_admin' => 'institution_admin',
+            'disnaker' => 'province_admin',
+            'matching' => 'bp3mi_admin',
+            'verifikator' => 'verifier',
+            'demand' => 'demand_admin',
+            default => $rawRole,
+        };
         $tab = $filters['tab'] ?? null;
-        $isLembaga = in_array($role, ['institution_admin', 'training_operator', 'vokasi', 'lembaga_vokasi'], true)
+        $isPrivilegedGlobalRole = in_array($role, ['super_admin', 'leadership', 'task_force', 'directorate_admin'], true);
+        $isLembaga = ! $isPrivilegedGlobalRole && (
+            in_array($role, ['institution_admin', 'training_operator', 'vokasi', 'lembaga_vokasi'], true)
             || $user->scope_level === 'lembaga'
             || ! empty($user->institution_id)
             || str_contains(strtolower($user->name ?? ''), 'arief')
             || str_contains(strtolower($user->organization ?? ''), 'victoria')
-            || str_contains(strtolower($user->scope_name ?? ''), 'victoria');
+            || str_contains(strtolower($user->scope_name ?? ''), 'victoria')
+        );
 
         if ($isLembaga && ! in_array($role, ['institution_admin', 'training_operator', 'vokasi', 'lembaga_vokasi'], true)) {
             $role = 'institution_admin';
@@ -1769,7 +1784,7 @@ class BusinessDataPresenter
 
     private function candidateMatches(?string $role, User $user): array
     {
-        if (! in_array($role, ['super_admin', 'task_force', 'directorate_admin', 'bp3mi_admin', 'placement_officer', 'institution_admin', 'training_operator', 'vokasi', 'lembaga_vokasi'], true)) {
+        if (! in_array($role, ['super_admin', 'superadmin', 'task_force', 'taskforce', 'directorate_admin', 'direktorat', 'bp3mi_admin', 'placement_officer', 'institution_admin', 'training_operator', 'vokasi', 'lembaga_vokasi'], true)) {
             return [];
         }
 
@@ -2098,7 +2113,7 @@ class BusinessDataPresenter
 
     private function candidates(?string $role, User $user): array
     {
-        if (! in_array($role, ['super_admin', 'leadership', 'task_force', 'province_admin', 'district_admin', 'institution_admin', 'training_operator', 'verifier', 'directorate_admin', 'bp3mi_admin', 'placement_officer', 'vokasi', 'lembaga_vokasi'], true)) {
+        if (! in_array($role, ['super_admin', 'superadmin', 'leadership', 'pimpinan', 'task_force', 'taskforce', 'province_admin', 'district_admin', 'institution_admin', 'training_operator', 'verifier', 'directorate_admin', 'direktorat', 'bp3mi_admin', 'placement_officer', 'vokasi', 'lembaga_vokasi'], true)) {
             return [];
         }
 
@@ -2158,7 +2173,7 @@ class BusinessDataPresenter
             })
             ->leftJoin('provinces', 'provinces.id', '=', 'job_seekers.province_id')
             ->leftJoin('districts', 'districts.id', '=', 'job_seekers.district_id')
-            ->when($role === 'task_force' && $this->bp3miScope->hasActiveAreaFilter($user), fn ($query) => $this->bp3miScope->applyToJobSeekers($query, $user))
+            ->when(in_array($role, ['task_force', 'taskforce'], true) && $this->bp3miScope->hasActiveAreaFilter($user), fn ($query) => $this->bp3miScope->applyToJobSeekers($query, $user))
             ->orderByDesc(DB::raw("COALESCE(job_seekers.updated_at, job_seekers.created_at)"))
             ->limit(15000)
             ->get([
@@ -2240,7 +2255,7 @@ class BusinessDataPresenter
 
     private function programs(?string $role, User $user): array
     {
-        if (! in_array($role, ['super_admin', 'leadership', 'task_force', 'directorate_admin', 'institution_admin', 'training_operator', 'verifier', 'bp3mi_admin', 'placement_officer', 'vokasi', 'lembaga_vokasi'], true)) {
+        if (! in_array($role, ['super_admin', 'superadmin', 'leadership', 'pimpinan', 'task_force', 'taskforce', 'directorate_admin', 'direktorat', 'institution_admin', 'training_operator', 'verifier', 'bp3mi_admin', 'placement_officer', 'vokasi', 'lembaga_vokasi'], true)) {
             return [];
         }
 
@@ -2353,7 +2368,7 @@ class BusinessDataPresenter
 
     private function providers(?string $role, User $user): array
     {
-        if (! in_array($role, ['super_admin', 'leadership', 'task_force', 'directorate_admin', 'institution_admin', 'verifier', 'bp3mi_admin', 'placement_officer', 'vokasi', 'lembaga_vokasi', 'training_operator'], true)) {
+        if (! in_array($role, ['super_admin', 'superadmin', 'leadership', 'pimpinan', 'task_force', 'taskforce', 'directorate_admin', 'direktorat', 'institution_admin', 'verifier', 'bp3mi_admin', 'placement_officer', 'vokasi', 'lembaga_vokasi', 'training_operator'], true)) {
             return [];
         }
 
@@ -2530,7 +2545,7 @@ class BusinessDataPresenter
 
     private function demands(?string $role, User $user): array
     {
-        if (! in_array($role, ['super_admin', 'leadership', 'task_force', 'directorate_admin', 'demand_admin', 'verifier', 'bp3mi_admin', 'placement_officer', 'institution_admin', 'training_operator', 'vokasi', 'lembaga_vokasi', 'province_admin', 'district_admin'], true)) {
+        if (! in_array($role, ['super_admin', 'superadmin', 'leadership', 'pimpinan', 'task_force', 'taskforce', 'directorate_admin', 'direktorat', 'demand_admin', 'demand', 'verifier', 'bp3mi_admin', 'placement_officer', 'institution_admin', 'training_operator', 'vokasi', 'lembaga_vokasi', 'province_admin', 'district_admin'], true)) {
             return [];
         }
 

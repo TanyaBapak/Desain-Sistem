@@ -430,6 +430,11 @@ function AppContent({
         <DashboardPage
           currentTab="dashboard"
           setCurrentTab={setCurrentTab}
+          candidates={businessData?.candidates}
+          programs={businessData?.programs}
+          providers={businessData?.providers}
+          demands={businessData?.demands}
+          allocations={businessData?.allocations}
           nationalLpkCount={businessData?.nationalLpkCount ?? 0}
           nationalLpkByProvince={businessData?.nationalLpkByProvince}
           accessibleTabs={authenticatedUser.accessibleTabs}
@@ -441,6 +446,11 @@ function AppContent({
         <DashboardPage
           currentTab={activeTab}
           setCurrentTab={setCurrentTab}
+          candidates={businessData?.candidates}
+          programs={businessData?.programs}
+          providers={businessData?.providers}
+          demands={businessData?.demands}
+          allocations={businessData?.allocations}
           nationalLpkCount={businessData?.nationalLpkCount ?? 0}
           nationalLpkByProvince={businessData?.nationalLpkByProvince}
           accessibleTabs={authenticatedUser.accessibleTabs}
