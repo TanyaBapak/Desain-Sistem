@@ -47,8 +47,6 @@ class AppController extends Controller
 
         try {
             $bp3miScope->activeCodeForUser($request->user());
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            throw $e;
         } catch (\Throwable $e) {
             \Log::warning('AppController bp3miScope warning: ' . $e->getMessage());
         }
