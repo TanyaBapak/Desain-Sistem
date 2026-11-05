@@ -28,6 +28,7 @@ Thumbs.db
 
 # Database backups & dumps
 *.sql
+!backend/database/sql/*.sql
 *.sql.gz
 *.sqlite
 *.zip
