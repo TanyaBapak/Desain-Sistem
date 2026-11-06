@@ -34,7 +34,7 @@ import { CandidateDetailModal } from './CandidateDetailModal';
 import { CandidateFormModal } from './CandidateFormModal';
 import { CandidateImportModal } from './CandidateImportModal';
 import { DeleteConfirmModal } from '../ui/DeleteConfirmModal';
-import { archiveBusinessData, saveBusinessData } from '../../lib/business-data';
+import { archiveBusinessData, batchArchiveBusinessData, saveBusinessData } from '../../lib/business-data';
 import { downloadCandidateTemplate, downloadCandidateTemplateXlsx, exportCandidatesCsv, exportCandidatesXlsx } from '../../lib/candidate-export';
 
 function topCounts(values: string[]): Array<{ label: string; count: number }> {
@@ -119,6 +119,7 @@ export const SupplyTable: React.FC<SupplyTableProps> = ({
   const [formMode, setFormMode] = useState<'create' | 'edit'>('create');
   const [candidateToEdit, setCandidateToEdit] = useState<CandidateParticipant | null>(null);
   const [deletingCandidate, setDeletingCandidate] = useState<CandidateParticipant | null>(null);
+  const [isBatchDeleting, setIsBatchDeleting] = useState(false);
   const [isGardataSyncing, setIsGardataSyncing] = useState(false);
   const [filterMajor, setFilterMajor] = useState('');
   const [filterInstitution, setFilterInstitution] = useState('ALL');
@@ -494,6 +495,7 @@ export const SupplyTable: React.FC<SupplyTableProps> = ({
     'superadmin',
     'super_admin',
   ].includes(currentRole as string);
+  const canSelectCandidates = canMatchCandidates || canArchiveCandidates;
   const canSyncGardata = ['taskforce', 'superadmin', 'vokasi'].includes(currentRole);
 
   const syncGardata = () => {
@@ -725,6 +727,17 @@ export const SupplyTable: React.FC<SupplyTableProps> = ({
               >
                 <span>Bawa ke Matching Tahap 3</span>
                 <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            )}
+            {canArchiveCandidates && selectedCandidateIds.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setIsBatchDeleting(true)}
+                className="px-3 py-2 rounded-xl text-xs font-bold bg-rose-600 text-white hover:bg-rose-700 transition flex items-center gap-1.5 shadow-sm"
+                title="Hapus data peserta yang dipilih sekaligus"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Hapus Terpilih ({selectedCandidateIds.length})</span>
               </button>
             )}
             {hasActiveFilters && (
@@ -962,7 +975,7 @@ export const SupplyTable: React.FC<SupplyTableProps> = ({
 
         {/* Selection Helper Bar */}
         <div className="flex flex-wrap items-center justify-between text-xs bg-slate-50 dark:bg-slate-800/60 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 gap-2">
-          {canMatchCandidates && (
+          {canSelectCandidates && (
             <div className="flex items-center gap-2">
               <button
                 onClick={handleSelectAllToggle}
@@ -976,12 +989,24 @@ export const SupplyTable: React.FC<SupplyTableProps> = ({
                 <span>Pilih Semua yang Ditampilkan ({filteredCandidates.length})</span>
               </button>
               {selectedCandidateIds.length > 0 && (
-                <button
-                  onClick={clearCandidateSelection}
-                  className="text-xs text-red-500 hover:underline ml-2"
-                >
-                  Kosongkan Pilihan
-                </button>
+                <>
+                  <button
+                    onClick={clearCandidateSelection}
+                    className="text-xs text-red-500 hover:underline ml-2"
+                  >
+                    Kosongkan Pilihan
+                  </button>
+                  {canArchiveCandidates && (
+                    <button
+                      type="button"
+                      onClick={() => setIsBatchDeleting(true)}
+                      className="ml-2 inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 dark:bg-rose-950/50 dark:text-rose-300 dark:border-rose-900/60 dark:hover:bg-rose-900/50 transition"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>Hapus Terpilih ({selectedCandidateIds.length})</span>
+                    </button>
+                  )}
+                </>
               )}
             </div>
           )}
@@ -1069,23 +1094,35 @@ export const SupplyTable: React.FC<SupplyTableProps> = ({
           <table className="w-full min-w-[1080px] table-fixed text-left text-sm">
             <thead className="bg-slate-50/80 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
               <tr>
-                {canMatchCandidates && (
+                {canSelectCandidates && (
                   <th className="w-[4%] py-3.5 px-2 text-center">
-                    <span className="sr-only">Pilih</span>
+                    <button
+                      type="button"
+                      onClick={handleSelectAllToggle}
+                      aria-label={allFilteredSelected ? "Batalkan pilihan semua" : "Pilih semua yang ditampilkan"}
+                      className="rounded p-1 text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                      title={allFilteredSelected ? "Batalkan pilihan semua" : "Pilih semua"}
+                    >
+                      {allFilteredSelected ? (
+                        <CheckSquare className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                      ) : (
+                        <Square className="w-4 h-4 text-slate-400" />
+                      )}
+                    </button>
                   </th>
                 )}
-                <th className={canMatchCandidates ? 'w-[21%] py-3.5 px-3' : 'w-[22%] py-3.5 px-3'}>Calon PMI & Domisili</th>
-                <th className={canMatchCandidates ? (viewMode === 'compact' ? 'w-[17%] py-3.5 px-2' : 'w-[18%] py-3.5 px-2') : (viewMode === 'compact' ? 'w-[18%] py-3.5 px-2' : 'w-[19%] py-3.5 px-2')}>Pendidikan & Jurusan</th>
-                <th className={canMatchCandidates ? (viewMode === 'compact' ? 'w-[16%] py-3.5 px-2' : 'w-[17%] py-3.5 px-2') : (viewMode === 'compact' ? 'w-[17%] py-3.5 px-2' : 'w-[18%] py-3.5 px-2')}>Keahlian & Sertifikasi</th>
-                <th className={canMatchCandidates ? (viewMode === 'compact' ? 'w-[10%] py-3.5 px-2' : 'w-[11%] py-3.5 px-2') : (viewMode === 'compact' ? 'w-[11%] py-3.5 px-2' : 'w-[12%] py-3.5 px-2')}>Pengalaman Kerja</th>
-                <th className={canMatchCandidates ? (viewMode === 'compact' ? 'w-[18%] py-3.5 px-2' : 'w-[16%] py-3.5 px-2') : (viewMode === 'compact' ? 'w-[18%] py-3.5 px-2' : 'w-[17%] py-3.5 px-2')}>Bahasa, Negara & Jabatan</th>
+                <th className={canSelectCandidates ? 'w-[21%] py-3.5 px-3' : 'w-[22%] py-3.5 px-3'}>Calon PMI & Domisili</th>
+                <th className={canSelectCandidates ? (viewMode === 'compact' ? 'w-[17%] py-3.5 px-2' : 'w-[18%] py-3.5 px-2') : (viewMode === 'compact' ? 'w-[18%] py-3.5 px-2' : 'w-[19%] py-3.5 px-2')}>Pendidikan & Jurusan</th>
+                <th className={canSelectCandidates ? (viewMode === 'compact' ? 'w-[16%] py-3.5 px-2' : 'w-[17%] py-3.5 px-2') : (viewMode === 'compact' ? 'w-[17%] py-3.5 px-2' : 'w-[18%] py-3.5 px-2')}>Keahlian & Sertifikasi</th>
+                <th className={canSelectCandidates ? (viewMode === 'compact' ? 'w-[10%] py-3.5 px-2' : 'w-[11%] py-3.5 px-2') : (viewMode === 'compact' ? 'w-[11%] py-3.5 px-2' : 'w-[12%] py-3.5 px-2')}>Pengalaman Kerja</th>
+                <th className={canSelectCandidates ? (viewMode === 'compact' ? 'w-[18%] py-3.5 px-2' : 'w-[16%] py-3.5 px-2') : (viewMode === 'compact' ? 'w-[18%] py-3.5 px-2' : 'w-[17%] py-3.5 px-2')}>Bahasa, Negara & Jabatan</th>
                 <th className="w-[14%] py-3.5 px-3 text-right">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-300">
               {filteredCandidates.length === 0 ? (
                 <tr>
-                  <td colSpan={canMatchCandidates ? 7 : 6} className="py-12 text-center text-slate-400 dark:text-slate-500">
+                  <td colSpan={canSelectCandidates ? 7 : 6} className="py-12 text-center text-slate-400 dark:text-slate-500">
                     <AlertCircle className="w-8 h-8 mx-auto mb-2 text-slate-300 dark:text-slate-600" />
                     <p className="font-semibold text-slate-600 dark:text-slate-300">Tidak ada calon PMI yang cocok dengan kriteria filter</p>
                     <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Coba sesuaikan kata kunci pencarian atau reset filter wilayah dan keahlian.</p>
@@ -1101,7 +1138,7 @@ export const SupplyTable: React.FC<SupplyTableProps> = ({
                 </tr>
               ) : (
                 visibleCandidates.map((candidate) => {
-                  const isSelected = canMatchCandidates && selectedCandidateIds.includes(candidate.id);
+                  const isSelected = canSelectCandidates && selectedCandidateIds.includes(candidate.id);
                   const totalWorkYears = candidate.workExperiences
                     ? candidate.workExperiences.reduce((acc, curr) => acc + curr.durationYears, 0)
                     : 0;
@@ -1114,7 +1151,7 @@ export const SupplyTable: React.FC<SupplyTableProps> = ({
                       }`}
                     >
                       {/* Checkbox */}
-                      {canMatchCandidates && (
+                      {canSelectCandidates && (
                         <td className="py-3 px-2 text-center">
                           <button
                             type="button"
@@ -1433,6 +1470,35 @@ export const SupplyTable: React.FC<SupplyTableProps> = ({
             if (!success) {
               setDeletedCandidateIds((prev) => prev.filter((id) => id !== candidateId));
             }
+          }
+        }}
+      />
+
+      {/* Batch Delete Confirmation Modal */}
+      <DeleteConfirmModal
+        isOpen={isBatchDeleting}
+        onClose={() => setIsBatchDeleting(false)}
+        title="Konfirmasi Penghapusan Masal Calon PMI"
+        entityName={`${selectedCandidateIds.length} Calon Peserta Terpilih`}
+        entityId={
+          selectedCandidateIds.length <= 3
+            ? selectedCandidateIds.join(', ')
+            : `${selectedCandidateIds.slice(0, 3).join(', ')} (+${selectedCandidateIds.length - 3} lainnya)`
+        }
+        description={`Tindakan ini akan menonaktifkan ${selectedCandidateIds.length} data calon PMI terpilih sekaligus dan memperbarui kuota lembaga terkait.`}
+        confirmText={`Ya, Hapus ${selectedCandidateIds.length} Data`}
+        onConfirm={async (reason) => {
+          const idsToDelete = [...selectedCandidateIds];
+          if (idsToDelete.length === 0) return;
+
+          setDeletedCandidateIds((prev) => [...prev, ...idsToDelete]);
+          clearCandidateSelection();
+          store.deleteCandidates(idsToDelete, reason);
+          setIsBatchDeleting(false);
+
+          const success = await batchArchiveBusinessData('candidates', idsToDelete, reason);
+          if (!success) {
+            setDeletedCandidateIds((prev) => prev.filter((id) => !idsToDelete.includes(id)));
           }
         }}
       />

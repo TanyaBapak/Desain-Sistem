@@ -129,3 +129,31 @@ export async function archiveBusinessData(
     });
   });
 }
+
+export async function batchArchiveBusinessData(
+  resource: BusinessDataResource,
+  ids: string[],
+  reason?: string,
+  onSuccess?: () => void,
+): Promise<boolean> {
+  const url = `/business-data/${resource}/batch-destroy`;
+  try {
+    const res = await axios.post(
+      url,
+      { ids, reason },
+      { headers: { Accept: "application/json" } }
+    );
+    toast.success(res.data?.message || `${ids.length} data berhasil dinonaktifkan.`);
+    onSuccess?.();
+    router.reload({ only: ["businessData"] });
+    return true;
+  } catch (err: unknown) {
+    const error = err as { response?: { status?: number; data?: { message?: string } } };
+    if (error.response?.status === 403) {
+      toast.error(error.response.data?.message || "Anda tidak memiliki hak akses untuk menonaktifkan data ini.");
+      return false;
+    }
+    toast.error(error.response?.data?.message || "Gagal menghapus data secara masal.");
+    return false;
+  }
+}

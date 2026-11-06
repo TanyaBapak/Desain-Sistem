@@ -261,6 +261,9 @@ Route::middleware(['auth', EnsureUserIsActive::class])->group(function () {
         ->name('business-data.programs.schedule');
     Route::patch('/business-data/sectors/schedule', [BusinessDataController::class, 'updateSectorSchedule'])
         ->name('business-data.sectors.schedule');
+    Route::post('/business-data/{type}/batch-destroy', [BusinessDataController::class, 'batchDestroy'])
+        ->where('type', 'candidates|programs|providers|demands')
+        ->name('business-data.batch-destroy');
     Route::post('/business-data/{type}', [BusinessDataController::class, 'store'])
         ->where('type', 'candidates|programs|providers|demands')
         ->name('business-data.store');

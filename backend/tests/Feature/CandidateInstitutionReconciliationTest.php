@@ -235,4 +235,96 @@ class CandidateInstitutionReconciliationTest extends TestCase
         $this->assertEquals(0, $instAfter->total_active_students);
         $this->assertEquals(0, $instAfter->ready_participant_count);
     }
+
+    public function test_batch_deleting_candidates_updates_institution_participant_counts(): void
+    {
+        $instId = 'VOC-TEST-BATCH-001';
+        DB::table('institutions')->updateOrInsert(
+            ['id' => $instId],
+            [
+                'name' => 'LPK Uji Batch Delete Siswa',
+                'province_id' => '33',
+                'district_id' => '3372',
+                'institution_type' => 'LPK',
+                'status' => 'Aktif',
+                'verification_status' => 'Verified',
+                'evokasi_status' => 'Terverifikasi e-Vokasi',
+                'ready_participant_count' => 0,
+                'total_active_students' => 0,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]
+        );
+
+        $candId1 = 'CAND-BATCH-001';
+        $candId2 = 'CAND-BATCH-002';
+        DB::table('job_seekers')->insert([
+            [
+                'id' => $candId1,
+                'registration_number' => 'REG-BATCH-001',
+                'nik' => '3372000000000088',
+                'full_name' => 'Peserta Batch Satu',
+                'gender' => 'L',
+                'province_id' => '33',
+                'district_id' => '3372',
+                'education_level' => 'SMK',
+                'institution_name' => 'LPK Uji Batch Delete Siswa',
+                'institution_id' => $instId,
+                'major' => 'Manufaktur',
+                'source_type' => 'LPK',
+                'readiness_status' => 'Ready for Placement',
+                'verification_status' => 'Verified',
+                'created_by' => 'Admin Task Force',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'id' => $candId2,
+                'registration_number' => 'REG-BATCH-002',
+                'nik' => '3372000000000089',
+                'full_name' => 'Peserta Batch Dua',
+                'gender' => 'P',
+                'province_id' => '33',
+                'district_id' => '3372',
+                'education_level' => 'SMK',
+                'institution_name' => 'LPK Uji Batch Delete Siswa',
+                'institution_id' => $instId,
+                'major' => 'Hospitality',
+                'source_type' => 'LPK',
+                'readiness_status' => 'Ready for Placement',
+                'verification_status' => 'Verified',
+                'created_by' => 'Admin Task Force',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+        ]);
+
+        app(CandidateInstitutionReconciliationService::class)->syncInstitutionCountForId($instId);
+
+        $instBefore = DB::table('institutions')->where('id', $instId)->first();
+        $this->assertEquals(2, $instBefore->total_active_students);
+        $this->assertEquals(2, $instBefore->ready_participant_count);
+
+        $admin = User::factory()->create();
+        $tfRole = DB::table('roles')->where('name', 'task_force')->first();
+        $admin->roles()->sync([$tfRole->id]);
+
+        $this->actingAs($admin)
+            ->postJson('/business-data/candidates/batch-destroy', [
+                'ids' => [$candId1, $candId2],
+                'reason' => 'Uji penghapusan masal',
+            ])
+            ->assertSuccessful()
+            ->assertJson([
+                'success' => true,
+                'count' => 2,
+            ]);
+
+        $this->assertSoftDeleted('job_seekers', ['id' => $candId1]);
+        $this->assertSoftDeleted('job_seekers', ['id' => $candId2]);
+
+        $instAfter = DB::table('institutions')->where('id', $instId)->first();
+        $this->assertEquals(0, $instAfter->total_active_students);
+        $this->assertEquals(0, $instAfter->ready_participant_count);
+    }
 }

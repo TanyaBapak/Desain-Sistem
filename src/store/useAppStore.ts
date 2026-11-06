@@ -201,6 +201,7 @@ export interface AppState {
   createCandidate: (candidate: Omit<CandidateParticipant, 'id'>) => CandidateParticipant;
   updateCandidate: (id: string, updates: Partial<CandidateParticipant>) => void;
   deleteCandidate: (id: string, reason?: string) => { success: boolean; message: string };
+  deleteCandidates: (ids: string[], reason?: string) => { success: boolean; message: string };
 
   // CRUD Actions - Modul B: Program Pelatihan
   createProgram: (program: Omit<TrainingProgram, 'id'>) => TrainingProgram;
@@ -857,6 +858,38 @@ export const useAppStore = create<AppState>((set, get) => ({
     });
 
     return { success: true, message: `Data calon peserta ${existing.fullName} berhasil dihapus.` };
+  },
+
+  deleteCandidates: (ids, reason) => {
+    const idSet = new Set(ids);
+    const targets = get().candidates.filter((c) => idSet.has(c.id));
+    if (targets.length === 0) return { success: false, message: 'Tidak ada data peserta yang dipilih' };
+
+    const now = new Date();
+    const timeStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')} WIB`;
+
+    const newLogs: AuditLogEntry[] = targets.map((target) => ({
+      id: `LOG-${Date.now()}-${target.id}`,
+      timestamp: timeStr,
+      actorName: get().currentUser?.name || getRoleById(get().currentRole).title,
+      actorRole: get().currentUser?.roleTitle || getRoleById(get().currentRole).badge,
+      scope: get().currentScope.name,
+      actionType: 'HAPUS_DATA',
+      entity: 'Data Calon Peserta',
+      entityId: target.id,
+      oldValue: `${target.fullName} (${target.id})`,
+      newValue: 'DELETED / ARCHIVED',
+      justificationReason: reason || 'Penghapusan data masal peserta.',
+      ipAddress: get().currentUser?.ipAddress || '10.24.120.88',
+    }));
+
+    set({
+      candidates: get().candidates.filter((c) => !idSet.has(c.id)),
+      selectedCandidateIds: get().selectedCandidateIds.filter((cid) => !idSet.has(cid)),
+      auditLogs: [...newLogs, ...get().auditLogs],
+    });
+
+    return { success: true, message: `${targets.length} data calon peserta berhasil dihapus.` };
   },
 
   // Modul B: Program Pelatihan

@@ -462,6 +462,89 @@ class BusinessDataController extends Controller
         return back()->with('success', 'Data berhasil dinonaktifkan.');
     }
 
+    public function batchDestroy(Request $request, string $type): JsonResponse
+    {
+        $this->authorizeWrite($request, $type, 'delete');
+        $validated = $request->validate([
+            'ids' => ['required', 'array', 'min:1'],
+            'ids.*' => ['required', 'string'],
+            'reason' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $table = self::ENTITY_TABLES[$type];
+        $records = DB::table($table)
+            ->whereIn('id', $validated['ids'])
+            ->when($type === 'candidates', fn ($q) => $q->whereNull('deleted_at'))
+            ->get();
+
+        if ($records->isEmpty()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tidak ada data valid yang ditemukan untuk dihapus.',
+            ], 404);
+        }
+
+        foreach ($records as $record) {
+            $this->assertRecordScope($request, $type, $record);
+        }
+
+        $reason = $validated['reason'] ?: 'Penghapusan data masal melalui antarmuka pengguna.';
+        $validIds = $records->pluck('id')->map(fn ($id) => (string) $id)->all();
+
+        DB::transaction(function () use ($request, $type, $validIds, $reason): void {
+            $now = now();
+            match ($type) {
+                'candidates' => DB::table('job_seekers')->whereIn('id', $validIds)->update([
+                    'deleted_at' => $now,
+                    'updated_at' => $now,
+                ]),
+                'programs' => DB::table('training_programs')->whereIn('id', $validIds)->update([
+                    'status' => 'Nonaktif',
+                    'updated_at' => $now,
+                ]),
+                'providers' => DB::table('institutions')->whereIn('id', $validIds)->update([
+                    'status' => 'Nonaktif',
+                    'updated_at' => $now,
+                ]),
+                'demands' => DB::table('job_demands')->whereIn('id', $validIds)->update([
+                    'verification_status' => 'Draft',
+                    'updated_at' => $now,
+                ]),
+            };
+
+            foreach ($validIds as $id) {
+                $this->writeAudit($request, $type, $id, 'HAPUS_DATA', $reason);
+            }
+        });
+
+        if ($type === 'candidates') {
+            $recon = app(CandidateInstitutionReconciliationService::class);
+            $instIds = $records->pluck('institution_id')->filter()->unique();
+            foreach ($instIds as $instId) {
+                $recon->syncInstitutionCountForId((string) $instId);
+            }
+
+            $instNames = $records->pluck('institution_name')->filter()->unique();
+            foreach ($instNames as $name) {
+                $matchedIds = DB::table('institutions')
+                    ->where('name', $name)
+                    ->orWhereRaw('LOWER(name) = ?', [mb_strtolower($name)])
+                    ->pluck('id');
+                foreach ($matchedIds as $instId) {
+                    $recon->syncInstitutionCountForId((string) $instId);
+                }
+            }
+        }
+
+        app(BusinessDataPresenter::class)->forgetAll();
+
+        return response()->json([
+            'success' => true,
+            'count' => count($validIds),
+            'message' => count($validIds) . ' data ' . ($type === 'candidates' ? 'calon PMI' : 'data') . ' berhasil dinonaktifkan.',
+        ]);
+    }
+
     public function providers(Request $request): JsonResponse
     {
         $user = $request->user();
