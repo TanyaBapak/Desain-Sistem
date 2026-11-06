@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Services\Bp3miScope;
 use App\Services\BusinessDataPresenter;
+use App\Services\CandidateInstitutionReconciliationService;
 use App\Services\ProgramSyncFromProviders;
 use App\Services\ProviderRecommendationService;
 use Illuminate\Http\JsonResponse;
@@ -212,6 +213,7 @@ class BusinessDataController extends Controller
             }
         });
 
+        app(CandidateInstitutionReconciliationService::class)->syncInstitutionCounts();
         app(BusinessDataPresenter::class)->forgetAll();
 
         $totalProcessed = $createdCount + $updatedCount;
@@ -431,6 +433,23 @@ class BusinessDataController extends Controller
 
             $this->writeAudit($request, $type, $id, 'HAPUS_DATA', $reason);
         });
+
+        if ($type === 'candidates' && $record) {
+            $recon = app(CandidateInstitutionReconciliationService::class);
+            if (! empty($record->institution_id)) {
+                $recon->syncInstitutionCountForId((string) $record->institution_id);
+            }
+            if (! empty($record->institution_name)) {
+                $instIds = DB::table('institutions')
+                    ->where('name', $record->institution_name)
+                    ->orWhereRaw('LOWER(name) = ?', [mb_strtolower($record->institution_name)])
+                    ->pluck('id');
+                foreach ($instIds as $instId) {
+                    $recon->syncInstitutionCountForId((string) $instId);
+                }
+            }
+        }
+
         app(BusinessDataPresenter::class)->forgetAll();
 
         if ($request->wantsJson() || ($request->ajax() && ! $request->header('X-Inertia'))) {
@@ -571,7 +590,21 @@ class BusinessDataController extends Controller
                 ->groupBy('institution_id')
                 ->map(fn ($g) => $g->pluck('facility_name')->values()->all());
 
-        $items = $rows->map(function (object $row) use ($facilitiesByInst): array {
+        $candidateCountsByInst = $ids === []
+            ? collect()
+            : DB::table('job_seekers')
+                ->whereNull('deleted_at')
+                ->whereIn('institution_id', $ids)
+                ->select(
+                    'institution_id',
+                    DB::raw('count(*) as total_students'),
+                    DB::raw("sum(case when readiness_status = 'Ready for Placement' then 1 else 0 end) as ready_students")
+                )
+                ->groupBy('institution_id')
+                ->get()
+                ->keyBy('institution_id');
+
+        $items = $rows->map(function (object $row) use ($facilitiesByInst, $candidateCountsByInst): array {
             $metadata = json_decode($row->external_metadata ?? '[]', true);
             if (! is_array($metadata)) {
                 $metadata = [];
@@ -601,7 +634,9 @@ class BusinessDataController extends Controller
                 'procurementMethod' => $row->procurement_method,
                 'capacityPerBatch' => $row->workshop_capacity === null ? null : (int) $row->workshop_capacity,
                 'classCount' => $row->class_count === null ? null : (int) $row->class_count,
-                'readyParticipantCount' => $row->ready_participant_count === null ? null : (int) $row->ready_participant_count,
+                'readyParticipantCount' => $candidateCountsByInst->has($row->id)
+                    ? (int) $candidateCountsByInst->get($row->id)->ready_students
+                    : ($row->ready_participant_count === null ? null : (int) $row->ready_participant_count),
                 'certifiedInstructorsCount' => $row->instructor_count === null ? null : (int) $row->instructor_count,
                 'facilities' => $facilitiesByInst->get($row->id, []),
                 'supportedSectors' => $supported,
@@ -1398,6 +1433,36 @@ class BusinessDataController extends Controller
         }
 
         $this->writeAudit($request, 'candidates', $id, $creating ? 'INPUT_DATA' : 'UPDATE_DATA', $reason, $fieldChanged, $oldValue, $newValue);
+
+        $recon = app(CandidateInstitutionReconciliationService::class);
+        $newInstId = $data['institutionId'] ?? null;
+        $newInstName = $data['institutionName'] ?? null;
+        if (! empty($newInstId)) {
+            $recon->syncInstitutionCountForId((string) $newInstId);
+        }
+        if (! empty($newInstName)) {
+            $instIds = DB::table('institutions')
+                ->where('name', $newInstName)
+                ->orWhereRaw('LOWER(name) = ?', [mb_strtolower($newInstName)])
+                ->pluck('id');
+            foreach ($instIds as $instId) {
+                $recon->syncInstitutionCountForId((string) $instId);
+            }
+        }
+        if (! $creating && $existing) {
+            if (! empty($existing->institution_id) && $existing->institution_id !== $newInstId) {
+                $recon->syncInstitutionCountForId((string) $existing->institution_id);
+            }
+            if (! empty($existing->institution_name) && $existing->institution_name !== $newInstName) {
+                $oldInstIds = DB::table('institutions')
+                    ->where('name', $existing->institution_name)
+                    ->orWhereRaw('LOWER(name) = ?', [mb_strtolower($existing->institution_name)])
+                    ->pluck('id');
+                foreach ($oldInstIds as $instId) {
+                    $recon->syncInstitutionCountForId((string) $instId);
+                }
+            }
+        }
     }
 
     private function saveProgram(Request $request, array $data, string $id, bool $creating): void

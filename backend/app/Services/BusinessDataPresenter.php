@@ -2423,6 +2423,23 @@ class BusinessDataPresenter
             ->get()
             ->keyBy('institution_id');
 
+        $unboundCandidateCounts = DB::table('job_seekers')
+            ->whereNull('deleted_at')
+            ->where(function ($q) {
+                $q->whereNull('institution_id')
+                    ->orWhere('institution_id', '');
+            })
+            ->whereNotNull('institution_name')
+            ->where('institution_name', '!=', '')
+            ->select(
+                'institution_name',
+                DB::raw('count(*) as total_students'),
+                DB::raw("sum(case when readiness_status = 'Ready for Placement' then 1 else 0 end) as ready_students")
+            )
+            ->groupBy('institution_name')
+            ->get()
+            ->keyBy(fn ($item) => mb_strtolower(trim((string) $item->institution_name)));
+
         $query = DB::table('institutions')
             ->leftJoin('provinces', 'provinces.id', '=', 'institutions.province_id')
             ->leftJoin('districts', 'districts.id', '=', 'institutions.district_id')
@@ -2486,7 +2503,7 @@ class BusinessDataPresenter
                 'provinces.name as province_name',
                 'districts.name as district_name',
             ])
-            ->map(function (object $row) use ($facilitiesByInstitution, $candidateCountsByInstitution): array {
+            ->map(function (object $row) use ($facilitiesByInstitution, $candidateCountsByInstitution, $unboundCandidateCounts): array {
                 $metadata = $this->decodeArray($row->external_metadata);
                 $offerings = [];
                 $layer = 'Belum e-Vokasi';
@@ -2545,9 +2562,16 @@ class BusinessDataPresenter
                     'mouDriveUrl' => $row->mou_drive_url ?? ($metadata['mouDriveUrl'] ?? null),
                     'capacityPerBatch' => $row->workshop_capacity === null ? null : (int) $row->workshop_capacity,
                     'classCount' => $row->class_count === null ? null : (int) $row->class_count,
-                    'readyParticipantCount' => $candidateCountsByInstitution->get($row->id)?->ready_students !== null
-                        ? (int) $candidateCountsByInstitution->get($row->id)->ready_students
-                        : ($row->ready_participant_count === null ? null : (int) $row->ready_participant_count),
+                    'readyParticipantCount' => (function () use ($row, $candidateCountsByInstitution, $unboundCandidateCounts): ?int {
+                        $instNameKey = mb_strtolower(trim((string) $row->name));
+                        $boundCount = $candidateCountsByInstitution->get($row->id);
+                        $unboundCount = $unboundCandidateCounts->get($instNameKey);
+                        if ($boundCount !== null || $unboundCount !== null) {
+                            return (int) ($boundCount?->ready_students ?? 0) + (int) ($unboundCount?->ready_students ?? 0);
+                        }
+
+                        return $row->ready_participant_count === null ? null : (int) $row->ready_participant_count;
+                    })(),
                     'certifiedInstructorsCount' => $row->instructor_count === null ? null : (int) $row->instructor_count,
                     'facilities' => $facilitiesByInstitution->get($row->id, []),
                     'supportedSectors' => $this->decodeArray($row->supported_sectors),
@@ -2948,34 +2972,46 @@ class BusinessDataPresenter
                         'registeredCount' => (int) ($row->registered_count ?? 0),
                     ])->all(), []),
                 'nationalLpkByProvince' => $this->nationalLpkByProvince(),
-                'institutionDirectory' => (clone $institutions)
-                    ->leftJoin('districts', 'districts.id', '=', 'institutions.district_id')
-                    ->orderByRaw('institutions.readiness_score IS NULL')
-                    ->orderByDesc('institutions.readiness_score')
-                    ->orderBy('institutions.name')
-                    ->limit(8)
-                    ->get([
-                        'institutions.id',
-                        'institutions.name',
-                        'institutions.institution_type',
-                        'institutions.accreditation',
-                        'institutions.evokasi_status',
-                        'institutions.class_count',
-                        'institutions.ready_participant_count',
-                        'provinces.name as province_name',
-                        'districts.name as district_name',
-                    ])
-                    ->map(fn (object $row): array => [
-                        'id' => $row->id,
-                        'name' => $row->name,
-                        'type' => $row->institution_type,
-                        'province' => $row->province_name ?? 'Belum diketahui',
-                        'district' => $row->district_name ?? 'Belum diketahui',
-                        'accreditation' => $row->accreditation,
-                        'evokasiStatus' => $row->evokasi_status,
-                        'classCount' => $row->class_count === null ? null : (int) $row->class_count,
-                        'readyParticipantCount' => $row->ready_participant_count === null ? null : (int) $row->ready_participant_count,
-                    ])->all(),
+                'institutionDirectory' => (function () use ($institutions): array {
+                    $readyByInstForDir = DB::table('job_seekers')
+                        ->whereNull('deleted_at')
+                        ->whereNotNull('institution_id')
+                        ->where('institution_id', '!=', '')
+                        ->select('institution_id', DB::raw("sum(case when readiness_status = 'Ready for Placement' then 1 else 0 end) as ready_students"))
+                        ->groupBy('institution_id')
+                        ->pluck('ready_students', 'institution_id');
+
+                    return (clone $institutions)
+                        ->leftJoin('districts', 'districts.id', '=', 'institutions.district_id')
+                        ->orderByRaw('institutions.readiness_score IS NULL')
+                        ->orderByDesc('institutions.readiness_score')
+                        ->orderBy('institutions.name')
+                        ->limit(8)
+                        ->get([
+                            'institutions.id',
+                            'institutions.name',
+                            'institutions.institution_type',
+                            'institutions.accreditation',
+                            'institutions.evokasi_status',
+                            'institutions.class_count',
+                            'institutions.ready_participant_count',
+                            'provinces.name as province_name',
+                            'districts.name as district_name',
+                        ])
+                        ->map(fn (object $row): array => [
+                            'id' => $row->id,
+                            'name' => $row->name,
+                            'type' => $row->institution_type,
+                            'province' => $row->province_name ?? 'Belum diketahui',
+                            'district' => $row->district_name ?? 'Belum diketahui',
+                            'accreditation' => $row->accreditation,
+                            'evokasiStatus' => $row->evokasi_status,
+                            'classCount' => $row->class_count === null ? null : (int) $row->class_count,
+                            'readyParticipantCount' => isset($readyByInstForDir[$row->id])
+                                ? (int) $readyByInstForDir[$row->id]
+                                : ($row->ready_participant_count === null ? null : (int) $row->ready_participant_count),
+                        ])->all();
+                })(),
                 'demandByCountry' => (clone $demands)
                     ->selectRaw("COALESCE(countries.name, 'Belum ditentukan') as country")
                     ->selectRaw('COUNT(*) as demand_count')

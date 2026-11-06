@@ -260,34 +260,113 @@ class CandidateInstitutionReconciliationService
                 DB::raw("sum(case when readiness_status = 'Ready for Placement' then 1 else 0 end) as ready_students")
             )
             ->groupBy('institution_id')
+            ->get()
+            ->keyBy('institution_id');
+
+        $unboundStats = DB::table('job_seekers')
+            ->whereNull('deleted_at')
+            ->where(function ($q) {
+                $q->whereNull('institution_id')
+                    ->orWhere('institution_id', '');
+            })
+            ->whereNotNull('institution_name')
+            ->where('institution_name', '!=', '')
+            ->select(
+                'institution_name',
+                DB::raw('count(*) as total_students'),
+                DB::raw("sum(case when readiness_status = 'Ready for Placement' then 1 else 0 end) as ready_students")
+            )
+            ->groupBy('institution_name')
             ->get();
 
-        foreach ($stats as $stat) {
-            DB::table('institutions')
-                ->where('id', $stat->institution_id)
-                ->update([
-                    'total_active_students' => (int) $stat->total_students,
-                    'ready_participant_count' => (int) $stat->ready_students,
-                ]);
+        $unboundByName = [];
+        foreach ($unboundStats as $u) {
+            $unboundByName[mb_strtolower(trim((string) $u->institution_name))] = $u;
+        }
+
+        $institutions = DB::table('institutions')
+            ->where(function ($q) use ($stats) {
+                if ($stats->isNotEmpty()) {
+                    $q->whereIn('id', $stats->keys());
+                }
+                $q->orWhere('total_active_students', '>', 0)
+                    ->orWhere('ready_participant_count', '>', 0);
+            })
+            ->get(['id', 'name', 'total_active_students', 'ready_participant_count']);
+
+        foreach ($institutions as $inst) {
+            $total = 0;
+            $ready = 0;
+
+            if ($stats->has($inst->id)) {
+                $stat = $stats->get($inst->id);
+                $total += (int) $stat->total_students;
+                $ready += (int) $stat->ready_students;
+            }
+
+            $instNameKey = mb_strtolower(trim((string) $inst->name));
+            if (isset($unboundByName[$instNameKey])) {
+                $u = $unboundByName[$instNameKey];
+                $total += (int) $u->total_students;
+                $ready += (int) $u->ready_students;
+            }
+
+            if ((int) ($inst->total_active_students ?? 0) !== $total || (int) ($inst->ready_participant_count ?? 0) !== $ready) {
+                DB::table('institutions')
+                    ->where('id', $inst->id)
+                    ->update([
+                        'total_active_students' => $total,
+                        'ready_participant_count' => $ready,
+                    ]);
+            }
         }
     }
 
     public function syncInstitutionCountForId(string $institutionId): void
     {
+        $inst = DB::table('institutions')->where('id', $institutionId)->first(['id', 'name']);
+        if (! $inst) {
+            return;
+        }
+
         $stat = DB::table('job_seekers')
             ->whereNull('deleted_at')
-            ->where('institution_id', $institutionId)
+            ->where('institution_id', $inst->id)
             ->select(
                 DB::raw('count(*) as total_students'),
                 DB::raw("sum(case when readiness_status = 'Ready for Placement' then 1 else 0 end) as ready_students")
             )
             ->first();
 
+        $total = (int) ($stat->total_students ?? 0);
+        $ready = (int) ($stat->ready_students ?? 0);
+
+        if (! empty($inst->name)) {
+            $unboundStat = DB::table('job_seekers')
+                ->whereNull('deleted_at')
+                ->where(function ($q) {
+                    $q->whereNull('institution_id')
+                        ->orWhere('institution_id', '');
+                })
+                ->where(function ($q) use ($inst) {
+                    $q->where('institution_name', $inst->name)
+                        ->orWhereRaw('LOWER(institution_name) = ?', [mb_strtolower($inst->name)]);
+                })
+                ->select(
+                    DB::raw('count(*) as total_students'),
+                    DB::raw("sum(case when readiness_status = 'Ready for Placement' then 1 else 0 end) as ready_students")
+                )
+                ->first();
+
+            $total += (int) ($unboundStat->total_students ?? 0);
+            $ready += (int) ($unboundStat->ready_students ?? 0);
+        }
+
         DB::table('institutions')
             ->where('id', $institutionId)
             ->update([
-                'total_active_students' => (int) ($stat->total_students ?? 0),
-                'ready_participant_count' => (int) ($stat->ready_students ?? 0),
+                'total_active_students' => $total,
+                'ready_participant_count' => $ready,
             ]);
     }
 }

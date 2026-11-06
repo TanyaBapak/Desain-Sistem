@@ -173,4 +173,66 @@ class CandidateInstitutionReconciliationTest extends TestCase
         $this->assertEquals($instId, $cand->institution_id);
         $this->assertEquals('Akademi Keperawatan Medika Mandiri', $cand->institution_name);
     }
+
+    public function test_deleting_candidate_updates_institution_participant_counts(): void
+    {
+        $instId = 'VOC-TEST-DEL-001';
+        DB::table('institutions')->updateOrInsert(
+            ['id' => $instId],
+            [
+                'name' => 'LPK Uji Penghapusan Siswa',
+                'province_id' => '33',
+                'district_id' => '3372',
+                'institution_type' => 'LPK',
+                'status' => 'Aktif',
+                'verification_status' => 'Verified',
+                'evokasi_status' => 'Terverifikasi e-Vokasi',
+                'ready_participant_count' => 0,
+                'total_active_students' => 0,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]
+        );
+
+        $candId = 'CAND-TEST-DEL-001';
+        DB::table('job_seekers')->insert([
+            'id' => $candId,
+            'registration_number' => 'REG-DEL-001',
+            'nik' => '3372000000000077',
+            'full_name' => 'Peserta Uji Hapus',
+            'gender' => 'L',
+            'province_id' => '33',
+            'district_id' => '3372',
+            'education_level' => 'SMK',
+            'institution_name' => 'LPK Uji Penghapusan Siswa',
+            'institution_id' => $instId,
+            'major' => 'Manufaktur',
+            'source_type' => 'LPK',
+            'readiness_status' => 'Ready for Placement',
+            'verification_status' => 'Verified',
+            'created_by' => 'Admin Task Force',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        app(CandidateInstitutionReconciliationService::class)->syncInstitutionCountForId($instId);
+
+        $instBefore = DB::table('institutions')->where('id', $instId)->first();
+        $this->assertEquals(1, $instBefore->total_active_students);
+        $this->assertEquals(1, $instBefore->ready_participant_count);
+
+        $admin = User::factory()->create();
+        $tfRole = DB::table('roles')->where('name', 'task_force')->first();
+        $admin->roles()->sync([$tfRole->id]);
+
+        $this->actingAs($admin)
+            ->deleteJson("/business-data/candidates/{$candId}", ['reason' => 'Uji penghapusan'])
+            ->assertSuccessful();
+
+        $this->assertSoftDeleted('job_seekers', ['id' => $candId]);
+
+        $instAfter = DB::table('institutions')->where('id', $instId)->first();
+        $this->assertEquals(0, $instAfter->total_active_students);
+        $this->assertEquals(0, $instAfter->ready_participant_count);
+    }
 }

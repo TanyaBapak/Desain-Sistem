@@ -41,7 +41,7 @@ export const CandidateFormModal: React.FC<CandidateFormModalProps> = ({
   const [langLevel, setLangLevel] = useState('');
   const [preferredCountry, setPreferredCountry] = useState('');
   const [preferredJobRole, setPreferredJobRole] = useState('');
-  const [readinessStatus, setReadinessStatus] = useState<CandidateParticipant['readinessStatus']>('Needs Upskilling');
+  const [readinessStatus, setReadinessStatus] = useState<CandidateParticipant['readinessStatus']>('Ready for Placement');
   const [verificationStatus, setVerificationStatus] = useState<CandidateParticipant['verificationStatus']>('Pending Verification');
   const provincesList = useMemo(() => {
     const list: Array<{ id: string; name: string }> = [];
@@ -198,7 +198,7 @@ export const CandidateFormModal: React.FC<CandidateFormModalProps> = ({
           ? initialData.preferredJobRole[0]
           : (typeof initialData.preferredJobRole === 'string' ? initialData.preferredJobRole : 'Welder')
       );
-      setReadinessStatus(initialData.readinessStatus || 'Needs Upskilling');
+      setReadinessStatus(initialData.readinessStatus || 'Ready for Placement');
       setVerificationStatus(initialData.verificationStatus || 'Pending Verification');
     } else {
       // Default reset
@@ -216,7 +216,7 @@ export const CandidateFormModal: React.FC<CandidateFormModalProps> = ({
       setLangLevel('');
       setPreferredCountry('');
       setPreferredJobRole('');
-      setReadinessStatus('Needs Upskilling');
+      setReadinessStatus('Ready for Placement');
       setVerificationStatus('Pending Verification');
     }
   }, [initialData, mode, isOpen, defaultInstitutionName]);
@@ -517,20 +517,6 @@ export const CandidateFormModal: React.FC<CandidateFormModalProps> = ({
                   </datalist>
                 </div>
               </div>
-            </div>
-
-            {/* Status Kesiapan */}
-            <div>
-              <label className="block font-bold text-slate-700 mb-1">Status Kesiapan Peserta</label>
-              <select
-                value={readinessStatus}
-                onChange={(e) => setReadinessStatus(e.target.value as CandidateParticipant['readinessStatus'])}
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="Ready for Placement">Ready for Placement (Siap Seleksi/Penempatan)</option>
-                <option value="Needs Upskilling">Needs Upskilling (Perlu Penguatan Kompetensi)</option>
-                <option value="Needs Reskilling">Needs Reskilling (Perlu Alih Keahlian)</option>
-              </select>
             </div>
 
             {canVerify && (

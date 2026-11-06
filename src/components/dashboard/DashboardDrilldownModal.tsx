@@ -609,14 +609,13 @@ const LembagaDrilldown: React.FC<LembagaDrilldownProps> = ({
   const providerStudentsCountMap = useMemo(() => {
     const map = new Map<string, number>();
     providers.forEach((p) => {
-      const pName = (p.name || "").toLowerCase();
-      const pKab = (p.kabupatenKota || "").toLowerCase();
+      const pName = (p.name || "").toLowerCase().trim();
       const count = candidates.filter((c) => {
-        const cInst = (c.institutionName || "").toLowerCase();
-        return (cInst && (cInst.includes(pName) || pName.includes(cInst))) ||
-          ((c.kabupatenKota || "").toLowerCase() === pKab);
+        if (c.institutionId && p.id && c.institutionId === p.id) return true;
+        const cInst = (c.institutionName || "").toLowerCase().trim();
+        return Boolean(cInst && (cInst === pName || cInst.includes(pName) || pName.includes(cInst)));
       }).length;
-      map.set(p.id, Math.max(count, (p.capacityPerBatch ?? 20)));
+      map.set(p.id, count);
     });
     return map;
   }, [providers, candidates]);
@@ -624,28 +623,14 @@ const LembagaDrilldown: React.FC<LembagaDrilldownProps> = ({
   // Selected provider's students
   const providerStudents = useMemo(() => {
     if (!selectedProviderForStudents) return [];
-    const pName = (selectedProviderForStudents.name || "").toLowerCase();
-    const pKab = (selectedProviderForStudents.kabupatenKota || "").toLowerCase();
-    const pProv = (selectedProviderForStudents.provinsi || "").toLowerCase();
+    const pId = selectedProviderForStudents.id;
+    const pName = (selectedProviderForStudents.name || "").toLowerCase().trim();
 
-    let matched = candidates.filter((c) => {
-      const cInst = (c.institutionName || "").toLowerCase();
-      return cInst && (cInst.includes(pName) || pName.includes(cInst));
+    return candidates.filter((c) => {
+      if (c.institutionId && pId && c.institutionId === pId) return true;
+      const cInst = (c.institutionName || "").toLowerCase().trim();
+      return Boolean(cInst && (cInst === pName || cInst.includes(pName) || pName.includes(cInst)));
     });
-
-    if (matched.length === 0 && pKab) {
-      matched = candidates.filter((c) => (c.kabupatenKota || "").toLowerCase() === pKab);
-    }
-
-    if (matched.length === 0 && pProv) {
-      matched = candidates.filter((c) => (c.provinsi || "").toLowerCase() === pProv);
-    }
-
-    if (matched.length === 0) {
-      matched = candidates.slice(0, 8);
-    }
-
-    return matched;
   }, [selectedProviderForStudents, candidates]);
 
   const filteredStudents = useMemo(() => {
@@ -1094,7 +1079,7 @@ const LembagaDrilldown: React.FC<LembagaDrilldownProps> = ({
               </div>
             ) : (
               pagedProviders.map((provider) => {
-                const count = providerStudentsCountMap.get(provider.id) ?? 20;
+                const count = providerStudentsCountMap.get(provider.id) ?? 0;
                 return (
                   <div
                     key={provider.id}

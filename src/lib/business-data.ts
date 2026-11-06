@@ -73,6 +73,8 @@ export async function saveBusinessData<T extends object>(
       }
     } else if (error.response?.status === 403) {
       errorMsg = "Anda tidak memiliki hak akses untuk mengubah data ini.";
+    } else if (error.response?.status === 429) {
+      errorMsg = "Terlalu banyak permintaan (Error 429). Mohon tunggu beberapa detik sebelum mencoba kembali.";
     }
 
     toast.error(errorMsg);

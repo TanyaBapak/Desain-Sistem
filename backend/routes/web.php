@@ -54,10 +54,10 @@ Route::get('/', function (Request $request, BusinessDataPresenter $businessDataP
 })->name('home');
 
 Route::get('/login', [AuthenticatedSessionController::class, 'create'])->name('login');
-Route::post('/login', [AuthenticatedSessionController::class, 'store'])->middleware('throttle:5,1')->name('login.store');
+Route::post('/login', [AuthenticatedSessionController::class, 'store'])->middleware('throttle:30,1')->name('login.store');
 Route::get('/lembaga/daftar', [InstitutionRegistrationController::class, 'create'])->name('institutions.register');
 Route::post('/lembaga/daftar', [InstitutionRegistrationController::class, 'store'])
-    ->middleware('throttle:3,1')
+    ->middleware('throttle:60,1')
     ->name('institutions.register.store');
 Route::post('/integrations/gardata/webhook', GardataWebhookController::class)->name('integrations.gardata.webhook');
 Route::post('/integrations/sippmi/webhook', GardataWebhookController::class)->name('integrations.sippmi.webhook');

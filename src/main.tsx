@@ -53,6 +53,8 @@ function redirectToLoginIfNeeded(): void {
   }
 }
 
+const TOO_MANY_REQUESTS_MESSAGE = "Terlalu banyak permintaan (Error 429). Mohon tunggu beberapa detik sebelum mencoba kembali.";
+
 // 401/419 berarti sesi berakhir. 403 berarti pengguna tidak berhak atas
 // tindakan tersebut, jadi cukup tampilkan pesan tanpa mengeluarkan sesi.
 axios.interceptors.response.use(
@@ -63,6 +65,8 @@ axios.interceptors.response.use(
       redirectToLoginIfNeeded();
     } else if (status === 403) {
       toast.error(ACCESS_DENIED_MESSAGE);
+    } else if (status === 429) {
+      toast.error(TOO_MANY_REQUESTS_MESSAGE);
     }
     return Promise.reject(error);
   }
@@ -79,6 +83,9 @@ router.on("invalid", (event) => {
   if (status === 403) {
     event.preventDefault();
     toast.error(ACCESS_DENIED_MESSAGE);
+  } else if (status === 429) {
+    event.preventDefault();
+    toast.error(TOO_MANY_REQUESTS_MESSAGE);
   }
 });
 
