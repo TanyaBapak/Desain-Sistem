@@ -62,10 +62,23 @@ export const SupplyTable: React.FC<SupplyTableProps> = ({
   const currentScope = propScope || store.currentScope;
   const rawCandidates = propCandidates !== undefined ? propCandidates : store.candidates;
   const [optimisticUpdates, setOptimisticUpdates] = useState<Record<string, Partial<CandidateParticipant>>>({});
+  const [deletedCandidateIds, setDeletedCandidateIds] = useState<string[]>([]);
   const candidates = useMemo(() => {
-    if (Object.keys(optimisticUpdates).length === 0) return rawCandidates;
-    return rawCandidates.map((c) => (optimisticUpdates[c.id] ? { ...c, ...optimisticUpdates[c.id] } : c));
-  }, [rawCandidates, optimisticUpdates]);
+    let list = rawCandidates;
+    if (deletedCandidateIds.length > 0) {
+      const deletedSet = new Set(deletedCandidateIds);
+      list = list.filter((c) => !deletedSet.has(c.id));
+    }
+    if (Object.keys(optimisticUpdates).length === 0) return list;
+    return list.map((c) => (optimisticUpdates[c.id] ? { ...c, ...optimisticUpdates[c.id] } : c));
+  }, [rawCandidates, optimisticUpdates, deletedCandidateIds]);
+
+  useEffect(() => {
+    if (deletedCandidateIds.length > 0 && propCandidates) {
+      const presentIds = new Set(propCandidates.map((c) => c.id));
+      setDeletedCandidateIds((prev) => prev.filter((id) => presentIds.has(id)));
+    }
+  }, [propCandidates, deletedCandidateIds.length]);
   const {
     currentUser,
     selectedCandidateIds,
@@ -976,27 +989,48 @@ export const SupplyTable: React.FC<SupplyTableProps> = ({
           <span className="text-slate-500 dark:text-slate-400 font-medium">
             Menampilkan <strong>{filteredCandidates.length}</strong> dari {candidates.length} Calon PMI
           </span>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {canManageCandidates && (
               <button
                 type="button"
                 onClick={() => setIsImportOpen(true)}
-                className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white shadow-xs transition hover:bg-blue-700"
+                className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white shadow-xs transition hover:bg-blue-700"
               >
-                <Upload className="h-3.5 w-3.5" aria-hidden="true" /> Unggah Data (.XLSX / CSV)
+                <Upload className="h-3.5 w-3.5" aria-hidden="true" />
+                <span>Unggah Data (.XLSX / CSV)</span>
               </button>
             )}
-            <button type="button" onClick={() => exportCandidatesXlsx(filteredCandidates)} className="flex items-center gap-1 rounded-lg border border-emerald-300 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/60 px-3 py-2 text-xs font-semibold text-emerald-800 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/60">
-              <Download className="h-3.5 w-3.5" aria-hidden="true" /> Unduh Hasil Filter (.XLSX)
+            <button
+              type="button"
+              onClick={() => exportCandidatesXlsx(filteredCandidates)}
+              className="flex items-center gap-1.5 rounded-lg border border-emerald-300 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/60 px-3 py-1.5 text-xs font-semibold text-emerald-800 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 transition"
+            >
+              <Download className="h-3.5 w-3.5" aria-hidden="true" />
+              <span>Unduh Hasil (.XLSX)</span>
             </button>
-            <button type="button" onClick={() => exportCandidatesCsv(filteredCandidates)} className="flex items-center gap-1 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700">
-              <Download className="h-3.5 w-3.5" aria-hidden="true" /> Unduh Hasil (CSV)
+            <button
+              type="button"
+              onClick={() => exportCandidatesCsv(filteredCandidates)}
+              className="flex items-center gap-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition"
+            >
+              <Download className="h-3.5 w-3.5" aria-hidden="true" />
+              <span>Unduh Hasil (CSV)</span>
             </button>
-            <button type="button" onClick={downloadCandidateTemplateXlsx} className="flex items-center gap-1 rounded-lg border border-blue-300 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/60 px-3 py-2 text-xs font-semibold text-blue-800 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/60">
-              <Download className="h-3.5 w-3.5" aria-hidden="true" /> Unduh Template Pengumpulan (.XLSX)
+            <button
+              type="button"
+              onClick={downloadCandidateTemplateXlsx}
+              className="flex items-center gap-1.5 rounded-lg border border-blue-300 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/60 px-3 py-1.5 text-xs font-semibold text-blue-800 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/60 transition"
+            >
+              <Download className="h-3.5 w-3.5" aria-hidden="true" />
+              <span>Template (.XLSX)</span>
             </button>
-            <button type="button" onClick={downloadCandidateTemplate} className="flex items-center gap-1 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700">
-              <Download className="h-3.5 w-3.5" aria-hidden="true" /> Unduh Template (CSV)
+            <button
+              type="button"
+              onClick={downloadCandidateTemplate}
+              className="flex items-center gap-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition"
+            >
+              <Download className="h-3.5 w-3.5" aria-hidden="true" />
+              <span>Template (CSV)</span>
             </button>
           </div>
         </div>
@@ -1033,21 +1067,21 @@ export const SupplyTable: React.FC<SupplyTableProps> = ({
           </div>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[1000px] table-fixed text-left text-sm">
+          <table className="w-full min-w-[1180px] table-fixed text-left text-sm">
             <thead className="bg-slate-50/80 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
               <tr>
                 {canMatchCandidates && (
-                  <th className="w-[4%] py-3.5 px-2 text-center">
+                  <th className="w-[3.5%] py-3.5 px-2 text-center">
                     <span className="sr-only">Pilih</span>
                   </th>
                 )}
-                <th className="w-[16%] py-3.5 px-3">Calon PMI & Domisili</th>
-                <th className={viewMode === 'compact' ? 'w-[14%] py-3.5 px-2' : 'w-[16%] py-3.5 px-2'}>Pendidikan & Jurusan</th>
-                <th className={viewMode === 'compact' ? 'w-[12%] py-3.5 px-2' : 'w-[14%] py-3.5 px-2'}>Keahlian & Sertifikasi</th>
-                <th className={viewMode === 'compact' ? 'w-[10%] py-3.5 px-2' : 'w-[13%] py-3.5 px-2'}>Pengalaman Kerja</th>
-                <th className={viewMode === 'compact' ? 'w-[18%] py-3.5 px-2' : 'w-[14%] py-3.5 px-2'}>Bahasa, Negara & Jabatan</th>
-                <th className="w-[12%] py-3.5 px-2">Status Kesiapan</th>
-                <th className="w-[10%] py-3.5 px-2 text-right">Aksi</th>
+                <th className={canMatchCandidates ? 'w-[17.5%] py-3.5 px-3' : 'w-[18%] py-3.5 px-3'}>Calon PMI & Domisili</th>
+                <th className={canMatchCandidates ? (viewMode === 'compact' ? 'w-[14%] py-3.5 px-2' : 'w-[15%] py-3.5 px-2') : (viewMode === 'compact' ? 'w-[15%] py-3.5 px-2' : 'w-[16%] py-3.5 px-2')}>Pendidikan & Jurusan</th>
+                <th className={canMatchCandidates ? (viewMode === 'compact' ? 'w-[13%] py-3.5 px-2' : 'w-[14%] py-3.5 px-2') : (viewMode === 'compact' ? 'w-[14%] py-3.5 px-2' : 'w-[15%] py-3.5 px-2')}>Keahlian & Sertifikasi</th>
+                <th className={canMatchCandidates ? (viewMode === 'compact' ? 'w-[9%] py-3.5 px-2' : 'w-[10%] py-3.5 px-2') : (viewMode === 'compact' ? 'w-[10%] py-3.5 px-2' : 'w-[11%] py-3.5 px-2')}>Pengalaman Kerja</th>
+                <th className={canMatchCandidates ? (viewMode === 'compact' ? 'w-[16%] py-3.5 px-2' : 'w-[14.5%] py-3.5 px-2') : (viewMode === 'compact' ? 'w-[16%] py-3.5 px-2' : 'w-[15%] py-3.5 px-2')}>Bahasa, Negara & Jabatan</th>
+                <th className="w-[13%] py-3.5 px-2">Status Kesiapan</th>
+                <th className="w-[14%] py-3.5 px-3 text-right">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-300">
@@ -1236,7 +1270,7 @@ export const SupplyTable: React.FC<SupplyTableProps> = ({
                       {/* 6. Status Kesiapan */}
                       <td className="py-3 px-2">
                         <Badge
-                          className="h-auto min-h-7 whitespace-normal px-2 py-0.5 text-[11px]"
+                          className="inline-flex items-center justify-center whitespace-nowrap px-2.5 py-1 text-[11px] font-semibold"
                           variant={
                             candidate.readinessStatus === 'Ready for Placement'
                               ? 'success'
@@ -1245,48 +1279,51 @@ export const SupplyTable: React.FC<SupplyTableProps> = ({
                               : 'purple'
                           }
                         >
-                          <span className="text-center leading-tight">
-                            {readinessLabels[candidate.readinessStatus]}
+                          <span className="leading-tight">
+                            {readinessLabels[candidate.readinessStatus] || candidate.readinessStatus}
                           </span>
                         </Badge>
                       </td>
 
                       {/* 7. Aksi */}
-                      <td className="py-3 px-2 text-right">
-                        <div className="flex items-center justify-end gap-1">
+                      <td className="py-3 px-3 text-right">
+                        <div className="flex items-center justify-end gap-1.5 flex-nowrap whitespace-nowrap">
                           <button
+                            type="button"
                             onClick={() => setActiveCandidate(candidate)}
                             aria-label={`Lihat detail ${candidate.fullName}`}
-                            className="inline-flex items-center gap-1 rounded-lg bg-blue-50 dark:bg-blue-950/60 px-2 py-1.5 text-xs font-semibold text-blue-700 dark:text-blue-300 shadow-xs transition hover:bg-blue-600 dark:hover:bg-blue-600 hover:text-white"
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 dark:border-blue-900/60 bg-blue-50/80 dark:bg-blue-950/50 px-2.5 py-1 text-xs font-semibold text-blue-700 dark:text-blue-300 shadow-xs transition hover:bg-blue-600 hover:text-white dark:hover:bg-blue-600 dark:hover:text-white shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 h-7"
                             title="Lihat Detail Pemetaan"
                           >
-                            <Eye className="w-3.5 h-3.5" />
+                            <Eye className="w-3.5 h-3.5 shrink-0" />
                             <span>Detail</span>
                           </button>
 
                           {canManageCandidates && (
                             <button
+                              type="button"
                               onClick={() => {
                                 setCandidateToEdit(candidate);
                                 setFormMode('edit');
                                 setIsFormOpen(true);
                               }}
                               aria-label={`Ubah data ${candidate.fullName}`}
-                              className="inline-flex items-center rounded-lg bg-slate-100 dark:bg-slate-800 p-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 shadow-xs transition hover:bg-slate-200 dark:hover:bg-slate-700"
+                              className="inline-flex items-center justify-center w-7 h-7 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 shadow-xs transition hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-slate-100 shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
                               title="Ubah Data"
                             >
-                              <Edit2 className="w-3.5 h-3.5" />
+                              <Edit2 className="w-3.5 h-3.5 shrink-0" />
                             </button>
                           )}
 
                           {canArchiveCandidates && (
                             <button
+                              type="button"
                               onClick={() => setDeletingCandidate(candidate)}
                               aria-label={`Hapus ${candidate.fullName}`}
-                              className="inline-flex items-center rounded-lg bg-rose-50 dark:bg-rose-950/60 p-1.5 text-xs font-semibold text-rose-700 dark:text-rose-300 shadow-xs transition hover:bg-rose-600 hover:text-white"
+                              className="inline-flex items-center justify-center w-7 h-7 rounded-lg border border-rose-200 dark:border-rose-900/60 bg-rose-50/80 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 shadow-xs transition hover:bg-rose-600 hover:text-white dark:hover:bg-rose-600 dark:hover:text-white shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
                               title="Hapus"
                             >
-                              <Trash2 className="w-3.5 h-3.5" />
+                              <Trash2 className="w-3.5 h-3.5 shrink-0" />
                             </button>
                           )}
                         </div>
@@ -1406,10 +1443,16 @@ export const SupplyTable: React.FC<SupplyTableProps> = ({
         onConfirm={async (reason) => {
           if (deletingCandidate) {
             const candidateId = deletingCandidate.id;
-            await archiveBusinessData('candidates', candidateId, reason, () => {
-              store.deleteCandidate(candidateId, reason);
-              setDeletingCandidate(null);
-            });
+            setDeletedCandidateIds((prev) => [...prev, candidateId]);
+            if (selectedCandidateIds.includes(candidateId)) {
+              toggleCandidateSelection(candidateId);
+            }
+            store.deleteCandidate(candidateId, reason);
+            setDeletingCandidate(null);
+            const success = await archiveBusinessData('candidates', candidateId, reason);
+            if (!success) {
+              setDeletedCandidateIds((prev) => prev.filter((id) => id !== candidateId));
+            }
           }
         }}
       />
