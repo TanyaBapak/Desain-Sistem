@@ -29,7 +29,6 @@ import { toast } from 'sonner';
 import { useAppStore } from '../../store/useAppStore';
 import { getBp3miByCode } from '../../lib/constants/bp3mi';
 import { CandidateParticipant } from '../../types';
-import { Badge } from '../ui/Badge';
 import { StatCard } from '@/components/shared/StatCard';
 import { CandidateDetailModal } from './CandidateDetailModal';
 import { CandidateFormModal } from './CandidateFormModal';
@@ -1067,27 +1066,26 @@ export const SupplyTable: React.FC<SupplyTableProps> = ({
           </div>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[1180px] table-fixed text-left text-sm">
+          <table className="w-full min-w-[1080px] table-fixed text-left text-sm">
             <thead className="bg-slate-50/80 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
               <tr>
                 {canMatchCandidates && (
-                  <th className="w-[3.5%] py-3.5 px-2 text-center">
+                  <th className="w-[4%] py-3.5 px-2 text-center">
                     <span className="sr-only">Pilih</span>
                   </th>
                 )}
-                <th className={canMatchCandidates ? 'w-[17.5%] py-3.5 px-3' : 'w-[18%] py-3.5 px-3'}>Calon PMI & Domisili</th>
-                <th className={canMatchCandidates ? (viewMode === 'compact' ? 'w-[14%] py-3.5 px-2' : 'w-[15%] py-3.5 px-2') : (viewMode === 'compact' ? 'w-[15%] py-3.5 px-2' : 'w-[16%] py-3.5 px-2')}>Pendidikan & Jurusan</th>
-                <th className={canMatchCandidates ? (viewMode === 'compact' ? 'w-[13%] py-3.5 px-2' : 'w-[14%] py-3.5 px-2') : (viewMode === 'compact' ? 'w-[14%] py-3.5 px-2' : 'w-[15%] py-3.5 px-2')}>Keahlian & Sertifikasi</th>
-                <th className={canMatchCandidates ? (viewMode === 'compact' ? 'w-[9%] py-3.5 px-2' : 'w-[10%] py-3.5 px-2') : (viewMode === 'compact' ? 'w-[10%] py-3.5 px-2' : 'w-[11%] py-3.5 px-2')}>Pengalaman Kerja</th>
-                <th className={canMatchCandidates ? (viewMode === 'compact' ? 'w-[16%] py-3.5 px-2' : 'w-[14.5%] py-3.5 px-2') : (viewMode === 'compact' ? 'w-[16%] py-3.5 px-2' : 'w-[15%] py-3.5 px-2')}>Bahasa, Negara & Jabatan</th>
-                <th className="w-[13%] py-3.5 px-2">Status Kesiapan</th>
+                <th className={canMatchCandidates ? 'w-[21%] py-3.5 px-3' : 'w-[22%] py-3.5 px-3'}>Calon PMI & Domisili</th>
+                <th className={canMatchCandidates ? (viewMode === 'compact' ? 'w-[17%] py-3.5 px-2' : 'w-[18%] py-3.5 px-2') : (viewMode === 'compact' ? 'w-[18%] py-3.5 px-2' : 'w-[19%] py-3.5 px-2')}>Pendidikan & Jurusan</th>
+                <th className={canMatchCandidates ? (viewMode === 'compact' ? 'w-[16%] py-3.5 px-2' : 'w-[17%] py-3.5 px-2') : (viewMode === 'compact' ? 'w-[17%] py-3.5 px-2' : 'w-[18%] py-3.5 px-2')}>Keahlian & Sertifikasi</th>
+                <th className={canMatchCandidates ? (viewMode === 'compact' ? 'w-[10%] py-3.5 px-2' : 'w-[11%] py-3.5 px-2') : (viewMode === 'compact' ? 'w-[11%] py-3.5 px-2' : 'w-[12%] py-3.5 px-2')}>Pengalaman Kerja</th>
+                <th className={canMatchCandidates ? (viewMode === 'compact' ? 'w-[18%] py-3.5 px-2' : 'w-[16%] py-3.5 px-2') : (viewMode === 'compact' ? 'w-[18%] py-3.5 px-2' : 'w-[17%] py-3.5 px-2')}>Bahasa, Negara & Jabatan</th>
                 <th className="w-[14%] py-3.5 px-3 text-right">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-300">
               {filteredCandidates.length === 0 ? (
                 <tr>
-                  <td colSpan={canMatchCandidates ? 8 : 7} className="py-12 text-center text-slate-400 dark:text-slate-500">
+                  <td colSpan={canMatchCandidates ? 7 : 6} className="py-12 text-center text-slate-400 dark:text-slate-500">
                     <AlertCircle className="w-8 h-8 mx-auto mb-2 text-slate-300 dark:text-slate-600" />
                     <p className="font-semibold text-slate-600 dark:text-slate-300">Tidak ada calon PMI yang cocok dengan kriteria filter</p>
                     <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Coba sesuaikan kata kunci pencarian atau reset filter wilayah dan keahlian.</p>
@@ -1267,25 +1265,7 @@ export const SupplyTable: React.FC<SupplyTableProps> = ({
                         </div>
                       </td>
 
-                      {/* 6. Status Kesiapan */}
-                      <td className="py-3 px-2">
-                        <Badge
-                          className="inline-flex items-center justify-center whitespace-nowrap px-2.5 py-1 text-[11px] font-semibold"
-                          variant={
-                            candidate.readinessStatus === 'Ready for Placement'
-                              ? 'success'
-                              : candidate.readinessStatus === 'Needs Upskilling'
-                              ? 'warning'
-                              : 'purple'
-                          }
-                        >
-                          <span className="leading-tight">
-                            {readinessLabels[candidate.readinessStatus] || candidate.readinessStatus}
-                          </span>
-                        </Badge>
-                      </td>
-
-                      {/* 7. Aksi */}
+                      {/* 6. Aksi */}
                       <td className="py-3 px-3 text-right">
                         <div className="flex items-center justify-end gap-1.5 flex-nowrap whitespace-nowrap">
                           <button
