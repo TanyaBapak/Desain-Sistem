@@ -19,7 +19,6 @@ const CANDIDATE_HEADERS = [
   'Negara tujuan yang diminati (pisahkan koma)',
   'Sektor pilihan (pisahkan koma)',
   'Jabatan yang dipilih (pisahkan koma)',
-  'Status kesiapan',
 ];
 
 const TEMPLATE_HEADERS = [
@@ -115,7 +114,6 @@ export function exportCandidatesCsv(candidates: CandidateParticipant[]): void {
       candidate.preferredCountry.join(', '),
       (candidate.preferredSectors ?? []).join(', '),
       candidate.preferredJobRole.join(', '),
-      candidate.readinessStatus,
     ];
   });
 
@@ -145,7 +143,6 @@ export async function exportCandidatesXlsx(candidates: CandidateParticipant[]): 
       'Negara tujuan yang diminati (pisahkan koma)': candidate.preferredCountry.join(', '),
       'Sektor pilihan (pisahkan koma)': (candidate.preferredSectors ?? []).join(', '),
       'Jabatan yang dipilih (pisahkan koma)': candidate.preferredJobRole.join(', '),
-      'Status kesiapan': candidate.readinessStatus,
     };
   });
 

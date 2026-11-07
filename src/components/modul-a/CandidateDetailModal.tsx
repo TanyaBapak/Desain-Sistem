@@ -118,21 +118,6 @@ export const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({
                 {candidate.verificationStatus}
               </Badge>
             </div>
-
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-500 dark:text-slate-400">Kesiapan Kerja:</span>
-              <Badge
-                variant={
-                  candidate.readinessStatus === 'Ready for Placement'
-                    ? 'success'
-                    : candidate.readinessStatus === 'Needs Upskilling'
-                    ? 'warning'
-                    : 'purple'
-                }
-              >
-                {candidate.readinessStatus}
-              </Badge>
-            </div>
           </div>
         </div>
 

@@ -50,6 +50,7 @@ const ReportsView = React.lazy(() =>
 );
 import type { ExecutiveDashboardBreakdownsData } from "@/components/reports/ExecutiveDashboardBreakdowns";
 import type { DashboardTargetManagementData } from "@/pages/user-management-types";
+import { PageSkeleton } from "@/components/shared/PageSkeleton";
 import {
   CandidateParticipant,
   GlobalDemand,
@@ -346,14 +347,27 @@ function AppContent({
     setSelectedProviderId,
   ]);
 
-  const loading = (
-    <div role="status" className="p-8 text-sm text-muted-foreground flex items-center justify-center min-h-[300px]">
-      <div className="flex flex-col items-center gap-2.5">
-        <div className="h-6 w-6 rounded-full border-2 border-primary border-t-transparent animate-spin" />
-        <span className="text-xs font-medium">Memuat modul…</span>
-      </div>
-    </div>
-  );
+  // Prefetch common lazy modules on idle to make navigation instantaneous
+  React.useEffect(() => {
+    if (typeof window !== "undefined") {
+      const prefetch = () => {
+        void import("@/components/modul-a/SupplyTable");
+        void import("@/components/modul-b/TrainingProgramsView");
+        void import("@/components/modul-c/ProvidersView");
+        void import("@/components/modul-d/GlobalDemandsView");
+        void import("@/pages/DashboardPage");
+      };
+      if ("requestIdleCallback" in window) {
+        const id = (window as unknown as { requestIdleCallback: (cb: () => void) => number }).requestIdleCallback(prefetch);
+        return () => (window as unknown as { cancelIdleCallback: (id: number) => void }).cancelIdleCallback(id);
+      } else {
+        const timer = setTimeout(prefetch, 1500);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, []);
+
+  const loading = <PageSkeleton activeTab={activeTab} />;
 
   if (showLogin && !authenticatedUser) {
     return (

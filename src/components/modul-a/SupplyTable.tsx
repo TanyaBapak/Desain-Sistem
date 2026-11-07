@@ -216,7 +216,6 @@ export const SupplyTable: React.FC<SupplyTableProps> = ({
       filterWorkExperience !== 'ALL' ||
       filterCertification !== 'ALL' ||
       filterCountry !== 'ALL' ||
-      filterReadiness !== 'ALL' ||
       filterVerification !== 'ALL' ||
       filterLanguage !== 'ALL' ||
       filterMajor !== '' ||
@@ -942,24 +941,9 @@ export const SupplyTable: React.FC<SupplyTableProps> = ({
             </select>
           </div>
 
-          {/* 11. Status Kesiapan */}
+          {/* 11. Status Verifikasi */}
           <div>
-            <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase block mb-1">11. Status Kesiapan</label>
-            <select
-              value={filterReadiness}
-              onChange={(e) => setFilterReadiness(e.target.value)}
-              className="w-full text-xs py-1.5 px-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="ALL">Semua Kesiapan</option>
-              <option value="Ready for Placement">Siap Penempatan</option>
-              <option value="Needs Upskilling">Perlu Peningkatan</option>
-              <option value="Needs Reskilling">Perlu Pelatihan Ulang</option>
-            </select>
-          </div>
-
-          {/* 12. Status Verifikasi */}
-          <div>
-            <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase block mb-1">12. Status Verifikasi</label>
+            <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase block mb-1">11. Status Verifikasi</label>
             <select
               value={filterVerification}
               onChange={(e) => setFilterVerification(e.target.value)}
@@ -1502,6 +1486,52 @@ export const SupplyTable: React.FC<SupplyTableProps> = ({
           }
         }}
       />
+
+      {/* Floating Bulk Action Bar */}
+      {selectedCandidateIds.length > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-3 bg-slate-900/95 dark:bg-slate-950/95 text-white backdrop-blur-md px-4 py-2.5 sm:px-5 sm:py-3 rounded-2xl shadow-2xl border border-slate-700/80 animate-in fade-in slide-in-from-bottom-4 duration-200 max-w-[92vw]">
+          <div className="flex items-center gap-2 pr-3 border-r border-slate-700">
+            <span className="flex h-5 w-5 sm:h-6 sm:w-6 items-center justify-center rounded-full bg-blue-500/20 text-blue-400 font-bold text-xs">
+              {selectedCandidateIds.length}
+            </span>
+            <span className="text-xs font-semibold text-slate-200 whitespace-nowrap">
+              {selectedCandidateIds.length} Terpilih
+            </span>
+          </div>
+
+          {canMatchCandidates && (
+            <button
+              type="button"
+              onClick={() => setActiveStage(3)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white shadow-sm transition whitespace-nowrap"
+            >
+              <span>Matching Tahap 3</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          )}
+
+          {canArchiveCandidates && (
+            <button
+              type="button"
+              onClick={() => setIsBatchDeleting(true)}
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-rose-600 hover:bg-rose-500 text-white shadow-sm transition whitespace-nowrap"
+              title="Hapus seluruh peserta terpilih sekaligus"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>Hapus Masal ({selectedCandidateIds.length})</span>
+            </button>
+          )}
+
+          <button
+            type="button"
+            onClick={clearCandidateSelection}
+            className="text-xs text-slate-400 hover:text-white px-2 py-1 transition whitespace-nowrap"
+            title="Batalkan seluruh pilihan"
+          >
+            Batal
+          </button>
+        </div>
+      )}
     </div>
   );
 };

@@ -43,6 +43,42 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const isSuperAdmin = currentUser?.roleName === "super_admin" || currentUser?.role === "superadmin";
   const isTaskForce = currentUser?.roleName === "task_force" || currentUser?.role === "taskforce";
 
+  const prefetchTab = React.useCallback((tabId: string) => {
+    switch (tabId) {
+      case "modul-a":
+        void import("@/components/modul-a/SupplyTable");
+        break;
+      case "modul-b":
+        void import("@/components/modul-b/TrainingProgramsView");
+        break;
+      case "modul-c":
+        void import("@/components/modul-c/ProvidersView");
+        break;
+      case "modul-d":
+        void import("@/components/modul-d/GlobalDemandsView");
+        break;
+      case "dashboard":
+      case "overview":
+        void import("@/pages/DashboardPage");
+        break;
+      case "matching":
+      case "modul-e":
+        void import("@/components/matching/MatchingEngineView");
+        break;
+      case "approvals":
+        void import("@/components/approvals/ApprovalWorkflowView");
+        break;
+      case "audit":
+        void import("@/components/audit/AuditLogView");
+        break;
+      case "rbac":
+        void import("@/pages/UserManagementPage");
+        break;
+      default:
+        break;
+    }
+  }, []);
+
   const effectiveAccessibleTabs = React.useMemo(() => {
     const tabs = new Set(accessibleTabs);
     if (isSuperAdmin || isTaskForce) {
@@ -121,6 +157,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 return (
                   <button
                     key={item.id}
+                    onMouseEnter={() => prefetchTab(item.id)}
+                    onFocus={() => prefetchTab(item.id)}
                     onClick={() => {
                       if (currentTab !== item.id) {
                         setPendingTab(item.id);
