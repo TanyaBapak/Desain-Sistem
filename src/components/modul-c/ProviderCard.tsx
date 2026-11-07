@@ -15,6 +15,7 @@ import {
   Globe,
   ExternalLink,
   FileText,
+  AlertCircle,
 } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
 import { visitAllocationStage } from '../../lib/navigation';
@@ -53,6 +54,7 @@ export const ProviderCard: React.FC<ProviderCardProps> = ({
 
   const currentStatus = provider.institutionStatus === 'Negeri' ? 'Negeri' : 'Swasta';
   const nextStatus = currentStatus === 'Negeri' ? 'Swasta' : 'Negeri';
+  const hasInaproc = Boolean(provider.procurementCatalogUrl && provider.procurementCatalogUrl.trim() !== '');
 
   return (
     <div
@@ -102,6 +104,23 @@ export const ProviderCard: React.FC<ProviderCardProps> = ({
             {provider.source === 'kp2mi-api' && (
               <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800" title="Data resmi dari vokasi.kp2mi.go.id">
                 KP2MI
+              </span>
+            )}
+            {hasInaproc ? (
+              <span
+                className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800"
+                title={`Tautan e-Katalog INAPROC: ${provider.procurementCatalogUrl}`}
+              >
+                <CheckCircle2 className="w-2.5 h-2.5 text-emerald-600 dark:text-emerald-400" />
+                <span>INAPROC Terisi</span>
+              </span>
+            ) : (
+              <span
+                className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800"
+                title="Tautan e-Katalog LKPP / INAPROC belum diisi oleh lembaga"
+              >
+                <AlertCircle className="w-2.5 h-2.5 text-amber-600 dark:text-amber-400" />
+                <span>INAPROC Belum</span>
               </span>
             )}
           </div>
@@ -278,40 +297,76 @@ export const ProviderCard: React.FC<ProviderCardProps> = ({
         )}
       </div>
 
-        {/* Tautan Inaproc & MoU */}
-        {(provider.procurementCatalogUrl || provider.mouDriveUrl) && (
-          <div className="px-5 py-2.5 bg-slate-50/70 dark:bg-slate-800/70 border-t border-slate-200/60 dark:border-slate-700/60 flex flex-wrap items-center gap-1.5 text-xs">
-            <span className="text-slate-400 dark:text-slate-500 text-[10px] uppercase font-bold block w-full mb-0.5">
-              Tautan Dokumen:
+        {/* Status & Preview Link INAPROC / Dokumen */}
+        <div className="px-5 py-3 bg-slate-50/70 dark:bg-slate-800/60 border-t border-slate-200/60 dark:border-slate-800/80 text-xs">
+          <div className="flex items-center justify-between gap-2 mb-1.5">
+            <span className="text-slate-400 dark:text-slate-500 text-[10px] uppercase font-bold tracking-wider">
+              Tautan e-Katalog INAPROC:
             </span>
-            {provider.procurementCatalogUrl && (
+            {hasInaproc ? (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                <CheckCircle2 className="w-2.5 h-2.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                <span>Sudah Mengisi</span>
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800">
+                <AlertCircle className="w-2.5 h-2.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                <span>Belum Mengisi</span>
+              </span>
+            )}
+          </div>
+
+          {hasInaproc ? (
+            <div className="flex items-center justify-between gap-2">
               <a
-                href={provider.procurementCatalogUrl}
+                href={provider.procurementCatalogUrl!}
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={(e) => e.stopPropagation()}
-                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/60 text-[10px] font-semibold border border-blue-200 dark:border-blue-800 transition-colors"
-                title="Buka tautan Inaproc e-Katalog LKPP"
+                className="inline-flex items-center gap-1.5 py-1 px-2 rounded-lg bg-blue-50/80 dark:bg-blue-950/50 hover:bg-blue-100 dark:hover:bg-blue-900/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-900/60 text-[11px] font-medium transition-colors truncate max-w-full group"
+                title={`Buka tautan Inaproc e-Katalog LKPP: ${provider.procurementCatalogUrl}`}
               >
-                <ExternalLink className="w-2.5 h-2.5 text-blue-600 dark:text-blue-400" />
-                <span>Inaproc</span>
+                <ExternalLink className="w-3 h-3 text-blue-600 dark:text-blue-400 shrink-0 group-hover:scale-110 transition-transform" />
+                <span className="truncate">{provider.procurementCatalogUrl}</span>
               </a>
-            )}
-            {provider.mouDriveUrl && (
+            </div>
+          ) : (
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[11px] text-slate-400 dark:text-slate-500 italic">
+                Tautan INAPROC belum diisi oleh lembaga
+              </span>
+              {onEditProvider && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onEditProvider(provider);
+                  }}
+                  className="text-[10px] font-semibold text-blue-600 dark:text-blue-400 hover:underline shrink-0"
+                >
+                  + Isi Link
+                </button>
+              )}
+            </div>
+          )}
+
+          {provider.mouDriveUrl && (
+            <div className="mt-2 pt-2 border-t border-slate-200/50 dark:border-slate-700/50 flex items-center justify-between gap-2">
+              <span className="text-slate-400 dark:text-slate-500 text-[10px] uppercase font-bold">Berkas MoU:</span>
               <a
                 href={provider.mouDriveUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={(e) => e.stopPropagation()}
-                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 text-[10px] font-semibold border border-emerald-200 dark:border-emerald-800 transition-colors"
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 border border-emerald-200 dark:border-emerald-800 transition-colors"
                 title="Buka Berkas Dokumen MoU"
               >
-                <FileText className="w-2.5 h-2.5 text-emerald-600 dark:text-emerald-400" />
-                <span>Berkas MoU</span>
+                <FileText className="w-2.5 h-2.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                <span>Buka Dokumen MoU ↗</span>
               </a>
-            )}
-          </div>
-        )}
+            </div>
+          )}
+        </div>
       {/* Card Footer Actions */}
       <div className="p-4 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2">
         <button

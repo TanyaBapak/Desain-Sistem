@@ -93,6 +93,7 @@ export const ProvidersView: React.FC = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(24);
+  const [filterInaprocStatus, setFilterInaprocStatus] = useState<string>('ALL');
 
   const [debouncedSearch, setDebouncedSearch] = useState(searchProvider);
 
@@ -114,6 +115,7 @@ export const ProvidersView: React.FC = () => {
           sector: filterProviderSector,
           status: filterInstitutionStatus,
           evokasi: filterEvokasiStatus,
+          inaproc: filterInaprocStatus,
         },
       });
       setProvidersList(res.data.data || []);
@@ -127,7 +129,7 @@ export const ProvidersView: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [currentPage, debouncedSearch, filterProviderType, filterProviderProvince, filterProviderSector, filterInstitutionStatus, filterEvokasiStatus]);
+  }, [currentPage, debouncedSearch, filterProviderType, filterProviderProvince, filterProviderSector, filterInstitutionStatus, filterEvokasiStatus, filterInaprocStatus]);
 
   useEffect(() => {
     fetchProviders();
@@ -135,7 +137,7 @@ export const ProvidersView: React.FC = () => {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [debouncedSearch, filterProviderType, filterProviderProvince, filterProviderSector, filterInstitutionStatus, filterEvokasiStatus]);
+  }, [debouncedSearch, filterProviderType, filterProviderProvince, filterProviderSector, filterInstitutionStatus, filterEvokasiStatus, filterInaprocStatus]);
 
   const handleLiveSync = () => {
     setIsSyncing(true);
@@ -319,8 +321,8 @@ export const ProvidersView: React.FC = () => {
           })}
         </div>
 
-        {/* Row 3: Dropdown Filters for Sektor, Provinsi, Status Kepemilikan, and e-Vokasi */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+        {/* Row 3: Dropdown Filters for Sektor, Provinsi, Status Kepemilikan, e-Vokasi, and INAPROC */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 text-xs">
           {/* Filter Sektor */}
           <div className="space-y-1">
             <label className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold block">Sektor Spesialisasi:</label>
@@ -379,6 +381,20 @@ export const ProvidersView: React.FC = () => {
               <option value="Belum Terverifikasi">Belum Terverifikasi</option>
             </select>
           </div>
+
+          {/* Filter Status e-Katalog INAPROC */}
+          <div className="space-y-1">
+            <label className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold block">Status e-Katalog INAPROC:</label>
+            <select
+              value={filterInaprocStatus}
+              onChange={(e) => setFilterInaprocStatus(e.target.value)}
+              className="w-full py-2 px-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-slate-700 dark:text-slate-200"
+            >
+              <option value="ALL">Semua (Sudah & Belum)</option>
+              <option value="filled">Sudah Mengisi Link INAPROC</option>
+              <option value="empty">Belum Mengisi Link INAPROC</option>
+            </select>
+          </div>
         </div>
       </div>
 
@@ -392,7 +408,7 @@ export const ProvidersView: React.FC = () => {
           {loading && <Loader2 className="w-3.5 h-3.5 animate-spin text-slate-400" />}
         </div>
 
-        {(searchProvider || filterProviderType !== 'ALL' || filterProviderProvince !== 'ALL' || filterProviderSector !== 'ALL' || filterInstitutionStatus !== 'ALL' || filterEvokasiStatus !== 'ALL') && (
+        {(searchProvider || filterProviderType !== 'ALL' || filterProviderProvince !== 'ALL' || filterProviderSector !== 'ALL' || filterInstitutionStatus !== 'ALL' || filterEvokasiStatus !== 'ALL' || filterInaprocStatus !== 'ALL') && (
           <button
             onClick={() => {
               setSearchProvider('');
@@ -401,6 +417,7 @@ export const ProvidersView: React.FC = () => {
               setFilterProviderSector('ALL');
               setFilterInstitutionStatus('ALL');
               setFilterEvokasiStatus('ALL');
+              setFilterInaprocStatus('ALL');
             }}
             className="text-blue-600 hover:text-blue-700 font-semibold underline self-start sm:self-auto"
           >

@@ -325,7 +325,7 @@ export const ProviderDetailModal: React.FC<ProviderDetailModalProps> = ({
               Dokumen Kemitraan & Pengadaan:
             </span>
             <div className="flex flex-wrap items-center gap-2.5">
-              {provider.procurementCatalogUrl && (
+              {provider.procurementCatalogUrl ? (
                 <a
                   href={provider.procurementCatalogUrl}
                   target="_blank"
@@ -335,6 +335,11 @@ export const ProviderDetailModal: React.FC<ProviderDetailModalProps> = ({
                   <ExternalLink className="w-3.5 h-3.5" />
                   <span>Buka Inaproc e-Katalog LKPP ↗</span>
                 </a>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 text-xs font-medium border border-amber-200 dark:border-amber-800">
+                  <AlertTriangle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                  <span>Link INAPROC Belum Diisi</span>
+                </span>
               )}
               {provider.mouDriveUrl && (
                 <a

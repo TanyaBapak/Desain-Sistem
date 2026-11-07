@@ -562,6 +562,7 @@ class BusinessDataController extends Controller
         $sector = trim((string) $request->query('sector', 'ALL'));
         $status = trim((string) $request->query('status', 'ALL'));
         $evokasi = trim((string) $request->query('evokasi', 'ALL'));
+        $inaproc = trim((string) $request->query('inaproc', 'ALL'));
 
         $baseQuery = DB::table('institutions')
             ->leftJoin('provinces', 'provinces.id', '=', 'institutions.province_id')
@@ -607,6 +608,16 @@ class BusinessDataController extends Controller
             ->when($province !== 'ALL', fn ($q) => $q->where('provinces.name', 'like', "%{$province}%"))
             ->when($status !== 'ALL', fn ($q) => $q->where('institutions.ownership_type', $status))
             ->when($evokasi !== 'ALL', fn ($q) => $q->where('institutions.evokasi_status', $evokasi))
+            ->when($inaproc === 'filled', function ($q) {
+                $q->whereNotNull('institutions.procurement_catalog_url')
+                    ->where('institutions.procurement_catalog_url', '!=', '');
+            })
+            ->when($inaproc === 'empty', function ($q) {
+                $q->where(function ($qq) {
+                    $qq->whereNull('institutions.procurement_catalog_url')
+                        ->orWhere('institutions.procurement_catalog_url', '=', '');
+                });
+            })
             ->when($type !== 'ALL', function ($q) use ($type) {
                 $lower = strtolower($type);
                 if ($lower === 'politeknik') {
@@ -642,6 +653,8 @@ class BusinessDataController extends Controller
                 'institutions.district_id',
                 'institutions.accreditation',
                 'institutions.procurement_method',
+                'institutions.procurement_catalog_url',
+                'institutions.mou_drive_url',
                 'institutions.evokasi_status',
                 'institutions.verification_status',
                 'institutions.instructor_count',
@@ -715,6 +728,8 @@ class BusinessDataController extends Controller
                 'verificationStatus' => $row->verification_status,
                 'accreditation' => $row->accreditation,
                 'procurementMethod' => $row->procurement_method,
+                'procurementCatalogUrl' => $row->procurement_catalog_url ?? ($metadata['procurementCatalogUrl'] ?? null),
+                'mouDriveUrl' => $row->mou_drive_url ?? ($metadata['mouDriveUrl'] ?? null),
                 'capacityPerBatch' => $row->workshop_capacity === null ? null : (int) $row->workshop_capacity,
                 'classCount' => $row->class_count === null ? null : (int) $row->class_count,
                 'readyParticipantCount' => $candidateCountsByInst->has($row->id)
