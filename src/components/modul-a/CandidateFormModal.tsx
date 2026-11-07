@@ -40,6 +40,7 @@ export const CandidateFormModal: React.FC<CandidateFormModalProps> = ({
   const [language, setLanguage] = useState<'Jepang' | 'Jerman' | 'Inggris' | 'Mandarin' | 'Korea'>('Jepang');
   const [langLevel, setLangLevel] = useState('');
   const [preferredCountry, setPreferredCountry] = useState('');
+  const [isCustomCountry, setIsCustomCountry] = useState(false);
   const [preferredJobRole, setPreferredJobRole] = useState('');
   const [readinessStatus, setReadinessStatus] = useState<CandidateParticipant['readinessStatus']>('Ready for Placement');
   const [verificationStatus, setVerificationStatus] = useState<CandidateParticipant['verificationStatus']>('Pending Verification');
@@ -99,12 +100,37 @@ export const CandidateFormModal: React.FC<CandidateFormModalProps> = ({
     );
   }, [districtsList, selectedProvinceId]);
 
-  // 4 Negara Resmi Sistem SMK Go Global: Jepang, Korea, Malaysia, Turki
+  // 4 Negara Resmi Sistem SMK Go Global
   const official4Countries = useMemo(() => [
     { id: 'JP', name: 'Jepang' },
     { id: 'KR', name: 'Korea' },
     { id: 'MY', name: 'Malaysia' },
     { id: 'TR', name: 'Turki' },
+  ], []);
+
+  // Destinasi Populer Tambahan Calon Pekerja Migran
+  const otherPopularCountries = useMemo(() => [
+    { id: 'BG', name: 'Bulgaria' },
+    { id: 'KP', name: 'Kapal Pesiar Internasional' },
+    { id: 'DE', name: 'Jerman' },
+    { id: 'TW', name: 'Taiwan' },
+    { id: 'SG', name: 'Singapura' },
+    { id: 'AU', name: 'Australia' },
+    { id: 'NZ', name: 'Selandia Baru' },
+    { id: 'AE', name: 'Uni Emirat Arab' },
+    { id: 'SA', name: 'Arab Saudi' },
+    { id: 'QA', name: 'Qatar' },
+    { id: 'PL', name: 'Polandia' },
+    { id: 'SK', name: 'Slovakia' },
+    { id: 'HR', name: 'Kroasia' },
+    { id: 'GB', name: 'Inggris' },
+    { id: 'NL', name: 'Belanda' },
+    { id: 'CH', name: 'Swiss' },
+    { id: 'IT', name: 'Italia' },
+    { id: 'ES', name: 'Spanyol' },
+    { id: 'US', name: 'Amerika Serikat' },
+    { id: 'CA', name: 'Kanada' },
+    { id: 'BN', name: 'Brunei Darussalam' },
   ], []);
 
   const availableOccupations = useMemo(() => {
@@ -143,30 +169,35 @@ export const CandidateFormModal: React.FC<CandidateFormModalProps> = ({
     return list.sort((a, b) => a.localeCompare(b, 'id'));
   }, [businessOptions?.occupations]);
 
-  const availableCountries = useMemo(() => {
-    const fromStore = Array.isArray(businessOptions?.countries) && businessOptions.countries.length > 0
-      ? businessOptions.countries
-      : official4Countries;
-    const map = new Map<string, { id: string; name: string }>();
+  const availableOtherCountries = useMemo(() => {
+    const list: Array<{ id: string; name: string }> = [];
+    const seen = new Set<string>();
+    // Official countries already shown in first optgroup
+    official4Countries.forEach((c) => seen.add(c.name.toLowerCase()));
 
-    fromStore.forEach((c) => {
-      if (!c?.name) return;
-      const normalizedName = (c.name === 'Korea Selatan' || c.name === 'Korsel') ? 'Korea' : c.name.trim();
-      map.set(normalizedName.toLowerCase(), {
-        id: c.id || normalizedName,
-        name: normalizedName,
-      });
-    });
-
-    if (preferredCountry) {
-      const clean = ((preferredCountry || '').toLowerCase() === 'korea selatan' || (preferredCountry || '').toLowerCase() === 'korsel') ? 'Korea' : preferredCountry.trim();
-      if (!map.has(clean.toLowerCase())) {
-        map.set(clean.toLowerCase(), { id: clean, name: clean });
+    const addCountry = (name?: string, id?: string) => {
+      const clean = (name || '').trim();
+      if (!clean) return;
+      const normalizedName = ((clean.toLowerCase() === 'korea selatan' || clean.toLowerCase() === 'korsel') ? 'Korea' : clean);
+      const key = normalizedName.toLowerCase();
+      if (!seen.has(key)) {
+        seen.add(key);
+        list.push({ id: id || normalizedName, name: normalizedName });
       }
+    };
+
+    otherPopularCountries.forEach((c) => addCountry(c.name, c.id));
+
+    if (Array.isArray(businessOptions?.countries)) {
+      businessOptions.countries.forEach((c) => addCountry(c.name, c.id));
     }
 
-    return Array.from(map.values());
-  }, [businessOptions?.countries, official4Countries, preferredCountry]);
+    if (preferredCountry) {
+      addCountry(preferredCountry);
+    }
+
+    return list;
+  }, [businessOptions?.countries, official4Countries, otherPopularCountries, preferredCountry]);
 
   useEffect(() => {
     if (initialData && mode === 'edit') {
@@ -200,6 +231,7 @@ export const CandidateFormModal: React.FC<CandidateFormModalProps> = ({
       );
       setReadinessStatus(initialData.readinessStatus || 'Ready for Placement');
       setVerificationStatus(initialData.verificationStatus || 'Pending Verification');
+      setIsCustomCountry(false);
     } else {
       // Default reset
       setFullName('');
@@ -215,6 +247,7 @@ export const CandidateFormModal: React.FC<CandidateFormModalProps> = ({
       setLanguage('Jepang');
       setLangLevel('');
       setPreferredCountry('');
+      setIsCustomCountry(false);
       setPreferredJobRole('');
       setReadinessStatus('Ready for Placement');
       setVerificationStatus('Pending Verification');
@@ -489,18 +522,58 @@ export const CandidateFormModal: React.FC<CandidateFormModalProps> = ({
             <div>
               <label className="block font-bold text-slate-700 mb-1">Target Negara & Jabatan</label>
               <div className="grid grid-cols-2 gap-2">
-                <select
-                  value={((preferredCountry || '').toLowerCase() === 'korea selatan' || (preferredCountry || '').toLowerCase() === 'korsel') ? 'Korea' : preferredCountry}
-                  onChange={(e) => setPreferredCountry(e.target.value)}
-                  className="w-full px-2.5 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer text-slate-800 font-medium"
-                >
-                  <option value="">Pilih negara target...</option>
-                  {availableCountries.map((country) => (
-                    <option key={country.id || country.name} value={country.name}>
-                      {country.name}
-                    </option>
-                  ))}
-                </select>
+                <div>
+                  {isCustomCountry ? (
+                    <div className="flex gap-1.5 items-center">
+                      <input
+                        type="text"
+                        autoFocus
+                        value={preferredCountry}
+                        onChange={(e) => setPreferredCountry(e.target.value)}
+                        placeholder="Ketik nama negara..."
+                        className="w-full px-2.5 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-slate-800"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setIsCustomCountry(false)}
+                        className="px-2.5 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 bg-slate-200 hover:bg-slate-300 rounded-xl whitespace-nowrap transition cursor-pointer"
+                        title="Pilih dari daftar dropdown"
+                      >
+                        Pilih Dropdown
+                      </button>
+                    </div>
+                  ) : (
+                    <select
+                      value={((preferredCountry || '').toLowerCase() === 'korea selatan' || (preferredCountry || '').toLowerCase() === 'korsel') ? 'Korea' : preferredCountry}
+                      onChange={(e) => {
+                        if (e.target.value === '__custom__') {
+                          setIsCustomCountry(true);
+                          setPreferredCountry('');
+                        } else {
+                          setPreferredCountry(e.target.value);
+                        }
+                      }}
+                      className="w-full px-2.5 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer text-slate-800 font-medium"
+                    >
+                      <option value="">Pilih negara target...</option>
+                      <optgroup label="Negara Resmi SMK Go Global">
+                        {official4Countries.map((country) => (
+                          <option key={country.id || country.name} value={country.name}>
+                            {country.name}
+                          </option>
+                        ))}
+                      </optgroup>
+                      <optgroup label="Destinasi Populer Lainnya">
+                        {availableOtherCountries.map((country) => (
+                          <option key={country.id || country.name} value={country.name}>
+                            {country.name}
+                          </option>
+                        ))}
+                      </optgroup>
+                      <option value="__custom__">+ Ketik Negara Lainnya...</option>
+                    </select>
+                  )}
+                </div>
                 <div>
                   <input
                     type="text"

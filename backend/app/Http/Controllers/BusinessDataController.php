@@ -1011,11 +1011,11 @@ class BusinessDataController extends Controller
             foreach ($rawWork as $w) {
                 if (is_array($w)) {
                     $cleanWork[] = [
-                        'sector' => (string) ($w['sector'] ?? 'Hospitality & Pariwisata'),
-                        'role' => (string) ($w['role'] ?? 'Staf Pelaksana'),
+                        'sector' => mb_substr((string) ($w['sector'] ?? 'Hospitality & Pariwisata'), 0, 1000),
+                        'role' => mb_substr((string) ($w['role'] ?? 'Staf Pelaksana'), 0, 1000),
                         'durationYears' => (float) ($w['durationYears'] ?? 1.0),
-                        'companyName' => isset($w['companyName']) ? (string) $w['companyName'] : null,
-                        'description' => isset($w['description']) ? (string) $w['description'] : null,
+                        'companyName' => isset($w['companyName']) ? mb_substr((string) $w['companyName'], 0, 1000) : null,
+                        'description' => isset($w['description']) ? mb_substr((string) $w['description'], 0, 5000) : null,
                     ];
                 }
             }
@@ -1030,14 +1030,14 @@ class BusinessDataController extends Controller
             foreach ($rawCerts as $c) {
                 if (is_array($c)) {
                     $cleanCerts[] = [
-                        'name' => (string) ($c['name'] ?? 'Sertifikasi Keahlian'),
-                        'issuer' => (string) ($c['issuer'] ?? 'Badan Sertifikasi Standar Kompetensi'),
+                        'name' => mb_substr((string) ($c['name'] ?? 'Sertifikasi Keahlian'), 0, 1000),
+                        'issuer' => mb_substr((string) ($c['issuer'] ?? 'Badan Sertifikasi Standar Kompetensi'), 0, 1000),
                         'issueYear' => isset($c['issueYear']) && is_numeric($c['issueYear']) ? (int) $c['issueYear'] : (int) date('Y'),
                         'validUntil' => isset($c['validUntil']) && is_string($c['validUntil']) && strtotime($c['validUntil']) ? date('Y-m-d', strtotime($c['validUntil'])) : null,
                     ];
                 } elseif (is_string($c) && trim($c) !== '') {
                     $cleanCerts[] = [
-                        'name' => trim($c),
+                        'name' => mb_substr(trim($c), 0, 1000),
                         'issuer' => 'Badan Sertifikasi Standar Kompetensi',
                         'issueYear' => (int) date('Y'),
                         'validUntil' => null,
@@ -1133,27 +1133,27 @@ class BusinessDataController extends Controller
                 'sourceType' => ['nullable', 'string', 'max:100'],
                 'major' => ['required', 'string', 'max:150'],
                 'skills' => ['array'],
-                'skills.*' => ['string', 'max:100'],
+                'skills.*' => ['string', 'max:255'],
                 'workExperiences' => ['array'],
-                'workExperiences.*.sector' => ['nullable', 'string', 'max:150'],
-                'workExperiences.*.role' => ['nullable', 'string', 'max:150'],
+                'workExperiences.*.sector' => ['nullable', 'string', 'max:1000'],
+                'workExperiences.*.role' => ['nullable', 'string', 'max:1000'],
                 'workExperiences.*.durationYears' => ['nullable', 'numeric', 'min:0', 'max:100'],
-                'workExperiences.*.companyName' => ['nullable', 'string', 'max:150'],
-                'workExperiences.*.description' => ['nullable', 'string', 'max:2000'],
+                'workExperiences.*.companyName' => ['nullable', 'string', 'max:1000'],
+                'workExperiences.*.description' => ['nullable', 'string', 'max:5000'],
                 'certifications' => ['array'],
-                'certifications.*.name' => ['nullable', 'string', 'max:150'],
-                'certifications.*.issuer' => ['nullable', 'string', 'max:150'],
+                'certifications.*.name' => ['nullable', 'string', 'max:1000'],
+                'certifications.*.issuer' => ['nullable', 'string', 'max:1000'],
                 'certifications.*.issueYear' => ['nullable', 'integer', 'min:1900', 'max:'.(now()->year + 10)],
                 'certifications.*.validUntil' => ['nullable', 'date'],
                 'preferredSectors' => ['array'],
-                'preferredSectors.*' => ['string', 'max:150'],
+                'preferredSectors.*' => ['string', 'max:255'],
                 'languageProficiency' => ['array'],
-                'languageProficiency.*.language' => ['nullable', 'string', 'max:50'],
-                'languageProficiency.*.level' => ['nullable', 'string', 'max:50'],
+                'languageProficiency.*.language' => ['nullable', 'string', 'max:100'],
+                'languageProficiency.*.level' => ['nullable', 'string', 'max:100'],
                 'preferredCountry' => ['array'],
                 'preferredCountry.*' => ['string', 'max:100'],
                 'preferredJobRole' => ['array'],
-                'preferredJobRole.*' => ['string', 'max:150'],
+                'preferredJobRole.*' => ['string', 'max:255'],
                 'readinessStatus' => ['required', Rule::in(['Ready for Placement', 'Needs Upskilling', 'Needs Reskilling'])],
                 'verificationStatus' => ['required', Rule::in(['Verified', 'Pending Verification', 'Unverified'])],
                 'lifecycleStatus' => ['nullable', 'string', 'max:50'],
