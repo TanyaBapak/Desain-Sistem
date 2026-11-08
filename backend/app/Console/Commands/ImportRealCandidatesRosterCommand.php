@@ -211,6 +211,7 @@ class ImportRealCandidatesRosterCommand extends Command
                 'countries' => ['Jepang', 'Jerman'],
             ],
             'SMK NEGERI 1 MUNDU' => [
+                'aliases' => ['SMKN 1 Mundu', 'SMK Negeri 1 Mundu', 'SMK NEGERI 1 MUNDU'],
                 'type' => 'SMK',
                 'province_id' => '32',
                 'district_id' => '3209',
@@ -220,6 +221,7 @@ class ImportRealCandidatesRosterCommand extends Command
                 'countries' => ['Jepang', 'Korea Selatan', 'Taiwan'],
             ],
             'Graha Wisata SEMARANG' => [
+                'aliases' => ['LKP GRAHA WISATA SURAKARTA', 'Graha Wisata SEMARANG', 'Graha Wisata', 'LKP GRAHA WISATA'],
                 'type' => 'LPK',
                 'province_id' => '33',
                 'district_id' => '3374',
@@ -328,6 +330,7 @@ class ImportRealCandidatesRosterCommand extends Command
                 'countries' => ['Turki', 'Malaysia'],
             ],
             'Victoria Hotel School' => [
+                'aliases' => ['Victoria Hotel School', 'LPK Victoria Hotel School', 'LPK Indonesia Hotel School', 'Indonesia Hotel School'],
                 'type' => 'LPK',
                 'province_id' => '33',
                 'district_id' => '3372',
@@ -409,6 +412,7 @@ class ImportRealCandidatesRosterCommand extends Command
                 'countries' => ['Kapal Pesiar Internasional'],
             ],
             'LPIA Hotel dan Kapal Pesiar' => [
+                'aliases' => ['LPIA Hotel & Kapal Pesiar', 'LPIA HOTEL & KAPAL PESIAR', 'LPIA Hotel dan Kapal Pesiar'],
                 'type' => 'LPK',
                 'province_id' => '32',
                 'district_id' => '3275',
@@ -426,14 +430,60 @@ class ImportRealCandidatesRosterCommand extends Command
                 'role' => 'Hospitality Crew',
                 'countries' => ['Turki', 'Malaysia'],
             ],
+            'Metro Hotel School' => [
+                'aliases' => ['LPK Metro Hotel School', 'Metro Hotel School'],
+                'type' => 'LPK',
+                'province_id' => '18',
+                'district_id' => '1871',
+                'sector' => 'Tourism, Travel, dan Hospitality',
+                'major' => 'Hospitality & Pariwisata',
+                'role' => 'Housekeeping / Room Attendant',
+                'countries' => ['Turki', 'Uni Emirat Arab'],
+            ],
+            'House of Learning' => [
+                'aliases' => ['House of Learning', 'p: House of Learning'],
+                'type' => 'LPK',
+                'province_id' => '18',
+                'district_id' => '1810',
+                'sector' => 'Tourism, Travel, dan Hospitality',
+                'major' => 'Perhotelan & Kapal Pesiar',
+                'role' => 'Housekeeping / Hospitality Staff',
+                'countries' => ['Turki', 'Malaysia'],
+            ],
+            'MITRA SAURI' => [
+                'aliases' => ['LPK Mitra Sauri Medan', 'Mitra Sauri', 'MITRA SAURI'],
+                'type' => 'LPK',
+                'province_id' => '12',
+                'district_id' => '1271',
+                'sector' => 'Tourism, Travel, dan Hospitality',
+                'major' => 'Perhotelan & Restoran',
+                'role' => 'Hospitality Staff / Tata Graha',
+                'countries' => ['Malaysia', 'Turki'],
+            ],
+            'LKP Smart Plus' => [
+                'aliases' => ['LPK Smart Plus', 'PK Smart Plus', 'LKP Smart Plus', 'Smart Plus'],
+                'type' => 'LPK',
+                'province_id' => '33',
+                'district_id' => '3310',
+                'sector' => 'Bahasa & Manufaktur',
+                'major' => 'Bahasa & Pelatihan Vokasi',
+                'role' => 'Operator Manufaktur',
+                'countries' => ['Jepang'],
+            ],
         ];
 
-        // Resolusi ID institusi di database
+        // Resolusi ID institusi di database dengan dukungan alias dan pencarian cerdas
         $resolvedInstitutions = [];
         foreach ($metaMapping as $instName => $info) {
+            $aliases = array_unique(array_merge([$instName], $info['aliases'] ?? []));
             $existing = DB::table('institutions')
-                ->where('name', $instName)
-                ->orWhere('name', 'LIKE', '%' . $instName . '%')
+                ->where(function ($q) use ($aliases) {
+                    foreach ($aliases as $alias) {
+                        $q->orWhere('name', $alias)
+                            ->orWhere('name', 'LIKE', '%' . $alias . '%');
+                    }
+                })
+                ->orderByRaw("CASE WHEN name = '{$instName}' THEN 0 ELSE 1 END")
                 ->first(['id', 'name', 'province_id', 'district_id']);
 
             if ($existing) {
@@ -443,12 +493,13 @@ class ImportRealCandidatesRosterCommand extends Command
                     'verification_status' => 'Verified',
                     'updated_at' => now(),
                 ]);
-                $resolvedInstitutions[$instName] = [
+                $resolvedData = [
                     'id' => (string) $existing->id,
                     'name' => (string) $existing->name,
                     'province_id' => (string) ($existing->province_id ?: $info['province_id']),
                     'district_id' => (string) ($existing->district_id ?: $info['district_id']),
                     'info' => $info,
+                    'aliases' => $aliases,
                 ];
             } else {
                 // Buat jika belum ada
@@ -469,14 +520,22 @@ class ImportRealCandidatesRosterCommand extends Command
                         'updated_at' => now(),
                     ]
                 );
-                $resolvedInstitutions[$instName] = [
+                $resolvedData = [
                     'id' => $newId,
                     'name' => $instName,
                     'province_id' => $info['province_id'],
                     'district_id' => $info['district_id'],
                     'info' => $info,
+                    'aliases' => $aliases,
                 ];
             }
+
+            foreach ($aliases as $alias) {
+                $resolvedInstitutions[$alias] = $resolvedData;
+                $resolvedInstitutions[trim(mb_strtolower($alias))] = $resolvedData;
+            }
+            $resolvedInstitutions[$instName] = $resolvedData;
+            $resolvedInstitutions[trim(mb_strtolower($instName))] = $resolvedData;
         }
 
         // 3. Masukkan Seluruh Data Siswa Riil
@@ -508,7 +567,9 @@ class ImportRealCandidatesRosterCommand extends Command
                     $studentName = trim($row['name']);
                     $instKey = trim($row['institution']);
 
-                    $inst = $resolvedInstitutions[$instKey] ?? null;
+                    $inst = $resolvedInstitutions[$instKey] 
+                         ?? $resolvedInstitutions[trim(mb_strtolower($instKey))] 
+                         ?? null;
                     if (! $inst) {
                         continue;
                     }
@@ -755,8 +816,30 @@ class ImportRealCandidatesRosterCommand extends Command
         foreach ($instStudentCounts as $instId => $count) {
             DB::table('institutions')->where('id', $instId)->update([
                 'total_active_students' => $count,
+                'status' => 'Aktif',
+                'verification_status' => 'Verified',
                 'updated_at' => now(),
             ]);
+        }
+
+        // Sinkronkan juga ke semua nama variasi/alias institusi di tabel institutions agar tidak ada yang 0
+        foreach ($metaMapping as $instName => $info) {
+            $aliases = array_unique(array_merge([$instName], $info['aliases'] ?? []));
+            $resolvedId = $resolvedInstitutions[$instName]['id'] ?? null;
+            $count = $resolvedId ? ($instStudentCounts[$resolvedId] ?? 0) : 0;
+            if ($count > 0) {
+                foreach ($aliases as $alias) {
+                    DB::table('institutions')
+                        ->where('name', $alias)
+                        ->orWhere('name', 'LIKE', '%' . $alias . '%')
+                        ->update([
+                            'total_active_students' => $count,
+                            'status' => 'Aktif',
+                            'verification_status' => 'Verified',
+                            'updated_at' => now(),
+                        ]);
+                }
+            }
         }
         $this->info('   ✓ Kuota dan jumlah siswa lembaga vokasi telah disinkronkan.');
 
