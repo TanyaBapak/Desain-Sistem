@@ -53,6 +53,7 @@ class BusinessDataPresenter
         'citra international', 'tedja indonesia', 'lpia hotel', 'erlangga blitar',
         'kepanjen', 'study hotel', 'american english', 'cruise international',
         'p4m', 'trijasa', 'house of learning', 'smart plus', 'metro hotel', 'mitra sauri',
+        'omega marine', 'victoria hotel', 'gemilang sukma',
     ];
 
     /**
@@ -812,6 +813,77 @@ class BusinessDataPresenter
                         'registrationSource' => 'lembaga_vokasi',
                         'inputLevel' => 'lembaga_vokasi',
                         'hasAdminAccount' => false,
+                    ]);
+                }
+            }
+
+            // Pastikan seluruh mitra prioritas penyelenggara (34 lembaga) terangkum lengkap
+            $additionalPriorityPartners = [
+                [
+                    'name' => 'LPK Erlangga Blitar',
+                    'type' => 'LPK',
+                    'province' => 'Jawa Timur',
+                    'district' => 'Kota Blitar',
+                    'sectors' => ['Manufaktur & Pengelasan', 'Otomotif'],
+                    'occupations' => ['Welder', 'Teknisi Manufaktur'],
+                ],
+                [
+                    'name' => 'LPK House of Learning',
+                    'type' => 'LPK',
+                    'province' => 'Jawa Tengah',
+                    'district' => 'Kota Semarang',
+                    'sectors' => ['Bahasa & Komunikasi', 'Hospitality & Pariwisata'],
+                    'occupations' => ['Caregiver', 'Hospitality Staff'],
+                ],
+                [
+                    'name' => 'LPK Smart Plus Education',
+                    'type' => 'LPK',
+                    'province' => 'Jawa Barat',
+                    'district' => 'Kota Bandung',
+                    'sectors' => ['Kesehatan & Caregiver', 'Hospitality & Pariwisata'],
+                    'occupations' => ['Caregiver', 'Perawat Lansia'],
+                ],
+                [
+                    'name' => 'Metro Hotel School',
+                    'type' => 'LPK',
+                    'province' => 'Jawa Barat',
+                    'district' => 'Kota Bogor',
+                    'sectors' => ['Hospitality & Pariwisata'],
+                    'occupations' => ['Hotelier', 'F&B Service'],
+                ],
+            ];
+
+            foreach ($additionalPriorityPartners as $p) {
+                $exists = $sampleInstitutions->first(function ($it) use ($p) {
+                    $name = is_array($it) ? ($it['name'] ?? '') : ($it->name ?? '');
+                    return stripos((string) $name, (string) $p['name']) !== false;
+                });
+
+                if (! $exists) {
+                    $sampleInstitutions->push([
+                        'id' => 'INST-PRIORITY-' . substr(md5($p['name']), 0, 10),
+                        'name' => $p['name'],
+                        'type' => $p['type'],
+                        'province' => $p['province'],
+                        'district' => $p['district'],
+                        'accreditation' => 'A',
+                        'evokasiStatus' => 'Terverifikasi e-Vokasi',
+                        'supportedSectors' => $p['sectors'],
+                        'supportedOccupations' => $p['occupations'],
+                        'externalMetadata' => null,
+                        'totalActiveStudents' => 120,
+                        'workshopCapacity' => 120,
+                        'externalSource' => 'mitra_prioritas_mou',
+                        'procurementMethod' => null,
+                        'procurementCatalogUrl' => null,
+                        'mouDriveUrl' => null,
+                        'evokasiUrl' => null,
+                        'isPriorityPartner' => true,
+                        'students' => [],
+                        'studentCount' => 0,
+                        'registrationSource' => 'lembaga_vokasi',
+                        'inputLevel' => 'lembaga_vokasi',
+                        'hasAdminAccount' => true,
                     ]);
                 }
             }

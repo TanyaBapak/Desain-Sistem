@@ -135,9 +135,11 @@ const PRIORITY_KEYWORDS = [
   "citra international", "tedja indonesia", "lpia hotel", "erlangga blitar",
   "kepanjen", "study hotel", "american english", "cruise international",
   "p4m", "trijasa", "house of learning", "smart plus", "metro hotel", "mitra sauri",
+  "omega marine", "victoria hotel", "gemilang sukma",
 ];
 
 export function isPriorityInstitution(inst: PublicPreviewInstitution): boolean {
+  if (inst.isPriorityPartner) return true;
   const n = (inst.name || "").toLowerCase();
   return PRIORITY_KEYWORDS.some((kw) => n.includes(kw));
 }
@@ -2174,9 +2176,9 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
     }
 
     const supplyOnlyItems = items.filter(
-      (it) => (it.students?.length ?? it.studentCount ?? 0) > 0
+      (it) => isPriorityInstitution(it) || Boolean(it.isPriorityPartner) || (it.students?.length ?? it.studentCount ?? 0) > 0
     );
-    const priorityCount = supplyOnlyItems.filter((it) => isPriorityInstitution(it)).length;
+    const priorityCount = supplyOnlyItems.filter((it) => isPriorityInstitution(it) || Boolean(it.isPriorityPartner)).length;
     const lembagaCount = supplyOnlyItems.filter((it) => isLembagaInstitution(it)).length;
     const vokasiCount = supplyOnlyItems.filter((it) => isVokasiInstitution(it)).length;
 
@@ -2191,7 +2193,7 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
 
       const matchCategory =
         institutionCategoryFilter === "ALL" ||
-        (institutionCategoryFilter === "prioritas" && isPriorityInstitution(it)) ||
+        (institutionCategoryFilter === "prioritas" && (isPriorityInstitution(it) || Boolean(it.isPriorityPartner))) ||
         (institutionCategoryFilter === "lembaga" && isLembagaInstitution(it)) ||
         (institutionCategoryFilter === "vokasi" && isVokasiInstitution(it));
 
