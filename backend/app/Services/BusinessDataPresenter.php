@@ -156,25 +156,24 @@ class BusinessDataPresenter
             ->where('status', 'Aktif')
             ->where('evokasi_status', 'Terverifikasi e-Vokasi')
             ->count();
-        $instWithSupplyIds = rescue(fn () => DB::table('job_seekers')
-            ->whereNull('deleted_at')
-            ->whereNotNull('institution_id')
-            ->where('institution_id', '!=', '')
-            ->distinct('institution_id')
-            ->pluck('institution_id'), collect());
+        $priorityInstIds = rescue(fn () => DB::table('institutions')
+            ->where('status', 'Aktif')
+            ->where('is_priority_partner', 1)
+            ->pluck('id'), collect());
 
         $adminLembagaInstIds = rescue(fn () => DB::table('model_has_roles')
             ->join('roles', 'roles.id', '=', 'model_has_roles.role_id')
             ->join('users', 'users.id', '=', 'model_has_roles.model_id')
-            ->where('roles.name', 'institution_admin')
+            ->whereIn('roles.name', ['institution_admin', 'vokasi', 'lembaga_vokasi'])
             ->where('model_has_roles.model_type', 'App\Models\User')
+            ->where('users.status', 'Aktif')
             ->whereNotNull('users.institution_id')
             ->where('users.institution_id', '!=', '')
             ->distinct('users.institution_id')
             ->pluck('users.institution_id'), collect());
 
-        $combinedInstIds = $instWithSupplyIds->merge($adminLembagaInstIds)->unique();
-        $vokasiWithSupplyCount = $combinedInstIds->isNotEmpty() ? $combinedInstIds->count() : 71;
+        $registeredInstIds = $adminLembagaInstIds->merge($priorityInstIds)->unique();
+        $vokasiWithSupplyCount = $registeredInstIds->isNotEmpty() ? $registeredInstIds->count() : 55;
 
         $activeTrainingProgramsCount = (int) DB::table('training_programs')->where('status', 'Aktif')->count();
 
@@ -447,18 +446,25 @@ class BusinessDataPresenter
                 ->distinct('institution_id')
                 ->pluck('institution_id'), collect());
 
+            $priorityInstIds = rescue(fn () => DB::table('institutions')
+                ->where('status', 'Aktif')
+                ->where('is_priority_partner', 1)
+                ->pluck('id'), collect());
+
             $adminLembagaInstIds = rescue(fn () => DB::table('model_has_roles')
                 ->join('roles', 'roles.id', '=', 'model_has_roles.role_id')
                 ->join('users', 'users.id', '=', 'model_has_roles.model_id')
-                ->where('roles.name', 'institution_admin')
+                ->whereIn('roles.name', ['institution_admin', 'vokasi', 'lembaga_vokasi'])
                 ->where('model_has_roles.model_type', 'App\Models\User')
+                ->where('users.status', 'Aktif')
                 ->whereNotNull('users.institution_id')
                 ->where('users.institution_id', '!=', '')
                 ->distinct('users.institution_id')
                 ->pluck('users.institution_id'), collect());
 
-            $combinedInstIds = $instWithSupplyIds->merge($adminLembagaInstIds)->unique();
-            $vokasiWithSupply = $combinedInstIds->isNotEmpty() ? $combinedInstIds->count() : 71;
+            // Lembaga terdaftar resmi = lembaga yang memiliki akun admin aktif ATAU merupakan mitra prioritas MoU
+            $registeredInstIds = $adminLembagaInstIds->merge($priorityInstIds)->unique();
+            $vokasiWithSupply = $registeredInstIds->isNotEmpty() ? $registeredInstIds->count() : 55;
             $activeClasses = max(
                 (int) DB::table('training_classes')->count(),
                 (int) DB::table('training_programs')
@@ -578,20 +584,14 @@ class BusinessDataPresenter
                 ];
             }
 
-            // Preview directory lists (public safe, no PII)
+            // Preview directory lists: HANYA lembaga yang memiliki akun admin aktif atau mitra prioritas MoU
             $instQuery = DB::table('institutions')
                 ->leftJoin('provinces', 'provinces.id', '=', 'institutions.province_id')
                 ->leftJoin('districts', 'districts.id', '=', 'institutions.district_id')
-                ->where(function ($q) use ($combinedInstIds) {
-                    if ($combinedInstIds->isNotEmpty()) {
-                        $q->whereIn('institutions.id', $combinedInstIds)
-                          ->orWhere(function ($sub) {
-                              $sub->where('institutions.status', 'Aktif')
-                                  ->where('institutions.evokasi_status', 'Terverifikasi e-Vokasi');
-                          });
-                    } else {
-                        $q->where('institutions.status', 'Aktif')
-                          ->where('institutions.evokasi_status', 'Terverifikasi e-Vokasi');
+                ->where('institutions.status', 'Aktif')
+                ->where(function ($q) use ($registeredInstIds) {
+                    if ($registeredInstIds->isNotEmpty()) {
+                        $q->whereIn('institutions.id', $registeredInstIds);
                     }
                 });
             if ($selectedProvince !== 'all') {
@@ -612,19 +612,18 @@ class BusinessDataPresenter
                     'readiness_status',
                 ]), collect());
 
+            $priorityInstList = $priorityInstIds->isNotEmpty()
+                ? "'" . implode("','", $priorityInstIds->all()) . "'"
+                : "''";
             $adminInstList = $adminLembagaInstIds->isNotEmpty()
                 ? "'" . implode("','", $adminLembagaInstIds->all()) . "'"
-                : "''";
-            $supplyInstList = $instWithSupplyIds->isNotEmpty()
-                ? "'" . implode("','", $instWithSupplyIds->all()) . "'"
                 : "''";
 
             $sampleInstitutions = $instQuery
                 ->orderByRaw("CASE 
-                    WHEN institutions.id IN ({$supplyInstList}) THEN 1
+                    WHEN institutions.id IN ({$priorityInstList}) THEN 1
                     WHEN institutions.id IN ({$adminInstList}) THEN 2
-                    WHEN institutions.evokasi_status = 'Terverifikasi e-Vokasi' THEN 3 
-                    ELSE 4 
+                    ELSE 3 
                 END")
                 ->orderBy('institutions.name')
                 ->limit(200)
@@ -645,6 +644,7 @@ class BusinessDataPresenter
                     'institutions.procurement_catalog_url as procurementCatalogUrl',
                     'institutions.mou_drive_url as mouDriveUrl',
                     'institutions.evokasi_url as evokasiUrl',
+                    DB::raw("CASE WHEN institutions.id IN ({$priorityInstList}) THEN 1 ELSE 0 END as isPriorityPartner"),
                 ])
                 ->map(function (object $row) use ($candidatesRows, $adminLembagaInstIds): array {
                     $metadata = $this->decodeArray($row->externalMetadata);
@@ -715,6 +715,7 @@ class BusinessDataPresenter
                         'registrationSource' => $source,
                         'inputLevel' => $inputLevel,
                         'hasAdminAccount' => $adminLembagaInstIds->contains($row->id),
+                        'isPriorityPartner' => (bool) ($row->isPriorityPartner ?? false),
                     ];
                 })
                 ->sortByDesc('studentCount')

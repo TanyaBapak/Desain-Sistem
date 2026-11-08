@@ -46,6 +46,7 @@ return [
         'webhook_secret' => env('GARDATA_WEBHOOK_SECRET'),
         'sync_page_size' => (int) env('GARDATA_SYNC_PAGE_SIZE', 50),
         'max_pages' => (int) env('GARDATA_SYNC_MAX_PAGES', 1000),
+        'auto_sync_enabled' => (bool) env('GARDATA_AUTO_SYNC_ENABLED', false),
     ],
 
     'sippmi' => [

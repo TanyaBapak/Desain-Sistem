@@ -39,6 +39,11 @@ class SyncGardataPlacementData implements ShouldBeUnique, ShouldQueue
 
     public function handle(GardataPlacementSyncService $syncService): void
     {
+        if (! (bool) config('services.gardata.auto_sync_enabled', false) && ! $this->force) {
+            Log::info('Gardata automatic background sync is disabled by configuration.');
+            return;
+        }
+
         $syncService->syncCandidates(null, null, 'gardata', $this->force);
 
         $sippmiBase = rtrim((string) config('services.sippmi.base_url', ''), '/');

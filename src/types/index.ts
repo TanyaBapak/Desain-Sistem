@@ -156,6 +156,7 @@ export interface VocationalProvider {
   registrationSourceId?: string;
   inputLevel?: 'kabupaten_kota' | 'provinsi' | 'lembaga_vokasi' | 'nasional' | string;
   hasAdminAccount?: boolean;
+  isPriorityPartner?: boolean;
   adminUserCount?: number;
   procurementCatalogUrl?: string | null;
   mouDriveUrl?: string | null;
@@ -718,6 +719,7 @@ export interface PublicPreviewInstitution {
   registrationSourceId?: string;
   inputLevel?: 'kabupaten_kota' | 'provinsi' | 'lembaga_vokasi' | 'nasional' | string;
   hasAdminAccount?: boolean;
+  isPriorityPartner?: boolean;
   adminUserCount?: number;
   procurementMethod?: string | null;
   procurementCatalogUrl?: string | null;

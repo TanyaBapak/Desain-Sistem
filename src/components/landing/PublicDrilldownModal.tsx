@@ -30,6 +30,7 @@ import {
   Download,
   Loader2,
   BookOpen,
+  Award,
   ExternalLink,
   FileText,
 } from "lucide-react";
@@ -166,7 +167,7 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
   const [selectedProvinceForLpk, setSelectedProvinceForLpk] = useState<string | null>(null);
   const [institutionSourceFilter, setInstitutionSourceFilter] = useState<"ALL" | "siskop2mi" | "disnaker" | "umum">(initialSourceFilter);
   const [institutionLevelFilter, setInstitutionLevelFilter] = useState<"ALL" | InstitutionInputLevel>("ALL");
-  const [institutionCategoryFilter, setInstitutionCategoryFilter] = useState<"ALL" | "lembaga" | "vokasi">("ALL");
+  const [institutionCategoryFilter, setInstitutionCategoryFilter] = useState<"ALL" | "prioritas" | "lembaga" | "vokasi">("ALL");
   const [institutionStatusFilter, setInstitutionStatusFilter] = useState<"ALL" | "supply" | "verified">("supply");
   const [institutionSearchQuery, setInstitutionSearchQuery] = useState<string>("");
   const [institutionPage, setInstitutionPage] = useState<number>(1);
@@ -2122,6 +2123,7 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
     const supplyOnlyItems = items.filter(
       (it) => (it.students?.length ?? it.studentCount ?? 0) > 0 || it.hasAdminAccount
     );
+    const priorityCount = supplyOnlyItems.filter((it) => it.isPriorityPartner).length;
     const lembagaCount = supplyOnlyItems.filter((it) => isLembagaInstitution(it)).length;
     const vokasiCount = supplyOnlyItems.filter((it) => isVokasiInstitution(it)).length;
 
@@ -2136,6 +2138,7 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
 
       const matchCategory =
         institutionCategoryFilter === "ALL" ||
+        (institutionCategoryFilter === "prioritas" && Boolean(it.isPriorityPartner)) ||
         (institutionCategoryFilter === "lembaga" && isLembagaInstitution(it)) ||
         (institutionCategoryFilter === "vokasi" && isVokasiInstitution(it));
 
@@ -2187,6 +2190,21 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
                 }`}
               >
                 Semua ({supplyOnlyItems.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setInstitutionCategoryFilter("prioritas");
+                  setInstitutionPage(1);
+                }}
+                className={`px-3 py-1 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 ${
+                  institutionCategoryFilter === "prioritas"
+                    ? "bg-amber-600 text-white shadow-xs font-bold"
+                    : "bg-background border border-border text-muted-foreground hover:text-amber-600"
+                }`}
+              >
+                <Award className="w-3.5 h-3.5" />
+                <span>Mitra Prioritas ({priorityCount})</span>
               </button>
               <button
                 type="button"
@@ -2266,7 +2284,9 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
           <span className="font-semibold text-blue-700 dark:text-blue-400 flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-blue-500" />
             <span>
-              {institutionCategoryFilter === "lembaga"
+              {institutionCategoryFilter === "prioritas"
+                ? "Daftar Mitra Vokasi Prioritas (Pilot MoU)"
+                : institutionCategoryFilter === "lembaga"
                 ? "Daftar Lembaga Pelatihan (LPK / LKP)"
                 : institutionCategoryFilter === "vokasi"
                 ? "Daftar Satuan Pendidikan Vokasi (Politeknik / Perguruan Tinggi / SMK)"
@@ -2318,6 +2338,15 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
                             showLevel
                             showId={Boolean(institution.registrationSourceId)}
                           />
+                          {institution.isPriorityPartner && (
+                            <Badge
+                              variant="outline"
+                              className="text-[10px] font-semibold bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30 flex items-center gap-1"
+                            >
+                              <Award className="w-3 h-3" />
+                              <span>Mitra Prioritas</span>
+                            </Badge>
+                          )}
                           <Badge
                             variant="outline"
                             className={cn(
