@@ -2033,6 +2033,44 @@ class BusinessDataPresenter
         $namePatterns = [];
         $inst = null;
 
+        $addVariants = function (?string $raw) use (&$namePatterns) {
+            $raw = trim((string) $raw);
+            if ($raw === '') {
+                return;
+            }
+            $namePatterns[] = $raw;
+
+            // Variasi SMKN <-> SMK Negeri
+            if (preg_match('/\bsmkn\s*(\d+)?/i', $raw)) {
+                $namePatterns[] = preg_replace('/\bsmkn\s*/i', 'SMK Negeri ', $raw);
+                $namePatterns[] = preg_replace('/\bsmkn\s*/i', 'SMK NEGERI ', $raw);
+            }
+            if (preg_match('/\bsmk\s+negeri\s*(\d+)?/i', $raw)) {
+                $namePatterns[] = preg_replace('/\bsmk\s+negeri\s*/i', 'SMKN ', $raw);
+            }
+
+            // Variasi LPK <-> LKP
+            if (preg_match('/^lpk\s+/i', $raw)) {
+                $namePatterns[] = preg_replace('/^lpk\s+/i', 'LKP ', $raw);
+            } elseif (preg_match('/^lkp\s+/i', $raw)) {
+                $namePatterns[] = preg_replace('/^lkp\s+/i', 'LPK ', $raw);
+            }
+
+            // Core name tanpa prefix (contoh: "1 Mundu", "Smart Plus", "Metro Hotel School", "Duta Bangsa")
+            $core = trim(preg_replace('/^(lpk|lkp|pk|smkn|smk\s+negeri|smk|stikes|poltek|politeknik|universitas|sekolah\s+tinggi|institut)\.?\s+/i', '', $raw));
+            if (mb_strlen($core) >= 3) {
+                $namePatterns[] = $core;
+            }
+
+            // Kata unik (misal "Mundu", "Purwodadi", "Rajawali", "Kepanjen", "Tedja")
+            $words = preg_split('/\s+/', $core);
+            foreach ($words as $w) {
+                if (mb_strlen($w) >= 4 && ! in_array(strtolower($w), ['negeri', 'swasta', 'pusat', 'utama', 'hotel', 'kapal', 'pesiar', 'training', 'center', 'course', 'academy'], true)) {
+                    $namePatterns[] = $w;
+                }
+            }
+        };
+
         // Auto-detect institusi terdaftar (mis. Arief Prasetya -> Victoria Hotel School)
         $userNameLower = strtolower($user->name ?? '');
         $userOrgLower = strtolower($user->organization ?? '');
@@ -2060,6 +2098,11 @@ class BusinessDataPresenter
             $namePatterns[] = 'LPK Duta International Course';
         }
 
+        // Daftarkan pola nama dari profil pengguna
+        foreach ([$user->organization, $user->scope_name] as $rawProf) {
+            $addVariants($rawProf);
+        }
+
         // 1. Prioritas Utama: Cari berdasarkan institution_id dan institution_ids resmi pengguna di database
         if (! empty($institutionIds)) {
             $baseIds = $institutionIds;
@@ -2069,9 +2112,9 @@ class BusinessDataPresenter
                     if (! $inst) {
                         $inst = $targetInst;
                     }
-                    $namePatterns[] = $targetInst->name;
+                    $addVariants($targetInst->name);
 
-                    // Temukan semua sibling IDs yang memiliki nama persis sama
+                    // Temukan semua sibling IDs yang memiliki nama persis sama atau alias sama
                     $siblingIds = DB::table('institutions')
                         ->where(function ($q) use ($targetInst) {
                             $q->where('name', $targetInst->name)
@@ -2087,7 +2130,7 @@ class BusinessDataPresenter
                     // Normalisasi core name (tanpa prefix LPK, LKP, SMK, BLKK, dll.) untuk menangkap variasi prefix
                     $coreName = trim(preg_replace('/^(lpk|lkp|smk|blkk|blkln|balai|politeknik|universitas)\.?\s+/i', '', $targetInst->name));
                     if (mb_strlen($coreName) >= 4) {
-                        $namePatterns[] = $coreName;
+                        $addVariants($coreName);
                         $related = DB::table('institutions')
                             ->where(function ($q) use ($coreName) {
                                 $q->where('name', 'LIKE', "%{$coreName}%")
@@ -2098,7 +2141,7 @@ class BusinessDataPresenter
 
                         foreach ($related as $rel) {
                             $institutionIds[] = (string) $rel->id;
-                            $namePatterns[] = $rel->name;
+                            $addVariants($rel->name);
                         }
                     }
                 }
