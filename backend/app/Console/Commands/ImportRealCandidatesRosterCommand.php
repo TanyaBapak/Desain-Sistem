@@ -668,13 +668,18 @@ class ImportRealCandidatesRosterCommand extends Command
                                     usleep(100000);
                                     continue;
                                 }
+                                if ($qe->getCode() === '23000' && str_contains($qe->getMessage(), 'PRIMARY')) {
+                                    DB::table('job_seekers')->where('id', $candId)->update($attributes);
+                                    $insertedCount++;
+                                    break;
+                                }
                                 if ($qe->getCode() === '23000' && str_contains($qe->getMessage(), 'registration_number')) {
                                     $attributes['registration_number'] = 'REG-2026-' . $inst['province_id'] . '-' . str_pad((string) mt_rand(100000, 999999), 6, '0', STR_PAD_LEFT);
                                     $attempt++;
                                     continue;
                                 }
                                 if ($qe->getCode() === '23000' && str_contains($qe->getMessage(), 'nik')) {
-                                    $attributes['nik'] = (string) (((int) $attributes['nik']) + mt_rand(1, 99));
+                                    $attributes['nik'] = substr($attributes['nik'], 0, 10) . str_pad((string) mt_rand(100000, 999999), 6, '0', STR_PAD_LEFT);
                                     $attempt++;
                                     continue;
                                 }
