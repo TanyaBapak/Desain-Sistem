@@ -173,7 +173,7 @@ class BusinessDataPresenter
             ->pluck('users.institution_id'), collect());
 
         $registeredInstIds = $adminLembagaInstIds->merge($priorityInstIds)->unique();
-        $vokasiWithSupplyCount = $registeredInstIds->isNotEmpty() ? $registeredInstIds->count() : 55;
+        $vokasiWithSupplyCount = $priorityInstIds->isNotEmpty() ? $priorityInstIds->count() : 34;
 
         $activeTrainingProgramsCount = (int) DB::table('training_programs')->where('status', 'Aktif')->count();
 
@@ -464,7 +464,7 @@ class BusinessDataPresenter
 
             // Lembaga terdaftar resmi = lembaga yang memiliki akun admin aktif ATAU merupakan mitra prioritas MoU
             $registeredInstIds = $adminLembagaInstIds->merge($priorityInstIds)->unique();
-            $vokasiWithSupply = $registeredInstIds->isNotEmpty() ? $registeredInstIds->count() : 55;
+            $vokasiWithSupply = $priorityInstIds->isNotEmpty() ? $priorityInstIds->count() : 34;
             $activeClasses = max(
                 (int) DB::table('training_classes')->count(),
                 (int) DB::table('training_programs')

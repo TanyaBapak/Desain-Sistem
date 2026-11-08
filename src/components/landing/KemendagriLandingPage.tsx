@@ -357,7 +357,7 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
     kpiSummary.vokasiWithSupplyCount ??
     publicCommandCenter?.national?.vokasiWithSupplyCount ??
     0;
-  const vokasiAdminCount = previewSupplyCount > 0 ? previewSupplyCount : (rawVokasiAdmin > 0 ? rawVokasiAdmin : 55);
+  const vokasiAdminCount = rawVokasiAdmin > 0 ? rawVokasiAdmin : priorityPartnerCount;
   const sectorOccupations = Object.fromEntries(trainingSectors.map((sector) => {
     if (sector.occupations && sector.occupations.length > 0) {
       return [sector.name, sector.occupations.map((occupation) => occupation.title)];
