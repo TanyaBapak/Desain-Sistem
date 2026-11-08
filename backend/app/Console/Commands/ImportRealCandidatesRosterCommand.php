@@ -68,11 +68,45 @@ class ImportRealCandidatesRosterCommand extends Command
         if ($countDummy > 0) {
             $this->line("   Ditemukan {$countDummy} peserta dummy/sintetis. Menghapus...");
             DB::transaction(function () use ($dummyIds) {
-                DB::table('approval_requests')->where('entity_type', 'calon_peserta')->whereIn('entity_id', $dummyIds)->delete();
+                // Disable foreign key checks sementara untuk pembersihan aman
+                try {
+                    DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+                } catch (Throwable) {}
+
+                // 1. Hapus kasus penempatan dan kecocokan
+                $matchIds = DB::table('candidate_matches')->whereIn('job_seeker_id', $dummyIds)->pluck('id')->all();
+                if (! empty($matchIds)) {
+                    DB::table('placement_cases')->whereIn('candidate_match_id', $matchIds)->delete();
+                    DB::table('candidate_matches')->whereIn('id', $matchIds)->delete();
+                }
+
+                // 2. Hapus alokasi program dan enrollment kelas
+                DB::table('program_allocation_candidates')->whereIn('job_seeker_id', $dummyIds)->delete();
+                DB::table('training_enrollments')->whereIn('job_seeker_id', $dummyIds)->delete();
+
+                // 3. Hapus approval dan histori
+                $approvalIds = DB::table('approval_requests')
+                    ->where('entity_type', 'calon_peserta')
+                    ->whereIn('entity_id', $dummyIds)
+                    ->pluck('id')
+                    ->all();
+                if (! empty($approvalIds)) {
+                    DB::table('approval_histories')->whereIn('approval_request_id', $approvalIds)->delete();
+                    DB::table('approval_requests')->whereIn('id', $approvalIds)->delete();
+                }
+
+                // 4. Hapus data relasi peserta
                 DB::table('external_training_records')->whereIn('job_seeker_id', $dummyIds)->delete();
                 DB::table('job_seeker_skills')->whereIn('job_seeker_id', $dummyIds)->delete();
                 DB::table('job_seeker_languages')->whereIn('job_seeker_id', $dummyIds)->delete();
+                DB::table('job_seeker_documents')->whereIn('job_seeker_id', $dummyIds)->delete();
+
+                // 5. Hapus kandidat dummy dari tabel job_seekers
                 DB::table('job_seekers')->whereIn('id', $dummyIds)->delete();
+
+                try {
+                    DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+                } catch (Throwable) {}
             });
             $this->info("   ✓ Berhasil menghapus {$countDummy} data peserta dummy.");
         } else {
