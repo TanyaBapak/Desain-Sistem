@@ -1627,6 +1627,7 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
 
       const matchCategory =
         institutionCategoryFilter === "ALL" ||
+        (institutionCategoryFilter === "prioritas" && (isPriorityInstitution(it) || Boolean(it.isPriorityPartner))) ||
         (institutionCategoryFilter === "lembaga" && isLembagaInstitution(it)) ||
         (institutionCategoryFilter === "vokasi" && isVokasiInstitution(it));
 

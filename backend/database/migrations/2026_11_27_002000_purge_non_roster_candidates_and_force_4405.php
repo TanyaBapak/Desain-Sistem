@@ -60,6 +60,26 @@ return new class extends Migration
 
         // 2. Jalankan ulang import real roster untuk memastikan tepat 4.405 terdaftar
         Artisan::call('roster:import-real', ['--purge-dummy' => true]);
+
+        // 3. Pastikan seluruh lembaga yang memiliki siswa riil ditandai sebagai mitra prioritas aktif
+        DB::table('institutions')
+            ->whereIn('id', function ($q) {
+                $q->select('institution_id')
+                    ->from('job_seekers')
+                    ->whereNotNull('institution_id')
+                    ->whereNull('deleted_at');
+            })
+            ->update([
+                'is_priority_partner' => 1,
+                'status' => 'Aktif',
+                'verification_status' => 'Verified',
+                'updated_at' => now(),
+            ]);
+
+        // 4. Bersihkan cache
+        try {
+            app(\App\Services\BusinessDataPresenter::class)->forgetAll();
+        } catch (\Throwable) {}
     }
 
     /**

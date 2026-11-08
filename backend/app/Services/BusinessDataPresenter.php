@@ -182,7 +182,14 @@ class BusinessDataPresenter
             ->distinct('users.institution_id')
             ->pluck('users.institution_id'), collect());
 
-        $registeredInstIds = $adminLembagaInstIds->merge($priorityInstIds)->unique();
+        $supplyingInstIds = rescue(fn () => DB::table('job_seekers')
+            ->whereNull('deleted_at')
+            ->whereNotNull('institution_id')
+            ->where('institution_id', '!=', '')
+            ->distinct('institution_id')
+            ->pluck('institution_id'), collect());
+
+        $registeredInstIds = $adminLembagaInstIds->merge($priorityInstIds)->merge($supplyingInstIds)->unique();
         $vokasiWithSupplyCount = 34;
 
         $activeTrainingProgramsCount = (int) DB::table('training_programs')->where('status', 'Aktif')->count();
@@ -473,7 +480,14 @@ class BusinessDataPresenter
                 ->pluck('users.institution_id'), collect());
 
             // Lembaga terdaftar resmi = lembaga yang memiliki akun admin aktif ATAU merupakan mitra prioritas MoU
-            $registeredInstIds = $adminLembagaInstIds->merge($priorityInstIds)->unique();
+            $supplyingInstIds = rescue(fn () => DB::table('job_seekers')
+            ->whereNull('deleted_at')
+            ->whereNotNull('institution_id')
+            ->where('institution_id', '!=', '')
+            ->distinct('institution_id')
+            ->pluck('institution_id'), collect());
+
+        $registeredInstIds = $adminLembagaInstIds->merge($priorityInstIds)->merge($supplyingInstIds)->unique();
             $vokasiWithSupply = 34;
             $activeClasses = max(
                 (int) DB::table('training_classes')->count(),

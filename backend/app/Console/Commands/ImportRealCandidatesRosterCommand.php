@@ -431,6 +431,12 @@ class ImportRealCandidatesRosterCommand extends Command
                 ->first(['id', 'name', 'province_id', 'district_id']);
 
             if ($existing) {
+                DB::table('institutions')->where('id', $existing->id)->update([
+                    'is_priority_partner' => 1,
+                    'status' => 'Aktif',
+                    'verification_status' => 'Verified',
+                    'updated_at' => now(),
+                ]);
                 $resolvedInstitutions[$instName] = [
                     'id' => (string) $existing->id,
                     'name' => (string) $existing->name,
@@ -451,6 +457,7 @@ class ImportRealCandidatesRosterCommand extends Command
                         'district_id' => $info['district_id'],
                         'status' => 'Aktif',
                         'verification_status' => 'Verified',
+                        'is_priority_partner' => 1,
                         'accreditation' => 'A',
                         'created_at' => now(),
                         'updated_at' => now(),
