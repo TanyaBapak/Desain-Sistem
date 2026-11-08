@@ -149,7 +149,19 @@ export async function exportCandidatesXlsx(candidates: CandidateParticipant[]): 
   const worksheet = XLSX.utils.json_to_sheet(rows, { header: CANDIDATE_HEADERS });
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, 'Calon PMI');
-  XLSX.writeFile(workbook, 'data-calon-pmi.xlsx');
+
+  const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+  const blob = new Blob([excelBuffer], {
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = 'data-calon-pmi.xlsx';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 export function downloadCandidateTemplate(): void {
@@ -161,7 +173,19 @@ export async function downloadCandidateTemplateXlsx(): Promise<void> {
   const worksheet = XLSX.utils.aoa_to_sheet([TEMPLATE_HEADERS]);
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, 'Template Calon PMI');
-  XLSX.writeFile(workbook, 'template-pengumpulan-calon-pmi.xlsx');
+
+  const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+  const blob = new Blob([excelBuffer], {
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = 'template-pengumpulan-calon-pmi.xlsx';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 export type CandidateImportPayload = Omit<CandidateParticipant, 'id'>;

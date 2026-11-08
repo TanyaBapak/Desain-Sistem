@@ -656,7 +656,19 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
         .replace(/[^a-z0-9]+/g, "-")
         .replace(/^-|-$/g, "");
       const fileName = `${slugName}.xlsx`;
-      XLSX.writeFile(workbook, fileName);
+
+      const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
+      const blob = new Blob([excelBuffer], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
+      const blobUrl = URL.createObjectURL(blob);
+      const downloadLink = document.createElement("a");
+      downloadLink.href = blobUrl;
+      downloadLink.download = fileName;
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      document.body.removeChild(downloadLink);
+      window.setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
 
       toast.success(
         `Berhasil mengunduh ${studentsToExport.length.toLocaleString("id-ID")} data calon peserta ke ${fileName}!`
