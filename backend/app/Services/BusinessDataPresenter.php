@@ -183,7 +183,7 @@ class BusinessDataPresenter
             ->pluck('users.institution_id'), collect());
 
         $registeredInstIds = $adminLembagaInstIds->merge($priorityInstIds)->unique();
-        $vokasiWithSupplyCount = $priorityInstIds->isNotEmpty() ? $priorityInstIds->count() : 34;
+        $vokasiWithSupplyCount = 34;
 
         $activeTrainingProgramsCount = (int) DB::table('training_programs')->where('status', 'Aktif')->count();
 
