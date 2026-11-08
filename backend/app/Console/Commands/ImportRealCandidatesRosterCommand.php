@@ -612,7 +612,10 @@ class ImportRealCandidatesRosterCommand extends Command
         $this->newLine();
         $this->line('4. Membersihkan data peserta lama di luar roster riil Task Force 2026...');
         $nonRosterIds = DB::table('job_seekers')
-            ->where('external_source', '!=', 'taskforce_roster')
+            ->where(function ($q) {
+                $q->whereNull('external_source')
+                    ->orWhere('external_source', '!=', 'taskforce_roster');
+            })
             ->pluck('id')
             ->all();
 
