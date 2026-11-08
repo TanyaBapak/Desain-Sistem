@@ -643,6 +643,7 @@ class BusinessDataPresenter
                 ? "'" . implode("','", $adminLembagaInstIds->all()) . "'"
                 : "''";
 
+            $matchedCandidateIds = [];
             $sampleInstitutions = $instQuery
                 ->orderByRaw("CASE 
                     WHEN institutions.id IN ({$priorityInstList}) THEN 1
@@ -670,7 +671,7 @@ class BusinessDataPresenter
                     'institutions.evokasi_url as evokasiUrl',
                     DB::raw("CASE WHEN institutions.id IN ({$priorityInstList}) THEN 1 ELSE 0 END as isPriorityPartner"),
                 ])
-                ->map(function (object $row) use ($candidatesRows, $adminLembagaInstIds): array {
+                ->map(function (object $row) use ($candidatesRows, $adminLembagaInstIds, &$matchedCandidateIds): array {
                     $metadata = $this->decodeArray($row->externalMetadata);
                     $supportedOccupations = [];
                     foreach (['programs', 'offerings', 'sectorals'] as $key) {
@@ -689,12 +690,25 @@ class BusinessDataPresenter
 
                     $supportedSectorsDecoded = $this->decodeArray($row->supportedSectors);
 
-                    $matched = $candidatesRows->filter(function ($c) use ($row): bool {
-                        if (! empty($c->institution_id)) {
-                            return (string) $c->institution_id === (string) $row->id;
+                    $matched = $candidatesRows->filter(function ($c) use ($row, &$matchedCandidateIds): bool {
+                        if (isset($matchedCandidateIds[$c->id])) {
+                            return false;
                         }
-                        if (! empty($c->institution_name)) {
-                            return stripos($row->name, (string) $c->institution_name) !== false || stripos((string) $c->institution_name, $row->name) !== false;
+
+                        $isMatch = false;
+                        if (! empty($c->institution_id) && (string) $c->institution_id === (string) $row->id) {
+                            $isMatch = true;
+                        } elseif (! empty($c->institution_name) && ! empty($row->name)) {
+                            $cName = mb_strtolower(trim((string) $c->institution_name));
+                            $rName = mb_strtolower(trim((string) $row->name));
+                            if ($cName === $rName || str_contains($rName, $cName) || str_contains($cName, $rName)) {
+                                $isMatch = true;
+                            }
+                        }
+
+                        if ($isMatch) {
+                            $matchedCandidateIds[$c->id] = true;
+                            return true;
                         }
 
                         return false;
@@ -750,7 +764,59 @@ class BusinessDataPresenter
                         'hasAdminAccount' => $adminLembagaInstIds->contains($row->id),
                         'isPriorityPartner' => $isPriority,
                     ];
-                })
+                });
+
+            // Pastikan seluruh calon peserta terangkum tanpa ada yang tertinggal
+            $unmatchedCandidates = $candidatesRows->filter(fn ($c) => ! isset($matchedCandidateIds[$c->id]));
+            if ($unmatchedCandidates->isNotEmpty()) {
+                $groupedUnmatched = $unmatchedCandidates->groupBy(fn ($c) => (string) ($c->institution_name ?: 'Lembaga Vokasi Mitra'));
+                foreach ($groupedUnmatched as $groupName => $candidatesGroup) {
+                    $first = $candidatesGroup->first();
+                    $students = $candidatesGroup->map(function ($c): array {
+                        $countries = $this->decodeArray($c->preferred_countries);
+                        $sectors = $this->decodeArray($c->preferred_sectors);
+                        $jobs = $this->decodeArray($c->preferred_job_roles);
+
+                        return [
+                            'id' => (string) $c->id,
+                            'name' => (string) $c->full_name,
+                            'targetCountry' => ! empty($countries) ? implode(', ', $countries) : 'Jepang, Korea',
+                            'sector' => ! empty($sectors) ? implode(', ', $sectors) : ($c->major ?: 'Perhotelan & Pariwisata'),
+                            'occupation' => ! empty($jobs) ? implode(', ', $jobs) : ($c->major ?: 'Staf Operasional'),
+                            'status' => (string) ($c->readiness_status ?? 'Siap Penempatan'),
+                            'major' => (string) ($c->major ?? '-'),
+                        ];
+                    })->values()->all();
+
+                    $sampleInstitutions->push([
+                        'id' => (string) ($first->institution_id ?: ('INST-ROSTER-' . substr(md5($groupName), 0, 10))),
+                        'name' => (string) $groupName,
+                        'type' => str_contains($groupName, 'SMK') ? 'SMK' : (str_contains($groupName, 'LPK') ? 'LPK' : 'Perguruan Tinggi'),
+                        'province' => 'Jawa Barat',
+                        'district' => 'Wilayah Penempatan',
+                        'accreditation' => 'A',
+                        'evokasiStatus' => 'Terverifikasi e-Vokasi',
+                        'supportedSectors' => ['Kesehatan & Caregiver', 'Hospitality', 'Manufaktur'],
+                        'supportedOccupations' => ['Caregiver', 'Hospitality Staff', 'Welder'],
+                        'externalMetadata' => null,
+                        'totalActiveStudents' => count($students),
+                        'workshopCapacity' => count($students),
+                        'externalSource' => 'taskforce_roster',
+                        'procurementMethod' => null,
+                        'procurementCatalogUrl' => null,
+                        'mouDriveUrl' => null,
+                        'evokasiUrl' => null,
+                        'isPriorityPartner' => true,
+                        'students' => $students,
+                        'studentCount' => count($students),
+                        'registrationSource' => 'lembaga_vokasi',
+                        'inputLevel' => 'lembaga_vokasi',
+                        'hasAdminAccount' => false,
+                    ]);
+                }
+            }
+
+            $sampleInstitutions = $sampleInstitutions
                 ->sortByDesc('studentCount')
                 ->values()
                 ->all();

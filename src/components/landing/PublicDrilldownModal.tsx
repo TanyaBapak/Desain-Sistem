@@ -1597,7 +1597,7 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
 
   const renderInstitutionList = (items: PublicPreviewInstitution[]) => {
     const supplyOnlyItems = items.filter(
-      (it) => (it.students?.length ?? it.studentCount ?? 0) > 0 || it.hasAdminAccount
+      (it) => (it.students?.length ?? it.studentCount ?? 0) > 0
     );
     const lembagaCount = supplyOnlyItems.filter((it) => isLembagaInstitution(it)).length;
     const vokasiCount = supplyOnlyItems.filter((it) => isVokasiInstitution(it)).length;
@@ -2137,7 +2137,7 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
     }
 
     const supplyOnlyItems = items.filter(
-      (it) => (it.students?.length ?? it.studentCount ?? 0) > 0 || it.hasAdminAccount
+      (it) => (it.students?.length ?? it.studentCount ?? 0) > 0
     );
     const priorityCount = supplyOnlyItems.filter((it) => isPriorityInstitution(it)).length;
     const lembagaCount = supplyOnlyItems.filter((it) => isLembagaInstitution(it)).length;
@@ -3518,7 +3518,7 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
                 : (activeDrilldownType || type) === "lembaga" || (activeDrilldownType || type) === "sebaran_lembaga"
                 ? "Daftar lembaga vokasi mitra penyuplai peserta dan penyelenggara pelatihan SMK Go Global."
                 : (activeDrilldownType || type) === "peserta"
-                ? "Daftar calon peserta siap latih (realisasi 4.315 dari target 12.600 peserta) per negara target & kejuruan."
+                ? `Daftar calon peserta siap latih (realisasi ${(data.national?.candidatesCount ?? allNationalStudents.length).toLocaleString("id-ID")} dari target 12.600 peserta) per negara target & kejuruan.`
                 : "Data statistik Command Center Task Force SMK Go Global"}
             </DialogDescription>
           </DialogHeader>
