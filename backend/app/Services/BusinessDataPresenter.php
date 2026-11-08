@@ -2212,6 +2212,45 @@ class BusinessDataPresenter
             }
         }
 
+        // Tambahkan semua ID institusi yang namanya cocok dengan pola yang ada
+        if (! empty($namePatterns)) {
+            $matchedInstIds = DB::table('institutions')
+                ->where(function ($q) use ($namePatterns) {
+                    foreach ($namePatterns as $p) {
+                        $clean = trim((string) $p);
+                        if (mb_strlen($clean) >= 3) {
+                            $q->orWhere('name', $clean)
+                                ->orWhere('name', 'LIKE', "%{$clean}%");
+                        }
+                    }
+                })
+                ->pluck('id')
+                ->all();
+            foreach ($matchedInstIds as $mId) {
+                $institutionIds[] = (string) $mId;
+            }
+
+            // Tambahkan juga semua distinct institution_id dari job_seekers yang namanya cocok
+            $matchedSeekerInstIds = DB::table('job_seekers')
+                ->whereNull('deleted_at')
+                ->where(function ($q) use ($namePatterns) {
+                    foreach ($namePatterns as $p) {
+                        $clean = trim((string) $p);
+                        if (mb_strlen($clean) >= 3) {
+                            $q->orWhere('institution_name', $clean)
+                                ->orWhere('institution_name', 'LIKE', "%{$clean}%");
+                        }
+                    }
+                })
+                ->whereNotNull('institution_id')
+                ->distinct()
+                ->pluck('institution_id')
+                ->all();
+            foreach ($matchedSeekerInstIds as $sId) {
+                $institutionIds[] = (string) $sId;
+            }
+        }
+
         // Pastikan calon siswa feeder institusi tersedia jika masih 0
         if (in_array('Victoria', $namePatterns, true)) {
             $vicCount = DB::table('job_seekers')->whereNull('deleted_at')->where('institution_name', 'LIKE', '%Victoria%')->count();
@@ -2310,7 +2349,7 @@ class BusinessDataPresenter
             if (str_contains((string) $user->username, 'demo')) {
                 $inst = DB::table('institutions')->where('id', 'VOC-DEMO-001')->first();
             }
-            if (! $inst) {
+            if (! $inst && empty($user->organization) && empty($user->scope_name)) {
                 $inst = DB::table('institutions')->where('status', 'Aktif')->orderBy('id')->first();
             }
             if ($inst) {
@@ -2555,6 +2594,17 @@ class BusinessDataPresenter
                             ->orWhere('job_seekers.institution_name', 'LIKE', "%{$cleanOrg}%")
                             ->orWhere('job_seekers.created_by', $cleanOrg)
                             ->orWhere('job_seekers.created_by', 'LIKE', "%{$cleanOrg}%");
+                        $hasCondition = true;
+                    }
+                    if (! empty($user->scope_name)) {
+                        $cleanScope = trim($user->scope_name);
+                        $q->orWhere('job_seekers.institution_name', $cleanScope)
+                            ->orWhere('job_seekers.institution_name', 'LIKE', "%{$cleanScope}%");
+                        $coreScope = trim(preg_replace('/^(lpk|lkp|pk|smkn|smk\s+negeri|smk|universitas|institut|sekolah\s+tinggi|politeknik)\.?\s+/i', '', $cleanScope));
+                        if (mb_strlen($coreScope) >= 3) {
+                            $q->orWhere('job_seekers.institution_name', $coreScope)
+                                ->orWhere('job_seekers.institution_name', 'LIKE', "%{$coreScope}%");
+                        }
                         $hasCondition = true;
                     }
                     if (! empty($scope['institution']?->name)) {

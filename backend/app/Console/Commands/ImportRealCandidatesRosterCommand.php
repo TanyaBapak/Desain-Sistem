@@ -547,6 +547,7 @@ class ImportRealCandidatesRosterCommand extends Command
         $instStudentCounts = [];
         $usedNiks = [];
         $usedRegNumbers = [];
+        $validRosterCandidateIds = [];
 
         // Preload NIK dan Nomor Registrasi yang sudah ada di database untuk mencegah benturan
         $existingDbNiks = DB::table('job_seekers')->whereNotNull('nik')->pluck('nik')->all();
@@ -658,6 +659,9 @@ class ImportRealCandidatesRosterCommand extends Command
                         ->first(['id', 'nik', 'registration_number']);
 
                     if ($existing) {
+                        $validRosterCandidateIds[] = (string) $existing->id;
+                        $validRosterCandidateIds[] = (string) $candId;
+
                         // Jika sudah ada nomor registrasi, pertahankan agar tidak terjadi tabrakan unique key
                         if (empty($existing->registration_number)) {
                             while (isset($usedRegNumbers[$regNumber])) {
@@ -703,6 +707,8 @@ class ImportRealCandidatesRosterCommand extends Command
                             }
                         }
                     } else {
+                        $validRosterCandidateIds[] = (string) $candId;
+
                         // Pastikan nomor registrasi baru selalu unik
                         while (isset($usedRegNumbers[$regNumber])) {
                             $regNumber = 'REG-2026-' . $inst['province_id'] . '-' . str_pad((string) mt_rand(100000, 999999), 6, '0', STR_PAD_LEFT);
@@ -756,63 +762,62 @@ class ImportRealCandidatesRosterCommand extends Command
 
         $this->info("   ✓ Data siswa riil berhasil disimpan: {$insertedCount} baru, {$updatedCount} diperbarui.");
 
-        // 4. Bersihkan sisa data peserta lama di luar roster riil Task Force
+        // 4. Bersihkan SELURUH sisa data peserta lama di luar roster riil unik (target tepat 4.855 kandidat)
         $this->newLine();
-        $this->line('4. Membersihkan data peserta lama di luar roster riil Task Force 2026...');
-        $nonRosterIds = DB::table('job_seekers')
-            ->where(function ($q) {
-                $q->whereNull('external_source')
-                    ->orWhere('external_source', '!=', 'taskforce_roster');
-            })
-            ->pluck('id')
-            ->all();
+        $this->line('4. Membersihkan seluruh peserta di luar roster riil unik (target tepat 4.855 kandidat)...');
+        $validIdMap = array_flip(array_unique(array_filter($validRosterCandidateIds)));
+        $allCurrentCandidateIds = DB::table('job_seekers')->pluck('id')->all();
+        $staleCandidateIds = array_values(array_filter($allCurrentCandidateIds, fn ($id) => ! isset($validIdMap[$id])));
 
-        $countNonRoster = count($nonRosterIds);
-        if ($countNonRoster > 0) {
-            $this->line("   Ditemukan {$countNonRoster} peserta lama di luar roster. Menghapus...");
-            DB::transaction(function () use ($nonRosterIds) {
-                try {
-                    DB::statement('SET FOREIGN_KEY_CHECKS=0;');
-                } catch (Throwable) {}
+        $countStale = count($staleCandidateIds);
+        if ($countStale > 0) {
+            $this->line("   Ditemukan {$countStale} peserta lama di luar roster. Menghapus...");
+            $chunks = array_chunk($staleCandidateIds, 500);
+            foreach ($chunks as $chunk) {
+                DB::transaction(function () use ($chunk) {
+                    try {
+                        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+                    } catch (Throwable) {}
 
-                $matchIds = DB::table('candidate_matches')->whereIn('job_seeker_id', $nonRosterIds)->pluck('id')->all();
-                if (! empty($matchIds)) {
-                    DB::table('placement_cases')->whereIn('candidate_match_id', $matchIds)->delete();
-                    DB::table('candidate_matches')->whereIn('id', $matchIds)->delete();
-                }
+                    $matchIds = DB::table('candidate_matches')->whereIn('job_seeker_id', $chunk)->pluck('id')->all();
+                    if (! empty($matchIds)) {
+                        DB::table('placement_cases')->whereIn('candidate_match_id', $matchIds)->delete();
+                        DB::table('candidate_matches')->whereIn('id', $matchIds)->delete();
+                    }
 
-                DB::table('program_allocation_candidates')->whereIn('job_seeker_id', $nonRosterIds)->delete();
-                DB::table('training_enrollments')->whereIn('job_seeker_id', $nonRosterIds)->delete();
+                    DB::table('program_allocation_candidates')->whereIn('job_seeker_id', $chunk)->delete();
+                    DB::table('training_enrollments')->whereIn('job_seeker_id', $chunk)->delete();
 
-                $approvalIds = DB::table('approval_requests')
-                    ->where('entity_type', 'calon_peserta')
-                    ->whereIn('entity_id', $nonRosterIds)
-                    ->pluck('id')
-                    ->all();
-                if (! empty($approvalIds)) {
-                    DB::table('approval_histories')->whereIn('approval_request_id', $approvalIds)->delete();
-                    DB::table('approval_requests')->whereIn('id', $approvalIds)->delete();
-                }
+                    $approvalIds = DB::table('approval_requests')
+                        ->where('entity_type', 'calon_peserta')
+                        ->whereIn('entity_id', $chunk)
+                        ->pluck('id')
+                        ->all();
+                    if (! empty($approvalIds)) {
+                        DB::table('approval_histories')->whereIn('approval_request_id', $approvalIds)->delete();
+                        DB::table('approval_requests')->whereIn('id', $approvalIds)->delete();
+                    }
 
-                DB::table('external_training_records')->whereIn('job_seeker_id', $nonRosterIds)->delete();
-                DB::table('job_seeker_skills')->whereIn('job_seeker_id', $nonRosterIds)->delete();
-                DB::table('job_seeker_languages')->whereIn('job_seeker_id', $nonRosterIds)->delete();
-                DB::table('job_seeker_documents')->whereIn('job_seeker_id', $nonRosterIds)->delete();
+                    DB::table('external_training_records')->whereIn('job_seeker_id', $chunk)->delete();
+                    DB::table('job_seeker_skills')->whereIn('job_seeker_id', $chunk)->delete();
+                    DB::table('job_seeker_languages')->whereIn('job_seeker_id', $chunk)->delete();
+                    DB::table('job_seeker_documents')->whereIn('job_seeker_id', $chunk)->delete();
 
-                DB::table('job_seekers')->whereIn('id', $nonRosterIds)->delete();
+                    DB::table('job_seekers')->whereIn('id', $chunk)->delete();
 
-                try {
-                    DB::statement('SET FOREIGN_KEY_CHECKS=1;');
-                } catch (Throwable) {}
-            });
-            $this->info("   ✓ Berhasil membersihkan {$countNonRoster} data peserta lama.");
+                    try {
+                        DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+                    } catch (Throwable) {}
+                });
+            }
+            $this->info("   ✓ Berhasil membersihkan {$countStale} data peserta lama.");
         } else {
             $this->info('   ✓ Tidak ada data peserta lama di luar roster.');
         }
 
-        // 5. Update total_active_students pada tiap Lembaga Vokasi
+        // 5. Update total_active_students pada tiap Lembaga Vokasi dan sinkronkan akun admin lembaga
         $this->newLine();
-        $this->line('5. Memperbarui total siswa aktif pada masing-masing lembaga...');
+        $this->line('5. Memperbarui total siswa aktif pada masing-masing lembaga dan menyinkronkan akun lembaga...');
         foreach ($instStudentCounts as $instId => $count) {
             DB::table('institutions')->where('id', $instId)->update([
                 'total_active_students' => $count,
@@ -827,7 +832,7 @@ class ImportRealCandidatesRosterCommand extends Command
             $aliases = array_unique(array_merge([$instName], $info['aliases'] ?? []));
             $resolvedId = $resolvedInstitutions[$instName]['id'] ?? null;
             $count = $resolvedId ? ($instStudentCounts[$resolvedId] ?? 0) : 0;
-            if ($count > 0) {
+            if ($count > 0 && $resolvedId) {
                 foreach ($aliases as $alias) {
                     DB::table('institutions')
                         ->where('name', $alias)
@@ -836,6 +841,20 @@ class ImportRealCandidatesRosterCommand extends Command
                             'total_active_students' => $count,
                             'status' => 'Aktif',
                             'verification_status' => 'Verified',
+                            'updated_at' => now(),
+                        ]);
+
+                    // Sinkronkan akun user admin lembaga yang memiliki scope_name atau organization serupa
+                    DB::table('users')
+                        ->where(function ($q) use ($alias, $resolvedId) {
+                            $q->where('scope_name', $alias)
+                                ->orWhere('scope_name', 'LIKE', '%' . $alias . '%')
+                                ->orWhere('organization', $alias)
+                                ->orWhere('organization', 'LIKE', '%' . $alias . '%');
+                        })
+                        ->update([
+                            'institution_id' => $resolvedId,
+                            'status' => 'Aktif',
                             'updated_at' => now(),
                         ]);
                 }
