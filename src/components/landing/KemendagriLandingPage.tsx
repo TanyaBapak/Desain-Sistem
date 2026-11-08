@@ -751,7 +751,7 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
                         <span className="text-xs text-emerald-400 font-semibold ml-2">Lembaga</span>
                       </div>
                       <p className="text-xs text-slate-300 font-medium mt-1">
-                        Mitra Prioritas MoU ({vokasiAdminCount > 0 ? `${vokasiAdminCount} total terdaftar` : "50 total terdaftar"})
+                        Lembaga Vokasi Penyuplai & Penyelenggara
                       </p>
                     </div>
                   </div>

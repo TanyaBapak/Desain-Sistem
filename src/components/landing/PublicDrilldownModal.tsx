@@ -2180,6 +2180,21 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
               <button
                 type="button"
                 onClick={() => {
+                  setInstitutionCategoryFilter("prioritas");
+                  setInstitutionPage(1);
+                }}
+                className={`px-3 py-1 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 ${
+                  institutionCategoryFilter === "prioritas"
+                    ? "bg-emerald-600 text-white shadow-xs font-bold"
+                    : "bg-background border border-border text-muted-foreground hover:text-emerald-600"
+                }`}
+              >
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                <span>Terverifikasi ({priorityCount})</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
                   setInstitutionCategoryFilter("ALL");
                   setInstitutionPage(1);
                 }}
@@ -2189,22 +2204,7 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
                     : "bg-background border border-border text-muted-foreground hover:text-foreground"
                 }`}
               >
-                Semua ({supplyOnlyItems.length})
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setInstitutionCategoryFilter("prioritas");
-                  setInstitutionPage(1);
-                }}
-                className={`px-3 py-1 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 ${
-                  institutionCategoryFilter === "prioritas"
-                    ? "bg-amber-600 text-white shadow-xs font-bold"
-                    : "bg-background border border-border text-muted-foreground hover:text-amber-600"
-                }`}
-              >
-                <Award className="w-3.5 h-3.5" />
-                <span>Mitra Prioritas ({priorityCount})</span>
+                Semua Terdaftar ({supplyOnlyItems.length})
               </button>
               <button
                 type="button"
@@ -2229,8 +2229,8 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
                 }}
                 className={`px-3 py-1 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 ${
                   institutionCategoryFilter === "vokasi"
-                    ? "bg-emerald-600 text-white shadow-xs font-bold"
-                    : "bg-background border border-border text-muted-foreground hover:text-emerald-600"
+                    ? "bg-indigo-600 text-white shadow-xs font-bold"
+                    : "bg-background border border-border text-muted-foreground hover:text-indigo-600"
                 }`}
               >
                 <BookOpen className="w-3.5 h-3.5" />
@@ -2285,7 +2285,7 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
             <span className="w-2 h-2 rounded-full bg-blue-500" />
             <span>
               {institutionCategoryFilter === "prioritas"
-                ? "Daftar Mitra Vokasi Prioritas (Pilot MoU)"
+                ? "Daftar Lembaga Vokasi Penyelenggara Terverifikasi"
                 : institutionCategoryFilter === "lembaga"
                 ? "Daftar Lembaga Pelatihan (LPK / LKP)"
                 : institutionCategoryFilter === "vokasi"
@@ -2341,10 +2341,10 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
                           {institution.isPriorityPartner && (
                             <Badge
                               variant="outline"
-                              className="text-[10px] font-semibold bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30 flex items-center gap-1"
+                              className="text-[10px] font-semibold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 flex items-center gap-1"
                             >
-                              <Award className="w-3 h-3" />
-                              <span>Mitra Prioritas</span>
+                              <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                              <span>Terverifikasi Penyelenggara</span>
                             </Badge>
                           )}
                           <Badge
