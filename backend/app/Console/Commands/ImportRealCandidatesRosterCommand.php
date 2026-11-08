@@ -500,10 +500,11 @@ class ImportRealCandidatesRosterCommand extends Command
             $usedRegNumbers[(string) $dbReg] = true;
         }
 
-        $chunks = array_chunk($uniqueRoster, 100);
-        foreach ($chunks as $chunk) {
-            DB::transaction(function () use ($chunk, $resolvedInstitutions, &$insertedCount, &$updatedCount, &$instStudentCounts, &$usedNiks, &$usedRegNumbers) {
-                foreach ($chunk as $row) {
+        try {
+            DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+        } catch (Throwable) {}
+
+        foreach ($uniqueRoster as $row) {
                     $studentName = trim($row['name']);
                     $instKey = trim($row['institution']);
 
@@ -611,8 +612,21 @@ class ImportRealCandidatesRosterCommand extends Command
                             $attributes['nik'] = $nik;
                         }
 
-                        DB::table('job_seekers')->where('id', $existing->id)->update($attributes);
-                        $updatedCount++;
+                        $attempt = 0;
+                        while ($attempt < 5) {
+                            try {
+                                DB::table('job_seekers')->where('id', $existing->id)->update($attributes);
+                                $updatedCount++;
+                                break;
+                            } catch (\Illuminate\Database\QueryException $qe) {
+                                if ($qe->getCode() === '40001' || str_contains($qe->getMessage(), 'Deadlock')) {
+                                    $attempt++;
+                                    usleep(100000);
+                                    continue;
+                                }
+                                throw $qe;
+                            }
+                        }
                     } else {
                         // Pastikan nomor registrasi baru selalu unik
                         while (isset($usedRegNumbers[$regNumber])) {
@@ -625,12 +639,27 @@ class ImportRealCandidatesRosterCommand extends Command
                         $attributes['id'] = $candId;
                         $attributes['created_at'] = now();
 
-                        DB::table('job_seekers')->insert($attributes);
-                        $insertedCount++;
+                        $attempt = 0;
+                        while ($attempt < 5) {
+                            try {
+                                DB::table('job_seekers')->insert($attributes);
+                                $insertedCount++;
+                                break;
+                            } catch (\Illuminate\Database\QueryException $qe) {
+                                if ($qe->getCode() === '40001' || str_contains($qe->getMessage(), 'Deadlock')) {
+                                    $attempt++;
+                                    usleep(100000);
+                                    continue;
+                                }
+                                throw $qe;
+                            }
+                        }
                     }
-                }
-            });
         }
+
+        try {
+            DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+        } catch (Throwable) {}
 
         $this->info("   ✓ Data siswa riil berhasil disimpan: {$insertedCount} baru, {$updatedCount} diperbarui.");
 
