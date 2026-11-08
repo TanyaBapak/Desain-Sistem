@@ -608,9 +608,60 @@ class ImportRealCandidatesRosterCommand extends Command
 
         $this->info("   ✓ Data siswa riil berhasil disimpan: {$insertedCount} baru, {$updatedCount} diperbarui.");
 
-        // 4. Update total_active_students pada tiap Lembaga Vokasi
+        // 4. Bersihkan sisa data peserta lama di luar roster riil Task Force
         $this->newLine();
-        $this->line('4. Memperbarui total siswa aktif pada masing-masing lembaga...');
+        $this->line('4. Membersihkan data peserta lama di luar roster riil Task Force 2026...');
+        $nonRosterIds = DB::table('job_seekers')
+            ->where('external_source', '!=', 'taskforce_roster')
+            ->pluck('id')
+            ->all();
+
+        $countNonRoster = count($nonRosterIds);
+        if ($countNonRoster > 0) {
+            $this->line("   Ditemukan {$countNonRoster} peserta lama di luar roster. Menghapus...");
+            DB::transaction(function () use ($nonRosterIds) {
+                try {
+                    DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+                } catch (Throwable) {}
+
+                $matchIds = DB::table('candidate_matches')->whereIn('job_seeker_id', $nonRosterIds)->pluck('id')->all();
+                if (! empty($matchIds)) {
+                    DB::table('placement_cases')->whereIn('candidate_match_id', $matchIds)->delete();
+                    DB::table('candidate_matches')->whereIn('id', $matchIds)->delete();
+                }
+
+                DB::table('program_allocation_candidates')->whereIn('job_seeker_id', $nonRosterIds)->delete();
+                DB::table('training_enrollments')->whereIn('job_seeker_id', $nonRosterIds)->delete();
+
+                $approvalIds = DB::table('approval_requests')
+                    ->where('entity_type', 'calon_peserta')
+                    ->whereIn('entity_id', $nonRosterIds)
+                    ->pluck('id')
+                    ->all();
+                if (! empty($approvalIds)) {
+                    DB::table('approval_histories')->whereIn('approval_request_id', $approvalIds)->delete();
+                    DB::table('approval_requests')->whereIn('id', $approvalIds)->delete();
+                }
+
+                DB::table('external_training_records')->whereIn('job_seeker_id', $nonRosterIds)->delete();
+                DB::table('job_seeker_skills')->whereIn('job_seeker_id', $nonRosterIds)->delete();
+                DB::table('job_seeker_languages')->whereIn('job_seeker_id', $nonRosterIds)->delete();
+                DB::table('job_seeker_documents')->whereIn('job_seeker_id', $nonRosterIds)->delete();
+
+                DB::table('job_seekers')->whereIn('id', $nonRosterIds)->delete();
+
+                try {
+                    DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+                } catch (Throwable) {}
+            });
+            $this->info("   ✓ Berhasil membersihkan {$countNonRoster} data peserta lama.");
+        } else {
+            $this->info('   ✓ Tidak ada data peserta lama di luar roster.');
+        }
+
+        // 5. Update total_active_students pada tiap Lembaga Vokasi
+        $this->newLine();
+        $this->line('5. Memperbarui total siswa aktif pada masing-masing lembaga...');
         foreach ($instStudentCounts as $instId => $count) {
             DB::table('institutions')->where('id', $instId)->update([
                 'total_active_students' => $count,
@@ -619,9 +670,9 @@ class ImportRealCandidatesRosterCommand extends Command
         }
         $this->info('   ✓ Kuota dan jumlah siswa lembaga vokasi telah disinkronkan.');
 
-        // 5. Rekonsiliasi & Pembersihan Cache
+        // 6. Rekonsiliasi & Pembersihan Cache
         $this->newLine();
-        $this->line('5. Menjalankan rekonsiliasi dan membersihkan cache aplikasi...');
+        $this->line('6. Menjalankan rekonsiliasi dan membersihkan cache aplikasi...');
         try {
             app(CandidateInstitutionReconciliationService::class)->reconcileAll();
             app(BusinessDataPresenter::class)->forgetAll();
@@ -632,7 +683,7 @@ class ImportRealCandidatesRosterCommand extends Command
 
         $this->newLine();
         $this->info('================================================================');
-        $this->info('   SELESAI! SELURUH 3.773 SISWA RIIL BERHASIL MASUK KE SISTEM   ');
+        $this->info('   SELESAI! SELURUH 4.405 SISWA RIIL BERHASIL MASUK KE SISTEM   ');
         $this->info('================================================================');
 
         return self::SUCCESS;
