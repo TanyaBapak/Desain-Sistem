@@ -2271,26 +2271,46 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
       };
     });
 
+    // Seluruh lembaga vokasi yang sudah terdaftar resmi dan memiliki akun di sistem
+    const allRegisteredItems: PublicPreviewInstitution[] = (() => {
+      const merged = [...items];
+      canonical34Items.forEach((c) => {
+        const alreadyIn = merged.some(
+          (m) =>
+            m.id === c.id ||
+            m.name.toLowerCase().trim() === c.name.toLowerCase().trim()
+        );
+        if (!alreadyIn) {
+          merged.push(c);
+        }
+      });
+      return merged;
+    })();
+
     const lembagaCount = canonical34Items.filter((it) => isLembagaInstitution(it)).length; // 21 Lembaga
     const vokasiCount = canonical34Items.filter((it) => isVokasiInstitution(it)).length;   // 13 Vokasi
-    const priorityCount = canonical34Items.length; // 34 Total
+    const priorityCount = canonical34Items.length; // 34 Total Prioritas
+    const allRegisteredCount = allRegisteredItems.length; // Seluruh lembaga yang terdaftar punya akun
+
+    // Tentukan sumber data berdasarkan filter kategori yang dipilih
+    const baseItems =
+      institutionCategoryFilter === "ALL"
+        ? allRegisteredItems
+        : institutionCategoryFilter === "lembaga"
+        ? canonical34Items.filter((it) => isLembagaInstitution(it))
+        : institutionCategoryFilter === "vokasi"
+        ? canonical34Items.filter((it) => isVokasiInstitution(it))
+        : canonical34Items; // default "prioritas"
 
     const q = institutionSearchQuery.toLowerCase().trim();
-    const filtered = canonical34Items.filter((it) => {
-      const matchSearch =
-        !q ||
+    const filtered = baseItems.filter((it) => {
+      if (!q) return true;
+      return (
         it.name.toLowerCase().includes(q) ||
         (it.province && it.province.toLowerCase().includes(q)) ||
         (it.district && it.district.toLowerCase().includes(q)) ||
-        (it.type && it.type.toLowerCase().includes(q));
-
-      const matchCategory =
-        institutionCategoryFilter === "ALL" ||
-        institutionCategoryFilter === "prioritas" ||
-        (institutionCategoryFilter === "lembaga" && isLembagaInstitution(it)) ||
-        (institutionCategoryFilter === "vokasi" && isVokasiInstitution(it));
-
-      return matchSearch && matchCategory;
+        (it.type && it.type.toLowerCase().includes(q))
+      );
     });
 
     const pageSize = 15;
@@ -2311,7 +2331,9 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
                 <h4 className="text-sm font-bold text-foreground flex items-center gap-2">
                   <span>Daftar Lembaga Vokasi Suplai</span>
                   <Badge className="bg-emerald-600 text-white font-mono text-[11px] font-bold">
-                    {institutionCategoryFilter === "lembaga"
+                    {institutionCategoryFilter === "ALL"
+                      ? `${allRegisteredCount} Lembaga Terdaftar Akun`
+                      : institutionCategoryFilter === "lembaga"
                       ? `${lembagaCount} Lembaga (LPK/LKP)`
                       : institutionCategoryFilter === "vokasi"
                       ? `${vokasiCount} Satuan Vokasi (SMK/Poltek)`
@@ -2325,7 +2347,7 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
             </div>
           </div>
 
-          {/* Filter Kategori: HANYA Lembaga dan Vokasi */}
+          {/* Filter Kategori: Prioritas (34), Semua Terdaftar (Akun), Lembaga (21), Vokasi (13) */}
           <div className="pt-2 border-t border-border/60 flex flex-wrap items-center justify-between gap-2">
             <div className="flex flex-wrap items-center gap-1.5">
               <span className="text-[11px] font-semibold text-muted-foreground mr-1">Filter Kategori:</span>
@@ -2340,6 +2362,7 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
                     ? "bg-emerald-600 text-white shadow-xs font-bold"
                     : "bg-background border border-border text-muted-foreground hover:text-emerald-600"
                 }`}
+                title="34 Lembaga Vokasi Mitra Prioritas Penyuplai & Penyelenggara"
               >
                 <CheckCircle2 className="w-3.5 h-3.5" />
                 <span>Terverifikasi ({priorityCount})</span>
@@ -2355,8 +2378,9 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
                     ? "bg-foreground text-background shadow-xs font-bold"
                     : "bg-background border border-border text-muted-foreground hover:text-foreground"
                 }`}
+                title={`Seluruh ${allRegisteredCount} lembaga vokasi yang sudah terdaftar dan memiliki akun di platform`}
               >
-                Semua Terdaftar ({priorityCount})
+                Semua Terdaftar ({allRegisteredCount})
               </button>
               <button
                 type="button"
@@ -2369,6 +2393,7 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
                     ? "bg-blue-600 text-white shadow-xs font-bold"
                     : "bg-background border border-border text-muted-foreground hover:text-blue-600"
                 }`}
+                title="21 Lembaga Pelatihan Kerja (LPK / LKP)"
               >
                 <Building2 className="w-3.5 h-3.5" />
                 <span>Lembaga ({lembagaCount})</span>
@@ -2384,6 +2409,7 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
                     ? "bg-indigo-600 text-white shadow-xs font-bold"
                     : "bg-background border border-border text-muted-foreground hover:text-indigo-600"
                 }`}
+                title="13 Satuan Pendidikan Vokasi (SMK, Politeknik, Perguruan Tinggi)"
               >
                 <BookOpen className="w-3.5 h-3.5" />
                 <span>Vokasi ({vokasiCount})</span>
