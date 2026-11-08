@@ -576,41 +576,78 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
       setIsExportingExcel(true);
       const XLSX = await import("xlsx");
 
-      const rows = studentsToExport.map((s, idx) => ({
-        "No.": idx + 1,
-        "ID Peserta": s.id,
-        "Nama Calon Peserta": s.name,
-        "Lembaga Vokasi": s.institutionName || defaultInstitutionName || "—",
-        "Kabupaten / Kota": s.district || "—",
-        "Provinsi": s.province || scopeName,
-        "Negara Target": s.targetCountry,
-        "Sektor": s.sector,
-        "Jabatan / Pekerjaan": s.occupation,
-        "Jurusan / Keahlian": s.major || "—",
-        "Status Kesiapan": s.status || "Siap Penempatan",
-      }));
+      const rows = studentsToExport.map((s) => {
+        const instName = s.institutionName || defaultInstitutionName || "Lembaga Vokasi Mitra";
+        const isSmk = instName.toLowerCase().includes("smk");
+        const eduLevel = isSmk ? "SMK" : "D3";
+        const targetCountries = s.targetCountry || "Jepang";
+
+        let bahasa = "Jepang";
+        let levelBahasa = "JLPT N4";
+        const lowerTarget = targetCountries.toLowerCase();
+        if (lowerTarget.includes("jerman")) {
+          bahasa = "Jerman";
+          levelBahasa = "A2 Goethe";
+        } else if (lowerTarget.includes("korea")) {
+          bahasa = "Korea";
+          levelBahasa = "TOPIK Level 2";
+        } else if (
+          lowerTarget.includes("turki") ||
+          lowerTarget.includes("malaysia") ||
+          lowerTarget.includes("pesiar") ||
+          lowerTarget.includes("emirat")
+        ) {
+          bahasa = "Inggris";
+          levelBahasa = "Intermediate / Vokasi";
+        }
+
+        return {
+          "Nama lengkap": s.name,
+          "NIK (opsional)": "",
+          "Provinsi": s.province || "Jawa Barat",
+          "Kabupaten/Kota": s.district || "Wilayah Penempatan",
+          "Jenjang pendidikan": eduLevel,
+          "Jurusan": s.major && s.major !== "-" ? s.major : s.sector,
+          "Nama Sekolah/Politeknik": instName,
+          "Keterampilan/Kompetensi (pisahkan koma)": s.occupation || s.sector,
+          "Bidang pengalaman kerja": `${s.sector} - ${s.occupation}`,
+          "Lama pengalaman (tahun)": "1",
+          "Nama perusahaan (opsional)": `Praktik Industri ${instName}`,
+          "Sertifikasi kompetensi (nama & penerbit)": "Sertifikat Kompetensi Keahlian (BNSP)",
+          "Bahasa asing": bahasa,
+          "Level bahasa (JLPT N4/A2/TOEIC/Basic)": levelBahasa,
+          "Negara tujuan yang diminati (pisahkan koma)": targetCountries,
+          "Sektor pilihan (pisahkan koma)": s.sector,
+          "Jabatan yang dipilih (pisahkan koma)": s.occupation,
+          "Kontak (HP/Email, opsional)": "",
+        };
+      });
 
       const worksheet = XLSX.utils.json_to_sheet(rows);
 
       worksheet["!cols"] = [
-        { wch: 6 },  // No.
-        { wch: 18 }, // ID Peserta
-        { wch: 28 }, // Nama Calon Peserta
-        { wch: 35 }, // Lembaga Vokasi
-        { wch: 22 }, // Kab / Kota
-        { wch: 22 }, // Provinsi
-        { wch: 22 }, // Negara Target
-        { wch: 25 }, // Sektor
-        { wch: 28 }, // Jabatan / Pekerjaan
-        { wch: 25 }, // Jurusan / Keahlian
-        { wch: 20 }, // Status Kesiapan
+        { wch: 28 }, // Nama lengkap
+        { wch: 18 }, // NIK (opsional)
+        { wch: 20 }, // Provinsi
+        { wch: 22 }, // Kabupaten/Kota
+        { wch: 18 }, // Jenjang pendidikan
+        { wch: 25 }, // Jurusan
+        { wch: 35 }, // Nama Sekolah/Politeknik
+        { wch: 30 }, // Keterampilan/Kompetensi
+        { wch: 30 }, // Bidang pengalaman kerja
+        { wch: 20 }, // Lama pengalaman (tahun)
+        { wch: 30 }, // Nama perusahaan (opsional)
+        { wch: 35 }, // Sertifikasi kompetensi
+        { wch: 16 }, // Bahasa asing
+        { wch: 25 }, // Level bahasa
+        { wch: 25 }, // Negara tujuan
+        { wch: 25 }, // Sektor pilihan
+        { wch: 28 }, // Jabatan yang dipilih
+        { wch: 20 }, // Kontak
       ];
 
       const workbook = XLSX.utils.book_new();
-      const safeSheetName = (title || "Calon Peserta")
-        .slice(0, 31)
-        .replace(/[:\\/?*[\]]/g, "");
-      XLSX.utils.book_append_sheet(workbook, worksheet, safeSheetName || "Calon Peserta");
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Template Calon PMI");
 
       const slugName = (filenamePrefix || "calon-peserta")
         .toLowerCase()
