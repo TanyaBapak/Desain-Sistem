@@ -138,7 +138,6 @@ const PRIORITY_KEYWORDS = [
 ];
 
 export function isPriorityInstitution(inst: PublicPreviewInstitution): boolean {
-  if (inst.isPriorityPartner) return true;
   const n = (inst.name || "").toLowerCase();
   return PRIORITY_KEYWORDS.some((kw) => n.includes(kw));
 }

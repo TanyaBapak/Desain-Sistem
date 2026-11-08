@@ -474,7 +474,7 @@ class BusinessDataPresenter
 
             // Lembaga terdaftar resmi = lembaga yang memiliki akun admin aktif ATAU merupakan mitra prioritas MoU
             $registeredInstIds = $adminLembagaInstIds->merge($priorityInstIds)->unique();
-            $vokasiWithSupply = $priorityInstIds->isNotEmpty() ? $priorityInstIds->count() : 34;
+            $vokasiWithSupply = 34;
             $activeClasses = max(
                 (int) DB::table('training_classes')->count(),
                 (int) DB::table('training_programs')
@@ -716,14 +716,12 @@ class BusinessDataPresenter
                         $inputLevel = 'kabupaten_kota';
                     }
 
-                    $isPriority = (bool) ($row->isPriorityPartner ?? false);
-                    if (! $isPriority) {
-                        $lowerName = mb_strtolower((string) ($row->name ?? ''));
-                        foreach (self::PRIORITY_34_KEYWORDS as $kw) {
-                            if (str_contains($lowerName, $kw)) {
-                                $isPriority = true;
-                                break;
-                            }
+                    $isPriority = false;
+                    $lowerName = mb_strtolower((string) ($row->name ?? ''));
+                    foreach (self::PRIORITY_34_KEYWORDS as $kw) {
+                        if (str_contains($lowerName, $kw)) {
+                            $isPriority = true;
+                            break;
                         }
                     }
 
