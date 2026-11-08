@@ -339,6 +339,12 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
   const FOUR_COUNTRIES = ["Jepang", "Korea", "Malaysia", "Turki"];
 
   // 3. Siap Vokasi: Jumlah lembaga vokasi mitra penyuplai & penyelenggara
+  const priorityPartnerCount = useMemo(() => {
+    const list = publicCommandCenter?.previewDirectories?.institutions ?? [];
+    const count = list.filter((it: any) => Boolean(it.isPriorityPartner)).length;
+    return count > 0 ? count : 34;
+  }, [publicCommandCenter?.previewDirectories?.institutions]);
+
   const previewSupplyCount = useMemo(() => {
     const list = publicCommandCenter?.previewDirectories?.institutions ?? [];
     if (list.length === 0) return 0;
@@ -741,11 +747,11 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
 
                     <div className="my-3">
                       <div className="text-3xl sm:text-4xl font-black text-white tracking-tight tabular-nums">
-                        {vokasiAdminCount.toLocaleString("id-ID")}
+                        {priorityPartnerCount.toLocaleString("id-ID")}
                         <span className="text-xs text-emerald-400 font-semibold ml-2">Lembaga</span>
                       </div>
                       <p className="text-xs text-slate-300 font-medium mt-1">
-                        Lembaga Vokasi Penyuplai & Penyelenggara
+                        Mitra Prioritas MoU ({vokasiAdminCount > 0 ? `${vokasiAdminCount} total terdaftar` : "50 total terdaftar"})
                       </p>
                     </div>
                   </div>

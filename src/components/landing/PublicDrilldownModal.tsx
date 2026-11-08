@@ -167,7 +167,7 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
   const [selectedProvinceForLpk, setSelectedProvinceForLpk] = useState<string | null>(null);
   const [institutionSourceFilter, setInstitutionSourceFilter] = useState<"ALL" | "siskop2mi" | "disnaker" | "umum">(initialSourceFilter);
   const [institutionLevelFilter, setInstitutionLevelFilter] = useState<"ALL" | InstitutionInputLevel>("ALL");
-  const [institutionCategoryFilter, setInstitutionCategoryFilter] = useState<"ALL" | "prioritas" | "lembaga" | "vokasi">("ALL");
+  const [institutionCategoryFilter, setInstitutionCategoryFilter] = useState<"ALL" | "prioritas" | "lembaga" | "vokasi">("prioritas");
   const [institutionStatusFilter, setInstitutionStatusFilter] = useState<"ALL" | "supply" | "verified">("supply");
   const [institutionSearchQuery, setInstitutionSearchQuery] = useState<string>("");
   const [institutionPage, setInstitutionPage] = useState<number>(1);
@@ -198,7 +198,7 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
     setSelectedCandidateForDetail(null);
     setInstitutionSourceFilter(initialSourceFilter);
     setInstitutionLevelFilter("ALL");
-    setInstitutionCategoryFilter("ALL");
+    setInstitutionCategoryFilter("prioritas");
     setInstitutionStatusFilter("supply");
     setInstitutionSearchQuery("");
     setInstitutionPage(1);
@@ -2238,11 +2238,11 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
               </button>
             </div>
 
-            {institutionCategoryFilter !== "ALL" && (
+            {institutionCategoryFilter !== "prioritas" && (
               <button
                 type="button"
                 onClick={() => {
-                  setInstitutionCategoryFilter("ALL");
+                  setInstitutionCategoryFilter("prioritas");
                   setInstitutionPage(1);
                 }}
                 className="text-[11px] text-blue-600 hover:underline cursor-pointer"
