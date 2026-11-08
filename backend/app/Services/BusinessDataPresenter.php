@@ -45,6 +45,16 @@ class BusinessDataPresenter
 
     private const NON_COUNTRY_DESTINATIONS = ['eropa timur', 'timur tengah'];
 
+    public const PRIORITY_34_KEYWORDS = [
+        'purwodadi', 'indonusa', 'eiko gakkou', 'tujuh belas', 'duta bangsa',
+        'mitra husada', 'duta internasional', 'assalaam', 'graha wisata',
+        'baruna academy', 'genesis talent', 'ambarrukmo', 'mundu', 'rajawali',
+        'immanuel', 'wiralodra', 'padjadjaran mitra', 'hayashi', 'karya duta',
+        'citra international', 'tedja indonesia', 'lpia hotel', 'erlangga blitar',
+        'kepanjen', 'study hotel', 'american english', 'cruise international',
+        'p4m', 'trijasa', 'house of learning', 'smart plus', 'metro hotel', 'mitra sauri',
+    ];
+
     /**
      * Padanan kata kunci nama sektor target penempatan dengan nama sektor master.
      *
@@ -706,6 +716,17 @@ class BusinessDataPresenter
                         $inputLevel = 'kabupaten_kota';
                     }
 
+                    $isPriority = (bool) ($row->isPriorityPartner ?? false);
+                    if (! $isPriority) {
+                        $lowerName = mb_strtolower((string) ($row->name ?? ''));
+                        foreach (self::PRIORITY_34_KEYWORDS as $kw) {
+                            if (str_contains($lowerName, $kw)) {
+                                $isPriority = true;
+                                break;
+                            }
+                        }
+                    }
+
                     return [
                         ...((array) $row),
                         'supportedSectors' => $supportedSectorsDecoded,
@@ -715,7 +736,7 @@ class BusinessDataPresenter
                         'registrationSource' => $source,
                         'inputLevel' => $inputLevel,
                         'hasAdminAccount' => $adminLembagaInstIds->contains($row->id),
-                        'isPriorityPartner' => (bool) ($row->isPriorityPartner ?? false),
+                        'isPriorityPartner' => $isPriority,
                     ];
                 })
                 ->sortByDesc('studentCount')

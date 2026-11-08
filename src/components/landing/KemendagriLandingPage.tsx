@@ -4,6 +4,7 @@ import {
 } from '../../store/useAppStore';
 import { LandingProjectionDashboard, LandingProjectionData } from "@/components/landing/LandingProjectionDashboard";
 import { PublicCommandCenterSection } from "@/components/landing/PublicCommandCenterSection";
+import { isPriorityInstitution } from "@/components/landing/PublicDrilldownModal";
 import { PublicCommandCenterData, TrainingSectorCatalogItem } from '../../types';
 import { LOGO_URL } from '@/lib/assets';
 import {
@@ -341,7 +342,7 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
   // 3. Siap Vokasi: Jumlah lembaga vokasi mitra penyuplai & penyelenggara
   const priorityPartnerCount = useMemo(() => {
     const list = publicCommandCenter?.previewDirectories?.institutions ?? [];
-    const count = list.filter((it: any) => Boolean(it.isPriorityPartner)).length;
+    const count = list.filter((it: any) => isPriorityInstitution(it)).length;
     return count > 0 ? count : 34;
   }, [publicCommandCenter?.previewDirectories?.institutions]);
 

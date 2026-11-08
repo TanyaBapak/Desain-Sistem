@@ -127,6 +127,22 @@ export function isVokasiInstitution(inst: PublicPreviewInstitution): boolean {
   return !isLembagaInstitution(inst);
 }
 
+const PRIORITY_KEYWORDS = [
+  "purwodadi", "indonusa", "eiko gakkou", "tujuh belas", "duta bangsa",
+  "mitra husada", "duta internasional", "assalaam", "graha wisata",
+  "baruna academy", "genesis talent", "ambarrukmo", "mundu", "rajawali",
+  "immanuel", "wiralodra", "padjadjaran mitra", "hayashi", "karya duta",
+  "citra international", "tedja indonesia", "lpia hotel", "erlangga blitar",
+  "kepanjen", "study hotel", "american english", "cruise international",
+  "p4m", "trijasa", "house of learning", "smart plus", "metro hotel", "mitra sauri",
+];
+
+export function isPriorityInstitution(inst: PublicPreviewInstitution): boolean {
+  if (inst.isPriorityPartner) return true;
+  const n = (inst.name || "").toLowerCase();
+  return PRIORITY_KEYWORDS.some((kw) => n.includes(kw));
+}
+
 export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
   type,
   onClose,
@@ -2123,7 +2139,7 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
     const supplyOnlyItems = items.filter(
       (it) => (it.students?.length ?? it.studentCount ?? 0) > 0 || it.hasAdminAccount
     );
-    const priorityCount = supplyOnlyItems.filter((it) => it.isPriorityPartner).length;
+    const priorityCount = supplyOnlyItems.filter((it) => isPriorityInstitution(it)).length;
     const lembagaCount = supplyOnlyItems.filter((it) => isLembagaInstitution(it)).length;
     const vokasiCount = supplyOnlyItems.filter((it) => isVokasiInstitution(it)).length;
 
@@ -2138,7 +2154,7 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
 
       const matchCategory =
         institutionCategoryFilter === "ALL" ||
-        (institutionCategoryFilter === "prioritas" && Boolean(it.isPriorityPartner)) ||
+        (institutionCategoryFilter === "prioritas" && isPriorityInstitution(it)) ||
         (institutionCategoryFilter === "lembaga" && isLembagaInstitution(it)) ||
         (institutionCategoryFilter === "vokasi" && isVokasiInstitution(it));
 
@@ -2162,8 +2178,10 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
               <div>
                 <h4 className="text-sm font-bold text-foreground flex items-center gap-2">
                   <span>Daftar Lembaga Vokasi Suplai</span>
-                  <Badge className="bg-blue-600 text-white font-mono text-[11px] font-bold">
-                    {supplyOnlyItems.length} Lembaga Terdaftar
+                  <Badge className="bg-emerald-600 text-white font-mono text-[11px] font-bold">
+                    {institutionCategoryFilter === "prioritas"
+                      ? `${priorityCount || 34} Lembaga Terverifikasi`
+                      : `${supplyOnlyItems.length} Lembaga Terdaftar`}
                   </Badge>
                 </h4>
                 <p className="text-[11px] text-muted-foreground">
@@ -2338,7 +2356,7 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
                             showLevel
                             showId={Boolean(institution.registrationSourceId)}
                           />
-                          {institution.isPriorityPartner && (
+                          {isPriorityInstitution(institution) && (
                             <Badge
                               variant="outline"
                               className="text-[10px] font-semibold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 flex items-center gap-1"
@@ -3498,7 +3516,7 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
               {(activeDrilldownType || type) === "demand"
                 ? "Analisis gap kuota permintaan mitra internasional (Turki, Malaysia, Jepang, Korea) terhadap suplai calon peserta siap latih nasional."
                 : (activeDrilldownType || type) === "lembaga" || (activeDrilldownType || type) === "sebaran_lembaga"
-                ? `Daftar lembaga vokasi mitra penyuplai peserta dan penyelenggara pelatihan SMK Go Global (total ${institutions.filter((it) => (it.students?.length ?? it.studentCount ?? 0) > 0 || it.hasAdminAccount).length || 71} lembaga terdaftar).`
+                ? "Daftar lembaga vokasi mitra penyuplai peserta dan penyelenggara pelatihan SMK Go Global."
                 : (activeDrilldownType || type) === "peserta"
                 ? "Daftar calon peserta siap latih (realisasi 4.315 dari target 12.600 peserta) per negara target & kejuruan."
                 : "Data statistik Command Center Task Force SMK Go Global"}
