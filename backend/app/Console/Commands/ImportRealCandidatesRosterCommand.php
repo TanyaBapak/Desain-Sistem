@@ -39,7 +39,33 @@ class ImportRealCandidatesRosterCommand extends Command
             return self::FAILURE;
         }
 
-        $this->info('Total data peserta riil yang akan diproses: ' . count($rawRoster) . ' orang.');
+        // Deduplikasi otomatis: Pastikan 1 siswa hanya masuk 1 kali per lembaga (mencegah duplikasi data di Excel)
+        $uniqueRoster = [];
+        $seen = [];
+        $duplicateCount = 0;
+        foreach ($rawRoster as $row) {
+            $cleanName = trim((string) preg_replace('/\s+/', ' ', (string) ($row['name'] ?? '')));
+            $cleanInst = trim((string) preg_replace('/\s+/', ' ', (string) ($row['institution'] ?? '')));
+            if ($cleanName === '' || $cleanInst === '' || in_array(strtolower($cleanName), ['nama', 'nama lengkap', 'waiting list'], true)) {
+                continue;
+            }
+            $key = mb_strtolower($cleanName) . '::' . mb_strtolower($cleanInst);
+            if (! isset($seen[$key])) {
+                $seen[$key] = true;
+                $uniqueRoster[] = [
+                    'name' => $cleanName,
+                    'institution' => $cleanInst,
+                ];
+            } else {
+                $duplicateCount++;
+            }
+        }
+
+        $this->info("Total data mentah: " . count($rawRoster) . " baris.");
+        if ($duplicateCount > 0) {
+            $this->warn("Ditemukan {$duplicateCount} baris duplikat di dalam Excel (telah otomatis digabungkan).");
+        }
+        $this->info("Total data peserta riil UNIK yang diimpor: " . count($uniqueRoster) . " orang (dijamin 100% tanpa duplikasi).");
 
         // 1. Pembersihan Data Dummy
         $this->newLine();
@@ -448,7 +474,7 @@ class ImportRealCandidatesRosterCommand extends Command
         $updatedCount = 0;
         $instStudentCounts = [];
 
-        $chunks = array_chunk($rawRoster, 100);
+        $chunks = array_chunk($uniqueRoster, 100);
         foreach ($chunks as $chunk) {
             DB::transaction(function () use ($chunk, $resolvedInstitutions, &$insertedCount, &$updatedCount, &$instStudentCounts) {
                 foreach ($chunk as $row) {
