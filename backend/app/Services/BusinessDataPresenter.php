@@ -2058,44 +2058,61 @@ class BusinessDataPresenter
 
             // Core name tanpa prefix (contoh: "1 Mundu", "Smart Plus", "Metro Hotel School", "Duta Bangsa")
             $core = trim(preg_replace('/^(lpk|lkp|pk|smkn|smk\s+negeri|smk|stikes|poltek|politeknik|universitas|sekolah\s+tinggi|institut)\.?\s+/i', '', $raw));
-            if (mb_strlen($core) >= 3) {
+            if (mb_strlen($core) >= 4) {
                 $namePatterns[] = $core;
-            }
-
-            // Kata unik (misal "Mundu", "Purwodadi", "Rajawali", "Kepanjen", "Tedja")
-            $words = preg_split('/\s+/', $core);
-            foreach ($words as $w) {
-                if (mb_strlen($w) >= 4 && ! in_array(strtolower($w), ['negeri', 'swasta', 'pusat', 'utama', 'hotel', 'kapal', 'pesiar', 'training', 'center', 'course', 'academy'], true)) {
-                    $namePatterns[] = $w;
-                }
             }
         };
 
-        // Auto-detect institusi terdaftar (mis. Arief Prasetya -> Victoria Hotel School)
-        $userNameLower = strtolower($user->name ?? '');
-        $userOrgLower = strtolower($user->organization ?? '');
-        $userScopeLower = strtolower($user->scope_name ?? '');
-        $userEmailLower = strtolower($user->email ?? '');
+        $userText = mb_strtolower(trim(($user->organization ?? '') . ' ' . ($user->scope_name ?? '') . ' ' . ($user->name ?? '') . ' ' . ($user->email ?? '')));
 
-        if (str_contains($userNameLower, 'arief') || str_contains($userOrgLower, 'victoria') || str_contains($userEmailLower, 'victoria') || str_contains($userScopeLower, 'victoria')) {
-            $namePatterns[] = 'Victoria';
-            $namePatterns[] = 'Victoria Hotel School';
-            $namePatterns[] = 'LPK Victoria Hotel School';
-        }
-        if (str_contains($userNameLower, 'omega') || str_contains($userOrgLower, 'omega') || str_contains($userEmailLower, 'omega')) {
-            $namePatterns[] = 'Omega';
-            $namePatterns[] = 'Omega Hotel Academy';
-            $namePatterns[] = 'LPK Omega Hotel Academy';
-        }
-        if (str_contains($userNameLower, 'suci') || str_contains($userOrgLower, 'indonusa') || str_contains($userEmailLower, 'indonusa') || str_contains($userOrgLower, 'politeknik indonusa')) {
-            $namePatterns[] = 'Indonusa';
-            $namePatterns[] = 'Politeknik Indonusa';
-            $namePatterns[] = 'Politeknik Indonusa Surakarta';
-        }
-        if (str_contains($userNameLower, 'duta international') || str_contains($userOrgLower, 'duta international') || str_contains($userEmailLower, 'dutainternational') || str_contains($userScopeLower, 'duta international')) {
-            $namePatterns[] = 'Duta International';
-            $namePatterns[] = 'Duta International Course';
-            $namePatterns[] = 'LPK Duta International Course';
+        $canonicalMap = [
+            'immanuel' => ['Institut Kesehatan Immanuel Bandung', 'Institut Kesehatan Immanuel', 'IKES Immanuel'],
+            'rajawali' => ['Institut Kesehatan Rajawali', 'IKES Rajawali'],
+            'tujuh belas' => ['Sekolah Tinggi Ilmu Kesehatan Tujuh Belas', 'STIKES Tujuh Belas', 'STIKES 17'],
+            'stikes 17' => ['Sekolah Tinggi Ilmu Kesehatan Tujuh Belas', 'STIKES Tujuh Belas', 'STIKES 17'],
+            'duta bangsa' => ['Universitas Duta Bangsa Surakarta', 'Universitas Duta Bangsa', 'Duta Bangsa', 'UDB'],
+            'udb' => ['Universitas Duta Bangsa Surakarta', 'Universitas Duta Bangsa', 'Duta Bangsa', 'UDB'],
+            'karya duta' => ['LKP KARYA DUTA', 'LPK Karya Duta', 'Karya Duta'],
+            'duta inter' => ['Duta Internasional', 'LPK Duta Internasional', 'Duta International'],
+            'mitra husada' => ['Universitas Mitra Husada', 'Mitra Husada'],
+            'mitra sauri' => ['MITRA SAURI', 'LPK Mitra Sauri Medan', 'Mitra Sauri'],
+            'padjadjaran' => ['LKP Padjadjaran Mitra Education Center', 'Padjadjaran Mitra Education Center', 'Padjadjaran Mitra'],
+            'indonusa' => ['Politeknik Indonusa Surakarta', 'Politeknik Indonusa', 'Indonusa'],
+            'ambarrukmo' => ['Sekolah Tinggi Pariwisata Ambarrukmo Yogyakarta', 'STIPRAM', 'STP Ambarrukmo'],
+            'stipram' => ['Sekolah Tinggi Pariwisata Ambarrukmo Yogyakarta', 'STIPRAM', 'STP Ambarrukmo'],
+            'kepanjen' => ['Universitas Kepanjen', 'Kepanjen'],
+            'mundu' => ['SMK NEGERI 1 MUNDU', 'SMKN 1 Mundu', 'SMK Negeri 1 Mundu'],
+            'semarang' => ['Graha Wisata SEMARANG', 'Graha Wisata Semarang'],
+            'graha wisata' => ['LKP GRAHA WISATA', 'LKP GRAHA WISATA SURAKARTA'],
+            'eiko' => ['LPK EIKO GAKKOU', 'Eiko Gakkou'],
+            'american english' => ['LKP American English Course (AEC)', 'American English Course', 'LKP AEC'],
+            'aec' => ['LKP American English Course (AEC)', 'American English Course', 'LKP AEC'],
+            'tedja' => ['Institut Pariwisata Tedja Indonesia', 'Tedja Indonesia', 'IPTI'],
+            'metro hotel' => ['Metro Hotel School', 'LPK Metro Hotel School'],
+            'hayashi' => ['LPK Hayashi', 'Hayashi'],
+            'p4m' => ['LKP P4M', 'P4M', 'lkpp4m'],
+            'baruna' => ['Lembaga pelatihan kerja baruna academy international', 'Baruna Academy International', 'Baruna Academy'],
+            'trijasa' => ['LPK Trijasa', 'Trijasa'],
+            'purwodadi' => ['SMK Negeri 2 Purwodadi', 'SMKN 2 Purwodadi'],
+            'citra' => ['LKP Citra International Tourism Institute', 'Citra International Tourism Institute', 'CITI'],
+            'wiralodra' => ['Universitas Wiralodra', 'Wiralodra', 'Unwir'],
+            'genesis' => ['Genesis Talent Academy Profesional', 'Genesis Talent Academy', 'Genesis Talent'],
+            'victoria' => ['Victoria Hotel School', 'LPK Victoria Hotel School', 'LPK Indonesia Hotel School', 'Indonesia Hotel School'],
+            'study hotel' => ['LKP Study Hotel Executive Kediri', 'Study Hotel Executive Kediri', 'Study Hotel Executive'],
+            'omega' => ['LKP OMEGA MARINE HOTEL INSTITUTE CILACAP (PT GEMILANG SUKMA JAYA)', 'Omega Marine Hotel Institute', 'Omega Hotel Academy', 'LPK Omega Hotel Academy'],
+            'assalaam' => ['POLITEKNIK ASSALAAM SURAKARTA', 'Politeknik Assalaam Surakarta', 'Assalaam'],
+            'house of learning' => ['House of Learning', 'p: House of Learning', 'LPK House of Learning'],
+            'smart plus' => ['LKP Smart Plus', 'LPK Smart Plus', 'Smart Plus', 'PK Smart Plus'],
+            'lpia' => ['LPIA Hotel dan Kapal Pesiar', 'LPIA Hotel & Kapal Pesiar', 'LPIA Hotel'],
+        ];
+
+        foreach ($canonicalMap as $keyWord => $aliases) {
+            if (str_contains($userText, $keyWord)) {
+                foreach ($aliases as $alias) {
+                    $namePatterns[] = $alias;
+                }
+                break;
+            }
         }
 
         // Daftarkan pola nama dari profil pengguna
@@ -2565,17 +2582,29 @@ class BusinessDataPresenter
                         $q->whereIn('job_seekers.institution_id', $scope['ids']);
                         $hasCondition = true;
                     }
+                    $genericStopwords = [
+                        'kesehatan', 'pariwisata', 'pendidikan', 'hotel', 'kapal', 'pesiar',
+                        'training', 'center', 'course', 'academy', 'smk', 'lpk', 'lkp',
+                        'duta', 'mitra', 'surakarta', 'semarang', 'bandung', 'cirebon',
+                        'medan', 'kediri', 'blitar', 'indonesia', 'internasional', 'international'
+                    ];
+
                     if (! empty($scope['patterns'])) {
                         foreach ($scope['patterns'] as $pattern) {
                             $clean = trim((string) $pattern);
-                            if ($clean !== '') {
+                            $cleanLower = strtolower($clean);
+                            if ($clean !== '' && ! in_array($cleanLower, $genericStopwords, true)) {
                                 if ($hasCondition) {
-                                    $q->orWhere('job_seekers.institution_name', $clean)
-                                        ->orWhere('job_seekers.institution_name', 'LIKE', "%{$clean}%");
+                                    $q->orWhere('job_seekers.institution_name', $clean);
+                                    if (mb_strlen($clean) >= 6) {
+                                        $q->orWhere('job_seekers.institution_name', 'LIKE', "%{$clean}%");
+                                    }
                                 } else {
                                     $q->where(function ($sub) use ($clean) {
-                                        $sub->where('job_seekers.institution_name', $clean)
-                                            ->orWhere('job_seekers.institution_name', 'LIKE', "%{$clean}%");
+                                        $sub->where('job_seekers.institution_name', $clean);
+                                        if (mb_strlen($clean) >= 6) {
+                                            $sub->orWhere('job_seekers.institution_name', 'LIKE', "%{$clean}%");
+                                        }
                                     });
                                     $hasCondition = true;
                                 }
@@ -2590,22 +2619,25 @@ class BusinessDataPresenter
                     }
                     if (! empty($user->organization)) {
                         $cleanOrg = trim($user->organization);
-                        $q->orWhere('job_seekers.institution_name', $cleanOrg)
-                            ->orWhere('job_seekers.institution_name', 'LIKE', "%{$cleanOrg}%")
-                            ->orWhere('job_seekers.created_by', $cleanOrg)
-                            ->orWhere('job_seekers.created_by', 'LIKE', "%{$cleanOrg}%");
-                        $hasCondition = true;
+                        $cleanOrgLower = strtolower($cleanOrg);
+                        if (! in_array($cleanOrgLower, $genericStopwords, true)) {
+                            $q->orWhere('job_seekers.institution_name', $cleanOrg);
+                            if (mb_strlen($cleanOrg) >= 6) {
+                                $q->orWhere('job_seekers.institution_name', 'LIKE', "%{$cleanOrg}%");
+                            }
+                            $hasCondition = true;
+                        }
                     }
                     if (! empty($user->scope_name)) {
                         $cleanScope = trim($user->scope_name);
-                        $q->orWhere('job_seekers.institution_name', $cleanScope)
-                            ->orWhere('job_seekers.institution_name', 'LIKE', "%{$cleanScope}%");
-                        $coreScope = trim(preg_replace('/^(lpk|lkp|pk|smkn|smk\s+negeri|smk|universitas|institut|sekolah\s+tinggi|politeknik)\.?\s+/i', '', $cleanScope));
-                        if (mb_strlen($coreScope) >= 3) {
-                            $q->orWhere('job_seekers.institution_name', $coreScope)
-                                ->orWhere('job_seekers.institution_name', 'LIKE', "%{$coreScope}%");
+                        $cleanScopeLower = strtolower($cleanScope);
+                        if (! in_array($cleanScopeLower, $genericStopwords, true)) {
+                            $q->orWhere('job_seekers.institution_name', $cleanScope);
+                            if (mb_strlen($cleanScope) >= 6) {
+                                $q->orWhere('job_seekers.institution_name', 'LIKE', "%{$cleanScope}%");
+                            }
+                            $hasCondition = true;
                         }
-                        $hasCondition = true;
                     }
                     if (! empty($scope['institution']?->name)) {
                         $cleanInst = trim($scope['institution']->name);
