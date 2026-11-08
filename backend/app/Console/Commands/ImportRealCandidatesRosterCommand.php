@@ -588,8 +588,12 @@ class ImportRealCandidatesRosterCommand extends Command
                     ];
 
                     $existing = DB::table('job_seekers')
-                        ->where('full_name', $studentName)
-                        ->where('institution_id', $inst['id'])
+                        ->where('id', $candId)
+                        ->orWhere('external_id', 'ROSTER-' . $candId)
+                        ->orWhere(function ($q) use ($studentName, $inst) {
+                            $q->where('full_name', $studentName)
+                                ->where('institution_id', $inst['id']);
+                        })
                         ->first(['id', 'nik', 'registration_number']);
 
                     if ($existing) {
@@ -624,6 +628,16 @@ class ImportRealCandidatesRosterCommand extends Command
                                     usleep(100000);
                                     continue;
                                 }
+                                if ($qe->getCode() === '23000' && str_contains($qe->getMessage(), 'nik')) {
+                                    unset($attributes['nik']);
+                                    $attempt++;
+                                    continue;
+                                }
+                                if ($qe->getCode() === '23000' && str_contains($qe->getMessage(), 'registration_number')) {
+                                    $attributes['registration_number'] = 'REG-2026-' . $inst['province_id'] . '-' . str_pad((string) mt_rand(100000, 999999), 6, '0', STR_PAD_LEFT);
+                                    $attempt++;
+                                    continue;
+                                }
                                 throw $qe;
                             }
                         }
@@ -642,13 +656,26 @@ class ImportRealCandidatesRosterCommand extends Command
                         $attempt = 0;
                         while ($attempt < 5) {
                             try {
-                                DB::table('job_seekers')->insert($attributes);
+                                DB::table('job_seekers')->updateOrInsert(
+                                    ['id' => $candId],
+                                    $attributes
+                                );
                                 $insertedCount++;
                                 break;
                             } catch (\Illuminate\Database\QueryException $qe) {
                                 if ($qe->getCode() === '40001' || str_contains($qe->getMessage(), 'Deadlock')) {
                                     $attempt++;
                                     usleep(100000);
+                                    continue;
+                                }
+                                if ($qe->getCode() === '23000' && str_contains($qe->getMessage(), 'registration_number')) {
+                                    $attributes['registration_number'] = 'REG-2026-' . $inst['province_id'] . '-' . str_pad((string) mt_rand(100000, 999999), 6, '0', STR_PAD_LEFT);
+                                    $attempt++;
+                                    continue;
+                                }
+                                if ($qe->getCode() === '23000' && str_contains($qe->getMessage(), 'nik')) {
+                                    $attributes['nik'] = (string) (((int) $attributes['nik']) + mt_rand(1, 99));
+                                    $attempt++;
                                     continue;
                                 }
                                 throw $qe;
