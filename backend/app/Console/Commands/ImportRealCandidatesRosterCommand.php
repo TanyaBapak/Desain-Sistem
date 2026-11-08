@@ -55,6 +55,12 @@ class ImportRealCandidatesRosterCommand extends Command
                 $uniqueRoster[] = [
                     'name' => $cleanName,
                     'institution' => $cleanInst,
+                    'nik' => trim((string) ($row['nik'] ?? '')),
+                    'raw_sector' => trim((string) ($row['raw_sector'] ?? '')),
+                    'sector' => trim((string) ($row['sector'] ?? '')),
+                    'role' => trim((string) ($row['role'] ?? '')),
+                    'raw_country' => trim((string) ($row['raw_country'] ?? '')),
+                    'countries' => ! empty($row['countries']) && is_array($row['countries']) ? $row['countries'] : [],
                 ];
             } else {
                 $duplicateCount++;
@@ -509,24 +515,42 @@ class ImportRealCandidatesRosterCommand extends Command
                     $info = $inst['info'];
                     $instStudentCounts[$inst['id']] = ($instStudentCounts[$inst['id']] ?? 0) + 1;
 
-                    // Buat NIK deterministik 16 digit: kode prov + kab + tgl fiktif + seq
+                    // Tentukan NIK calon peserta: prioritaskan NIK riil dari spreadsheet jika valid 16-digit dan belum dipakai
+                    $rawNik = trim((string) ($row['nik'] ?? ''));
                     $hashKey = $studentName . '::' . $inst['id'];
                     $hexSeq = substr(hash('sha256', $hashKey), 0, 8);
                     $numericSeq = str_pad((string) (hexdec(substr($hexSeq, 0, 6)) % 900000 + 100000), 6, '0', STR_PAD_LEFT);
-                    $nik = $inst['province_id'] . substr($inst['district_id'], 2, 2) . '010103' . substr($numericSeq, 0, 4);
+
+                    if (preg_match('/^\d{16}$/', $rawNik) && ! isset($usedNiks[$rawNik])) {
+                        $nik = $rawNik;
+                        $usedNiks[$nik] = true;
+                    } else {
+                        // Buat NIK deterministik 16 digit: kode prov + kab + tgl fiktif + seq
+                        $nik = $inst['province_id'] . substr($inst['district_id'], 2, 2) . '010103' . substr($numericSeq, 0, 4);
+                        while (isset($usedNiks[$nik])) {
+                            $nik = (string) (((int) $nik) + 1);
+                        }
+                        $usedNiks[$nik] = true;
+                    }
 
                     $candId = 'CAND-' . Str::upper(substr(hash('sha256', $hashKey), 0, 12));
                     $regNumber = 'REG-2026-' . $inst['province_id'] . '-' . substr($numericSeq, 0, 5);
 
+                    // Sektor, Jabatan, Negara dari data baris spreadsheet riil masing-masing peserta
+                    $rowCountries = ! empty($row['countries']) && is_array($row['countries']) ? $row['countries'] : $info['countries'];
+                    $rowSector = ! empty($row['sector']) ? $row['sector'] : $info['sector'];
+                    $rowRole = ! empty($row['role']) ? $row['role'] : $info['role'];
+                    $rowMajor = ! empty($row['role']) ? $row['role'] : $info['major'];
+
                     $attributes = [
                         'full_name' => $studentName,
-                        'gender' => (str_contains(strtolower($studentName), 'putri') || str_contains(strtolower($studentName), 'siti') || str_contains(strtolower($studentName), 'nur')) ? 'P' : 'L',
+                        'gender' => (str_contains(strtolower($studentName), 'putri') || str_contains(strtolower($studentName), 'siti') || str_contains(strtolower($studentName), 'nur') || str_contains(strtolower($studentName), 'dewi') || str_contains(strtolower($studentName), 'ayu')) ? 'P' : 'L',
                         'province_id' => $inst['province_id'],
                         'district_id' => $inst['district_id'],
                         'education_level' => str_contains($info['type'], 'SMK') ? 'SMK' : 'D3',
                         'institution_name' => $inst['name'],
                         'institution_id' => $inst['id'],
-                        'major' => $info['major'],
+                        'major' => $rowMajor,
                         'gpa_score' => 3.50,
                         'source_type' => str_contains($info['type'], 'SMK') ? 'SMK' : (str_contains($info['type'], 'LPK') ? 'LPK' : 'D3'),
                         'source_reference' => 'Task Force SMK Go Global Roster 2026',
@@ -538,13 +562,13 @@ class ImportRealCandidatesRosterCommand extends Command
                         'created_by' => 'Task Force Penempatan Luar Negeri',
                         'external_source' => 'taskforce_roster',
                         'external_id' => 'ROSTER-' . $candId,
-                        'preferred_countries' => json_encode($info['countries']),
-                        'preferred_sectors' => json_encode([$info['sector']]),
-                        'preferred_job_roles' => json_encode([$info['role']]),
+                        'preferred_countries' => json_encode($rowCountries),
+                        'preferred_sectors' => json_encode([$rowSector]),
+                        'preferred_job_roles' => json_encode([$rowRole]),
                         'work_experiences' => json_encode([
                             [
-                                'sector' => $info['sector'],
-                                'role' => $info['role'],
+                                'sector' => $rowSector,
+                                'role' => $rowRole,
                                 'durationYears' => 1.0,
                                 'companyName' => 'Praktik Industri ' . $inst['name'],
                                 'description' => 'Praktik kerja lapangan terstruktur berstandar industri dan kompetensi global.',
@@ -552,7 +576,7 @@ class ImportRealCandidatesRosterCommand extends Command
                         ]),
                         'certifications' => json_encode([
                             [
-                                'name' => 'Sertifikat Kompetensi Keahlian ' . $info['major'],
+                                'name' => 'Sertifikat Kompetensi Keahlian ' . $rowMajor,
                                 'issuer' => 'Badan Nasional Sertifikasi Profesi (BNSP)',
                                 'issueYear' => 2025,
                                 'validUntil' => '2028-12-31',
@@ -577,12 +601,13 @@ class ImportRealCandidatesRosterCommand extends Command
                             $attributes['registration_number'] = $regNumber;
                         }
 
-                        // Jika sudah punya NIK yang sah, pertahankan NIK lama agar tidak pernah konflik
-                        if (empty($existing->nik)) {
-                            while (isset($usedNiks[$nik])) {
-                                $nik = (string) (((int) $nik) + 1);
+                        // Update NIK jika kita punya NIK riil yang valid dari spreadsheet
+                        if (preg_match('/^\d{16}$/', $rawNik)) {
+                            if ($existing->nik === $rawNik || ! isset($usedNiks[$rawNik])) {
+                                $attributes['nik'] = $rawNik;
+                                $usedNiks[$rawNik] = true;
                             }
-                            $usedNiks[$nik] = true;
+                        } elseif (empty($existing->nik)) {
                             $attributes['nik'] = $nik;
                         }
 
@@ -596,13 +621,7 @@ class ImportRealCandidatesRosterCommand extends Command
                         $usedRegNumbers[$regNumber] = true;
                         $attributes['registration_number'] = $regNumber;
 
-                        // Pastikan NIK baru selalu unik dan belum pernah dipakai
-                        while (isset($usedNiks[$nik])) {
-                            $nik = (string) (((int) $nik) + 1);
-                        }
-                        $usedNiks[$nik] = true;
                         $attributes['nik'] = $nik;
-
                         $attributes['id'] = $candId;
                         $attributes['created_at'] = now();
 

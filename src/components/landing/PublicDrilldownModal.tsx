@@ -315,6 +315,7 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
         return (
           s.name.toLowerCase().includes(q) ||
           s.id.toLowerCase().includes(q) ||
+          (s.nik && s.nik.toLowerCase().includes(q)) ||
           s.institutionName.toLowerCase().includes(q) ||
           (s.district && s.district.toLowerCase().includes(q)) ||
           s.targetCountry.toLowerCase().includes(q) ||
@@ -649,7 +650,7 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
 
         return {
           "Nama lengkap": s.name,
-          "NIK (opsional)": "",
+          "NIK (opsional)": s.nik || "",
           "Provinsi": s.province || "Jawa Barat",
           "Kabupaten/Kota": s.district || "Wilayah Penempatan",
           "Jenjang pendidikan": eduLevel,
@@ -1185,7 +1186,7 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
                       </td>
                       <td className="py-2 px-3">
                         <div className="font-semibold text-foreground">{s.name}</div>
-                        <div className="text-[10px] text-muted-foreground font-mono">ID: {s.id}</div>
+                        <div className="text-[10px] text-muted-foreground font-mono">{s.nik ? `NIK: ${s.nik}` : `ID: ${s.id}`}</div>
                       </td>
                       <td className="py-2 px-3">
                         <span className="font-medium text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
@@ -1233,7 +1234,7 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
                           {s.name}
                         </h5>
                         <span className="text-[10px] text-muted-foreground font-mono">
-                          ID: {s.id}
+                          {s.nik ? `NIK: ${s.nik}` : `ID: ${s.id}`}
                         </span>
                       </div>
                     </div>
@@ -1517,7 +1518,7 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
                       </td>
                       <td className="py-2 px-3">
                         <div className="font-semibold text-foreground">{s.name}</div>
-                        <div className="text-[10px] text-muted-foreground font-mono">ID: {s.id}</div>
+                        <div className="text-[10px] text-muted-foreground font-mono">{s.nik ? `NIK: ${s.nik}` : `ID: ${s.id}`}</div>
                       </td>
                       <td className="py-2 px-3">
                         <div className="font-medium text-foreground truncate max-w-[170px]" title={s.institutionName}>
@@ -1581,7 +1582,7 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
                           {s.name}
                         </h5>
                         <div className="text-[10px] text-muted-foreground font-mono flex items-center gap-2">
-                          <span>ID: {s.id}</span>
+                          <span>{s.nik ? `NIK: ${s.nik}` : `ID: ${s.id}`}</span>
                           <span>•</span>
                           <span className="font-sans font-medium text-primary truncate max-w-[200px]">
                             {s.institutionName}

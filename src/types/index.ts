@@ -694,6 +694,7 @@ export interface PublicProvinceBreakdown {
 export interface PublicPreviewStudent {
   id: string;
   name: string;
+  nik?: string;
   targetCountry: string;
   sector: string;
   occupation: string;

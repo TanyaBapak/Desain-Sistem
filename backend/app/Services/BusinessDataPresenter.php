@@ -630,6 +630,7 @@ class BusinessDataPresenter
                     'institution_id',
                     'institution_name',
                     'full_name',
+                    'nik',
                     'preferred_countries',
                     'preferred_sectors',
                     'preferred_job_roles',
@@ -727,6 +728,7 @@ class BusinessDataPresenter
                         return [
                             'id' => (string) $c->id,
                             'name' => (string) $c->full_name,
+                            'nik' => (string) ($c->nik ?? ''),
                             'targetCountry' => $targetCountry,
                             'sector' => $sector,
                             'occupation' => $occupation,
@@ -781,6 +783,7 @@ class BusinessDataPresenter
                         return [
                             'id' => (string) $c->id,
                             'name' => (string) $c->full_name,
+                            'nik' => (string) ($c->nik ?? ''),
                             'targetCountry' => ! empty($countries) ? implode(', ', $countries) : 'Jepang, Korea',
                             'sector' => ! empty($sectors) ? implode(', ', $sectors) : ($c->major ?: 'Perhotelan & Pariwisata'),
                             'occupation' => ! empty($jobs) ? implode(', ', $jobs) : ($c->major ?: 'Staf Operasional'),
