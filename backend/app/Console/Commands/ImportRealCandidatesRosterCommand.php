@@ -463,11 +463,11 @@ class ImportRealCandidatesRosterCommand extends Command
             'LKP Smart Plus' => [
                 'aliases' => ['LPK Smart Plus', 'PK Smart Plus', 'LKP Smart Plus', 'Smart Plus'],
                 'type' => 'LPK',
-                'province_id' => '33',
-                'district_id' => '3310',
-                'sector' => 'Bahasa & Manufaktur',
-                'major' => 'Bahasa & Pelatihan Vokasi',
-                'role' => 'Operator Manufaktur',
+                'province_id' => '18',
+                'district_id' => '1810',
+                'sector' => 'Manufaktur & Pengelasan',
+                'major' => 'Teknik Komputer & Jaringan / Manufaktur',
+                'role' => 'Operator Manufaktur / Teknisi',
                 'countries' => ['Jepang'],
             ],
         ];
