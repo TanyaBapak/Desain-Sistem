@@ -474,16 +474,22 @@ class ImportRealCandidatesRosterCommand extends Command
         $updatedCount = 0;
         $instStudentCounts = [];
         $usedNiks = [];
+        $usedRegNumbers = [];
 
-        // Preload NIK yang sudah ada di database untuk mencegah benturan
+        // Preload NIK dan Nomor Registrasi yang sudah ada di database untuk mencegah benturan
         $existingDbNiks = DB::table('job_seekers')->whereNotNull('nik')->pluck('nik')->all();
         foreach ($existingDbNiks as $dbNik) {
             $usedNiks[(string) $dbNik] = true;
         }
 
+        $existingDbRegs = DB::table('job_seekers')->whereNotNull('registration_number')->pluck('registration_number')->all();
+        foreach ($existingDbRegs as $dbReg) {
+            $usedRegNumbers[(string) $dbReg] = true;
+        }
+
         $chunks = array_chunk($uniqueRoster, 100);
         foreach ($chunks as $chunk) {
-            DB::transaction(function () use ($chunk, $resolvedInstitutions, &$insertedCount, &$updatedCount, &$instStudentCounts, &$usedNiks) {
+            DB::transaction(function () use ($chunk, $resolvedInstitutions, &$insertedCount, &$updatedCount, &$instStudentCounts, &$usedNiks, &$usedRegNumbers) {
                 foreach ($chunk as $row) {
                     $studentName = trim($row['name']);
                     $instKey = trim($row['institution']);
@@ -506,7 +512,6 @@ class ImportRealCandidatesRosterCommand extends Command
                     $regNumber = 'REG-2026-' . $inst['province_id'] . '-' . substr($numericSeq, 0, 5);
 
                     $attributes = [
-                        'registration_number' => $regNumber,
                         'full_name' => $studentName,
                         'gender' => (str_contains(strtolower($studentName), 'putri') || str_contains(strtolower($studentName), 'siti') || str_contains(strtolower($studentName), 'nur')) ? 'P' : 'L',
                         'province_id' => $inst['province_id'],
@@ -553,28 +558,44 @@ class ImportRealCandidatesRosterCommand extends Command
                     $existing = DB::table('job_seekers')
                         ->where('full_name', $studentName)
                         ->where('institution_id', $inst['id'])
-                        ->first(['id', 'nik']);
+                        ->first(['id', 'nik', 'registration_number']);
 
                     if ($existing) {
+                        // Jika sudah ada nomor registrasi, pertahankan agar tidak terjadi tabrakan unique key
+                        if (empty($existing->registration_number)) {
+                            while (isset($usedRegNumbers[$regNumber])) {
+                                $regNumber = 'REG-2026-' . $inst['province_id'] . '-' . str_pad((string) mt_rand(100000, 999999), 6, '0', STR_PAD_LEFT);
+                            }
+                            $usedRegNumbers[$regNumber] = true;
+                            $attributes['registration_number'] = $regNumber;
+                        }
+
                         // Jika sudah punya NIK yang sah, pertahankan NIK lama agar tidak pernah konflik
-                        if (! empty($existing->nik)) {
-                            // Jangan ubah NIK peserta yang sudah ada
-                        } else {
+                        if (empty($existing->nik)) {
                             while (isset($usedNiks[$nik])) {
                                 $nik = (string) (((int) $nik) + 1);
                             }
                             $usedNiks[$nik] = true;
                             $attributes['nik'] = $nik;
                         }
+
                         DB::table('job_seekers')->where('id', $existing->id)->update($attributes);
                         $updatedCount++;
                     } else {
+                        // Pastikan nomor registrasi baru selalu unik
+                        while (isset($usedRegNumbers[$regNumber])) {
+                            $regNumber = 'REG-2026-' . $inst['province_id'] . '-' . str_pad((string) mt_rand(100000, 999999), 6, '0', STR_PAD_LEFT);
+                        }
+                        $usedRegNumbers[$regNumber] = true;
+                        $attributes['registration_number'] = $regNumber;
+
                         // Pastikan NIK baru selalu unik dan belum pernah dipakai
                         while (isset($usedNiks[$nik])) {
                             $nik = (string) (((int) $nik) + 1);
                         }
                         $usedNiks[$nik] = true;
                         $attributes['nik'] = $nik;
+
                         $attributes['id'] = $candId;
                         $attributes['created_at'] = now();
 
