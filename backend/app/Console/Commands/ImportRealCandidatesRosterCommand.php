@@ -473,10 +473,17 @@ class ImportRealCandidatesRosterCommand extends Command
         $insertedCount = 0;
         $updatedCount = 0;
         $instStudentCounts = [];
+        $usedNiks = [];
+
+        // Preload NIK yang sudah ada di database untuk mencegah benturan
+        $existingDbNiks = DB::table('job_seekers')->whereNotNull('nik')->pluck('nik')->all();
+        foreach ($existingDbNiks as $dbNik) {
+            $usedNiks[(string) $dbNik] = true;
+        }
 
         $chunks = array_chunk($uniqueRoster, 100);
         foreach ($chunks as $chunk) {
-            DB::transaction(function () use ($chunk, $resolvedInstitutions, &$insertedCount, &$updatedCount, &$instStudentCounts) {
+            DB::transaction(function () use ($chunk, $resolvedInstitutions, &$insertedCount, &$updatedCount, &$instStudentCounts, &$usedNiks) {
                 foreach ($chunk as $row) {
                     $studentName = trim($row['name']);
                     $instKey = trim($row['institution']);
@@ -500,7 +507,6 @@ class ImportRealCandidatesRosterCommand extends Command
 
                     $attributes = [
                         'registration_number' => $regNumber,
-                        'nik' => $nik,
                         'full_name' => $studentName,
                         'gender' => (str_contains(strtolower($studentName), 'putri') || str_contains(strtolower($studentName), 'siti') || str_contains(strtolower($studentName), 'nur')) ? 'P' : 'L',
                         'province_id' => $inst['province_id'],
@@ -547,16 +553,27 @@ class ImportRealCandidatesRosterCommand extends Command
                     $existing = DB::table('job_seekers')
                         ->where('full_name', $studentName)
                         ->where('institution_id', $inst['id'])
-                        ->first(['id']);
+                        ->first(['id', 'nik']);
 
                     if ($existing) {
+                        // Jika sudah punya NIK yang sah, pertahankan NIK lama agar tidak pernah konflik
+                        if (! empty($existing->nik)) {
+                            // Jangan ubah NIK peserta yang sudah ada
+                        } else {
+                            while (isset($usedNiks[$nik])) {
+                                $nik = (string) (((int) $nik) + 1);
+                            }
+                            $usedNiks[$nik] = true;
+                            $attributes['nik'] = $nik;
+                        }
                         DB::table('job_seekers')->where('id', $existing->id)->update($attributes);
                         $updatedCount++;
                     } else {
-                        // Pastikan NIK unik jika terjadi benturan
-                        while (DB::table('job_seekers')->where('nik', $nik)->exists()) {
+                        // Pastikan NIK baru selalu unik dan belum pernah dipakai
+                        while (isset($usedNiks[$nik])) {
                             $nik = (string) (((int) $nik) + 1);
                         }
+                        $usedNiks[$nik] = true;
                         $attributes['nik'] = $nik;
                         $attributes['id'] = $candId;
                         $attributes['created_at'] = now();
