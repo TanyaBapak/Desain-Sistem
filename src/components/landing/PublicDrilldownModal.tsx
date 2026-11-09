@@ -52,7 +52,7 @@ import {
 import { ALL_REGISTERED_CANDIDATES } from "@/data/realSupplyCandidates";
 import type { CandidateParticipant } from "@/types";
 import { CandidateDetailModal } from "@/components/modul-a/CandidateDetailModal";
-import { cn } from "@/lib/utils";
+import { cn, parseCatalogUrls } from "@/lib/utils";
 
 export type PublicDrilldownType =
   | "peserta"
@@ -2142,42 +2142,48 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
                           )}
                         </div>
 
-                        {(institution.procurementCatalogUrl || institution.mouDriveUrl || institution.procurementMethod) && (
-                          <div className="flex flex-wrap items-center gap-2 pt-1.5 border-t border-border/30 text-xs">
-                            <span className="text-[11px] font-medium text-muted-foreground">Dokumen & Pengadaan:</span>
-                            {institution.procurementCatalogUrl && (
-                              <a
-                                href={institution.procurementCatalogUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                onClick={(e) => e.stopPropagation()}
-                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-700 dark:text-blue-300 hover:bg-blue-500/20 text-[11px] font-medium border border-blue-500/30 transition-colors"
-                                title="Buka tautan Inaproc e-Katalog LKPP"
-                              >
-                                <ExternalLink className="h-3 w-3" />
-                                <span>Inaproc e-Katalog</span>
-                              </a>
-                            )}
-                            {institution.mouDriveUrl && (
-                              <a
-                                href={institution.mouDriveUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                onClick={(e) => e.stopPropagation()}
-                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/20 text-[11px] font-medium border border-emerald-500/30 transition-colors"
-                                title="Lihat Berkas Dokumen MoU"
-                              >
-                                <FileText className="h-3 w-3" />
-                                <span>Berkas MoU</span>
-                              </a>
-                            )}
-                            {institution.procurementMethod && (
-                              <Badge variant="outline" className="text-[10px] text-muted-foreground border-border/80">
-                                Metode: {institution.procurementMethod}
-                              </Badge>
-                            )}
-                          </div>
-                        )}
+                        {(() => {
+                          const catalogUrls = parseCatalogUrls(institution.procurementCatalogUrls ?? institution.procurementCatalogUrl);
+                          if (!catalogUrls.length && !institution.mouDriveUrl && !institution.procurementMethod) return null;
+
+                          return (
+                            <div className="flex flex-wrap items-center gap-2 pt-1.5 border-t border-border/30 text-xs">
+                              <span className="text-[11px] font-medium text-muted-foreground">Dokumen & Pengadaan:</span>
+                              {catalogUrls.map((cUrl, cIdx) => (
+                                <a
+                                  key={cIdx}
+                                  href={cUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-700 dark:text-blue-300 hover:bg-blue-500/20 text-[11px] font-medium border border-blue-500/30 transition-colors"
+                                  title={`Buka tautan Inaproc e-Katalog LKPP: ${cUrl}`}
+                                >
+                                  <ExternalLink className="h-3 w-3" />
+                                  <span>{catalogUrls.length > 1 ? `Inaproc e-Katalog #${cIdx + 1}` : 'Inaproc e-Katalog'}</span>
+                                </a>
+                              ))}
+                              {institution.mouDriveUrl && (
+                                <a
+                                  href={institution.mouDriveUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/20 text-[11px] font-medium border border-emerald-500/30 transition-colors"
+                                  title="Lihat Berkas Dokumen MoU"
+                                >
+                                  <FileText className="h-3 w-3" />
+                                  <span>Berkas MoU</span>
+                                </a>
+                              )}
+                              {institution.procurementMethod && (
+                                <Badge variant="outline" className="text-[10px] text-muted-foreground border-border/80">
+                                  Metode: {institution.procurementMethod}
+                                </Badge>
+                              )}
+                            </div>
+                          );
+                        })()}
                       </div>
                     );
                   })}
@@ -2593,42 +2599,48 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
                     </div>
 
                     {/* Tautan Dokumen Inaproc e-Katalog dan Berkas MoU */}
-                    {(institution.procurementCatalogUrl || institution.mouDriveUrl || institution.procurementMethod) && (
-                      <div className="flex flex-wrap items-center gap-2 pt-1.5 border-t border-border/30 text-xs">
-                        <span className="text-[11px] font-medium text-muted-foreground">Dokumen & Pengadaan:</span>
-                        {institution.procurementCatalogUrl && (
-                          <a
-                            href={institution.procurementCatalogUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={(e) => e.stopPropagation()}
-                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-700 dark:text-blue-300 hover:bg-blue-500/20 text-[11px] font-medium border border-blue-500/30 transition-colors"
-                            title="Buka tautan Inaproc e-Katalog LKPP"
-                          >
-                            <ExternalLink className="h-3 w-3" />
-                            <span>Inaproc e-Katalog</span>
-                          </a>
-                        )}
-                        {institution.mouDriveUrl && (
-                          <a
-                            href={institution.mouDriveUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={(e) => e.stopPropagation()}
-                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/20 text-[11px] font-medium border border-emerald-500/30 transition-colors"
-                            title="Lihat Berkas Dokumen MoU"
-                          >
-                            <FileText className="h-3 w-3" />
-                            <span>Berkas MoU</span>
-                          </a>
-                        )}
-                        {institution.procurementMethod && (
-                          <Badge variant="outline" className="text-[10px] text-muted-foreground border-border/80">
-                            Metode: {institution.procurementMethod}
-                          </Badge>
-                        )}
-                      </div>
-                    )}
+                    {(() => {
+                      const catalogUrls = parseCatalogUrls(institution.procurementCatalogUrls ?? institution.procurementCatalogUrl);
+                      if (!catalogUrls.length && !institution.mouDriveUrl && !institution.procurementMethod) return null;
+
+                      return (
+                        <div className="flex flex-wrap items-center gap-2 pt-1.5 border-t border-border/30 text-xs">
+                          <span className="text-[11px] font-medium text-muted-foreground">Dokumen & Pengadaan:</span>
+                          {catalogUrls.map((cUrl, cIdx) => (
+                            <a
+                              key={cIdx}
+                              href={cUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-700 dark:text-blue-300 hover:bg-blue-500/20 text-[11px] font-medium border border-blue-500/30 transition-colors"
+                              title={`Buka tautan Inaproc e-Katalog LKPP: ${cUrl}`}
+                            >
+                              <ExternalLink className="h-3 w-3" />
+                              <span>{catalogUrls.length > 1 ? `Inaproc e-Katalog #${cIdx + 1}` : 'Inaproc e-Katalog'}</span>
+                            </a>
+                          ))}
+                          {institution.mouDriveUrl && (
+                            <a
+                              href={institution.mouDriveUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/20 text-[11px] font-medium border border-emerald-500/30 transition-colors"
+                              title="Lihat Berkas Dokumen MoU"
+                            >
+                              <FileText className="h-3 w-3" />
+                              <span>Berkas MoU</span>
+                            </a>
+                          )}
+                          {institution.procurementMethod && (
+                            <Badge variant="outline" className="text-[10px] text-muted-foreground border-border/80">
+                              Metode: {institution.procurementMethod}
+                            </Badge>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
                 );
               })}

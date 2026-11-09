@@ -159,6 +159,7 @@ export interface VocationalProvider {
   isPriorityPartner?: boolean;
   adminUserCount?: number;
   procurementCatalogUrl?: string | null;
+  procurementCatalogUrls?: string[] | null;
   mouDriveUrl?: string | null;
   evokasiUrl?: string | null;
 }
@@ -724,6 +725,7 @@ export interface PublicPreviewInstitution {
   adminUserCount?: number;
   procurementMethod?: string | null;
   procurementCatalogUrl?: string | null;
+  procurementCatalogUrls?: string[] | null;
   mouDriveUrl?: string | null;
   evokasiUrl?: string | null;
 }

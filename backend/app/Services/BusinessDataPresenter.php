@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\User;
+use App\Http\Controllers\BusinessDataController;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -758,6 +759,7 @@ class BusinessDataPresenter
 
                     return [
                         ...((array) $row),
+                        'procurementCatalogUrls' => BusinessDataController::parseCatalogUrls($row->procurementCatalogUrl ?? ($metadata['procurementCatalogUrls'] ?? $metadata['procurementCatalogUrl'] ?? null)),
                         'supportedSectors' => $supportedSectorsDecoded,
                         'supportedOccupations' => array_values(array_unique($supportedOccupations)),
                         'students' => $students,
@@ -808,6 +810,7 @@ class BusinessDataPresenter
                         'externalSource' => 'taskforce_roster',
                         'procurementMethod' => null,
                         'procurementCatalogUrl' => null,
+                        'procurementCatalogUrls' => [],
                         'mouDriveUrl' => null,
                         'evokasiUrl' => null,
                         'isPriorityPartner' => true,
@@ -879,6 +882,7 @@ class BusinessDataPresenter
                         'externalSource' => 'mitra_prioritas_mou',
                         'procurementMethod' => null,
                         'procurementCatalogUrl' => null,
+                        'procurementCatalogUrls' => [],
                         'mouDriveUrl' => null,
                         'evokasiUrl' => null,
                         'isPriorityPartner' => true,
@@ -3029,6 +3033,7 @@ class BusinessDataPresenter
                     'accreditation' => $row->accreditation,
                     'procurementMethod' => $row->procurement_method,
                     'procurementCatalogUrl' => $row->procurement_catalog_url ?? ($metadata['procurementCatalogUrl'] ?? null),
+                    'procurementCatalogUrls' => BusinessDataController::parseCatalogUrls($row->procurement_catalog_url ?? ($metadata['procurementCatalogUrls'] ?? $metadata['procurementCatalogUrl'] ?? null)),
                     'mouDriveUrl' => $row->mou_drive_url ?? ($metadata['mouDriveUrl'] ?? null),
                     'capacityPerBatch' => $row->workshop_capacity === null ? null : (int) $row->workshop_capacity,
                     'classCount' => $row->class_count === null ? null : (int) $row->class_count,
@@ -3570,17 +3575,20 @@ class BusinessDataPresenter
             $institutionLink = $row->entity_type === 'lembaga_vokasi'
                 ? $institutionLinks->get($row->entity_id)
                 : null;
-            $externalLinks = array_values(array_filter([
-                ! empty($institutionLink?->evokasi_url)
-                    ? ['label' => 'Profil e-Vokasi', 'url' => $institutionLink->evokasi_url]
-                    : null,
-                ! empty($institutionLink?->procurement_catalog_url)
-                    ? ['label' => 'Katalog INAPROC', 'url' => $institutionLink->procurement_catalog_url]
-                    : null,
-                ! empty($institutionLink?->mou_drive_url)
-                    ? ['label' => 'Dokumen MoU di Google Drive', 'url' => $institutionLink->mou_drive_url]
-                    : null,
-            ]));
+            $inaprocLinks = BusinessDataController::parseCatalogUrls($institutionLink?->procurement_catalog_url);
+            $externalLinks = [];
+            if (! empty($institutionLink?->evokasi_url)) {
+                $externalLinks[] = ['label' => 'Profil e-Vokasi', 'url' => $institutionLink->evokasi_url];
+            }
+            foreach ($inaprocLinks as $idx => $link) {
+                $externalLinks[] = [
+                    'label' => count($inaprocLinks) > 1 ? 'Katalog INAPROC #'.($idx + 1) : 'Katalog INAPROC',
+                    'url' => $link,
+                ];
+            }
+            if (! empty($institutionLink?->mou_drive_url)) {
+                $externalLinks[] = ['label' => 'Dokumen MoU di Google Drive', 'url' => $institutionLink->mou_drive_url];
+            }
 
             return [
                 'id' => $row->id,

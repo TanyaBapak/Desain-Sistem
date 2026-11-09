@@ -26,3 +26,30 @@ export function parseServerDate(value: string): Date {
 
   return new Date(`${withTime}Z`);
 }
+
+/**
+ * Normalizes one or more catalog / document URLs into a string array.
+ * Handles arrays, newline/comma-separated strings, and JSON strings.
+ */
+export function parseCatalogUrls(val?: string | string[] | null): string[] {
+  if (!val) return [];
+  if (Array.isArray(val)) {
+    return val.map((item) => String(item).trim()).filter(Boolean);
+  }
+  const str = String(val).trim();
+  if (!str) return [];
+  if (str.startsWith('[') && str.endsWith(']')) {
+    try {
+      const parsed = JSON.parse(str);
+      if (Array.isArray(parsed)) {
+        return parsed.map((item) => String(item).trim()).filter(Boolean);
+      }
+    } catch {
+      // fallback
+    }
+  }
+  return str
+    .split(/[\r\n,]+/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}

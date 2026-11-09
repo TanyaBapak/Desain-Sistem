@@ -20,6 +20,7 @@ import {
 import { useAppStore } from '../../store/useAppStore';
 import { visitAllocationStage } from '../../lib/navigation';
 import { InstitutionSourceBadge } from '../shared/InstitutionSourceBadge';
+import { parseCatalogUrls } from '../../lib/utils';
 
 interface ProviderCardProps {
   provider: VocationalProvider;
@@ -54,7 +55,8 @@ export const ProviderCard: React.FC<ProviderCardProps> = ({
 
   const currentStatus = provider.institutionStatus === 'Negeri' ? 'Negeri' : 'Swasta';
   const nextStatus = currentStatus === 'Negeri' ? 'Swasta' : 'Negeri';
-  const hasInaproc = Boolean(provider.procurementCatalogUrl && provider.procurementCatalogUrl.trim() !== '');
+  const inaprocLinks = parseCatalogUrls(provider.procurementCatalogUrls ?? provider.procurementCatalogUrl);
+  const hasInaproc = inaprocLinks.length > 0;
 
   return (
     <div
@@ -109,10 +111,10 @@ export const ProviderCard: React.FC<ProviderCardProps> = ({
             {hasInaproc ? (
               <span
                 className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800"
-                title={`Tautan e-Katalog INAPROC: ${provider.procurementCatalogUrl}`}
+                title={inaprocLinks.length > 1 ? `${inaprocLinks.length} tautan e-Katalog INAPROC terdaftar` : `Tautan e-Katalog INAPROC: ${inaprocLinks[0]}`}
               >
                 <CheckCircle2 className="w-2.5 h-2.5 text-emerald-600 dark:text-emerald-400" />
-                <span>INAPROC Terisi</span>
+                <span>INAPROC Terisi{inaprocLinks.length > 1 ? ` (${inaprocLinks.length})` : ''}</span>
               </span>
             ) : (
               <span
@@ -301,12 +303,12 @@ export const ProviderCard: React.FC<ProviderCardProps> = ({
         <div className="px-5 py-3 bg-slate-50/70 dark:bg-slate-800/60 border-t border-slate-200/60 dark:border-slate-800/80 text-xs">
           <div className="flex items-center justify-between gap-2 mb-1.5">
             <span className="text-slate-400 dark:text-slate-500 text-[10px] uppercase font-bold tracking-wider">
-              Tautan e-Katalog INAPROC:
+              Tautan e-Katalog INAPROC{inaprocLinks.length > 1 ? ` (${inaprocLinks.length})` : ''}:
             </span>
             {hasInaproc ? (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
                 <CheckCircle2 className="w-2.5 h-2.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                <span>Sudah Mengisi</span>
+                <span>{inaprocLinks.length > 1 ? `${inaprocLinks.length} Tautan` : 'Sudah Mengisi'}</span>
               </span>
             ) : (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800">
@@ -317,18 +319,22 @@ export const ProviderCard: React.FC<ProviderCardProps> = ({
           </div>
 
           {hasInaproc ? (
-            <div className="flex items-center justify-between gap-2">
-              <a
-                href={provider.procurementCatalogUrl!}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={(e) => e.stopPropagation()}
-                className="inline-flex items-center gap-1.5 py-1 px-2 rounded-lg bg-blue-50/80 dark:bg-blue-950/50 hover:bg-blue-100 dark:hover:bg-blue-900/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-900/60 text-[11px] font-medium transition-colors truncate max-w-full group"
-                title={`Buka tautan Inaproc e-Katalog LKPP: ${provider.procurementCatalogUrl}`}
-              >
-                <ExternalLink className="w-3 h-3 text-blue-600 dark:text-blue-400 shrink-0 group-hover:scale-110 transition-transform" />
-                <span className="truncate">{provider.procurementCatalogUrl}</span>
-              </a>
+            <div className="space-y-1.5">
+              {inaprocLinks.map((link, idx) => (
+                <div key={idx} className="flex items-center justify-between gap-2">
+                  <a
+                    href={link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="inline-flex items-center gap-1.5 py-1 px-2 rounded-lg bg-blue-50/80 dark:bg-blue-950/50 hover:bg-blue-100 dark:hover:bg-blue-900/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-900/60 text-[11px] font-medium transition-colors truncate max-w-full group"
+                    title={`Buka tautan Inaproc e-Katalog LKPP: ${link}`}
+                  >
+                    <ExternalLink className="w-3 h-3 text-blue-600 dark:text-blue-400 shrink-0 group-hover:scale-110 transition-transform" />
+                    <span className="truncate">{inaprocLinks.length > 1 ? `#${idx + 1}: ${link}` : link}</span>
+                  </a>
+                </div>
+              ))}
             </div>
           ) : (
             <div className="flex items-center justify-between gap-2">

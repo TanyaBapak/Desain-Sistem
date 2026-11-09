@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
 import { visitAllocationStage } from '../../lib/navigation';
+import { parseCatalogUrls } from '../../lib/utils';
 
 interface ProviderDetailModalProps {
   provider: VocationalProvider | null;
@@ -319,47 +320,57 @@ export const ProviderDetailModal: React.FC<ProviderDetailModalProps> = ({
         </div>
 
         {/* Dokumen Kemitraan & Pengadaan */}
-        {(provider.procurementCatalogUrl || provider.mouDriveUrl || provider.procurementMethod) && (
-          <div className="p-4 bg-blue-50/50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-xl space-y-2">
-            <span className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider block">
-              Dokumen Kemitraan & Pengadaan:
-            </span>
-            <div className="flex flex-wrap items-center gap-2.5">
-              {provider.procurementCatalogUrl ? (
-                <a
-                  href={provider.procurementCatalogUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 text-xs font-semibold shadow-xs transition"
-                >
-                  <ExternalLink className="w-3.5 h-3.5" />
-                  <span>Buka Inaproc e-Katalog LKPP ↗</span>
-                </a>
-              ) : (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 text-xs font-medium border border-amber-200 dark:border-amber-800">
-                  <AlertTriangle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
-                  <span>Link INAPROC Belum Diisi</span>
-                </span>
-              )}
-              {provider.mouDriveUrl && (
-                <a
-                  href={provider.mouDriveUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 text-xs font-semibold shadow-xs transition"
-                >
-                  <FileText className="w-3.5 h-3.5" />
-                  <span>Lihat Berkas Dokumen MoU ↗</span>
-                </a>
-              )}
-              {provider.procurementMethod && (
-                <span className="inline-flex items-center px-3 py-1.5 rounded-lg bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-medium border border-slate-200 dark:border-slate-700">
-                  Skema Pengadaan: <strong className="ml-1 text-slate-900 dark:text-slate-100">{provider.procurementMethod}</strong>
-                </span>
-              )}
+        {(() => {
+          const inaprocLinks = parseCatalogUrls(provider.procurementCatalogUrls ?? provider.procurementCatalogUrl);
+          const hasDocs = inaprocLinks.length > 0 || Boolean(provider.mouDriveUrl) || Boolean(provider.procurementMethod);
+          if (!hasDocs) return null;
+
+          return (
+            <div className="p-4 bg-blue-50/50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-xl space-y-2">
+              <span className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider block">
+                Dokumen Kemitraan & Pengadaan:
+              </span>
+              <div className="flex flex-wrap items-center gap-2.5">
+                {inaprocLinks.length > 0 ? (
+                  inaprocLinks.map((link, idx) => (
+                    <a
+                      key={idx}
+                      href={link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 text-xs font-semibold shadow-xs transition"
+                      title={`Buka tautan Inaproc e-Katalog LKPP: ${link}`}
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                      <span>{inaprocLinks.length > 1 ? `Inaproc e-Katalog #${idx + 1} ↗` : 'Buka Inaproc e-Katalog LKPP ↗'}</span>
+                    </a>
+                  ))
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 text-xs font-medium border border-amber-200 dark:border-amber-800">
+                    <AlertTriangle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                    <span>Link INAPROC Belum Diisi</span>
+                  </span>
+                )}
+                {provider.mouDriveUrl && (
+                  <a
+                    href={provider.mouDriveUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 text-xs font-semibold shadow-xs transition"
+                  >
+                    <FileText className="w-3.5 h-3.5" />
+                    <span>Lihat Berkas Dokumen MoU ↗</span>
+                  </a>
+                )}
+                {provider.procurementMethod && (
+                  <span className="inline-flex items-center px-3 py-1.5 rounded-lg bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-medium border border-slate-200 dark:border-slate-700">
+                    Skema Pengadaan: <strong className="ml-1 text-slate-900 dark:text-slate-100">{provider.procurementMethod}</strong>
+                  </span>
+                )}
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* Quick Action Verifikasi e-Vokasi & Allocation */}
         <div className="flex flex-wrap items-center justify-between pt-4 border-t border-slate-200 dark:border-slate-800 gap-3">

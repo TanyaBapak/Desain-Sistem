@@ -3,7 +3,8 @@ import { VocationalProvider, ProviderType } from '../../types';
 import { INDONESIA_38_PROVINCES } from '../../lib/constants/provinces';
 import { INDONESIA_DISTRICTS } from '../../lib/constants/districts';
 import { useAppStore } from '../../store/useAppStore';
-import { X, Building2, Save, ShieldCheck, ExternalLink, FileText, Link2 } from 'lucide-react';
+import { X, Building2, Save, ShieldCheck, ExternalLink, FileText, Link2, Plus, Trash2 } from 'lucide-react';
+import { parseCatalogUrls } from '../../lib/utils';
 
 const COUNTRY_OPTIONS = [
   { id: 'JP', name: 'Jepang' },
@@ -73,10 +74,40 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
   const [operationalReadinessScore, setOperationalReadinessScore] = useState<number | string>('');
   const [supportedSectors, setSupportedSectors] = useState<string[]>([]);
   const [supportedCountries, setSupportedCountries] = useState<string[]>([]);
-  const [procurementCatalogUrl, setProcurementCatalogUrl] = useState('');
+  const [procurementCatalogUrls, setProcurementCatalogUrls] = useState<string[]>(['']);
   const [mouDriveUrl, setMouDriveUrl] = useState('');
   const [procurementMethod, setProcurementMethod] = useState('');
   const [facilitiesInput, setFacilitiesInput] = useState('');
+
+  const handleUrlChange = (index: number, value: string) => {
+    if (value.includes('\n') || value.includes('\r')) {
+      const splitUrls = value.split(/[\r\n]+/).map((s) => s.trim()).filter(Boolean);
+      if (splitUrls.length > 1) {
+        setProcurementCatalogUrls((prev) => {
+          const next = [...prev];
+          next.splice(index, 1, ...splitUrls);
+          return next;
+        });
+        return;
+      }
+    }
+    setProcurementCatalogUrls((prev) => {
+      const next = [...prev];
+      next[index] = value;
+      return next;
+    });
+  };
+
+  const handleAddUrl = () => {
+    setProcurementCatalogUrls((prev) => [...prev, '']);
+  };
+
+  const handleRemoveUrl = (index: number) => {
+    setProcurementCatalogUrls((prev) => {
+      if (prev.length <= 1) return [''];
+      return prev.filter((_, i) => i !== index);
+    });
+  };
 
   const provincesList = Array.isArray(businessOptions?.provinces) && businessOptions.provinces.length > 0
     ? businessOptions.provinces
@@ -133,7 +164,8 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
       setRegistrationSourceId(initialData.registrationSourceId || initialData.id || '');
       const defaultLvl = sourceVal === 'disnaker' ? 'kabupaten_kota' : sourceVal === 'siskop2mi' ? 'nasional' : 'lembaga_vokasi';
       setInputLevel((initialData.inputLevel as 'kabupaten_kota' | 'provinsi' | 'lembaga_vokasi' | 'nasional') || defaultLvl);
-      setProcurementCatalogUrl(initialData.procurementCatalogUrl || '');
+      const initialCatalogUrls = parseCatalogUrls(initialData.procurementCatalogUrls ?? initialData.procurementCatalogUrl);
+      setProcurementCatalogUrls(initialCatalogUrls.length > 0 ? initialCatalogUrls : ['']);
       setMouDriveUrl(initialData.mouDriveUrl || '');
       setProcurementMethod(initialData.procurementMethod || '');
       setFacilitiesInput(initialData.facilities ? initialData.facilities.join(', ') : '');
@@ -154,7 +186,7 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
       setOperationalReadinessScore('');
       setSupportedSectors([]);
       setSupportedCountries([]);
-      setProcurementCatalogUrl('');
+      setProcurementCatalogUrls(['']);
       setMouDriveUrl('');
       setProcurementMethod('');
       setFacilitiesInput('');
@@ -180,6 +212,8 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
       ),
     );
 
+    const cleanedCatalogUrls = procurementCatalogUrls.map((u) => u.trim()).filter(Boolean);
+
     onSubmit({
       name,
       providerType,
@@ -199,7 +233,8 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
       registrationSource,
       registrationSourceId: registrationSourceId.trim(),
       inputLevel,
-      procurementCatalogUrl: procurementCatalogUrl.trim() || null,
+      procurementCatalogUrl: cleanedCatalogUrls.join('\n') || null,
+      procurementCatalogUrls: cleanedCatalogUrls,
       mouDriveUrl: mouDriveUrl.trim() || null,
       procurementMethod: procurementMethod.trim() || null,
     });
@@ -746,22 +781,72 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
               </span>
             </div>
 
-            <div className="grid gap-3 md:grid-cols-2">
+            <div className="grid gap-4 md:grid-cols-2 items-start">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center justify-between">
-                  <span className="flex items-center gap-1.5">
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
                     <ExternalLink className="w-3.5 h-3.5 text-blue-600" />
                     <span>Link Inaproc (e-Katalog LKPP)</span>
-                  </span>
-                  <span className="text-[10px] text-slate-400 font-normal">Opsional</span>
-                </label>
-                <input
-                  type="url"
-                  value={procurementCatalogUrl}
-                  onChange={(e) => setProcurementCatalogUrl(e.target.value)}
-                  placeholder="https://katalog.inaproc.id/..."
-                  className="w-full text-xs p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white text-slate-800"
-                />
+                    {procurementCatalogUrls.filter((u) => u.trim() !== '').length > 1 && (
+                      <span className="text-[10px] bg-blue-100 text-blue-700 font-semibold px-1.5 py-0.5 rounded">
+                        {procurementCatalogUrls.filter((u) => u.trim() !== '').length} Tautan
+                      </span>
+                    )}
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] text-slate-400 font-normal">Opsional</span>
+                    <button
+                      type="button"
+                      onClick={handleAddUrl}
+                      className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600 hover:text-blue-700 hover:bg-blue-100/70 px-2 py-0.5 rounded-lg transition-colors border border-blue-200/80 bg-white"
+                      title="Tambah tautan Inaproc baru"
+                    >
+                      <Plus className="w-3 h-3" />
+                      <span>Tambah Link</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  {procurementCatalogUrls.map((url, idx) => (
+                    <div key={idx} className="flex items-center gap-1.5">
+                      <div className="relative flex-1">
+                        <input
+                          type="url"
+                          value={url}
+                          onChange={(e) => handleUrlChange(idx, e.target.value)}
+                          placeholder={idx === 0 ? "https://katalog.inaproc.id/..." : "https://katalog.inaproc.id/... (tautan tambahan)"}
+                          className="w-full text-xs p-2.5 pr-8 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white text-slate-800"
+                        />
+                        {url.trim().startsWith('http') && (
+                          <a
+                            href={url.trim()}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-blue-600 transition-colors"
+                            title="Buka tautan e-Katalog LKPP ini"
+                          >
+                            <ExternalLink className="w-3.5 h-3.5" />
+                          </a>
+                        )}
+                      </div>
+
+                      {procurementCatalogUrls.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveUrl(idx)}
+                          className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors shrink-0"
+                          title="Hapus baris tautan ini"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <p className="text-[10px] text-slate-500 mt-1">
+                  Bisa menambahkan lebih dari 1 tautan e-Katalog Inaproc LKPP jika terdapat beberapa paket program.
+                </p>
               </div>
 
               <div>

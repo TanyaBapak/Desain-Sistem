@@ -25,6 +25,28 @@ class BusinessDataController extends Controller
         'demands' => 'job_demands',
     ];
 
+    public static function parseCatalogUrls(mixed $raw): array
+    {
+        if (empty($raw)) {
+            return [];
+        }
+        if (is_array($raw)) {
+            return array_values(array_filter(array_map('trim', $raw)));
+        }
+        $raw = trim((string) $raw);
+        if ($raw === '') {
+            return [];
+        }
+        if (str_starts_with($raw, '[') && str_ends_with($raw, ']')) {
+            $decoded = json_decode($raw, true);
+            if (is_array($decoded)) {
+                return array_values(array_filter(array_map('trim', $decoded)));
+            }
+        }
+        $lines = preg_split('/[\r\n,]+/', $raw);
+        return array_values(array_filter(array_map('trim', $lines ?: [])));
+    }
+
     public function store(Request $request, string $type): RedirectResponse|JsonResponse
     {
         $this->authorizeWrite($request, $type, 'create');
@@ -729,6 +751,7 @@ class BusinessDataController extends Controller
                 'accreditation' => $row->accreditation,
                 'procurementMethod' => $row->procurement_method,
                 'procurementCatalogUrl' => $row->procurement_catalog_url ?? ($metadata['procurementCatalogUrl'] ?? null),
+                'procurementCatalogUrls' => self::parseCatalogUrls($row->procurement_catalog_url ?? ($metadata['procurementCatalogUrls'] ?? $metadata['procurementCatalogUrl'] ?? null)),
                 'mouDriveUrl' => $row->mou_drive_url ?? ($metadata['mouDriveUrl'] ?? null),
                 'capacityPerBatch' => $row->workshop_capacity === null ? null : (int) $row->workshop_capacity,
                 'classCount' => $row->class_count === null ? null : (int) $row->class_count,
@@ -1217,7 +1240,9 @@ class BusinessDataController extends Controller
                 'website' => ['nullable', 'string', 'max:255'],
                 'institutionForm' => ['nullable', 'string', 'max:150'],
                 'procurementMethod' => ['nullable', 'string', 'max:100'],
-                'procurementCatalogUrl' => ['nullable', 'string', 'max:2000'],
+                'procurementCatalogUrl' => ['nullable'],
+                'procurementCatalogUrls' => ['nullable', 'array'],
+                'procurementCatalogUrls.*' => ['nullable', 'string', 'max:2000'],
                 'mouDriveUrl' => ['nullable', 'string', 'max:2000'],
                 'sectorals' => ['array'],
                 'programs' => ['array'],
@@ -1711,8 +1736,15 @@ class BusinessDataController extends Controller
         if (! empty($data['institutionStatus'])) {
             $metadata['sourceStatus'] = $data['institutionStatus'];
         }
-        if (array_key_exists('procurementCatalogUrl', $data)) {
-            $metadata['procurementCatalogUrl'] = ! empty($data['procurementCatalogUrl']) ? trim((string) $data['procurementCatalogUrl']) : null;
+        $catalogUrls = null;
+        if (array_key_exists('procurementCatalogUrls', $data) && is_array($data['procurementCatalogUrls'])) {
+            $catalogUrls = self::parseCatalogUrls($data['procurementCatalogUrls']);
+        } elseif (array_key_exists('procurementCatalogUrl', $data)) {
+            $catalogUrls = self::parseCatalogUrls($data['procurementCatalogUrl']);
+        }
+        if ($catalogUrls !== null) {
+            $metadata['procurementCatalogUrls'] = $catalogUrls;
+            $metadata['procurementCatalogUrl'] = ! empty($catalogUrls) ? implode("\n", $catalogUrls) : null;
         }
         if (array_key_exists('mouDriveUrl', $data)) {
             $metadata['mouDriveUrl'] = ! empty($data['mouDriveUrl']) ? trim((string) $data['mouDriveUrl']) : null;
@@ -1750,8 +1782,8 @@ class BusinessDataController extends Controller
             'email' => $data['email'] ?? null,
             'accreditation' => $data['accreditation'],
             'procurement_method' => $data['procurementMethod'] ?? $existing?->procurement_method,
-            'procurement_catalog_url' => array_key_exists('procurementCatalogUrl', $data)
-                ? (! empty($data['procurementCatalogUrl']) ? trim((string) $data['procurementCatalogUrl']) : null)
+            'procurement_catalog_url' => $catalogUrls !== null
+                ? (! empty($catalogUrls) ? implode("\n", $catalogUrls) : null)
                 : $existing?->procurement_catalog_url,
             'mou_drive_url' => array_key_exists('mouDriveUrl', $data)
                 ? (! empty($data['mouDriveUrl']) ? trim((string) $data['mouDriveUrl']) : null)
