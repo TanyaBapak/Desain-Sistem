@@ -33,6 +33,16 @@ class RestoreKogasCandidatesCommand extends Command
             $this->info("Akun Lembaga Ditemukan : ID {$user->id} - {$user->name} ({$user->email})");
         }
 
+        // 1.5 Cek berkas data kandidat riil Kogas hasil ekstraksi dump
+        $jsonRosterPath = database_path('data/kogas_real_candidates.json');
+        $jsonCandidates = [];
+        if (File::exists($jsonRosterPath)) {
+            $jsonCandidates = json_decode((string) File::get($jsonRosterPath), true) ?: [];
+            if (! empty($jsonCandidates)) {
+                $this->info("Ditemukan " . count($jsonCandidates) . " data kandidat riil Kogas dari berkas referensi database/data/kogas_real_candidates.json!");
+            }
+        }
+
         // 2. Cek apakah ada data di audit_logs
         $auditCandidates = $this->extractFromAuditLogs($user?->id);
         if (! empty($auditCandidates)) {
@@ -47,7 +57,7 @@ class RestoreKogasCandidatesCommand extends Command
 
         // Gabungkan kandidat unik berdasarkan NIK atau Nama
         $allFound = [];
-        foreach (array_merge($backupCandidates, $auditCandidates) as $c) {
+        foreach (array_merge($jsonCandidates, $backupCandidates, $auditCandidates) as $c) {
             $key = ! empty($c['nik']) ? $c['nik'] : mb_strtolower(trim((string) ($c['full_name'] ?? '')));
             if ($key !== '' && ! isset($allFound[$key])) {
                 $allFound[$key] = $c;
