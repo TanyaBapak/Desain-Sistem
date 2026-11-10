@@ -100,6 +100,13 @@ return new class extends Migration
             }
         }
 
+        // 2.5 Impor ulang seluruh 4.854 calon peserta riil mitra resmi dari file roster
+        try {
+            Artisan::call('roster:import-real');
+        } catch (\Throwable $e) {
+            Log::warning('Roster import error: ' . $e->getMessage());
+        }
+
         // 3. Pastikan 44 siswa asli Kogas tersimpan rapi
         if (! empty($kogasList)) {
             foreach ($kogasList as $kc) {
@@ -172,3 +179,4 @@ return new class extends Migration
         // Non-destruktif
     }
 };
+

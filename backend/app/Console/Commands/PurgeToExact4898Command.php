@@ -115,6 +115,14 @@ class PurgeToExact4898Command extends Command
             $this->info("✓ Berhasil membersihkan {$purgeCount} data peserta luar roster.");
         }
 
+        // Impor ulang seluruh 4.854 peserta riil dari roster resmi
+        $this->line("Memuat seluruh 4.854 peserta riil dari 34 kampus/lembaga mitra resmi...");
+        try {
+            \Illuminate\Support\Facades\Artisan::call('roster:import-real');
+        } catch (Throwable $e) {
+            $this->warn('Warning saat import roster: ' . $e->getMessage());
+        }
+
         // Pastikan 44 siswa asli Kogas tersimpan rapi
         if (! empty($kogasList)) {
             foreach ($kogasList as $kc) {
@@ -165,3 +173,4 @@ class PurgeToExact4898Command extends Command
         return Command::SUCCESS;
     }
 }
+
