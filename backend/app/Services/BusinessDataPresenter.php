@@ -2053,15 +2053,18 @@ class BusinessDataPresenter
                 $namePatterns[] = preg_replace('/\bsmk\s+negeri\s*/i', 'SMKN ', $raw);
             }
 
-            // Variasi LPK <-> LKP
-            if (preg_match('/^lpk\s+/i', $raw)) {
-                $namePatterns[] = preg_replace('/^lpk\s+/i', 'LKP ', $raw);
+            // Variasi LPK <-> LKP <-> LPKS
+            if (preg_match('/^lpks?\s+/i', $raw)) {
+                $namePatterns[] = preg_replace('/^lpks?\s+/i', 'LKP ', $raw);
+                $namePatterns[] = preg_replace('/^lpks?\s+/i', 'LPK ', $raw);
+                $namePatterns[] = preg_replace('/^lpks?\s+/i', 'LPKS ', $raw);
             } elseif (preg_match('/^lkp\s+/i', $raw)) {
                 $namePatterns[] = preg_replace('/^lkp\s+/i', 'LPK ', $raw);
+                $namePatterns[] = preg_replace('/^lkp\s+/i', 'LPKS ', $raw);
             }
 
-            // Core name tanpa prefix (contoh: "1 Mundu", "Smart Plus", "Metro Hotel School", "Duta Bangsa")
-            $core = trim(preg_replace('/^(lpk|lkp|pk|smkn|smk\s+negeri|smk|stikes|poltek|politeknik|universitas|sekolah\s+tinggi|institut)\.?\s+/i', '', $raw));
+            // Core name tanpa prefix (contoh: "1 Mundu", "Smart Plus", "Metro Hotel School", "Duta Bangsa", "Kogas Nusantara")
+            $core = trim(preg_replace('/^(lpks|lpk|lkp|pk|blk|blkln|blkk|smkn|smk\s+negeri|smk|stikes|poltek|politeknik|universitas|sekolah\s+tinggi|institut)\.?\s+/i', '', $raw));
             if (mb_strlen($core) >= 4) {
                 $namePatterns[] = $core;
             }
@@ -2108,6 +2111,7 @@ class BusinessDataPresenter
             'house of learning' => ['House of Learning', 'p: House of Learning', 'LPK House of Learning'],
             'smart plus' => ['LKP Smart Plus', 'LPK Smart Plus', 'Smart Plus', 'PK Smart Plus'],
             'lpia' => ['LPIA Hotel dan Kapal Pesiar', 'LPIA Hotel & Kapal Pesiar', 'LPIA Hotel'],
+            'kogas' => ['LPKS KOGAS NUSANTARA', 'LPK KOGAS NUSANTARA', 'LPK Kogas Nusantara', 'Kogas Nusantara', 'LPKS Kogas Nusantara', 'Kogas'],
         ];
 
         foreach ($canonicalMap as $keyWord => $aliases) {
