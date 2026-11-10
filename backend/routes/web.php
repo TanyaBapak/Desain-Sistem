@@ -90,6 +90,63 @@ Route::get('/debug-log', function (Request $request) {
             ]);
         }
     }
+    if ($request->query('audit_candidates')) {
+        try {
+            $total = DB::table('job_seekers')->whereNull('deleted_at')->count();
+            $uniqueNiks = DB::table('job_seekers')->whereNull('deleted_at')->whereNotNull('nik')->where('nik', '!=', '')->distinct('nik')->count('nik');
+            $nullNiks = DB::table('job_seekers')->whereNull('deleted_at')->where(fn($q) => $q->whereNull('nik')->orWhere('nik', ''))->count();
+
+            $duplicateNiks = DB::table('job_seekers')
+                ->whereNull('deleted_at')
+                ->whereNotNull('nik')
+                ->where('nik', '!=', '')
+                ->select('nik', DB::raw('count(*) as count'))
+                ->groupBy('nik')
+                ->having('count', '>', 1)
+                ->get();
+
+            $byInstitution = DB::table('job_seekers')
+                ->whereNull('deleted_at')
+                ->select(
+                    'institution_name',
+                    'institution_id',
+                    DB::raw('count(*) as count'),
+                    DB::raw('count(distinct nik) as unique_nik_count')
+                )
+                ->groupBy('institution_name', 'institution_id')
+                ->orderByDesc('count')
+                ->get();
+
+            $statusBreakdown = DB::table('job_seekers')
+                ->whereNull('deleted_at')
+                ->select('readiness_status', DB::raw('count(*) as count'))
+                ->groupBy('readiness_status')
+                ->get();
+
+            $provinceBreakdown = DB::table('job_seekers')
+                ->leftJoin('provinces', 'provinces.id', '=', 'job_seekers.province_id')
+                ->whereNull('job_seekers.deleted_at')
+                ->select('provinces.name as province_name', DB::raw('count(*) as count'))
+                ->groupBy('provinces.name')
+                ->orderByDesc('count')
+                ->get();
+
+            return response()->json([
+                'total_candidates' => $total,
+                'unique_niks' => $uniqueNiks,
+                'null_niks' => $nullNiks,
+                'duplicate_niks_count' => $duplicateNiks->count(),
+                'duplicate_niks_sample' => $duplicateNiks->take(10),
+                'institutions_count' => $byInstitution->count(),
+                'institutions' => $byInstitution,
+                'status_breakdown' => $statusBreakdown,
+                'province_breakdown' => $provinceBreakdown,
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json(['error' => $e->getMessage()]);
+        }
+    }
+
     if ($request->query('stats')) {
         try {
             $user = auth()->user();
