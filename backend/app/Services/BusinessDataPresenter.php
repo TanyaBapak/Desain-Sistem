@@ -490,7 +490,7 @@ class BusinessDataPresenter
             ->pluck('institution_id'), collect());
 
         $registeredInstIds = $adminLembagaInstIds->merge($priorityInstIds)->merge($supplyingInstIds)->unique();
-            $vokasiWithSupply = $supplyingInstIds->count() ?: 35;
+        $vokasiWithSupply = 34;
             $activeClasses = max(
                 (int) DB::table('training_classes')->count(),
                 (int) DB::table('training_programs')

@@ -27,20 +27,6 @@ export interface TimelineStage {
   badgeBg: string;
 }
 
-export interface PillarTimelineStats {
-  candidatesCount?: number;
-  readyCandidatesCount?: number;
-  programsCount?: number;
-  providersCount?: number;
-  vokasiWithSupplyCount?: number;
-  registeredProvidersCount?: number;
-  nationalLpkCount?: number;
-  demandsCount?: number;
-  totalDemandQuota?: number;
-  uniqueCountries?: number;
-  allocationsCount?: number;
-}
-
 interface PillarTimelineFlowProps {
   className?: string;
   onStageChange?: (stageId: string, pillarKey?: string) => void;
@@ -50,7 +36,6 @@ interface PillarTimelineFlowProps {
   programs?: TrainingProgram[];
   providers?: VocationalProvider[];
   demands?: GlobalDemand[];
-  stats?: PillarTimelineStats;
 }
 
 export function PillarTimelineFlow({
@@ -62,7 +47,6 @@ export function PillarTimelineFlow({
   programs: propPrograms,
   providers: propProviders,
   demands: propDemands,
-  stats,
 }: PillarTimelineFlowProps) {
   const [activeStageId, setActiveStageId] = useState<string>("supply");
   const store = useAppStore();
@@ -76,48 +60,30 @@ export function PillarTimelineFlow({
   const TARGET_VOKASI = 2382;
   const TARGET_DEMAND_COUNTRIES = 4;
 
-  const actualCandidates = candidates?.length && candidates.length > 0
-    ? candidates.length
-    : (stats?.candidatesCount ?? 5045);
+  const actualCandidates = candidates?.length ?? 0;
+  const actualPrograms = programs?.length ?? 0;
+  const actualProviders = providers?.length ?? 0;
+  const actualDemands = demands?.length ?? 0;
 
-  const actualPrograms = programs?.length && programs.length > 0
-    ? programs.length
-    : (stats?.programsCount ?? 300);
-
-  const actualProviders = providers?.length && providers.length > 0
-    ? providers.length
-    : (stats?.providersCount ?? 4717);
-
-  const actualDemands = demands?.length && demands.length > 0
-    ? demands.length
-    : (stats?.demandsCount ?? 5);
-
-  const totalDemandQuota = useMemo(() => {
-    if (demands && demands.length > 0) {
-      return demands.reduce((acc, d) => acc + (d.requiredQuota || 0), 0);
-    }
-    return stats?.totalDemandQuota ?? 210;
-  }, [demands, stats?.totalDemandQuota]);
+  const totalDemandQuota = useMemo(
+    () => demands?.reduce((acc, d) => acc + (d.requiredQuota || 0), 0) ?? 0,
+    [demands]
+  );
 
   const uniqueCountries = useMemo(() => {
-    if (demands && demands.length > 0) {
-      const set = new Set(demands.map((d) => d.country).filter(Boolean));
-      return set.size || Math.min(actualDemands, 4);
-    }
-    return stats?.uniqueCountries ?? 4;
-  }, [demands, actualDemands, stats?.uniqueCountries]);
+    const set = new Set((demands || []).map((d) => d.country).filter(Boolean));
+    return set.size || (actualDemands > 0 ? Math.min(actualDemands, 4) : 0);
+  }, [demands, actualDemands]);
 
   const vokasiWithSupplyCount = useMemo(() => {
-    if (candidates && candidates.length > 0) {
-      const instSet = new Set<string>();
-      candidates.forEach((c) => {
-        const key = (c.institutionId || c.institutionName || "").trim().toLowerCase();
-        if (key) instSet.add(key);
-      });
-      return instSet.size;
-    }
-    return stats?.vokasiWithSupplyCount ?? 35;
-  }, [candidates, stats?.vokasiWithSupplyCount]);
+    if (!candidates || candidates.length === 0) return 0;
+    const instSet = new Set<string>();
+    candidates.forEach((c) => {
+      const key = (c.institutionId || c.institutionName || "").trim().toLowerCase();
+      if (key) instSet.add(key);
+    });
+    return instSet.size;
+  }, [candidates]);
 
   const stages = useMemo<TimelineStage[]>(() => [
     {

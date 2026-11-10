@@ -20,10 +20,7 @@ import {
   GraduationCap,
   Globe2,
   Sparkles,
-  Workflow,
 } from 'lucide-react';
-import { PillarTimelineFlow } from "@/components/shared/PillarTimelineFlow";
-import { DashboardPillarCard } from "@/components/dashboard/DashboardPillarCard";
 
 interface KemendagriLandingPageProps {
   kpiSummary: {
@@ -294,43 +291,7 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
     kpiSummary.metrics.find((metric) => metric.key === "registeredJobSeekers")?.value ??
     publicCommandCenter?.national?.candidatesCount ??
     0;
-  const siapLatihCount = candidateCount > 0 ? candidateCount : 5045;
-
-  const nationalStats = publicCommandCenter?.national;
-  const candidatesCount = nationalStats?.candidatesCount ?? siapLatihCount;
-  const readyCandidatesCount = 4900;
-  const programsCount = nationalStats?.programsCount ?? 300;
-  const totalTrainingQuota = 40490;
-  const providersCount = nationalStats?.providersCount ?? 4717;
-  const registeredProvidersCount = nationalStats?.registeredProvidersCount ?? 39;
-  const nationalLpkCount = nationalStats?.nationalLpkCount ?? 2435;
-  const demandsCount = nationalStats?.demandsCount ?? 5;
-  const totalDemandQuota = 210;
-  const uniqueDemandCountries = 4;
-  const allocationsCount = nationalStats?.allocationsCount ?? 3;
-  const vokasiWithSupplyCount = nationalStats?.vokasiWithSupplyCount ?? 35;
-
-  const TARGET_SUPPLY = 12600;
-  const TARGET_PROGRAM_CLASSES = 630;
-  const TARGET_VOKASI = 2382;
-  const TARGET_DEMAND_COUNTRIES = 4;
-
-  const supplyAchievementPct = Math.round((candidatesCount / TARGET_SUPPLY) * 100);
-  const programAchievementPct = Math.round((programsCount / TARGET_PROGRAM_CLASSES) * 100);
-  const vokasiAchievementPct = Math.round((providersCount / TARGET_VOKASI) * 100);
-  const demandAchievementPct = Math.round((uniqueDemandCountries / TARGET_DEMAND_COUNTRIES) * 100);
-  const matchingAchievementPct = Math.min(100, Math.round((allocationsCount / Math.max(demandsCount, 1)) * 100));
-
-  const handleTimelineStageSelect = (stageId: string) => {
-    const stageMap: Record<string, "peserta" | "program" | "lembaga" | "demand"> = {
-      supply: "peserta",
-      pelatihan: "program",
-      vokasi: "lembaga",
-      demand: "demand",
-      penempatan: "demand",
-    };
-    handlePillarDrilldown(stageMap[stageId] || "peserta");
-  };
+  const siapLatihCount = candidateCount > 0 ? candidateCount : 4315;
 
   // Breakdown 4 Negara Target (Jepang, Turki, Korea, Malaysia) yang selalu sinkron 100% real-time dengan total siapLatihCount
   const countryCounts = useMemo(() => {
@@ -553,192 +514,305 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
         </div>
       </div>
 
-      {/* 4. HERO SHOWCASE & SEARCH (Banner Kenegaraan & Dashboard Command Center) */}
-      <section className="relative bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 text-white py-10 lg:py-14 px-4 sm:px-6 lg:px-8 border-b border-slate-800 overflow-hidden">
+      {/* 4. HERO SHOWCASE & SEARCH (Banner Kenegaraan) */}
+      <section className="relative bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 text-white py-12 lg:py-16 px-4 sm:px-6 lg:px-8 border-b border-slate-800 overflow-hidden">
         {/* Subtle decorative crest overlay */}
         <div className="absolute top-0 right-0 w-1/3 h-full bg-gradient-to-l from-blue-600/10 to-transparent pointer-events-none" />
         <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-red-600/15 rounded-full blur-3xl pointer-events-none" />
 
-        <div className="max-w-7xl mx-auto relative z-10 space-y-8">
-          {/* Top Hero Banner: Presentation & Quick Actions */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
-            {/* Left Text Presentation */}
-            <div className="lg:col-span-8 space-y-4">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-600/20 border border-red-500/40 text-red-300 text-xs font-bold uppercase tracking-wider">
-                <ShieldCheck className="w-4 h-4 text-red-400" />
-                <span>PROGRAM PRIORITAS NASIONAL</span>
-              </div>
-
-              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white leading-tight tracking-tight">
-                SMK GO GLOBAL
-              </h2>
-
-              <p className="text-sm sm:text-base text-slate-300 leading-relaxed max-w-3xl">
-                Task force SMK Go Global 2026. Ekosistem terpadu akselerasi dan pemantauan penyiapan tenaga kerja terampil internasional lulusan SMK dan vokasi Indonesia.
-              </p>
-
-              {/* Quick Action Button Group: SSO */}
-              <div className="flex flex-wrap items-center gap-3 pt-1">
-                <button
-                  onClick={() => openLoginPage()}
-                  className="px-5 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs uppercase tracking-wider shadow-lg shadow-blue-600/20 transition flex items-center gap-2 cursor-pointer"
-                >
-                  <Compass className="w-4 h-4" />
-                  <span>Masuk Sistem Terpadu (SSO)</span>
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-                <a
-                  href="/lembaga/daftar"
-                  className="flex items-center gap-2 rounded-xl border border-slate-600 bg-slate-900/70 px-4 py-3 text-xs font-extrabold uppercase tracking-wider text-white transition hover:border-blue-400 hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  <Building2 className="h-4 w-4" aria-hidden="true" />
-                  <span>Daftar SMK Go Internasional</span>
-                  <ChevronRight className="h-4 w-4" aria-hidden="true" />
-                </a>
-              </div>
+        <div className="max-w-7xl mx-auto relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+          {/* Left Text Presentation */}
+          <div className="lg:col-span-5 space-y-4">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-600/20 border border-red-500/40 text-red-300 text-xs font-bold uppercase tracking-wider">
+              <ShieldCheck className="w-4 h-4 text-red-400" />
+              <span>PROGRAM PRIORITAS NASIONAL</span>
             </div>
 
-            {/* Right Information Badge: Satu Data Terpadu */}
-            <div className="lg:col-span-4 flex flex-col justify-center space-y-3 bg-slate-900/70 border border-slate-800/90 rounded-2xl p-4 sm:p-5 backdrop-blur-md shadow-lg">
-              <div className="text-xs font-extrabold text-white uppercase tracking-wider flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-cyan-400" />
-                <span>Pusat Kendali Satu Data</span>
-              </div>
-              <div className="space-y-2 text-xs text-slate-300 font-medium">
-                <div className="flex items-center gap-2">
-                  <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-                  <span>Monitoring Terpadu 38 Provinsi</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="h-2 w-2 rounded-full bg-blue-400" />
-                  <span>Sinkronisasi Data Real-Time</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="h-2 w-2 rounded-full bg-purple-400" />
-                  <span>Standarisasi Kurikulum Industri Global</span>
-                </div>
-              </div>
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white leading-tight tracking-tight">
+              SMK GO GLOBAL
+            </h2>
+
+            <p className="text-sm sm:text-base text-slate-300 leading-relaxed">
+              Task force SMK Go Global 2026. Ekosistem terpadu akselerasi dan pemantauan penyiapan tenaga kerja terampil internasional lulusan SMK dan vokasi Indonesia.
+            </p>
+
+            {/* Quick Action Button Group: SSO */}
+            <div className="flex flex-wrap items-center gap-3 pt-2">
+              <button
+                onClick={() => openLoginPage()}
+                className="px-5 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs uppercase tracking-wider shadow-lg shadow-blue-600/20 transition flex items-center gap-2"
+              >
+                <Compass className="w-4 h-4" />
+                <span>Masuk Sistem Terpadu (SSO)</span>
+                <ChevronRight className="w-4 h-4" />
+              </button>
+              <a
+                href="/lembaga/daftar"
+                className="flex items-center gap-2 rounded-xl border border-slate-600 bg-slate-900/70 px-4 py-3 text-xs font-extrabold uppercase tracking-wider text-white transition hover:border-blue-400 hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <Building2 className="h-4 w-4" aria-hidden="true" />
+                <span>Daftar SMK Go Internasional</span>
+                <ChevronRight className="h-4 w-4" aria-hidden="true" />
+              </a>
+            </div>
+
+            {/* Indikator Pilar Cepat */}
+            <div className="pt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11px] text-slate-400 font-medium">
+              <span className="flex items-center gap-1.5">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                Integrasi Dukcapil & Kemendikbud
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="h-1.5 w-1.5 rounded-full bg-blue-400" />
+                Kurikulum Standar Industri Global
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
+                Monitoring 38 Provinsi
+              </span>
             </div>
           </div>
 
-          {/* Unified Dashboard Command Center Section (SINKRON 100% PERSIS DASHBOARD) */}
-          <div id="dashboard-command-center" className="space-y-4">
-            {/* 1. Alur Ekosistem SMK Go Global: Hulu ke Hilir */}
-            <PillarTimelineFlow
-              onOpenFull={(stageId) => handleTimelineStageSelect(stageId)}
-              onSelectStage={(stageId) => handleTimelineStageSelect(stageId)}
-              stats={{
-                candidatesCount,
-                readyCandidatesCount,
-                programsCount,
-                providersCount,
-                vokasiWithSupplyCount,
-                registeredProvidersCount,
-                nationalLpkCount,
-                demandsCount,
-                totalDemandQuota,
-                uniqueCountries: uniqueDemandCountries,
-                allocationsCount,
-              }}
-            />
+          {/* Right program overview card - Unified Hero + Dashboard Command Center 2x2 Grid */}
+          <div
+            id="dashboard-command-center"
+            className="lg:col-span-7 bg-slate-900/90 border border-slate-800/80 rounded-3xl p-5 sm:p-7 shadow-2xl backdrop-blur-xl space-y-5"
+          >
+            {/* Header Dashboard Command Center & Alur Ekosistem */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-800/80 pb-4">
+              <div className="flex items-start gap-3">
+                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 shrink-0 mt-0.5">
+                  <Sparkles className="w-4 h-4" />
+                </span>
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h3 className="text-base sm:text-lg font-extrabold text-white tracking-tight">
+                      Dashboard Command Center
+                    </h3>
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                      Publik
+                    </span>
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
+                      Hulu ke Hilir
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-400 mt-0.5">
+                    Lingkup: <strong className="text-slate-200">Nasional (Seluruh RI)</strong> · Satu Data · Satu Pemantauan · Satu Keputusan
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 self-start sm:self-center shrink-0">
+                <div className="flex items-center gap-1.5 text-[10px] text-emerald-400 font-semibold bg-emerald-950/60 border border-emerald-800/60 px-2.5 py-1 rounded-full">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  <span>Real-Time</span>
+                </div>
+              </div>
+            </div>
 
-            {/* 2. 6 Kartu KPI Utama (Supply, Program, Vokasi, Nasional, Demand, Matching) */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4">
-              {/* Pilar 1: Supply */}
-              <DashboardPillarCard
-                pillar="supply"
-                pillarLabel="Pilar 1: Supply"
-                label="Calon Peserta"
-                value={candidatesCount}
-                desc="Pencari kerja terdata di sistem"
-                badge={`${readyCandidatesCount.toLocaleString("id-ID")} Siap`}
-                icon={Users}
-                progressPercent={supplyAchievementPct}
-                progressLabel={`${candidatesCount.toLocaleString("id-ID")} / ${TARGET_SUPPLY.toLocaleString("id-ID")} Target (${supplyAchievementPct}%)`}
-                onOpenPage={() => openLoginPage()}
-                pageActionLabel="Buka Tab Supply"
-                onDrilldown={() => handlePillarDrilldown("peserta")}
-              />
+            {/* 2x2 Interactive Flow Grid */}
+            <div className="relative">
+              {/* Connector lines between cards (Desktop) */}
+              {/* Top Row Connector Arrow: Card 1 -> Card 2 */}
+              <div className="hidden md:flex absolute top-[24%] left-[48%] -translate-x-1/2 -translate-y-1/2 items-center justify-center z-20 pointer-events-none">
+                <div className="flex items-center gap-1 bg-slate-900/95 border border-cyan-500/40 px-2 py-0.5 rounded-full shadow-lg shadow-cyan-950/60 text-cyan-400 text-[10px] font-extrabold">
+                  <span className="animate-pulse">---▶</span>
+                </div>
+              </div>
 
-              {/* Pilar 2: Program */}
-              <DashboardPillarCard
-                pillar="program"
-                pillarLabel="Pilar 2: Program"
-                label="Program Pelatihan"
-                value={programsCount}
-                desc="Katalog kurikulum kejuruan"
-                badge={`${totalTrainingQuota.toLocaleString("id-ID")} Kuota`}
-                icon={GraduationCap}
-                progressPercent={programAchievementPct}
-                progressLabel={`${programsCount.toLocaleString("id-ID")} Kurikulum / ${TARGET_PROGRAM_CLASSES.toLocaleString("id-ID")} Target Kelas (${programAchievementPct}%)`}
-                onOpenPage={() => openLoginPage()}
-                pageActionLabel="Buka Tab Program"
-                onDrilldown={() => handlePillarDrilldown("program")}
-              />
+              {/* S-curve connector badge: Card 2 (top-right) -> Card 3 (bottom-left) */}
+              <div className="hidden md:flex absolute top-[50%] left-[48%] -translate-x-1/2 -translate-y-1/2 items-center justify-center z-20 pointer-events-none">
+                <div className="flex items-center gap-1.5 bg-slate-900/95 border border-slate-700/80 px-2.5 py-0.5 rounded-full text-slate-300 text-[9px] font-semibold shadow-md">
+                  <span className="text-cyan-400 font-bold">↺</span> Standardisasi ke Fasilitas
+                </div>
+              </div>
 
-              {/* Pilar 3: Vokasi */}
-              <DashboardPillarCard
-                pillar="vokasi"
-                pillarLabel="Pilar 3: Vokasi / LPK"
-                label="Lembaga Wilayah"
-                value={providersCount}
-                desc="Mitra diklat lingkup Nasional..."
-                badge={`${registeredProvidersCount.toLocaleString("id-ID")} Terverifikasi`}
-                icon={Building2}
-                progressPercent={vokasiAchievementPct}
-                progressLabel={`${providersCount.toLocaleString("id-ID")} / ${TARGET_VOKASI.toLocaleString("id-ID")} Target Vokasi (${vokasiAchievementPct}%)`}
-                onOpenPage={() => openLoginPage()}
-                pageActionLabel="Buka Tab Vokasi"
-                onDrilldown={() => handlePillarDrilldown("lembaga")}
-              />
+              {/* Bottom Row Connector Arrow: Card 3 -> Card 4 */}
+              <div className="hidden md:flex absolute top-[76%] left-[48%] -translate-x-1/2 -translate-y-1/2 items-center justify-center z-20 pointer-events-none">
+                <div className="flex items-center gap-1 bg-slate-900/95 border border-purple-500/40 px-2 py-0.5 rounded-full shadow-lg shadow-purple-950/60 text-purple-400 text-[10px] font-extrabold">
+                  <span className="animate-pulse">---▶</span>
+                </div>
+              </div>
 
-              {/* Lembaga Nasional */}
-              <DashboardPillarCard
-                pillar="vokasi"
-                pillarLabel="Nasional"
-                label="Lembaga Nasional"
-                value={nationalLpkCount}
-                desc="Seluruh wilayah Indonesia"
-                badge="38 Provinsi"
-                icon={Building2}
-                progressPercent={100}
-                progressLabel={`${nationalLpkCount.toLocaleString("id-ID")} LPK Nasional (38 Provinsi)`}
-                onOpenPage={() => openLoginPage()}
-                pageActionLabel="Lihat Sebaran LPK"
-                onDrilldown={() => handlePillarDrilldown("lembaga")}
-              />
+              {/* The 2x2 Grid of 4 Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 relative z-0">
+                {/* 1. Siap Latih (Top-Left) */}
+                <button
+                  type="button"
+                  onClick={() => handlePillarDrilldown("peserta")}
+                  className="group relative rounded-2xl border border-cyan-500/30 bg-gradient-to-br from-cyan-950/40 via-slate-900/90 to-slate-900/95 p-4 sm:p-5 flex flex-col justify-between text-left hover:border-cyan-400 hover:shadow-xl hover:shadow-cyan-900/20 transition-all duration-300 cursor-pointer"
+                  title="Klik untuk membuka data peserta siap latih"
+                >
+                  <div className="w-full">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="text-sm font-extrabold text-white group-hover:text-cyan-300 transition-colors">
+                        1. Siap Latih
+                      </h4>
+                      <div className="w-8 h-8 rounded-xl bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 flex items-center justify-center shadow-inner">
+                        <Users className="w-4 h-4" />
+                      </div>
+                    </div>
 
-              {/* Pilar 4: Demand */}
-              <DashboardPillarCard
-                pillar="demand"
-                pillarLabel="Pilar 4: Demand"
-                label="Lowongan Luar Negeri"
-                value={demandsCount}
-                desc="Order kebutuhan pekerja migran"
-                badge={`${totalDemandQuota.toLocaleString("id-ID")} Slot`}
-                icon={Globe2}
-                progressPercent={demandAchievementPct}
-                progressLabel={`${uniqueDemandCountries} / ${TARGET_DEMAND_COUNTRIES} Target Negara (${totalDemandQuota.toLocaleString("id-ID")} Slot)`}
-                onOpenPage={() => openLoginPage()}
-                pageActionLabel="Buka Tab Demand"
-                onDrilldown={() => handlePillarDrilldown("demand")}
-              />
+                    <div className="my-3">
+                      <div className="text-3xl sm:text-4xl font-black text-white tracking-tight tabular-nums flex items-baseline gap-1.5 flex-wrap">
+                        <span>{siapLatihCount.toLocaleString("id-ID")}</span>
+                        <span className="text-xl sm:text-2xl font-bold text-slate-400">/ 12.600</span>
+                        <span className="text-xs text-cyan-400 font-semibold ml-1">Peserta</span>
+                      </div>
+                      <p className="text-xs text-slate-300 font-medium mt-1">
+                        Peserta Siap Latih dari Target 12.600
+                      </p>
+                    </div>
 
-              {/* Matching / Alokasi */}
-              <DashboardPillarCard
-                pillar="matching"
-                pillarLabel="Matching"
-                label="Alokasi Penempatan"
-                value={allocationsCount}
-                desc="Batch yang telah dialokasikan"
-                badge="Tahap 4"
-                icon={Workflow}
-                progressPercent={matchingAchievementPct}
-                progressLabel={`${allocationsCount.toLocaleString("id-ID")} Batch Teralokasi (${matchingAchievementPct}%)`}
-                onOpenPage={() => openLoginPage()}
-                pageActionLabel="Buka Tab Matching"
-                onDrilldown={() => handlePillarDrilldown("demand")}
-              />
+                    <div className="mt-2.5 flex flex-wrap gap-1.5">
+                      <span className="px-2 py-0.5 rounded-md bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 text-[11px] font-semibold tabular-nums">
+                        Jepang: {countryCounts.Jepang.toLocaleString("id-ID")}
+                      </span>
+                      <span className="px-2 py-0.5 rounded-md bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 text-[11px] font-semibold tabular-nums">
+                        Turki: {countryCounts.Turki.toLocaleString("id-ID")}
+                      </span>
+                      <span className="px-2 py-0.5 rounded-md bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 text-[11px] font-semibold tabular-nums">
+                        Korea: {countryCounts.Korea.toLocaleString("id-ID")}
+                      </span>
+                      <span className="px-2 py-0.5 rounded-md bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 text-[11px] font-semibold tabular-nums">
+                        Malaysia: {countryCounts.Malaysia.toLocaleString("id-ID")}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="w-full pt-3 border-t border-slate-800/80 flex items-center justify-between text-[11px] font-semibold text-cyan-300 mt-2">
+                    <span>Lihat Data Siap Latih</span>
+                    <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+                  </div>
+                </button>
+
+                {/* 2. Siap Program (Top-Right) */}
+                <button
+                  type="button"
+                  onClick={() => handlePillarDrilldown("program")}
+                  className="group relative rounded-2xl border border-amber-500/30 bg-gradient-to-br from-amber-950/40 via-slate-900/90 to-slate-900/95 p-4 sm:p-5 flex flex-col justify-between text-left hover:border-amber-400 hover:shadow-xl hover:shadow-amber-900/20 transition-all duration-300 cursor-pointer"
+                  title="Klik untuk memilih negara dan melihat sektor serta jenis program pelatihan"
+                >
+                  <div className="w-full">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="text-sm font-extrabold text-white group-hover:text-amber-300 transition-colors">
+                        2. Siap Program
+                      </h4>
+                      <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center shadow-inner">
+                        <GraduationCap className="w-4 h-4" />
+                      </div>
+                    </div>
+
+                    <div className="my-2">
+                      <div className="text-3xl sm:text-4xl font-black text-white tracking-tight tabular-nums">
+                        4 Negara
+                      </div>
+                      <p className="text-xs text-slate-300 font-medium mt-1">
+                        Jenis Program Pelatihan per Sektor Negara
+                      </p>
+                    </div>
+
+                    <div className="mt-2.5 flex flex-wrap gap-1.5">
+                      {FOUR_COUNTRIES.map((country) => (
+                        <span
+                          key={country}
+                          className="px-2.5 py-1 rounded-lg bg-amber-500/15 text-amber-300 border border-amber-500/30 text-[11px] font-bold"
+                        >
+                          {country}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="w-full pt-3 border-t border-slate-800/80 flex items-center justify-between text-[11px] font-semibold text-amber-300 mt-3">
+                    <span>Pilih Negara & Lihat Sektor Program</span>
+                    <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+                  </div>
+                </button>
+
+                {/* 3. Siap Vokasi (Bottom-Left) */}
+                <button
+                  type="button"
+                  onClick={() => handlePillarDrilldown("lembaga")}
+                  className="group relative rounded-2xl border border-emerald-500/30 bg-gradient-to-br from-emerald-950/40 via-slate-900/90 to-slate-900/95 p-4 sm:p-5 flex flex-col justify-between text-left hover:border-emerald-400 hover:shadow-xl hover:shadow-emerald-900/20 transition-all duration-300 cursor-pointer"
+                  title="Klik untuk membuka daftar lembaga vokasi penyuplai peserta siap latih"
+                >
+                  <div className="w-full">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="text-sm font-extrabold text-white group-hover:text-emerald-300 transition-colors">
+                        3. Siap Vokasi
+                      </h4>
+                      <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center shadow-inner">
+                        <Building2 className="w-4 h-4" />
+                      </div>
+                    </div>
+
+                    <div className="my-3">
+                      <div className="text-3xl sm:text-4xl font-black text-white tracking-tight tabular-nums">
+                        34
+                        <span className="text-xs text-emerald-400 font-semibold ml-2">Lembaga</span>
+                      </div>
+                      <p className="text-xs text-slate-300 font-medium mt-1">
+                        Lembaga Vokasi Penyuplai & Penyelenggara
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="w-full pt-3 border-t border-slate-800/80 flex items-center justify-between text-[11px] font-semibold text-emerald-300 mt-2">
+                    <span>Lihat Daftar Lembaga Vokasi</span>
+                    <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+                  </div>
+                </button>
+
+                {/* 4. Siap Permintaan (Bottom-Right) */}
+                <button
+                  type="button"
+                  onClick={() => handlePillarDrilldown("demand")}
+                  className="group relative rounded-2xl border border-purple-500/30 bg-gradient-to-br from-purple-950/40 via-slate-900/90 to-slate-900/95 p-4 sm:p-5 flex flex-col justify-between text-left hover:border-purple-400 hover:shadow-xl hover:shadow-purple-900/20 transition-all duration-300 cursor-pointer"
+                  title="Klik untuk melihat permintaan dari 4 negara"
+                >
+                  <div className="w-full">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="text-sm font-extrabold text-white group-hover:text-purple-300 transition-colors">
+                        4. Siap Permintaan
+                      </h4>
+                      <div className="w-8 h-8 rounded-xl bg-purple-500/20 text-purple-400 border border-purple-500/30 flex items-center justify-center shadow-inner">
+                        <Globe2 className="w-4 h-4" />
+                      </div>
+                    </div>
+
+                    <div className="my-2">
+                      <div className="text-3xl sm:text-4xl font-black text-white tracking-tight tabular-nums">
+                        4 Negara
+                      </div>
+                      <p className="text-xs text-slate-300 font-medium mt-1">
+                        Permintaan dari 4 Negara Tujuan
+                      </p>
+                    </div>
+
+                    <div className="mt-2.5 flex flex-wrap gap-1.5">
+                      {[
+                        { country: "Turki", quota: "5.000" },
+                        { country: "Malaysia", quota: "5.000" },
+                        { country: "Jepang", quota: "2.000" },
+                        { country: "Korea", quota: "600" },
+                      ].map((item) => (
+                        <span
+                          key={item.country}
+                          className="px-2.5 py-1 rounded-lg bg-purple-500/15 text-purple-300 border border-purple-500/30 text-[11px] font-bold flex items-center gap-1"
+                        >
+                          <span>{item.country}</span>
+                          <span className="text-[10px] text-purple-200/80 font-normal">({item.quota})</span>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="w-full pt-3 border-t border-slate-800/80 flex items-center justify-between text-[11px] font-semibold text-purple-300 mt-3">
+                    <span>Lihat Permintaan 4 Negara</span>
+                    <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+                  </div>
+                </button>
+              </div>
             </div>
           </div>
         </div>
