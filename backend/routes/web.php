@@ -147,6 +147,47 @@ Route::get('/debug-log', function (Request $request) {
         }
     }
 
+    if ($request->query('audit_today')) {
+        try {
+            $today = '2026-11-10';
+            $auditLogsToday = DB::table('audit_logs')
+                ->whereDate('created_at', $today)
+                ->orderByDesc('created_at')
+                ->limit(20)
+                ->get();
+
+            $approvalToday = DB::table('approval_requests')
+                ->whereDate('created_at', $today)
+                ->orWhereDate('submitted_at', $today)
+                ->limit(20)
+                ->get();
+
+            $candidatesToday = DB::table('job_seekers')
+                ->whereDate('created_at', $today)
+                ->whereNull('deleted_at')
+                ->where(function($q) {
+                    $q->whereNull('external_source')
+                      ->orWhere('external_source', 'manual_institution');
+                })
+                ->get(['id', 'full_name', 'institution_name', 'created_by', 'created_at']);
+
+            $institutionsRegisteredToday = DB::table('institutions')
+                ->whereDate('created_at', $today)
+                ->get(['id', 'name', 'created_at']);
+
+            return response()->json([
+                'today' => $today,
+                'manual_candidates_today' => $candidatesToday,
+                'institutions_registered_today' => $institutionsRegisteredToday,
+                'approval_today_count' => count($approvalToday),
+                'audit_logs_today_count' => count($auditLogsToday),
+                'audit_logs_today' => $auditLogsToday,
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json(['error' => $e->getMessage()]);
+        }
+    }
+
     if ($request->query('stats')) {
         try {
             $user = auth()->user();
