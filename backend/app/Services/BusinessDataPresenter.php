@@ -2178,8 +2178,9 @@ class BusinessDataPresenter
             if (! empty($user->email)) {
                 $inst = DB::table('institutions')->where('email', $user->email)->first();
             }
-            if (! $inst && ! empty($user->organization)) {
-                $orgClean = trim($user->organization);
+            $orgCandidate = trim((string) ($user->organization ?: $user->scope_name));
+            if (! $inst && ! empty($orgCandidate)) {
+                $orgClean = $orgCandidate;
                 $inst = DB::table('institutions')
                     ->whereRaw('LOWER(name) = ?', [mb_strtolower($orgClean)])
                     ->orWhere('name', $orgClean)
@@ -2604,13 +2605,13 @@ class BusinessDataPresenter
                             if ($clean !== '' && ! in_array($cleanLower, $genericStopwords, true)) {
                                 if ($hasCondition) {
                                     $q->orWhere('job_seekers.institution_name', $clean);
-                                    if (mb_strlen($clean) >= 6) {
+                                    if (mb_strlen($clean) >= 4) {
                                         $q->orWhere('job_seekers.institution_name', 'LIKE', "%{$clean}%");
                                     }
                                 } else {
                                     $q->where(function ($sub) use ($clean) {
                                         $sub->where('job_seekers.institution_name', $clean);
-                                        if (mb_strlen($clean) >= 6) {
+                                        if (mb_strlen($clean) >= 4) {
                                             $sub->orWhere('job_seekers.institution_name', 'LIKE', "%{$clean}%");
                                         }
                                     });
@@ -2623,34 +2624,34 @@ class BusinessDataPresenter
                         $q->orWhere('job_seekers.created_by', (string) $user->id)
                             ->orWhere('job_seekers.created_by', (string) $user->name)
                             ->orWhere('job_seekers.created_by', (string) $user->username);
+                        if (! empty($user->email)) {
+                            $q->orWhere('job_seekers.created_by', (string) $user->email);
+                        }
                         $hasCondition = true;
                     }
-                    if (! empty($user->organization)) {
-                        $cleanOrg = trim($user->organization);
-                        $cleanOrgLower = strtolower($cleanOrg);
+                    $orgCandidate = trim((string) ($user->organization ?: $user->scope_name));
+                    if (! empty($orgCandidate)) {
+                        $cleanOrgLower = strtolower($orgCandidate);
                         if (! in_array($cleanOrgLower, $genericStopwords, true)) {
-                            $q->orWhere('job_seekers.institution_name', $cleanOrg);
-                            if (mb_strlen($cleanOrg) >= 6) {
-                                $q->orWhere('job_seekers.institution_name', 'LIKE', "%{$cleanOrg}%");
+                            $q->orWhere('job_seekers.institution_name', $orgCandidate);
+                            if (mb_strlen($orgCandidate) >= 4) {
+                                $q->orWhere('job_seekers.institution_name', 'LIKE', "%{$orgCandidate}%");
                             }
-                            $hasCondition = true;
-                        }
-                    }
-                    if (! empty($user->scope_name)) {
-                        $cleanScope = trim($user->scope_name);
-                        $cleanScopeLower = strtolower($cleanScope);
-                        if (! in_array($cleanScopeLower, $genericStopwords, true)) {
-                            $q->orWhere('job_seekers.institution_name', $cleanScope);
-                            if (mb_strlen($cleanScope) >= 6) {
-                                $q->orWhere('job_seekers.institution_name', 'LIKE', "%{$cleanScope}%");
+                            $core = trim(preg_replace('/^(lpks|lpk|lkp|pk|blk|blkln|blkk|smkn|smk\s+negeri|smk|stikes|poltek|politeknik|universitas|sekolah\s+tinggi|institut)\.?\s+/i', '', $orgCandidate));
+                            if (mb_strlen($core) >= 4 && ! in_array(strtolower($core), $genericStopwords, true)) {
+                                $q->orWhere('job_seekers.institution_name', 'LIKE', "%{$core}%");
                             }
+                            $q->orWhere('job_seekers.created_by', $orgCandidate)
+                                ->orWhere('job_seekers.created_by', 'LIKE', "%{$orgCandidate}%");
                             $hasCondition = true;
                         }
                     }
                     if (! empty($scope['institution']?->name)) {
                         $cleanInst = trim($scope['institution']->name);
                         $q->orWhere('job_seekers.created_by', $cleanInst)
-                            ->orWhere('job_seekers.created_by', 'LIKE', "%{$cleanInst}%");
+                            ->orWhere('job_seekers.created_by', 'LIKE', "%{$cleanInst}%")
+                            ->orWhere('job_seekers.institution_name', $cleanInst)
+                            ->orWhere('job_seekers.institution_name', 'LIKE', "%{$cleanInst}%");
                         $hasCondition = true;
                     }
                     if (! $hasCondition) {

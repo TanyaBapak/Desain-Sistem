@@ -822,12 +822,16 @@ class BusinessDataController extends Controller
                             $clean = trim((string) $pattern);
                             if ($clean !== '') {
                                 if ($hasCondition) {
-                                    $q->orWhere('job_seekers.institution_name', $clean)
-                                        ->orWhere('job_seekers.institution_name', 'LIKE', "%{$clean}%");
+                                    $q->orWhere('job_seekers.institution_name', $clean);
+                                    if (mb_strlen($clean) >= 4) {
+                                        $q->orWhere('job_seekers.institution_name', 'LIKE', "%{$clean}%");
+                                    }
                                 } else {
                                     $q->where(function ($sub) use ($clean) {
-                                        $sub->where('job_seekers.institution_name', $clean)
-                                            ->orWhere('job_seekers.institution_name', 'LIKE', "%{$clean}%");
+                                        $sub->where('job_seekers.institution_name', $clean);
+                                        if (mb_strlen($clean) >= 4) {
+                                            $sub->orWhere('job_seekers.institution_name', 'LIKE', "%{$clean}%");
+                                        }
                                     });
                                     $hasCondition = true;
                                 }
@@ -838,20 +842,31 @@ class BusinessDataController extends Controller
                         $q->orWhere('job_seekers.created_by', (string) $user->id)
                             ->orWhere('job_seekers.created_by', (string) $user->name)
                             ->orWhere('job_seekers.created_by', (string) $user->username);
+                        if (! empty($user->email)) {
+                            $q->orWhere('job_seekers.created_by', (string) $user->email);
+                        }
                         $hasCondition = true;
                     }
-                    if (! empty($user->organization)) {
-                        $cleanOrg = trim($user->organization);
-                        $q->orWhere('job_seekers.institution_name', $cleanOrg)
-                            ->orWhere('job_seekers.institution_name', 'LIKE', "%{$cleanOrg}%")
-                            ->orWhere('job_seekers.created_by', $cleanOrg)
-                            ->orWhere('job_seekers.created_by', 'LIKE', "%{$cleanOrg}%");
+                    $orgCandidate = trim((string) ($user->organization ?: $user->scope_name));
+                    if (! empty($orgCandidate)) {
+                        $q->orWhere('job_seekers.institution_name', $orgCandidate);
+                        if (mb_strlen($orgCandidate) >= 4) {
+                            $q->orWhere('job_seekers.institution_name', 'LIKE', "%{$orgCandidate}%");
+                        }
+                        $core = trim(preg_replace('/^(lpks|lpk|lkp|pk|blk|blkln|blkk|smkn|smk\s+negeri|smk|stikes|poltek|politeknik|universitas|sekolah\s+tinggi|institut)\.?\s+/i', '', $orgCandidate));
+                        if (mb_strlen($core) >= 4) {
+                            $q->orWhere('job_seekers.institution_name', 'LIKE', "%{$core}%");
+                        }
+                        $q->orWhere('job_seekers.created_by', $orgCandidate)
+                            ->orWhere('job_seekers.created_by', 'LIKE', "%{$orgCandidate}%");
                         $hasCondition = true;
                     }
                     if (! empty($scope['institution']?->name)) {
                         $cleanInst = trim($scope['institution']->name);
                         $q->orWhere('job_seekers.created_by', $cleanInst)
-                            ->orWhere('job_seekers.created_by', 'LIKE', "%{$cleanInst}%");
+                            ->orWhere('job_seekers.created_by', 'LIKE', "%{$cleanInst}%")
+                            ->orWhere('job_seekers.institution_name', $cleanInst)
+                            ->orWhere('job_seekers.institution_name', 'LIKE', "%{$cleanInst}%");
                         $hasCondition = true;
                     }
                     if (! $hasCondition) {
@@ -1440,7 +1455,7 @@ class BusinessDataController extends Controller
         if (in_array($role, ['institution_admin', 'training_operator', 'vokasi', 'lembaga_vokasi'], true) || $user->scope_level === 'lembaga') {
             $institution = $this->resolveUserInstitution($user);
             if (! $institution && ! $request->session()->has('impersonator_id')) {
-                $instName = $user->organization ?: ('Lembaga Vokasi '.($user->name ?: 'Mitra'));
+                $instName = $user->organization ?: ($user->scope_name ?: ('Lembaga Vokasi '.($user->name ?: 'Mitra')));
                 $instId = 'inst-'.Str::slug($instName);
                 DB::table('institutions')->updateOrInsert(
                     ['id' => $instId],
@@ -2150,14 +2165,25 @@ class BusinessDataController extends Controller
             }
         }
 
-        // Also check by user's organization name
-        if (! empty($user->organization)) {
+        // Also check by user's organization or scope_name
+        $orgName = trim((string) ($user->organization ?: $user->scope_name));
+        if (! empty($orgName)) {
             $inst = DB::table('institutions')
-                ->where('name', 'LIKE', "%{$user->organization}%")
-                ->orWhereRaw('LOWER(name) = ?', [mb_strtolower($user->organization)])
+                ->where('name', 'LIKE', "%{$orgName}%")
+                ->orWhereRaw('LOWER(name) = ?', [mb_strtolower($orgName)])
                 ->first();
             if ($inst) {
                 return $inst;
+            }
+            $core = trim(preg_replace('/^(lpks|lpk|lkp|pk|blk|blkln|blkk|smkn|smk\s+negeri|smk|stikes|poltek|politeknik|universitas|sekolah\s+tinggi|institut)\.?\s+/i', '', $orgName));
+            if (mb_strlen($core) >= 4) {
+                $inst = DB::table('institutions')
+                    ->where('name', 'LIKE', "%{$core}%")
+                    ->orWhereRaw('LOWER(name) = ?', [mb_strtolower($core)])
+                    ->first();
+                if ($inst) {
+                    return $inst;
+                }
             }
         }
 
