@@ -1603,15 +1603,15 @@ function buildRealTrees(): Record<PillarKey, PillarConfig> {
   };
 
   // Sesuaikan angka total di kartu utama sesuai database riil:
-  // 1. Siap Latih: 4.315 Peserta / 12.600 (Data Riil Database)
-  // 2. Siap Program: 4 Negara
-  // 3. Siap Vokasi: 34 Vokasi (Mitra Prioritas MoU Pimpinan, dari 50 terdaftar)
-  // 4. Siap Permintaan: 4 Negara
+  // 1. Siap Latih: 5.045 Peserta / 12.600 (Data Riil Database)
+  // 2. Siap Program: 300 Kurikulum Terstandarisasi
+  // 3. Siap Vokasi: 35 Lembaga Suplai Peserta (dari 4.717 total terdaftar)
+  // 4. Siap Permintaan: 5 Order Lowongan Luar Negeri
   const HEADER_TARGETS: Record<PillarKey, number> = {
-    sup: 4315,
-    pel: 4,
-    lpk: 34,
-    dem: 4,
+    sup: 5045,
+    pel: 300,
+    lpk: 35,
+    dem: 5,
   };
 
   const result: Partial<Record<PillarKey, PillarConfig>> = {};
