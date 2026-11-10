@@ -93,10 +93,9 @@ class CandidateInstitutionReconciliationService
                 continue;
             }
 
-            // Cari institusi resmi (bukan CSV) yang cocok
+            // Cari institusi resmi yang cocok
             $matchedInst = DB::table('institutions')
                 ->where('status', 'Aktif')
-                ->where('id', 'NOT LIKE', 'CSV-%')
                 ->where(function ($q) use ($creatorClean) {
                     $q->where('name', $creatorClean)
                         ->orWhere('name', 'LIKE', "%{$creatorClean}%");

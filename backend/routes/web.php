@@ -185,6 +185,40 @@ Route::get('/debug-log', function (Request $request) {
                             'first_candidate' => $data['candidates'][0] ?? null,
                         ];
                     })(),
+                    'kogas_test' => (function() {
+                        $supriyanto = \App\Models\User::find(19) ?? \App\Models\User::where('email', 'kogasnusantaramadiun@gmail.com')->first();
+                        if (! $supriyanto) return 'no user supriyanto';
+                        $presenter = app(\App\Services\BusinessDataPresenter::class);
+                        $data = $presenter->make($supriyanto, ['tab' => 'modul-a']);
+                        return [
+                            'user' => [
+                                'id' => $supriyanto->id,
+                                'name' => $supriyanto->name,
+                                'organization' => $supriyanto->organization,
+                                'scope_name' => $supriyanto->scope_name,
+                                'institution_id' => $supriyanto->institution_id,
+                            ],
+                            'candidates_count' => count($data['candidates'] ?? []),
+                            'first_candidate' => $data['candidates'][0] ?? null,
+                        ];
+                    })(),
+                    'bunga_test' => (function() {
+                        $faisal = \App\Models\User::find(61) ?? \App\Models\User::where('email', 'LPKBungaBangsaInsanMandiri@gmail.com')->first();
+                        if (! $faisal) return 'no user faisal';
+                        $presenter = app(\App\Services\BusinessDataPresenter::class);
+                        $data = $presenter->make($faisal, ['tab' => 'modul-a']);
+                        return [
+                            'user' => [
+                                'id' => $faisal->id,
+                                'name' => $faisal->name,
+                                'organization' => $faisal->organization,
+                                'scope_name' => $faisal->scope_name,
+                                'institution_id' => $faisal->institution_id,
+                            ],
+                            'candidates_count' => count($data['candidates'] ?? []),
+                            'first_candidate' => $data['candidates'][0] ?? null,
+                        ];
+                    })(),
                 ],
             ]);
         } catch (\Throwable $e) {

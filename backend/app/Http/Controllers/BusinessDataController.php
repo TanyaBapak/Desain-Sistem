@@ -215,7 +215,7 @@ class BusinessDataController extends Controller
                     'provinsi' => $resolved['province_name'],
                     'kabupatenKota' => $resolved['district_name'],
                     'educationLevel' => $educationLevel,
-                    'institutionName' => $institution?->name ?? ($item['institutionName'] ?: 'Lembaga Vokasi'),
+                    'institutionName' => $institution?->name ?? ($user->organization ?: ($user->scope_name ?: ($item['institutionName'] ?: 'Lembaga Vokasi'))),
                     'sourceType' => $item['sourceType'] ?? (in_array($role, ['institution_admin', 'vokasi', 'lembaga_vokasi', 'training_operator'], true) ? 'Lembaga Vokasi' : 'Disnaker Pemda'),
                     'major' => ! empty($item['major']) ? $item['major'] : 'Umum',
                     'skills' => array_values(array_filter($item['skills'] ?? [], fn ($s) => is_string($s) && trim($s) !== '')),
@@ -1493,9 +1493,9 @@ class BusinessDataController extends Controller
             'gender' => $data['gender'],
             'province_id' => $provinceId,
             'district_id' => $district->id,
-            'institution_id' => $institution?->id ?? ($existing?->institution_id),
+            'institution_id' => $institution?->id ?? ($user->institution_id ?: $existing?->institution_id),
             'education_level' => $data['educationLevel'],
-            'institution_name' => $institution?->name ?? ($data['institutionName'] ?: ($existing?->institution_name ?? 'Lembaga Vokasi')),
+            'institution_name' => $institution?->name ?? ($user->organization ?: ($user->scope_name ?: ($data['institutionName'] ?: ($existing?->institution_name ?? 'Lembaga Vokasi')))),
             'major' => $data['major'],
             'source_type' => in_array($role, ['institution_admin', 'vokasi', 'lembaga_vokasi', 'training_operator'], true)
                 ? 'LPK'
@@ -1522,6 +1522,7 @@ class BusinessDataController extends Controller
                 'registration_number' => 'REG-'.Str::upper(Str::random(10)),
                 'nik' => $data['nik'],
                 'created_by' => $request->user()->name,
+                'external_source' => 'taskforce_roster',
                 'created_at' => now(),
             ];
             DB::table('job_seekers')->insert(['id' => $id] + $attributes);
