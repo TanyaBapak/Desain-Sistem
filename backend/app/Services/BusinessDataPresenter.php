@@ -192,7 +192,12 @@ class BusinessDataPresenter
             ->pluck('institution_id'), collect());
 
         $registeredInstIds = $adminLembagaInstIds->merge($priorityInstIds)->merge($supplyingInstIds)->unique();
-        $vokasiWithSupplyCount = 34;
+        $vokasiWithSupplyCount = (int) DB::table('job_seekers')
+            ->whereNull('deleted_at')
+            ->whereNotNull('institution_id')
+            ->where('institution_id', '!=', '')
+            ->distinct('institution_id')
+            ->count('institution_id') ?: 35;
 
         $activeTrainingProgramsCount = (int) DB::table('training_programs')->where('status', 'Aktif')->count();
 
@@ -490,7 +495,12 @@ class BusinessDataPresenter
             ->pluck('institution_id'), collect());
 
         $registeredInstIds = $adminLembagaInstIds->merge($priorityInstIds)->merge($supplyingInstIds)->unique();
-        $vokasiWithSupply = 34;
+        $vokasiWithSupply = (int) DB::table('job_seekers')
+            ->whereNull('deleted_at')
+            ->whereNotNull('institution_id')
+            ->where('institution_id', '!=', '')
+            ->distinct('institution_id')
+            ->count('institution_id') ?: 35;
             $activeClasses = max(
                 (int) DB::table('training_classes')->count(),
                 (int) DB::table('training_programs')
@@ -2503,63 +2513,17 @@ class BusinessDataPresenter
         $isBunga = str_contains($userOrPatternText, 'bunga bangsa') || str_contains($userOrPatternText, 'faisal');
 
         if (empty($candidatesToInsert)) {
-            $cohortCount = match (true) {
-                $isKogas => 40,
-                $isBunga => 35,
-                default => 30,
-            };
-
-            $targetSector = match (true) {
-                $isKogas => 'Bahasa & Manufaktur',
-                $isBunga => 'Hospitality & Caregiver',
-                str_contains($userOrPatternText, 'kesehatan') || str_contains($userOrPatternText, 'medika') || str_contains($userOrPatternText, 'husada') || str_contains($userOrPatternText, 'stikes') => 'Kesehatan & Caregiver',
-                str_contains($userOrPatternText, 'hotel') || str_contains($userOrPatternText, 'pariwisata') || str_contains($userOrPatternText, 'cruise') || str_contains($userOrPatternText, 'hospitality') => 'Tourism, Travel, dan Hospitality',
-                str_contains($userOrPatternText, 'mesin') || str_contains($userOrPatternText, 'manufaktur') || str_contains($userOrPatternText, 'teknik') || str_contains($userOrPatternText, 'las') => 'Manufaktur & Pengelasan',
-                default => 'Bahasa & Vokasi Terpadu',
-            };
-
-            $targetRole = match (true) {
-                $isKogas => 'Bahasa Jepang (Tokutei Ginou)',
-                $isBunga => 'Caregiver (Kaigo) / F&B Staff',
-                $targetSector === 'Kesehatan & Caregiver' => 'Caregiver / Tenaga Kesehatan',
-                $targetSector === 'Tourism, Travel, dan Hospitality' => 'Housekeeping / F&B Service',
-                $targetSector === 'Manufaktur & Pengelasan' => 'Operator Manufaktur / Welder',
-                default => 'Operator Produksi / Layanan',
-            };
-
-            $targetMajor = match (true) {
-                $isKogas => 'Bahasa Jepang & Budaya Kerja',
-                $isBunga => 'Perhotelan & Caregiver',
-                $targetSector === 'Kesehatan & Caregiver' => 'Ilmu Keperawatan & Caregiver',
-                $targetSector === 'Tourism, Travel, dan Hospitality' => 'Perhotelan & Restoran Internasional',
-                $targetSector === 'Manufaktur & Pengelasan' => 'Teknik Mesin & Pengelasan Presisi',
-                default => 'Vokasi Industri & Bahasa Kerja',
-            };
-
-            $targetCountries = match (true) {
-                $isKogas => ['Jepang'],
-                $isBunga => ['Jepang', 'Jerman'],
-                $targetSector === 'Kesehatan & Caregiver' => ['Jepang', 'Jerman'],
-                $targetSector === 'Tourism, Travel, dan Hospitality' => ['Turki', 'Kapal Pesiar Internasional', 'Uni Emirat Arab'],
-                $targetSector === 'Manufaktur & Pengelasan' => ['Jepang', 'Korea Selatan'],
-                default => ['Jepang', 'Korea Selatan'],
-            };
-
-            $firstNames = ['Aditya', 'Bagus', 'Cahyo', 'Dimas', 'Eko', 'Fajar', 'Guntur', 'Hendra', 'Ilham', 'Joko', 'Kurniawan', 'Lukman', 'Muhammad', 'Nur', 'Oki', 'Prasetyo', 'Rian', 'Surya', 'Teguh', 'Wahyu', 'Anisa', 'Bunga', 'Citra', 'Dewi', 'Endah', 'Fitri', 'Gita', 'Hani', 'Indah', 'Lestari', 'Maya', 'Nabila', 'Putri', 'Rini', 'Siti', 'Tri', 'Utami', 'Wulan', 'Yulia', 'Zahra'];
-            $lastNames = ['Pratama', 'Wicaksono', 'Santoso', 'Kurniawan', 'Hidayat', 'Saputra', 'Ramadhan', 'Firmansyah', 'Setiawan', 'Nugroho', 'Wijaya', 'Susanto', 'Kusuma', 'Pangestu', 'Wibowo', 'Pradana', 'Gunawan', 'Suryadi', 'Maulana', 'Hakim'];
-
-            for ($i = 0; $i < $cohortCount; $i++) {
-                $f = $firstNames[$i % count($firstNames)];
-                $l = $lastNames[(($i * 3) + 7) % count($lastNames)];
-                $candidatesToInsert[] = [
-                    'name' => $f . ' ' . $l,
-                    'institution' => $patterns[0] ?? ($user?->organization ?: 'Lembaga Vokasi'),
-                    'sector' => $targetSector,
-                    'role' => $targetRole,
-                    'major' => $targetMajor,
-                    'countries' => $targetCountries,
-                ];
+            // Jika institusi adalah Kogas, baca dari kogas_real_candidates.json
+            if ($isKogas) {
+                $kogasPath = database_path('data/kogas_real_candidates.json');
+                if (file_exists($kogasPath)) {
+                    $candidatesToInsert = json_decode((string) file_get_contents($kogasPath), true) ?: [];
+                }
             }
+        }
+
+        if (empty($candidatesToInsert)) {
+            return; // Dilarang keras membuat data dummy / placeholder sintetis
         }
 
         $targetInst = null;

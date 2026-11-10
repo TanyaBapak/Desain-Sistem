@@ -138,3 +138,4 @@ class PurgeSippmiFeederCommand extends Command
         return Command::SUCCESS;
     }
 }
+
