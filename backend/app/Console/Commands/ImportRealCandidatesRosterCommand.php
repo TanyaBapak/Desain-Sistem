@@ -774,7 +774,19 @@ class ImportRealCandidatesRosterCommand extends Command
         $this->newLine();
         $this->line('4. Membersihkan seluruh peserta di luar roster riil unik (target tepat 4.855 kandidat)...');
         $validIdMap = array_flip(array_unique(array_filter($validRosterCandidateIds)));
-        $allCurrentCandidateIds = DB::table('job_seekers')->pluck('id')->all();
+        $allCurrentCandidateIds = DB::table('job_seekers')
+            ->where(function ($q) {
+                $q->whereNull('external_source')
+                    ->orWhereNotIn('external_source', ['manual_institution', 'gardata_api', 'sippmi']);
+            })
+            ->where(function ($q) {
+                // Jaga data manual lembaga agar tidak pernah terhapus
+                $q->whereNull('source_type')
+                    ->orWhere('source_type', '!=', 'LPK')
+                    ->orWhere('created_by', 'Task Force Penempatan Luar Negeri');
+            })
+            ->pluck('id')
+            ->all();
         $staleCandidateIds = array_values(array_filter($allCurrentCandidateIds, fn ($id) => ! isset($validIdMap[$id])));
 
         $countStale = count($staleCandidateIds);
