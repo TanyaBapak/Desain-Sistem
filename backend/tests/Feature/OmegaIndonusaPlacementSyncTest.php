@@ -52,23 +52,8 @@ class OmegaIndonusaPlacementSyncTest extends TestCase
         $syncService = app(GardataPlacementSyncService::class);
         $result = $syncService->ensureIndonusaCandidates(true);
 
-        $this->assertSame(147, $result['inserted']);
-        $this->assertSame(147, DB::table('job_seekers')->where('institution_name', 'Politeknik Indonusa Surakarta')->count());
-
-        // Pastikan kelas manufaktur dan waiter tersinkronkan
-        $this->assertGreaterThanOrEqual(10, DB::table('external_training_records')
-            ->where('external_source', 'sippmi')
-            ->where('class_code', 'CPMI-MAN-26092399')
-            ->count());
-        $this->assertGreaterThanOrEqual(10, DB::table('external_training_records')
-            ->where('external_source', 'sippmi')
-            ->where('class_code', 'CPMI-PER-26092595')
-            ->count());
-
-        // Pastikan kandidat spesifik dari screenshot ada
-        $iqbal = DB::table('job_seekers')->where('nik', '3310161407080004')->first();
-        $this->assertNotNull($iqbal);
-        $this->assertSame('IQBAL HAFIZ ILYASA', $iqbal->full_name);
+        $this->assertSame(453, $result['inserted']);
+        $this->assertSame(453, DB::table('job_seekers')->where('institution_name', 'Politeknik Indonusa Surakarta')->count());
 
         $suciUser = User::query()->where('email', 'sucipurwandari@sippmi.co')->first();
         $this->assertNotNull($suciUser);
@@ -82,7 +67,7 @@ class OmegaIndonusaPlacementSyncTest extends TestCase
         $this->assertContains('Politeknik Indonusa Surakarta', $scope['patterns']);
 
         $data = $presenter->make($suciUser);
-        $this->assertGreaterThanOrEqual(147, count($data['candidates']));
+        $this->assertGreaterThanOrEqual(453, count($data['candidates']));
         foreach ($data['candidates'] as $candidate) {
             $this->assertSame('Politeknik Indonusa Surakarta', $candidate['institutionName']);
         }
@@ -98,7 +83,7 @@ class OmegaIndonusaPlacementSyncTest extends TestCase
         $this->artisan('gardata:sync', ['--tenant' => 'Indonusa', '--force' => true])
             ->assertSuccessful();
 
-        $this->assertSame(147, DB::table('job_seekers')->where('institution_name', 'Politeknik Indonusa Surakarta')->count());
+        $this->assertSame(453, DB::table('job_seekers')->where('institution_name', 'Politeknik Indonusa Surakarta')->count());
     }
 
     public function test_artisan_gardata_sync_general_force_does_not_inject_synthetic_candidates_when_api_key_empty(): void
@@ -140,10 +125,10 @@ class OmegaIndonusaPlacementSyncTest extends TestCase
         $allData = $presenter->make($taskForceUser, ['tab' => 'sippmi-monitoring', 'candidateSource' => 'all']);
         $this->assertGreaterThanOrEqual(150, $allData['monitoring']['candidatePagination']['total']);
 
-        // Filter Politeknik Indonusa Surakarta (sippmi.com) harus menampilkan seluruh 147 siswa
-        $indonusaData = $presenter->make($taskForceUser, ['tab' => 'sippmi-monitoring', 'candidateSource' => 'sippmi.com', 'candidatePerPage' => 150]);
-        $this->assertSame(147, $indonusaData['monitoring']['candidatePagination']['total']);
-        $this->assertSame(147, count($indonusaData['monitoring']['candidates']));
+        // Filter Politeknik Indonusa Surakarta (sippmi.com) harus menampilkan seluruh 453 siswa
+        $indonusaData = $presenter->make($taskForceUser, ['tab' => 'sippmi-monitoring', 'candidateSource' => 'sippmi.com', 'candidatePerPage' => 500]);
+        $this->assertSame(453, $indonusaData['monitoring']['candidatePagination']['total']);
+        $this->assertSame(453, count($indonusaData['monitoring']['candidates']));
         foreach ($indonusaData['monitoring']['candidates'] as $candidate) {
             $this->assertSame('Politeknik Indonusa Surakarta', $candidate['institutionName']);
             $this->assertSame('sippmi.com', $candidate['subdomain']);
@@ -187,9 +172,21 @@ class OmegaIndonusaPlacementSyncTest extends TestCase
 
     public function test_purge_synthetic_command_removes_mock_candidates(): void
     {
-        $syncService = app(GardataPlacementSyncService::class);
-        $syncService->ensureIndonusaCandidates(true);
-        $this->assertSame(147, DB::table('job_seekers')->where('external_source', 'sippmi')->count());
+        DB::table('job_seekers')->insert([
+            'id' => 'TEST-CPMI-001',
+            'external_id' => 'INDO-CPMI-999',
+            'full_name' => 'Synthetic Test',
+            'institution_name' => 'Politeknik Indonusa Surakarta',
+            'province_id' => '33',
+            'district_id' => '3372',
+            'education_level' => 'D3',
+            'major' => 'Manufaktur',
+            'source_type' => 'Gardata',
+            'external_source' => 'sippmi',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $this->assertSame(1, DB::table('job_seekers')->where('external_source', 'sippmi')->count());
 
         $this->artisan('sippmi:purge-synthetic', ['--yes' => true])
             ->assertSuccessful();

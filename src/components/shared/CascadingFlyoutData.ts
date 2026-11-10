@@ -1115,10 +1115,10 @@ const institutionTree = (): TreeNode[] => [
       {
         name: "Jepang · Manufaktur · Operator CNC & Welder",
         ch: [
-          lf("Politeknik Indonusa Surakarta", { a: 147, b: 6, c: 180, d: 120 }, [
+          lf("Politeknik Indonusa Surakarta", { a: 453, b: 6, c: 180, d: 120 }, [
             ["Jenis Vokasi", "Perguruan Tinggi Vokasi / Politeknik D3"],
             ["Negara · Sektor · Jabatan", "Jepang · Manufaktur · Operator CNC & Welder Presisi"],
-            ["Jumlah Suplai", "147 Calon Peserta"],
+            ["Jumlah Suplai", "453 Calon Peserta"],
             ["Jumlah Kelas", "6 Kelas Berjalan"],
             ["Lokasi", "Kota Surakarta, Jawa Tengah"],
             ["Akreditasi", "Baik Sekali (BAN-PT)"],

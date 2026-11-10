@@ -13,7 +13,7 @@ class GardataPlacementSyncService
 {
     private const SOURCE = 'gardata';
 
-    public const SIPPMI_INSTITUTION_NAME = 'Politeknik Indonusa Surakarta';
+    public const SIPPMI_INSTITUTION_NAME = 'SIPPMI - Portal Feeder PMI';
 
     public const KNOWN_SUBDOMAINS = [
         [
@@ -857,11 +857,12 @@ class GardataPlacementSyncService
         };
 
         $now = now();
+        $legacyExpr = DB::connection()->getDriverName() === 'sqlite' ? DB::raw("('legacy-' || id)") : DB::raw("CONCAT('legacy-', id)");
         DB::table('institutions')
             ->where('external_source', self::SOURCE)
             ->where('external_id', $externalId)
             ->where('id', '!=', $institutionId)
-            ->update(['external_id' => DB::raw("CONCAT('legacy-', id)"), 'status' => 'Nonaktif']);
+            ->update(['external_id' => $legacyExpr, 'status' => 'Nonaktif']);
 
         $createdAt = DB::table('institutions')->where('id', $institutionId)->value('created_at') ?? $now;
         DB::table('institutions')->updateOrInsert(

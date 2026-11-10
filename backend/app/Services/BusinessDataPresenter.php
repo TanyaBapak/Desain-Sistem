@@ -4433,7 +4433,7 @@ class BusinessDataPresenter
             ];
         })->push([
             'id' => 'GRD-INDONUSA',
-            'name' => GardataPlacementSyncService::SIPPMI_INSTITUTION_NAME,
+            'name' => 'Politeknik Indonusa Surakarta',
             'subdomain' => 'sippmi.com',
             'url' => 'https://sippmi.com',
             'status' => 'Aktif',

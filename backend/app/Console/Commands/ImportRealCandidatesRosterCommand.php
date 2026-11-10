@@ -39,7 +39,7 @@ class ImportRealCandidatesRosterCommand extends Command
             return self::FAILURE;
         }
 
-        // Deduplikasi otomatis: Pastikan 1 siswa hanya masuk 1 kali per lembaga (mencegah duplikasi data di Excel)
+        // Impor seluruh daftar peserta riil dari file roster clean
         $uniqueRoster = [];
         $seen = [];
         $duplicateCount = 0;
@@ -50,21 +50,20 @@ class ImportRealCandidatesRosterCommand extends Command
                 continue;
             }
             $key = mb_strtolower($cleanName) . '::' . mb_strtolower($cleanInst);
-            if (! isset($seen[$key])) {
-                $seen[$key] = true;
-                $uniqueRoster[] = [
-                    'name' => $cleanName,
-                    'institution' => $cleanInst,
-                    'nik' => trim((string) ($row['nik'] ?? '')),
-                    'raw_sector' => trim((string) ($row['raw_sector'] ?? '')),
-                    'sector' => trim((string) ($row['sector'] ?? '')),
-                    'role' => trim((string) ($row['role'] ?? '')),
-                    'raw_country' => trim((string) ($row['raw_country'] ?? '')),
-                    'countries' => ! empty($row['countries']) && is_array($row['countries']) ? $row['countries'] : [],
-                ];
-            } else {
-                $duplicateCount++;
-            }
+            $occurrence = ($seen[$key] ?? 0) + 1;
+            $seen[$key] = $occurrence;
+
+            $uniqueRoster[] = [
+                'name' => $cleanName,
+                'institution' => $cleanInst,
+                'nik' => trim((string) ($row['nik'] ?? '')),
+                'raw_sector' => trim((string) ($row['raw_sector'] ?? '')),
+                'sector' => trim((string) ($row['sector'] ?? '')),
+                'role' => trim((string) ($row['role'] ?? '')),
+                'raw_country' => trim((string) ($row['raw_country'] ?? '')),
+                'countries' => ! empty($row['countries']) && is_array($row['countries']) ? $row['countries'] : [],
+                'occurrence' => $occurrence,
+            ];
         }
 
         $this->info("Total data mentah: " . count($rawRoster) . " baris.");
@@ -472,6 +471,14 @@ class ImportRealCandidatesRosterCommand extends Command
             ],
         ];
 
+        try {
+            if (DB::connection()->getDriverName() === 'sqlite') {
+                DB::statement('PRAGMA foreign_keys = OFF;');
+            } else {
+                DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+            }
+        } catch (Throwable) {}
+
         // Resolusi ID institusi di database dengan dukungan alias dan pencarian cerdas
         $resolvedInstitutions = [];
         foreach ($metaMapping as $instName => $info) {
@@ -561,7 +568,11 @@ class ImportRealCandidatesRosterCommand extends Command
         }
 
         try {
-            DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+            if (DB::connection()->getDriverName() === 'sqlite') {
+                DB::statement('PRAGMA foreign_keys = OFF;');
+            } else {
+                DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+            }
         } catch (Throwable) {}
 
         foreach ($uniqueRoster as $row) {
@@ -580,7 +591,8 @@ class ImportRealCandidatesRosterCommand extends Command
 
                     // Tentukan NIK calon peserta: prioritaskan NIK riil dari spreadsheet jika valid 16-digit dan belum dipakai
                     $rawNik = trim((string) ($row['nik'] ?? ''));
-                    $hashKey = $studentName . '::' . $inst['id'];
+                    $occurrence = (int) ($row['occurrence'] ?? 1);
+                    $hashKey = $studentName . '::' . $inst['id'] . ($occurrence > 1 ? "::{$occurrence}" : '');
                     $hexSeq = substr(hash('sha256', $hashKey), 0, 8);
                     $numericSeq = str_pad((string) (hexdec(substr($hexSeq, 0, 6)) % 900000 + 100000), 6, '0', STR_PAD_LEFT);
 
@@ -652,10 +664,6 @@ class ImportRealCandidatesRosterCommand extends Command
                     $existing = DB::table('job_seekers')
                         ->where('id', $candId)
                         ->orWhere('external_id', 'ROSTER-' . $candId)
-                        ->orWhere(function ($q) use ($studentName, $inst) {
-                            $q->where('full_name', $studentName)
-                                ->where('institution_id', $inst['id']);
-                        })
                         ->first(['id', 'nik', 'registration_number']);
 
                     if ($existing) {

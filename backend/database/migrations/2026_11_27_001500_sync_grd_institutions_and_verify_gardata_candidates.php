@@ -18,10 +18,11 @@ return new class extends Migration
         $syncService = app(GardataPlacementSyncService::class);
 
         // Bebaskan external_id pada baris GDT-TENANT-* lama terlebih dahulu agar tidak bentrok unique index
+        $legacyConcat = DB::connection()->getDriverName() === 'sqlite' ? DB::raw("('legacy-' || id)") : DB::raw("CONCAT('legacy-', id)");
         DB::table('institutions')
             ->where('id', 'LIKE', 'GDT-TENANT-%')
             ->update([
-                'external_id' => DB::raw("CONCAT('legacy-', id)"),
+                'external_id' => $legacyConcat,
                 'status' => 'Nonaktif',
                 'updated_at' => $now,
             ]);
