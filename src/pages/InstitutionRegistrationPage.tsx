@@ -1,6 +1,6 @@
 import { FormEvent, useMemo, useState } from "react";
 import { router, useForm } from "@inertiajs/react";
-import { ArrowLeft, Building2 } from "lucide-react";
+import { ArrowLeft, Building2, ExternalLink, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -51,6 +51,32 @@ export function InstitutionRegistrationPage({
     password_confirmation: "",
     consent: false,
   });
+
+  const [procurementCatalogUrls, setProcurementCatalogUrls] = useState<string[]>([""]);
+
+  const handleCatalogUrlChange = (index: number, value: string) => {
+    const updated = [...procurementCatalogUrls];
+    updated[index] = value;
+    setProcurementCatalogUrls(updated);
+    const cleaned = updated.filter((u) => u.trim() !== "");
+    setData("procurementCatalogUrl", cleaned.join("\n"));
+  };
+
+  const handleAddCatalogUrl = () => {
+    setProcurementCatalogUrls((prev) => [...prev, ""]);
+  };
+
+  const handleRemoveCatalogUrl = (index: number) => {
+    if (procurementCatalogUrls.length <= 1) {
+      setProcurementCatalogUrls([""]);
+      setData("procurementCatalogUrl", "");
+      return;
+    }
+    const updated = procurementCatalogUrls.filter((_, i) => i !== index);
+    setProcurementCatalogUrls(updated);
+    const cleaned = updated.filter((u) => u.trim() !== "");
+    setData("procurementCatalogUrl", cleaned.join("\n"));
+  };
 
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -355,15 +381,80 @@ export function InstitutionRegistrationPage({
                   onChange={(event) => setData("evokasiUrl", event.target.value)}
                 />
               </Field>
-              <Field label="Tautan katalog INAPROC" error={errors.procurementCatalogUrl}>
-                <Input
-                  type="url"
-                  inputMode="url"
-                  placeholder="https://katalog.inaproc.id/..."
-                  value={data.procurementCatalogUrl}
-                  onChange={(event) => setData("procurementCatalogUrl", event.target.value)}
-                />
-              </Field>
+              <div className="space-y-2 md:col-span-2 rounded-xl border border-blue-200/80 bg-blue-50/40 p-3.5 dark:border-blue-900/40 dark:bg-blue-950/20">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Label className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                      <span>Tautan katalog INAPROC (e-Katalog LKPP)</span>
+                      {procurementCatalogUrls.filter((u) => u.trim() !== "").length > 1 && (
+                        <span className="text-[10px] bg-blue-100 text-blue-700 dark:bg-blue-900/60 dark:text-blue-300 font-semibold px-2 py-0.5 rounded-full">
+                          {procurementCatalogUrls.filter((u) => u.trim() !== "").length} Tautan
+                        </span>
+                      )}
+                    </Label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] text-muted-foreground font-normal">Opsional</span>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleAddCatalogUrl}
+                      className="h-7 text-xs gap-1 border-blue-200 bg-white hover:bg-blue-50 text-blue-700 dark:bg-slate-900 dark:border-blue-800 dark:text-blue-300"
+                      title="Tambah tautan paket e-Katalog INAPROC baru"
+                    >
+                      <Plus className="h-3 w-3" />
+                      <span>Tambah Tautan</span>
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  {procurementCatalogUrls.map((url, idx) => (
+                    <div key={idx} className="flex items-center gap-2">
+                      <div className="relative flex-1">
+                        <Input
+                          type="url"
+                          inputMode="url"
+                          placeholder={idx === 0 ? "https://katalog.inaproc.id/..." : "https://katalog.inaproc.id/... (tautan paket pelatihan tambahan)"}
+                          value={url}
+                          onChange={(e) => handleCatalogUrlChange(idx, e.target.value)}
+                          className={url.trim().startsWith("http") ? "pr-8 bg-white dark:bg-slate-900" : "bg-white dark:bg-slate-900"}
+                        />
+                        {url.trim().startsWith("http") && (
+                          <a
+                            href={url.trim()}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary transition-colors"
+                            title="Buka tautan ini di tab baru"
+                          >
+                            <ExternalLink className="h-3.5 w-3.5" />
+                          </a>
+                        )}
+                      </div>
+                      {procurementCatalogUrls.length > 1 && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleRemoveCatalogUrl(idx)}
+                          className="h-9 w-9 text-muted-foreground hover:text-destructive hover:bg-rose-50 dark:hover:bg-rose-950/30 shrink-0"
+                          title="Hapus tautan ini"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                {errors.procurementCatalogUrl && (
+                  <p className="text-xs text-destructive font-medium">{errors.procurementCatalogUrl}</p>
+                )}
+                <p className="text-[11px] text-muted-foreground">
+                  Lembaga vokasi dapat menambahkan lebih dari 1 tautan e-Katalog INAPROC LKPP jika memiliki beberapa paket program/pelatihan terdaftar.
+                </p>
+              </div>
               <Field label="Tautan Google Drive MoU" error={errors.mouDriveUrl}>
                 <Input
                   type="url"

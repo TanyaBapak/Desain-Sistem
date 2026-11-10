@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\BusinessDataController;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
@@ -10,6 +11,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -51,7 +53,9 @@ class InstitutionRegistrationController extends Controller
             'contactPhone' => ['required', 'string', 'max:50'],
             'accreditation' => ['nullable', 'string', 'max:50'],
             'evokasiUrl' => ['nullable', 'url', 'regex:/^https:\/\/.+/i', 'max:2048'],
-            'procurementCatalogUrl' => ['nullable', 'url', 'regex:/^https:\/\/(www\.)?katalog\.inaproc\.id(\/.*)?$/i', 'max:2048'],
+            'procurementCatalogUrl' => ['nullable', 'string', 'max:5000'],
+            'procurementCatalogUrls' => ['nullable', 'array'],
+            'procurementCatalogUrls.*' => ['nullable', 'string', 'max:2048'],
             'mouDriveUrl' => ['nullable', 'url', 'regex:/^https:\/\/(drive|docs)\.google\.com\/.+/i', 'max:2048'],
             'procurementMethod' => ['required', Rule::in(['Swakelola Tipe 2', 'Swakelola Tipe 3', 'E-purchasing'])],
             'instructorCount' => ['required', 'integer', 'min:0', 'max:100000'],
@@ -72,7 +76,31 @@ class InstitutionRegistrationController extends Controller
         $role = Role::query()->where('name', 'institution_admin')->firstOrFail();
         $institutionId = 'VOC-'.Str::upper(Str::random(12));
 
-        DB::transaction(function () use ($data, $role, $institutionId): void {
+        // Normalisasi dan validasi tautan katalog INAPROC (bisa single string, multi-baris, atau array)
+        $rawCatalogUrls = [];
+        if ($request->has('procurementCatalogUrls') && is_array($request->input('procurementCatalogUrls'))) {
+            $rawCatalogUrls = $request->input('procurementCatalogUrls');
+        } elseif ($request->filled('procurementCatalogUrl')) {
+            $rawCatalogUrls = BusinessDataController::parseCatalogUrls($request->input('procurementCatalogUrl'));
+        }
+
+        $cleanCatalogUrls = [];
+        foreach ($rawCatalogUrls as $u) {
+            $trimmed = trim((string) $u);
+            if ($trimmed === '') {
+                continue;
+            }
+            if (! preg_match('/^https:\/\/(www\.)?katalog\.inaproc\.id(\/.*)?$/i', $trimmed)) {
+                throw ValidationException::withMessages([
+                    'procurementCatalogUrl' => 'Tautan katalog INAPROC harus berawalan https://katalog.inaproc.id/...',
+                ]);
+            }
+            $cleanCatalogUrls[] = $trimmed;
+        }
+        $cleanCatalogUrls = array_values(array_unique($cleanCatalogUrls));
+        $procurementCatalogValue = ! empty($cleanCatalogUrls) ? implode("\n", $cleanCatalogUrls) : null;
+
+        DB::transaction(function () use ($data, $role, $institutionId, $procurementCatalogValue): void {
             $now = now();
             $provinceName = (string) DB::table('provinces')->where('id', $data['provinceId'])->value('name');
             $district = DB::table('districts')->where('id', $data['districtId'])->first();
@@ -96,7 +124,7 @@ class InstitutionRegistrationController extends Controller
                 'accreditation' => $data['accreditation'] ?: 'Belum ada',
                 'evokasi_url' => $data['evokasiUrl'] ?? null,
                 'procurement_method' => $data['procurementMethod'],
-                'procurement_catalog_url' => $data['procurementCatalogUrl'] ?? null,
+                'procurement_catalog_url' => $procurementCatalogValue,
                 'mou_drive_url' => $data['mouDriveUrl'] ?? null,
                 'evokasi_status' => 'Belum Terverifikasi',
                 'instructor_count' => $data['instructorCount'],
