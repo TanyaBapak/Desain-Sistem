@@ -264,16 +264,21 @@ class RestoreKogasCandidatesCommand extends Command
             $this->line("Memeriksa berkas backup: " . basename($file) . " ...");
             $extracted = $this->parseBackupFile($file);
             if (! empty($extracted)) {
-                $candidates = array_merge($candidates, $extracted);
-                break; // Cukup dari backup pertama yang valid memuat data
+                $this->info("   -> Ditemukan " . count($extracted) . " data kandidat di " . basename($file) . "!");
+                foreach ($extracted as $item) {
+                    $key = ! empty($item['nik']) ? $item['nik'] : ($item['id'] ?? ($item['full_name'] ?? ''));
+                    if ($key !== '' && ! isset($candidates[$key])) {
+                        $candidates[$key] = $item;
+                    }
+                }
             }
         }
 
-        return $candidates;
+        return array_values($candidates);
     }
 
     /**
-     * Parse baris dump SQL untuk menemukan kandidat Kogas
+     * Parse dump SQL untuk menemukan kandidat Kogas dari berbagai tabel (job_seekers, approval_requests, approval_histories)
      */
     private function parseBackupFile(string $filePath): array
     {
@@ -285,54 +290,115 @@ class RestoreKogasCandidatesCommand extends Command
             return $results;
         }
 
-        $columnMap = [
-            0 => 'id',
-            1 => 'registration_number',
-            2 => 'nik',
-            3 => 'full_name',
-            4 => 'gender',
-            5 => 'province_id',
-            6 => 'district_id',
-            7 => 'education_level',
-            8 => 'institution_name',
-            9 => 'institution_id',
-            10 => 'major',
-            11 => 'gpa_score',
-            12 => 'source_type',
-            13 => 'source_reference',
-            14 => 'readiness_status',
-            15 => 'verification_status',
-            16 => 'lifecycle_status',
-            17 => 'passport_ready',
-            18 => 'mcu_ready',
-            19 => 'created_by',
-        ];
+        $appRequestIds = [];
+        $candidateIdsFromApproval = [];
 
+        // Loop baris per baris
         while (! ($isGz ? gzeof($handle) : feof($handle))) {
-            $line = $isGz ? gzgets($handle, 1048576) : fgets($handle, 1048576);
+            $line = $isGz ? gzgets($handle, 4194304) : fgets($handle, 4194304); // 4MB buffer per chunk
             if ($line === false) {
                 break;
             }
 
-            // Cari baris INSERT INTO `job_seekers`
-            if (str_contains($line, 'INSERT INTO `job_seekers`') || str_contains($line, 'INSERT INTO job_seekers')) {
-                if (stripos($line, 'CSV-7CPOPTMDGLEZ') !== false || stripos($line, 'KOGAS') !== false || stripos($line, 'SUPRIYANTO') !== false) {
-                    // Ekstrak tuple-tuple VALUES
+            // 1. Cek approval_histories untuk actor_id 19 atau SUPRIYANTO
+            if (stripos($line, 'approval_histories') !== false && (stripos($line, 'SUPRIYANTO') !== false || stripos($line, ',19,') !== false)) {
+                preg_match_all("/\(\d+,\s*'(APP-[A-Za-z0-9]+)',\s*19,\s*'SUPRIYANTO'/i", $line, $matches);
+                if (! empty($matches[1])) {
+                    foreach ($matches[1] as $appId) {
+                        $appRequestIds[$appId] = true;
+                    }
+                }
+            }
+
+            // 2. Cek approval_requests
+            if (stripos($line, 'approval_requests') !== false) {
+                if (stripos($line, 'SUPRIYANTO') !== false || stripos($line, 'KOGAS') !== false || ! empty($appRequestIds)) {
+                    // Cari pola tuple approval_requests
+                    preg_match_all("/\('(APP-[A-Za-z0-9]+)',\s*'([^']+)',\s*'([^']+)',\s*'([^']+)',\s*'([^']+)'/i", $line, $appTuples, PREG_SET_ORDER);
+                    foreach ($appTuples as $at) {
+                        $reqId = $at[1];
+                        $entityType = $at[2];
+                        $entityId = $at[3];
+                        $title = $at[4];
+                        $subBy = $at[5];
+
+                        if (isset($appRequestIds[$reqId]) || stripos($subBy, 'SUPRIYANTO') !== false || stripos($title, 'KOGAS') !== false) {
+                            $candidateIdsFromApproval[$entityId] = $title;
+                        }
+                    }
+
+                    // Cek jika ada data_snapshot JSON di baris approval_requests
+                    if (preg_match_all('/(\{"id":\s*"[^"]+".*?\})(?:,\s*\'|\);)/s', $line, $jsonMatches)) {
+                        foreach ($jsonMatches[1] as $jsonStr) {
+                            $decoded = json_decode(stripslashes($jsonStr), true) ?: json_decode($jsonStr, true);
+                            if (is_array($decoded) && (isset($decoded['full_name']) || isset($decoded['nik']))) {
+                                if (stripos(json_encode($decoded), 'KOGAS') !== false || stripos(json_encode($decoded), 'SUPRIYANTO') !== false || stripos(json_encode($decoded), 'CSV-7CPOPTMDGLEZ') !== false) {
+                                    $results[] = $decoded;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 3. Cek job_seekers
+            if (stripos($line, 'job_seekers') !== false) {
+                $hasKogasKeyword = stripos($line, 'CSV-7CPOPTMDGLEZ') !== false 
+                    || stripos($line, 'KOGAS') !== false 
+                    || stripos($line, 'SUPRIYANTO') !== false
+                    || stripos($line, 'kogasnusantara') !== false;
+
+                $hasCandidateId = false;
+                if (! empty($candidateIdsFromApproval)) {
+                    foreach (array_keys($candidateIdsFromApproval) as $cid) {
+                        if (str_contains($line, $cid)) {
+                            $hasCandidateId = true;
+                            break;
+                        }
+                    }
+                }
+
+                if ($hasKogasKeyword || $hasCandidateId) {
                     preg_match_all("/\((.*?)\)(?:,|;)/s", $line, $tuples);
                     if (! empty($tuples[1])) {
                         foreach ($tuples[1] as $tuple) {
-                            if (stripos($tuple, 'CSV-7CPOPTMDGLEZ') !== false || stripos($tuple, 'KOGAS') !== false || stripos($tuple, 'SUPRIYANTO') !== false) {
-                                // Pisahkan field CSV SQL dengan toleransi tanda petik
-                                $fields = str_getcsv($tuple, ',', "'");
-                                if (count($fields) >= 10) {
-                                    $row = [];
-                                    foreach ($columnMap as $idx => $col) {
-                                        if (isset($fields[$idx])) {
-                                            $val = trim($fields[$idx]);
-                                            $row[$col] = ($val === 'NULL' || $val === 'null') ? null : $val;
-                                        }
+                            $matchTuple = stripos($tuple, 'CSV-7CPOPTMDGLEZ') !== false 
+                                || stripos($tuple, 'KOGAS') !== false 
+                                || stripos($tuple, 'SUPRIYANTO') !== false
+                                || stripos($tuple, 'Madiun') !== false;
+
+                            if (! $matchTuple && ! empty($candidateIdsFromApproval)) {
+                                foreach (array_keys($candidateIdsFromApproval) as $cid) {
+                                    if (str_contains($tuple, $cid)) {
+                                        $matchTuple = true;
+                                        break;
                                     }
-                                    if (! empty($row['full_name']) && ! str_contains($row['full_name'], 'Firmansyah') && ! str_contains($row['full_name'], 'Wijaya')) {
+                                }
+                            }
+
+                            if ($matchTuple) {
+                                $fields = str_getcsv($tuple, ',', "'");
+                                if (count($fields) >= 5) {
+                                    $row = [
+                                        'id' => trim($fields[0] ?? ''),
+                                        'registration_number' => trim($fields[1] ?? ''),
+                                        'nik' => trim($fields[2] ?? ''),
+                                        'full_name' => trim($fields[3] ?? ''),
+                                        'gender' => trim($fields[4] ?? 'L'),
+                                        'province_id' => trim($fields[5] ?? '35'),
+                                        'district_id' => trim($fields[6] ?? '3519'),
+                                        'education_level' => trim($fields[7] ?? 'SMK'),
+                                        'institution_name' => trim($fields[8] ?? 'LPKS KOGAS NUSANTARA'),
+                                        'institution_id' => trim($fields[9] ?? 'CSV-7CPOPTMDGLEZ'),
+                                        'major' => trim($fields[10] ?? 'Bahasa Jepang & Budaya Kerja'),
+                                        'gpa_score' => trim($fields[11] ?? '3.50'),
+                                        'source_type' => trim($fields[12] ?? 'LPK'),
+                                        'source_reference' => trim($fields[13] ?? 'Input Mandiri LPKS KOGAS NUSANTARA'),
+                                    ];
+
+                                    // Validasi nama bukan dummy
+                                    $fName = $row['full_name'];
+                                    if ($fName !== '' && ! str_contains($fName, 'Firmansyah') && ! str_contains($fName, 'Wijaya') && ! str_contains($fName, 'Santoso')) {
                                         $results[] = $row;
                                     }
                                 }
@@ -349,6 +415,30 @@ class RestoreKogasCandidatesCommand extends Command
             fclose($handle);
         }
 
+        // Jika ditemukan dari approval tapi belum dari job_seekers tuple, buat data dasar dari title
+        if (empty($results) && ! empty($candidateIdsFromApproval)) {
+            foreach ($candidateIdsFromApproval as $cid => $title) {
+                // Biasanya title adalah nama peserta, contoh: "Pendaftaran Calon Peserta: Fulan"
+                $cleanName = preg_replace('/^(Pendaftaran|Calon Peserta|Verifikasi Peserta|Peserta Baru)\s*:?\s*/i', '', $title);
+                $cleanName = trim($cleanName);
+                if ($cleanName !== '') {
+                    $results[] = [
+                        'id' => $cid,
+                        'full_name' => $cleanName,
+                        'gender' => 'L',
+                        'province_id' => '35',
+                        'district_id' => '3519',
+                        'institution_name' => 'LPKS KOGAS NUSANTARA',
+                        'institution_id' => 'CSV-7CPOPTMDGLEZ',
+                        'major' => 'Bahasa Jepang & Budaya Kerja',
+                        'source_type' => 'LPK',
+                        'created_by' => 'SUPRIYANTO',
+                    ];
+                }
+            }
+        }
+
         return $results;
     }
 }
+
