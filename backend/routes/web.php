@@ -113,6 +113,29 @@ Route::get('/debug-log', function (Request $request) {
                     'model_has_roles' => DB::table('model_has_roles')->count(),
                     'victoria_candidates' => DB::table('job_seekers')->where('institution_name', 'like', '%Victoria%')->count(),
                     'rajawali_candidates' => DB::table('job_seekers')->where('institution_name', 'like', '%Rajawali%')->count(),
+                    'kogas_candidates_count' => DB::table('job_seekers')->where(function ($q) {
+                        $q->where('institution_name', 'like', '%Kogas%')
+                            ->orWhere('created_by', 'like', '%Supriyanto%');
+                    })->count(),
+                    'kogas_candidates' => DB::table('job_seekers')->where(function ($q) {
+                        $q->where('institution_name', 'like', '%Kogas%')
+                            ->orWhere('created_by', 'like', '%Supriyanto%');
+                    })->limit(10)->get(['id', 'full_name', 'institution_name', 'institution_id', 'created_by']),
+                    'bunga_candidates_count' => DB::table('job_seekers')->where(function ($q) {
+                        $q->where('institution_name', 'like', '%Bunga%')
+                            ->orWhere('created_by', 'like', '%Faisal%');
+                    })->count(),
+                    'bunga_candidates' => DB::table('job_seekers')->where(function ($q) {
+                        $q->where('institution_name', 'like', '%Bunga%')
+                            ->orWhere('created_by', 'like', '%Faisal%');
+                    })->limit(10)->get(['id', 'full_name', 'institution_name', 'institution_id', 'created_by']),
+                    'recent_candidates' => DB::table('job_seekers')->orderByDesc('created_at')->limit(10)->get(['id', 'full_name', 'institution_name', 'institution_id', 'created_by', 'created_at']),
+                    'target_users' => DB::table('users')->where(function ($q) {
+                        $q->where('name', 'like', '%Supriyanto%')
+                            ->orWhere('name', 'like', '%Faisal%')
+                            ->orWhere('scope_name', 'like', '%Kogas%')
+                            ->orWhere('scope_name', 'like', '%Bunga%');
+                    })->get(['id', 'name', 'email', 'organization', 'scope_level', 'scope_name', 'institution_id']),
                     'vokasi_users' => DB::table('users')
                         ->where('scope_level', 'lembaga')
                         ->orWhere('name', 'like', '%Rajawali%')
