@@ -377,6 +377,10 @@ export const SupplyTable: React.FC<SupplyTableProps> = ({
         matchLanguageLevel &&
         matchJobRole
       );
+    }).sort((a, b) => {
+      const nameA = (a.fullName || '').trim().toLowerCase();
+      const nameB = (b.fullName || '').trim().toLowerCase();
+      return nameA.localeCompare(nameB, 'id', { sensitivity: 'base' });
     });
   }, [
     candidates,

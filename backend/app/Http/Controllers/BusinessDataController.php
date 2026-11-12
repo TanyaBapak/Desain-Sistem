@@ -879,7 +879,7 @@ class BusinessDataController extends Controller
 
         $rows = $baseQuery
             ->leftJoin('districts', 'districts.id', '=', 'job_seekers.district_id')
-            ->orderByDesc(DB::raw("COALESCE(job_seekers.updated_at, job_seekers.created_at)"))
+            ->orderBy('job_seekers.full_name', 'asc')
             ->offset($offset)
             ->limit($perPage)
             ->get([

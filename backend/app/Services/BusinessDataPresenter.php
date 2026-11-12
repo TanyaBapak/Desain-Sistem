@@ -2735,7 +2735,7 @@ class BusinessDataPresenter
             ->leftJoin('provinces', 'provinces.id', '=', 'job_seekers.province_id')
             ->leftJoin('districts', 'districts.id', '=', 'job_seekers.district_id')
             ->when(in_array($role, ['task_force', 'taskforce'], true) && $this->bp3miScope->hasActiveAreaFilter($user), fn ($query) => $this->bp3miScope->applyToJobSeekers($query, $user))
-            ->orderByDesc(DB::raw("COALESCE(job_seekers.updated_at, job_seekers.created_at)"))
+            ->orderBy('job_seekers.full_name', 'asc')
             ->limit(15000);
 
         if ($isLightweight) {

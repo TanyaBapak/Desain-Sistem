@@ -299,6 +299,12 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
       });
     });
 
+    list.sort((a, b) => {
+      const nameA = (a.name || '').trim().toLowerCase();
+      const nameB = (b.name || '').trim().toLowerCase();
+      return nameA.localeCompare(nameB, 'id', { sensitivity: 'base' });
+    });
+
     return list;
   }, [institutions]);
 
@@ -324,6 +330,10 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
         );
       }
       return true;
+    }).sort((a, b) => {
+      const nameA = (a.name || '').trim().toLowerCase();
+      const nameB = (b.name || '').trim().toLowerCase();
+      return nameA.localeCompare(nameB, 'id', { sensitivity: 'base' });
     });
   }, [allNationalStudents, nationalFilterCountry, nationalFilterSector, institutionSearchQuery]);
 
@@ -333,6 +343,10 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
         return false;
       }
       return true;
+    }).sort((a, b) => {
+      const nameA = (a.name || '').trim().toLowerCase();
+      const nameB = (b.name || '').trim().toLowerCase();
+      return nameA.localeCompare(nameB, 'id', { sensitivity: 'base' });
     });
 
     const nationalByCountry = data.national?.candidatesByCountry;
@@ -368,6 +382,10 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
         return false;
       }
       return true;
+    }).sort((a, b) => {
+      const nameA = (a.name || '').trim().toLowerCase();
+      const nameB = (b.name || '').trim().toLowerCase();
+      return nameA.localeCompare(nameB, 'id', { sensitivity: 'base' });
     });
 
     const counts: Record<string, number> = {};
@@ -812,6 +830,10 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
         );
       }
       return true;
+    }).sort((a, b) => {
+      const nameA = (a.name || '').trim().toLowerCase();
+      const nameB = (b.name || '').trim().toLowerCase();
+      return nameA.localeCompare(nameB, 'id', { sensitivity: 'base' });
     });
 
     const totalStudents = filtered.length;
@@ -1710,6 +1732,10 @@ export const PublicDrilldownModal: React.FC<PublicDrilldownModalProps> = ({
         if (!hasSector) return false;
       }
       return true;
+    }).sort((a, b) => {
+      const nameA = (a.name || '').trim().toLowerCase();
+      const nameB = (b.name || '').trim().toLowerCase();
+      return nameA.localeCompare(nameB, 'id', { sensitivity: 'base' });
     });
 
     const q = institutionSearchQuery.toLowerCase().trim();
