@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
   Wrench,
   Search,
@@ -6,7 +6,6 @@ import {
   XCircle,
   Copy,
   Check,
-  Download,
   Trash2,
   Sparkles,
   Loader2,
@@ -16,6 +15,14 @@ import {
   FileSpreadsheet,
   AlertCircle,
   ShieldCheck,
+  ExternalLink,
+  Users,
+  RefreshCw,
+  Phone,
+  Mail,
+  MapPin,
+  FileCheck2,
+  AlertTriangle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -52,16 +59,48 @@ export interface BulkCheckResponse {
   results: BulkCheckCandidateResult[];
 }
 
+export interface EmptyInstitutionItem {
+  id: string;
+  name: string;
+  type: string;
+  province: string;
+  district: string;
+  headName: string;
+  phone: string;
+  email: string;
+  hasMou: boolean;
+  mouUrl: string | null;
+  evokasiStatus: string;
+  supportedSectors: string[];
+  candidateCount: number;
+}
+
+export interface EmptyInstitutionsResponse {
+  success: boolean;
+  summary: {
+    totalInstitutions: number;
+    totalWithCandidates: number;
+    totalEmpty: number;
+    totalCandidatesInSystem: number;
+  };
+  emptyInstitutions: EmptyInstitutionItem[];
+}
+
 const SAMPLE_INPUT = `3301121712060001
 3324140104970001
 Muhammad Ubay Al-Ziqraa
 M RENO OKTAVIANSYAH
 Bima Saputra
 3205352411030001
+Dwi Putra Candra Dewa,S.H.
 Peserta Fiktif Tidak Ada di Sistem
 9999999999999999`;
 
 export function DevToolsBulkCheckerPage() {
+  // Tab Aktif: 'candidates' (Pemeriksa Nama/NIK) atau 'empty_institutions' (Lembaga Tanpa Peserta)
+  const [activeMainTab, setActiveMainTab] = useState<"candidates" | "empty_institutions">("candidates");
+
+  // State untuk Tab 1 (Pemeriksa Calon PMI)
   const [rawInput, setRawInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [resultData, setResultData] = useState<BulkCheckResponse | null>(null);
@@ -71,6 +110,47 @@ export function DevToolsBulkCheckerPage() {
   const [isExportingExcel, setIsExportingExcel] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 50;
+
+  // State untuk Tab 2 (Lembaga Tanpa Peserta)
+  const [emptyInstData, setEmptyInstData] = useState<EmptyInstitutionsResponse | null>(null);
+  const [isLoadingEmptyInst, setIsLoadingEmptyInst] = useState(false);
+  const [emptyInstSearch, setEmptyInstSearch] = useState("");
+  const [emptyInstTypeFilter, setEmptyInstTypeFilter] = useState("ALL");
+  const [emptyInstMouFilter, setEmptyInstMouFilter] = useState("ALL");
+  const [emptyInstPage, setEmptyInstPage] = useState(1);
+  const [hasCopiedEmptyNames, setHasCopiedEmptyNames] = useState(false);
+  const [isExportingEmptyExcel, setIsExportingEmptyExcel] = useState(false);
+  const emptyInstPageSize = 30;
+
+  // Fetch Lembaga Kosong saat tab 'empty_institutions' pertama kali dibuka
+  useEffect(() => {
+    if (activeMainTab === "empty_institutions" && !emptyInstData && !isLoadingEmptyInst) {
+      loadEmptyInstitutions();
+    }
+  }, [activeMainTab]);
+
+  const loadEmptyInstitutions = async () => {
+    setIsLoadingEmptyInst(true);
+    try {
+      const res = await fetch("/business-data/dev-tools/empty-institutions", {
+        headers: {
+          Accept: "application/json",
+          "X-Requested-With": "XMLHttpRequest",
+        },
+      });
+
+      if (!res.ok) {
+        throw new Error(`Gagal memuat data lembaga (Status: ${res.status})`);
+      }
+
+      const data: EmptyInstitutionsResponse = await res.json();
+      setEmptyInstData(data);
+    } catch (err: any) {
+      toast.error(err.message || "Gagal memuat data lembaga tanpa peserta.");
+    } finally {
+      setIsLoadingEmptyInst(false);
+    }
+  };
 
   // Hitung jumlah baris input saat ini
   const inputLineCount = useMemo(() => {
@@ -90,12 +170,11 @@ export function DevToolsBulkCheckerPage() {
     }
 
     if (lines.length > 2000) {
-      toast.warning("Maksimal 2.000 baris per eksekusi. Input akan dibatasi ke 2.000 baris pertama.");
+      toast.warning("Maksimal 2.000 baris per eksekusi. Input dibatasi ke 2.000 baris pertama.");
     }
 
     setIsLoading(true);
     try {
-      // Ambil CSRF token dari cookie jika ada
       const csrfToken = document.cookie
         .split("; ")
         .find((row) => row.startsWith("XSRF-TOKEN="))
@@ -123,7 +202,7 @@ export function DevToolsBulkCheckerPage() {
       setActiveFilter("ALL");
 
       toast.success(
-        `Pemeriksaan selesai: ${data.totalFound} ditemukan (✅), ${data.totalNotFound} tidak ditemukan (❌).`
+        `Pemeriksaan selesai: ${data.totalFound} ditemukan (✅), ${data.totalNotFound} belum terdaftar (❌).`
       );
     } catch (err: any) {
       toast.error(err.message || "Terjadi kesalahan saat memeriksa data massal.");
@@ -132,7 +211,7 @@ export function DevToolsBulkCheckerPage() {
     }
   };
 
-  // Filter hasil tabel
+  // Filter hasil tabel calon
   const filteredResults = useMemo(() => {
     if (!resultData?.results) return [];
 
@@ -167,7 +246,7 @@ export function DevToolsBulkCheckerPage() {
     return filteredResults.slice(start, start + pageSize);
   }, [filteredResults, currentPage, pageSize]);
 
-  // Ekspor hasil pemeriksaan ke Excel (.xlsx)
+  // Ekspor hasil pemeriksaan calon ke Excel
   const handleExportExcel = async () => {
     if (!resultData || resultData.results.length === 0) return;
 
@@ -177,7 +256,7 @@ export function DevToolsBulkCheckerPage() {
 
       const exportRows = resultData.results.map((r, i) => ({
         No: i + 1,
-        Status: r.status === "FOUND" ? "DITEMUKAN (TERDAFTAR)" : "TIDAK DITEMUKAN",
+        Status: r.status === "FOUND" ? "DITEMUKAN (TERDAFTAR)" : "BELUM TERDAFTAR",
         "Metode Pencocokan": r.matchedBy || "-",
         "Kata Kunci Input": r.input,
         "NIK Terdaftar": r.nik || "-",
@@ -193,10 +272,10 @@ export function DevToolsBulkCheckerPage() {
 
       const worksheet = XLSX.utils.json_to_sheet(exportRows);
       const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Hasil Rekonsiliasi Massal");
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Hasil Rekonsiliasi Calon");
 
       const todayStr = new Date().toISOString().slice(0, 10);
-      XLSX.writeFile(workbook, `Hasil_Pemeriksaan_Massal_PMI_${todayStr}.xlsx`);
+      XLSX.writeFile(workbook, `Rekonsiliasi_Calon_PMI_${todayStr}.xlsx`);
 
       toast.success("Hasil pemeriksaan berhasil diekspor ke file Excel.");
     } catch {
@@ -206,7 +285,7 @@ export function DevToolsBulkCheckerPage() {
     }
   };
 
-  // Salin daftar yang belum terdaftar (❌) ke clipboard
+  // Salin daftar yang belum terdaftar (❌)
   const handleCopyNotFound = () => {
     if (!resultData) return;
     const notFoundList = resultData.results
@@ -225,6 +304,98 @@ export function DevToolsBulkCheckerPage() {
     setTimeout(() => setHasCopiedNotFound(false), 2500);
   };
 
+  // Filter lembaga kosong
+  const filteredEmptyInstitutions = useMemo(() => {
+    if (!emptyInstData?.emptyInstitutions) return [];
+
+    let list = emptyInstData.emptyInstitutions;
+
+    if (emptyInstTypeFilter !== "ALL") {
+      list = list.filter((inst) =>
+        inst.type.toLowerCase().includes(emptyInstTypeFilter.toLowerCase())
+      );
+    }
+
+    if (emptyInstMouFilter === "MOU_YES") {
+      list = list.filter((inst) => inst.hasMou);
+    } else if (emptyInstMouFilter === "MOU_NO") {
+      list = list.filter((inst) => !inst.hasMou);
+    }
+
+    const q = emptyInstSearch.toLowerCase().trim();
+    if (q) {
+      list = list.filter(
+        (inst) =>
+          inst.name.toLowerCase().includes(q) ||
+          inst.province.toLowerCase().includes(q) ||
+          inst.district.toLowerCase().includes(q) ||
+          inst.headName.toLowerCase().includes(q) ||
+          inst.phone.toLowerCase().includes(q)
+      );
+    }
+
+    return list;
+  }, [emptyInstData, emptyInstTypeFilter, emptyInstMouFilter, emptyInstSearch]);
+
+  const totalEmptyPages = Math.max(1, Math.ceil(filteredEmptyInstitutions.length / emptyInstPageSize));
+  const paginatedEmptyInstitutions = useMemo(() => {
+    const start = (emptyInstPage - 1) * emptyInstPageSize;
+    return filteredEmptyInstitutions.slice(start, start + emptyInstPageSize);
+  }, [filteredEmptyInstitutions, emptyInstPage, emptyInstPageSize]);
+
+  // Ekspor lembaga kosong ke Excel
+  const handleExportEmptyExcel = async () => {
+    if (!emptyInstData || emptyInstData.emptyInstitutions.length === 0) return;
+
+    setIsExportingEmptyExcel(true);
+    try {
+      const XLSX = await import("xlsx");
+
+      const exportRows = filteredEmptyInstitutions.map((inst, i) => ({
+        No: i + 1,
+        "Nama Lembaga Vokasi": inst.name,
+        "Jenis Lembaga": inst.type,
+        Provinsi: inst.province,
+        "Kabupaten / Kota": inst.district,
+        "Nama Pimpinan / PIC": inst.headName,
+        "No. Telepon / WhatsApp": inst.phone,
+        Email: inst.email,
+        "Status Dokumen MoU": inst.hasMou ? "Sudah Ada Dokumen MoU" : "Belum Ada MoU",
+        "Tautan Berkas MoU": inst.mouUrl || "-",
+        "Status e-Vokasi": inst.evokasiStatus,
+        "Sektor Pelatihan": inst.supportedSectors.join(", ") || "-",
+        "Jumlah Peserta di Sistem": inst.candidateCount,
+      }));
+
+      const worksheet = XLSX.utils.json_to_sheet(exportRows);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Lembaga Tanpa Peserta");
+
+      const todayStr = new Date().toISOString().slice(0, 10);
+      XLSX.writeFile(workbook, `Lembaga_Vokasi_Tanpa_Peserta_${todayStr}.xlsx`);
+
+      toast.success("Daftar lembaga tanpa peserta berhasil diekspor ke file Excel.");
+    } catch {
+      toast.error("Gagal mengekspor file Excel.");
+    } finally {
+      setIsExportingEmptyExcel(false);
+    }
+  };
+
+  // Salin nama-nama lembaga kosong
+  const handleCopyEmptyNames = () => {
+    if (!filteredEmptyInstitutions || filteredEmptyInstitutions.length === 0) return;
+
+    const names = filteredEmptyInstitutions
+      .map((inst) => `${inst.name} (${inst.province}) - Telp: ${inst.phone}`)
+      .join("\n");
+
+    navigator.clipboard.writeText(names);
+    setHasCopiedEmptyNames(true);
+    toast.success("Daftar nama lembaga kosong berhasil disalin!");
+    setTimeout(() => setHasCopiedEmptyNames(false), 2500);
+  };
+
   return (
     <div className="space-y-6">
       {/* Header Halaman Dev Tools */}
@@ -235,11 +406,11 @@ export function DevToolsBulkCheckerPage() {
               <Wrench className="h-4 w-4" />
             </div>
             <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-              <span>Dev Tools — Pemeriksa Calon PMI Massal</span>
+              <span>Dev Tools — Rekonsiliasi & Pemeriksa Sistem</span>
             </h1>
           </div>
           <p className="mt-1 text-xs sm:text-sm text-muted-foreground">
-            Alat bantu rekonsiliasi cepat untuk mendeteksi status pendaftaran, asal lembaga vokasi, dan validitas NIK secara massal dari Excel atau catatan.
+            Alat bantu rekonsiliasi data calon PMI massal serta pelacakan lembaga vokasi spreadsheet/MoU yang belum memiliki peserta di sistem.
           </p>
         </div>
 
@@ -254,429 +425,827 @@ export function DevToolsBulkCheckerPage() {
         </div>
       </div>
 
-      {/* Input Area Card */}
-      <Card className="border border-border bg-card shadow-xs">
-        <CardContent className="p-4 sm:p-5 space-y-3">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-            <label htmlFor="bulk-candidate-input" className="text-sm font-semibold text-foreground flex items-center gap-2">
-              <span>Tempel Daftar Nama / NIK Massal:</span>
-              <Badge variant="secondary" className="text-xs font-mono">
-                {inputLineCount} Baris Terdeteksi
-              </Badge>
-            </label>
+      {/* Main Tab Switcher */}
+      <div className="flex flex-wrap items-center gap-2 border-b border-border pb-2">
+        <button
+          type="button"
+          onClick={() => setActiveMainTab("candidates")}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition cursor-pointer ${
+            activeMainTab === "candidates"
+              ? "bg-primary text-primary-foreground shadow-xs"
+              : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground"
+          }`}
+        >
+          <Users className="w-4 h-4" />
+          <span>Pemeriksa Calon PMI Massal</span>
+          {resultData && (
+            <span className="ml-1 px-1.5 py-0.2 bg-background/20 rounded-full text-[10px] font-mono">
+              {resultData.totalFound}/{resultData.totalInput}
+            </span>
+          )}
+        </button>
 
-            <div className="flex items-center gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setRawInput(SAMPLE_INPUT)}
-                className="h-7 text-xs gap-1 border-border text-muted-foreground hover:text-foreground"
-              >
-                <Sparkles className="w-3 h-3 text-amber-500" />
-                <span>Isi Contoh Sampel</span>
-              </Button>
-              {rawInput && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setRawInput("");
-                    setResultData(null);
-                  }}
-                  className="h-7 text-xs gap-1 text-destructive hover:bg-destructive/10"
-                >
-                  <Trash2 className="w-3 h-3" />
-                  <span>Bersihkan</span>
-                </Button>
-              )}
-            </div>
-          </div>
+        <button
+          type="button"
+          onClick={() => setActiveMainTab("empty_institutions")}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition cursor-pointer ${
+            activeMainTab === "empty_institutions"
+              ? "bg-primary text-primary-foreground shadow-xs"
+              : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground"
+          }`}
+        >
+          <Building2 className="w-4 h-4" />
+          <span>Lembaga Tanpa Peserta (Spreadsheet / MoU)</span>
+          {emptyInstData?.summary && (
+            <span className="ml-1 px-1.5 py-0.2 bg-rose-500/20 text-rose-200 rounded-full text-[10px] font-mono font-bold">
+              {emptyInstData.summary.totalEmpty} Lembaga
+            </span>
+          )}
+        </button>
+      </div>
 
-          <textarea
-            id="bulk-candidate-input"
-            rows={8}
-            value={rawInput}
-            onChange={(e) => setRawInput(e.target.value)}
-            placeholder={`Tempel daftar NIK atau Nama calon PMI di sini (satu baris per calon, bisa copy-paste langsung dari kolom Excel)...
+      {/* ========================================================================= */}
+      {/* TAB 1: PEMERIKSA CALON PMI MASSAL */}
+      {/* ========================================================================= */}
+      {activeMainTab === "candidates" && (
+        <div className="space-y-6 animate-in fade-in duration-300">
+          {/* Input Area Card */}
+          <Card className="border border-border bg-card shadow-xs">
+            <CardContent className="p-4 sm:p-5 space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <label htmlFor="bulk-candidate-input" className="text-sm font-semibold text-foreground flex items-center gap-2">
+                  <span>Tempel Daftar Nama / NIK Massal:</span>
+                  <Badge variant="secondary" className="text-xs font-mono">
+                    {inputLineCount} Baris Terdeteksi
+                  </Badge>
+                </label>
+
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setRawInput(SAMPLE_INPUT)}
+                    className="h-7 text-xs gap-1 border-border text-muted-foreground hover:text-foreground"
+                  >
+                    <Sparkles className="w-3 h-3 text-amber-500" />
+                    <span>Isi Contoh Sampel</span>
+                  </Button>
+                  {rawInput && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setRawInput("");
+                        setResultData(null);
+                      }}
+                      className="h-7 text-xs gap-1 text-destructive hover:bg-destructive/10"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                      <span>Bersihkan</span>
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              <textarea
+                id="bulk-candidate-input"
+                rows={8}
+                value={rawInput}
+                onChange={(e) => setRawInput(e.target.value)}
+                placeholder={`Tempel daftar NIK atau Nama calon PMI di sini (satu baris per calon, bisa copy-paste langsung dari kolom Excel)...
 Contoh:
 3301121712060001
 Muhammad Ubay Al-Ziqraa
+Dwi Putra Candra Dewa,S.H.
 Bima Saputra
 3205352411030001`}
-            className="w-full rounded-xl border border-input bg-background p-3 text-xs sm:text-sm font-mono placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition"
-          />
+                className="w-full rounded-xl border border-input bg-background p-3 text-xs sm:text-sm font-mono placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition"
+              />
 
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
-            <span className="text-[11px] text-muted-foreground">
-              Tip: Mendukung NIK 16-digit, nama lengkap, atau gabungan NIK & nama dari Excel. Maksimal 2.000 baris per eksekusi.
-            </span>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
+                <span className="text-[11px] text-muted-foreground">
+                  Tip: Mendukung NIK 16-digit, nama lengkap (dengan gelar seperti S.H., S.Pd.), atau gabungan NIK & nama dari Excel. Maksimal 2.000 baris.
+                </span>
 
-            <Button
-              type="button"
-              onClick={handleBulkCheck}
-              disabled={isLoading || inputLineCount === 0}
-              className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90 h-9 font-semibold text-xs sm:text-sm"
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Memeriksa ke Database...</span>
-                </>
-              ) : (
-                <>
-                  <Search className="w-4 h-4" />
-                  <span>Periksa Massal ({inputLineCount} Baris)</span>
-                </>
-              )}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* KPI Ringkasan Hasil */}
-      {resultData && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 animate-in fade-in duration-300">
-          <Card className="border border-border bg-card p-4">
-            <span className="text-xs font-medium text-muted-foreground">Total Diperiksa</span>
-            <div className="mt-1 flex items-baseline gap-2">
-              <span className="text-2xl sm:text-3xl font-extrabold text-foreground tabular-nums">
-                {resultData.totalInput.toLocaleString("id-ID")}
-              </span>
-              <span className="text-xs text-muted-foreground">Orang</span>
-            </div>
-            <p className="mt-1 text-[11px] text-muted-foreground">Dari berkas input yang ditempel</p>
+                <Button
+                  type="button"
+                  onClick={handleBulkCheck}
+                  disabled={isLoading || inputLineCount === 0}
+                  className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90 h-9 font-semibold text-xs sm:text-sm"
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Memeriksa ke Database...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Search className="w-4 h-4" />
+                      <span>Periksa Massal ({inputLineCount} Baris)</span>
+                    </>
+                  )}
+                </Button>
+              </div>
+            </CardContent>
           </Card>
 
-          <Card className="border border-emerald-500/30 bg-emerald-500/5 p-4">
-            <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 flex items-center gap-1">
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-              <span>Ditemukan di Sistem</span>
-            </span>
-            <div className="mt-1 flex items-baseline gap-2">
-              <span className="text-2xl sm:text-3xl font-extrabold text-emerald-600 dark:text-emerald-400 tabular-nums">
-                {resultData.totalFound.toLocaleString("id-ID")}
-              </span>
-              <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-300">
-                ({resultData.totalInput > 0 ? Math.round((resultData.totalFound / resultData.totalInput) * 100) : 0}%)
-              </span>
-            </div>
-            <p className="mt-1 text-[11px] text-muted-foreground">Sudah terdaftar & memiliki data lengkap</p>
-          </Card>
+          {/* KPI Ringkasan Hasil */}
+          {resultData && (
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 animate-in fade-in duration-300">
+              <Card className="border border-border bg-card p-4">
+                <span className="text-xs font-medium text-muted-foreground">Total Diperiksa</span>
+                <div className="mt-1 flex items-baseline gap-2">
+                  <span className="text-2xl sm:text-3xl font-extrabold text-foreground tabular-nums">
+                    {resultData.totalInput.toLocaleString("id-ID")}
+                  </span>
+                  <span className="text-xs text-muted-foreground">Orang</span>
+                </div>
+                <p className="mt-1 text-[11px] text-muted-foreground">Dari berkas input yang ditempel</p>
+              </Card>
 
-          <Card className="border border-rose-500/30 bg-rose-500/5 p-4">
-            <span className="text-xs font-semibold text-rose-700 dark:text-rose-400 flex items-center gap-1">
-              <XCircle className="w-3.5 h-3.5 text-rose-600" />
-              <span>Belum Terdaftar</span>
-            </span>
-            <div className="mt-1 flex items-baseline gap-2">
-              <span className="text-2xl sm:text-3xl font-extrabold text-rose-600 dark:text-rose-400 tabular-nums">
-                {resultData.totalNotFound.toLocaleString("id-ID")}
-              </span>
-              <span className="text-xs font-semibold text-rose-700 dark:text-rose-300">
-                ({resultData.totalInput > 0 ? Math.round((resultData.totalNotFound / resultData.totalInput) * 100) : 0}%)
-              </span>
-            </div>
-            <p className="mt-1 text-[11px] text-muted-foreground">Belum masuk di database sistem</p>
-          </Card>
+              <Card className="border border-emerald-500/30 bg-emerald-500/5 p-4">
+                <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 flex items-center gap-1">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Ditemukan di Sistem</span>
+                </span>
+                <div className="mt-1 flex items-baseline gap-2">
+                  <span className="text-2xl sm:text-3xl font-extrabold text-emerald-600 dark:text-emerald-400 tabular-nums">
+                    {resultData.totalFound.toLocaleString("id-ID")}
+                  </span>
+                  <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-300">
+                    ({resultData.totalInput > 0 ? Math.round((resultData.totalFound / resultData.totalInput) * 100) : 0}%)
+                  </span>
+                </div>
+                <p className="mt-1 text-[11px] text-muted-foreground">Sudah terdaftar & memiliki data lengkap</p>
+              </Card>
 
-          <Card className="border border-border bg-card p-4">
-            <span className="text-xs font-medium text-muted-foreground flex items-center gap-1">
-              <Database className="w-3.5 h-3.5 text-blue-600" />
-              <span>Total Basis Data Sistem</span>
-            </span>
-            <div className="mt-1 flex items-baseline gap-2">
-              <span className="text-2xl sm:text-3xl font-extrabold text-foreground tabular-nums">
-                {resultData.totalDatabase.toLocaleString("id-ID")}
-              </span>
-              <span className="text-xs text-muted-foreground">Peserta Riil</span>
-            </div>
-            <p className="mt-1 text-[11px] text-muted-foreground">Seluruh calon PMI terdaftar aktif</p>
-          </Card>
-        </div>
-      )}
+              <Card className="border border-rose-500/30 bg-rose-500/5 p-4">
+                <span className="text-xs font-semibold text-rose-700 dark:text-rose-400 flex items-center gap-1">
+                  <XCircle className="w-3.5 h-3.5 text-rose-600" />
+                  <span>Belum Terdaftar</span>
+                </span>
+                <div className="mt-1 flex items-baseline gap-2">
+                  <span className="text-2xl sm:text-3xl font-extrabold text-rose-600 dark:text-rose-400 tabular-nums">
+                    {resultData.totalNotFound.toLocaleString("id-ID")}
+                  </span>
+                  <span className="text-xs font-semibold text-rose-700 dark:text-rose-300">
+                    ({resultData.totalInput > 0 ? Math.round((resultData.totalNotFound / resultData.totalInput) * 100) : 0}%)
+                  </span>
+                </div>
+                <p className="mt-1 text-[11px] text-muted-foreground">Belum masuk di database sistem</p>
+              </Card>
 
-      {/* Tabel Hasil Pemeriksaan */}
-      {resultData && (
-        <Card className="border border-border bg-card shadow-xs animate-in fade-in duration-300">
-          <div className="p-4 border-b border-border flex flex-col md:flex-row md:items-center justify-between gap-3">
-            {/* Filter Tabs */}
-            <div className="flex flex-wrap items-center gap-1.5 p-1 rounded-xl bg-muted/50 border border-border">
-              <button
+              <Card className="border border-border bg-card p-4">
+                <span className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                  <Database className="w-3.5 h-3.5 text-blue-600" />
+                  <span>Total Basis Data Sistem</span>
+                </span>
+                <div className="mt-1 flex items-baseline gap-2">
+                  <span className="text-2xl sm:text-3xl font-extrabold text-foreground tabular-nums">
+                    {resultData.totalDatabase.toLocaleString("id-ID")}
+                  </span>
+                  <span className="text-xs text-muted-foreground">Peserta Riil</span>
+                </div>
+                <p className="mt-1 text-[11px] text-muted-foreground">Seluruh calon PMI terdaftar aktif</p>
+              </Card>
+            </div>
+          )}
+
+          {/* Notifikasi Khusus Bila Ada Calon Belum Masuk */}
+          {resultData && resultData.totalNotFound > 0 && (
+            <div className="p-3.5 rounded-xl border border-rose-500/30 bg-rose-500/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                <span className="text-rose-900 dark:text-rose-200">
+                  Terdapat <strong>{resultData.totalNotFound} nama/NIK</strong> dari berkas Anda yang <strong>belum terdaftar</strong> di sistem. Anda dapat memfilter tabel di bawah atau menyalinnya langsung.
+                </span>
+              </div>
+              <Button
                 type="button"
-                onClick={() => {
-                  setActiveFilter("ALL");
-                  setCurrentPage(1);
-                }}
-                className={`px-3 py-1 rounded-lg text-xs font-semibold transition cursor-pointer ${
-                  activeFilter === "ALL"
-                    ? "bg-background text-foreground shadow-xs"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                Semua Hasil ({resultData.totalInput})
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveFilter("FOUND");
-                  setCurrentPage(1);
-                }}
-                className={`px-3 py-1 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 ${
-                  activeFilter === "FOUND"
-                    ? "bg-emerald-600 text-white shadow-xs"
-                    : "text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/10"
-                }`}
-              >
-                <CheckCircle2 className="w-3 h-3" />
-                <span>Ditemukan ({resultData.totalFound})</span>
-              </button>
-              <button
-                type="button"
+                size="sm"
+                variant="outline"
                 onClick={() => {
                   setActiveFilter("NOT_FOUND");
                   setCurrentPage(1);
                 }}
-                className={`px-3 py-1 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 ${
-                  activeFilter === "NOT_FOUND"
-                    ? "bg-rose-600 text-white shadow-xs"
-                    : "text-rose-700 dark:text-rose-400 hover:bg-rose-500/10"
-                }`}
+                className="h-7 text-xs border-rose-500/40 text-rose-700 dark:text-rose-300 hover:bg-rose-500/20 shrink-0"
               >
-                <XCircle className="w-3 h-3" />
-                <span>Belum Terdaftar ({resultData.totalNotFound})</span>
-              </button>
+                Lihat Calon Belum Terdaftar Saja (❌)
+              </Button>
+            </div>
+          )}
+
+          {/* Tabel Hasil Pemeriksaan */}
+          {resultData && (
+            <Card className="border border-border bg-card shadow-xs animate-in fade-in duration-300">
+              <div className="p-4 border-b border-border flex flex-col md:flex-row md:items-center justify-between gap-3">
+                {/* Filter Tabs */}
+                <div className="flex flex-wrap items-center gap-1.5 p-1 rounded-xl bg-muted/50 border border-border">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveFilter("ALL");
+                      setCurrentPage(1);
+                    }}
+                    className={`px-3 py-1 rounded-lg text-xs font-semibold transition cursor-pointer ${
+                      activeFilter === "ALL"
+                        ? "bg-background text-foreground shadow-xs"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    Semua Hasil ({resultData.totalInput})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveFilter("FOUND");
+                      setCurrentPage(1);
+                    }}
+                    className={`px-3 py-1 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 ${
+                      activeFilter === "FOUND"
+                        ? "bg-emerald-600 text-white shadow-xs"
+                        : "text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/10"
+                    }`}
+                  >
+                    <CheckCircle2 className="w-3 h-3" />
+                    <span>Ditemukan ({resultData.totalFound})</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveFilter("NOT_FOUND");
+                      setCurrentPage(1);
+                    }}
+                    className={`px-3 py-1 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 ${
+                      activeFilter === "NOT_FOUND"
+                        ? "bg-rose-600 text-white shadow-xs"
+                        : "text-rose-700 dark:text-rose-400 hover:bg-rose-500/10"
+                    }`}
+                  >
+                    <XCircle className="w-3 h-3" />
+                    <span>Belum Terdaftar ({resultData.totalNotFound})</span>
+                  </button>
+                </div>
+
+                {/* Search & Export Toolbar */}
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="relative min-w-[200px]">
+                    <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      placeholder="Cari dalam hasil..."
+                      value={tableSearchQuery}
+                      onChange={(e) => {
+                        setTableSearchQuery(e.target.value);
+                        setCurrentPage(1);
+                      }}
+                      className="h-8 pl-8 text-xs bg-background"
+                    />
+                  </div>
+
+                  {resultData.totalNotFound > 0 && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleCopyNotFound}
+                      className="h-8 text-xs gap-1.5 border-rose-500/30 text-rose-700 dark:text-rose-400 hover:bg-rose-500/10"
+                      title="Salin semua nama/NIK yang belum terdaftar untuk ditindaklanjuti"
+                    >
+                      {hasCopiedNotFound ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                      <span>Salin Data ❌</span>
+                    </Button>
+                  )}
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleExportExcel}
+                    disabled={isExportingExcel}
+                    className="h-8 text-xs gap-1.5 border-emerald-500/40 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/10 font-semibold"
+                  >
+                    {isExportingExcel ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
+                    )}
+                    <span>Ekspor Excel (.xlsx)</span>
+                  </Button>
+                </div>
+              </div>
+
+              {/* Tabel Konten */}
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead className="bg-muted/50 border-b border-border font-semibold text-muted-foreground">
+                    <tr>
+                      <th className="px-3 py-2.5 w-12 text-center">#</th>
+                      <th className="px-3 py-2.5 w-32 text-center">Status</th>
+                      <th className="px-3 py-2.5 w-44">Kata Kunci Input</th>
+                      <th className="px-3 py-2.5 w-44 font-mono">NIK Terdaftar</th>
+                      <th className="px-3 py-2.5 min-w-[180px]">Nama di Sistem</th>
+                      <th className="px-3 py-2.5 min-w-[200px]">Lembaga Vokasi Asal</th>
+                      <th className="px-3 py-2.5 w-44">Wilayah Domisili</th>
+                      <th className="px-3 py-2.5 w-44">Sektor & Negara Target</th>
+                      <th className="px-3 py-2.5 w-32">Kesiapan</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {paginatedResults.length === 0 ? (
+                      <tr>
+                        <td colSpan={9} className="py-10 text-center text-muted-foreground">
+                          <AlertCircle className="w-6 h-6 mx-auto mb-2 opacity-50" />
+                          <span>Tidak ada data hasil pemeriksaan yang sesuai dengan filter ini.</span>
+                        </td>
+                      </tr>
+                    ) : (
+                      paginatedResults.map((row) => {
+                        const isFound = row.status === "FOUND";
+
+                        return (
+                          <tr
+                            key={row.index}
+                            className={`transition-colors ${
+                              isFound
+                                ? "hover:bg-emerald-500/5 bg-background"
+                                : "hover:bg-rose-500/5 bg-rose-500/[0.02]"
+                            }`}
+                          >
+                            <td className="px-3 py-2.5 text-center font-mono text-muted-foreground">
+                              {row.index}
+                            </td>
+                            <td className="px-3 py-2.5 text-center">
+                              {isFound ? (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
+                                  <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                                  <span>Ditemukan</span>
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/30">
+                                  <XCircle className="w-3 h-3 text-rose-600" />
+                                  <span>Belum Terdaftar</span>
+                                </span>
+                              )}
+                            </td>
+                            <td className="px-3 py-2.5 font-medium text-foreground">
+                              <span className="line-clamp-2" title={row.input}>
+                                {row.input}
+                              </span>
+                            </td>
+                            <td className="px-3 py-2.5 font-mono text-muted-foreground">
+                              {row.nik ? (
+                                <span className="bg-muted px-1.5 py-0.5 rounded text-[11px] font-bold text-foreground">
+                                  {row.nik}
+                                </span>
+                              ) : (
+                                <span className="text-muted-foreground/60">-</span>
+                              )}
+                            </td>
+                            <td className="px-3 py-2.5">
+                              {isFound ? (
+                                <div>
+                                  <span className="font-semibold text-foreground block">
+                                    {row.fullName}
+                                  </span>
+                                  {row.matchedBy && (
+                                    <span className="text-[10px] text-muted-foreground">
+                                      Cocok via {row.matchedBy.replace("_", " ")}
+                                    </span>
+                                  )}
+                                </div>
+                              ) : (
+                                <span className="text-rose-600 dark:text-rose-400 italic">
+                                  Tidak ada di database
+                                </span>
+                              )}
+                            </td>
+                            <td className="px-3 py-2.5">
+                              {isFound && row.institutionName ? (
+                                <div className="flex items-center gap-1.5">
+                                  <Building2 className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                                  <span className="font-medium text-foreground line-clamp-1" title={row.institutionName}>
+                                    {row.institutionName}
+                                  </span>
+                                </div>
+                              ) : (
+                                <span className="text-muted-foreground">-</span>
+                              )}
+                            </td>
+                            <td className="px-3 py-2.5 text-muted-foreground">
+                              {isFound && (row.district || row.province) ? (
+                                <span className="line-clamp-1" title={`${row.district || ""}, ${row.province || ""}`}>
+                                  {row.district ? `${row.district}, ` : ""}
+                                  {row.province || ""}
+                                </span>
+                              ) : (
+                                <span>-</span>
+                              )}
+                            </td>
+                            <td className="px-3 py-2.5">
+                              {isFound ? (
+                                <div className="space-y-0.5">
+                                  {row.major && (
+                                    <span className="block font-medium text-foreground text-[11px] line-clamp-1">
+                                      {row.major}
+                                    </span>
+                                  )}
+                                  {row.preferredCountries.length > 0 && (
+                                    <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                                      <Globe2 className="w-3 h-3 text-emerald-600 shrink-0" />
+                                      <span className="line-clamp-1">{row.preferredCountries.join(", ")}</span>
+                                    </div>
+                                  )}
+                                </div>
+                              ) : (
+                                <span className="text-muted-foreground">-</span>
+                              )}
+                            </td>
+                            <td className="px-3 py-2.5">
+                              {isFound && row.readinessStatus ? (
+                                <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold bg-muted text-foreground border border-border">
+                                  {row.readinessStatus}
+                                </span>
+                              ) : (
+                                <span className="text-muted-foreground">-</span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Navigasi Paginasi */}
+              {totalPages > 1 && (
+                <div className="p-3 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
+                  <span>
+                    Menampilkan baris {(currentPage - 1) * pageSize + 1} -{" "}
+                    {Math.min(currentPage * pageSize, filteredResults.length)} dari {filteredResults.length} hasil
+                  </span>
+
+                  <div className="flex items-center gap-1">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                      disabled={currentPage <= 1}
+                      className="h-7 px-2 text-xs"
+                    >
+                      Sebelumnya
+                    </Button>
+                    <span className="px-2 font-mono">
+                      {currentPage} / {totalPages}
+                    </span>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                      disabled={currentPage >= totalPages}
+                      className="h-7 px-2 text-xs"
+                    >
+                      Selanjutnya
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </Card>
+          )}
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB 2: LEMBAGA TANPA PESERTA (REKONSILIASI MOU / SPREADSHEET) */}
+      {/* ========================================================================= */}
+      {activeMainTab === "empty_institutions" && (
+        <div className="space-y-6 animate-in fade-in duration-300">
+          {/* Header & KPI Summary */}
+          {emptyInstData?.summary ? (
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+              <Card className="border border-border bg-card p-4">
+                <span className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                  <Building2 className="w-3.5 h-3.5 text-blue-600" />
+                  <span>Total Lembaga di Sistem</span>
+                </span>
+                <div className="mt-1 flex items-baseline gap-2">
+                  <span className="text-2xl sm:text-3xl font-extrabold text-foreground tabular-nums">
+                    {emptyInstData.summary.totalInstitutions}
+                  </span>
+                  <span className="text-xs text-muted-foreground">Lembaga</span>
+                </div>
+                <p className="mt-1 text-[11px] text-muted-foreground">Terdaftar di master lembaga vokasi</p>
+              </Card>
+
+              <Card className="border border-emerald-500/30 bg-emerald-500/5 p-4">
+                <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Lembaga Berpeserta</span>
+                </span>
+                <div className="mt-1 flex items-baseline gap-2">
+                  <span className="text-2xl sm:text-3xl font-extrabold text-emerald-600 dark:text-emerald-400 tabular-nums">
+                    {emptyInstData.summary.totalWithCandidates}
+                  </span>
+                  <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-300">
+                    ({Math.round((emptyInstData.summary.totalWithCandidates / emptyInstData.summary.totalInstitutions) * 100)}%)
+                  </span>
+                </div>
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  Menyuplai {emptyInstData.summary.totalCandidatesInSystem.toLocaleString("id-ID")} calon PMI
+                </p>
+              </Card>
+
+              <Card className="border border-rose-500/30 bg-rose-500/5 p-4">
+                <span className="text-xs font-semibold text-rose-700 dark:text-rose-400 flex items-center gap-1.5">
+                  <AlertCircle className="w-3.5 h-3.5 text-rose-600" />
+                  <span>Lembaga Belum Ada Peserta</span>
+                </span>
+                <div className="mt-1 flex items-baseline gap-2">
+                  <span className="text-2xl sm:text-3xl font-extrabold text-rose-600 dark:text-rose-400 tabular-nums">
+                    {emptyInstData.summary.totalEmpty}
+                  </span>
+                  <span className="text-xs font-semibold text-rose-700 dark:text-rose-300">
+                    ({Math.round((emptyInstData.summary.totalEmpty / emptyInstData.summary.totalInstitutions) * 100)}%)
+                  </span>
+                </div>
+                <p className="mt-1 text-[11px] text-rose-600 dark:text-rose-400 font-medium">0 calon terdaftar di database</p>
+              </Card>
+
+              <Card className="border border-indigo-500/30 bg-indigo-500/5 p-4">
+                <span className="text-xs font-semibold text-indigo-700 dark:text-indigo-400 flex items-center gap-1.5">
+                  <FileCheck2 className="w-3.5 h-3.5 text-indigo-600" />
+                  <span>Status Dokumen MoU</span>
+                </span>
+                <div className="mt-1 flex items-baseline gap-2">
+                  <span className="text-2xl sm:text-3xl font-extrabold text-indigo-600 dark:text-indigo-400 tabular-nums">
+                    {emptyInstData.emptyInstitutions.filter((i) => i.hasMou).length}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    dari {emptyInstData.summary.totalEmpty} kosong ada MoU
+                  </span>
+                </div>
+                <p className="mt-1 text-[11px] text-muted-foreground">Siap ditindaklanjuti untuk input peserta</p>
+              </Card>
+            </div>
+          ) : (
+            isLoadingEmptyInst && (
+              <div className="p-8 text-center bg-card rounded-xl border border-border">
+                <Loader2 className="w-6 h-6 animate-spin mx-auto text-primary mb-2" />
+                <span className="text-xs text-muted-foreground">Memuat daftar lembaga tanpa peserta...</span>
+              </div>
+            )
+          )}
+
+          {/* Tabel Lembaga Kosong */}
+          <Card className="border border-border bg-card shadow-xs">
+            <div className="p-4 border-b border-border flex flex-col md:flex-row md:items-center justify-between gap-3">
+              <div>
+                <h2 className="text-sm font-bold text-foreground flex items-center gap-2">
+                  <span>Daftar Lembaga Vokasi / Sekolah yang Belum Memiliki Peserta</span>
+                  {emptyInstData?.summary && (
+                    <Badge variant="outline" className="border-rose-500/30 bg-rose-500/10 text-rose-700 dark:text-rose-300 font-mono text-xs">
+                      {filteredEmptyInstitutions.length} Lembaga Ditampilkan
+                    </Badge>
+                  )}
+                </h2>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Lembaga mitra dari spreadsheet/MoU yang belum mengunggah daftar calon PMI ke dalam sistem.
+                </p>
+              </div>
+
+              {/* Action Toolbar */}
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={loadEmptyInstitutions}
+                  disabled={isLoadingEmptyInst}
+                  className="h-8 text-xs gap-1.5 border-border"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${isLoadingEmptyInst ? "animate-spin" : ""}`} />
+                  <span>Segarkan</span>
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleCopyEmptyNames}
+                  disabled={filteredEmptyInstitutions.length === 0}
+                  className="h-8 text-xs gap-1.5 border-border text-foreground hover:bg-muted"
+                >
+                  {hasCopiedEmptyNames ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                  <span>Salin Nama Lembaga</span>
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleExportEmptyExcel}
+                  disabled={isExportingEmptyExcel || filteredEmptyInstitutions.length === 0}
+                  className="h-8 text-xs gap-1.5 border-emerald-500/40 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/10 font-semibold"
+                >
+                  {isExportingEmptyExcel ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
+                  )}
+                  <span>Ekspor Excel (.xlsx)</span>
+                </Button>
+              </div>
             </div>
 
-            {/* Search & Export Toolbar */}
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="relative min-w-[200px]">
+            {/* Filter Controls */}
+            <div className="p-3 bg-muted/20 border-b border-border flex flex-wrap items-center gap-3">
+              <div className="relative flex-1 min-w-[220px]">
                 <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                 <Input
-                  placeholder="Cari dalam hasil..."
-                  value={tableSearchQuery}
+                  placeholder="Cari nama lembaga, provinsi, kontak PIC..."
+                  value={emptyInstSearch}
                   onChange={(e) => {
-                    setTableSearchQuery(e.target.value);
-                    setCurrentPage(1);
+                    setEmptyInstSearch(e.target.value);
+                    setEmptyInstPage(1);
                   }}
                   className="h-8 pl-8 text-xs bg-background"
                 />
               </div>
 
-              {resultData.totalNotFound > 0 && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={handleCopyNotFound}
-                  className="h-8 text-xs gap-1.5 border-rose-500/30 text-rose-700 dark:text-rose-400 hover:bg-rose-500/10"
-                  title="Salin semua nama/NIK yang belum terdaftar untuk ditindaklanjuti"
-                >
-                  {hasCopiedNotFound ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
-                  <span>Salin Data ❌</span>
-                </Button>
-              )}
-
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleExportExcel}
-                disabled={isExportingExcel}
-                className="h-8 text-xs gap-1.5 border-emerald-500/40 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/10 font-semibold"
+              {/* Filter Jenis Lembaga */}
+              <select
+                value={emptyInstTypeFilter}
+                onChange={(e) => {
+                  setEmptyInstTypeFilter(e.target.value);
+                  setEmptyInstPage(1);
+                }}
+                className="h-8 rounded-lg border border-input bg-background px-2.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
               >
-                {isExportingExcel ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                ) : (
-                  <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
-                )}
-                <span>Ekspor Excel (.xlsx)</span>
-              </Button>
+                <option value="ALL">Semua Jenis Lembaga</option>
+                <option value="SMK">SMK / Sekolah</option>
+                <option value="Politeknik">Politeknik / PT</option>
+                <option value="LPK">LPK / Swasta</option>
+                <option value="BLK">BLK / Balai Pemerintah</option>
+              </select>
+
+              {/* Filter MoU */}
+              <select
+                value={emptyInstMouFilter}
+                onChange={(e) => {
+                  setEmptyInstMouFilter(e.target.value);
+                  setEmptyInstPage(1);
+                }}
+                className="h-8 rounded-lg border border-input bg-background px-2.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+              >
+                <option value="ALL">Semua Status Dokumen MoU</option>
+                <option value="MOU_YES">Sudah Ada Dokumen MoU</option>
+                <option value="MOU_NO">Belum Ada Dokumen MoU</option>
+              </select>
             </div>
-          </div>
 
-          {/* Tabel Konten */}
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead className="bg-muted/50 border-b border-border font-semibold text-muted-foreground">
-                <tr>
-                  <th className="px-3 py-2.5 w-12 text-center">#</th>
-                  <th className="px-3 py-2.5 w-32 text-center">Status</th>
-                  <th className="px-3 py-2.5 w-44">Kata Kunci Input</th>
-                  <th className="px-3 py-2.5 w-44 font-mono">NIK Terdaftar</th>
-                  <th className="px-3 py-2.5 min-w-[180px]">Nama di Sistem</th>
-                  <th className="px-3 py-2.5 min-w-[200px]">Lembaga Vokasi Asal</th>
-                  <th className="px-3 py-2.5 w-44">Wilayah Domisili</th>
-                  <th className="px-3 py-2.5 w-44">Sektor & Negara Target</th>
-                  <th className="px-3 py-2.5 w-32">Kesiapan</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {paginatedResults.length === 0 ? (
+            {/* Tabel Lembaga Kosong */}
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead className="bg-muted/50 border-b border-border font-semibold text-muted-foreground">
                   <tr>
-                    <td colSpan={9} className="py-10 text-center text-muted-foreground">
-                      <AlertCircle className="w-6 h-6 mx-auto mb-2 opacity-50" />
-                      <span>Tidak ada data hasil pemeriksaan yang sesuai dengan filter ini.</span>
-                    </td>
+                    <th className="px-3 py-2.5 w-12 text-center">#</th>
+                    <th className="px-3 py-2.5 min-w-[240px]">Nama Lembaga Vokasi</th>
+                    <th className="px-3 py-2.5 w-36">Jenis Lembaga</th>
+                    <th className="px-3 py-2.5 w-48">Wilayah</th>
+                    <th className="px-3 py-2.5 min-w-[180px]">Pimpinan / PIC</th>
+                    <th className="px-3 py-2.5 w-40">Kontak Telepon / WA</th>
+                    <th className="px-3 py-2.5 w-32 text-center">Dokumen MoU</th>
+                    <th className="px-3 py-2.5 w-24 text-center">Peserta</th>
                   </tr>
-                ) : (
-                  paginatedResults.map((row) => {
-                    const isFound = row.status === "FOUND";
-
-                    return (
-                      <tr
-                        key={row.index}
-                        className={`transition-colors ${
-                          isFound
-                            ? "hover:bg-emerald-500/5 bg-background"
-                            : "hover:bg-rose-500/5 bg-rose-500/[0.02]"
-                        }`}
-                      >
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {paginatedEmptyInstitutions.length === 0 ? (
+                    <tr>
+                      <td colSpan={8} className="py-10 text-center text-muted-foreground">
+                        <AlertCircle className="w-6 h-6 mx-auto mb-2 opacity-50" />
+                        <span>Tidak ada lembaga yang sesuai dengan kriteria pencarian ini.</span>
+                      </td>
+                    </tr>
+                  ) : (
+                    paginatedEmptyInstitutions.map((inst, idx) => (
+                      <tr key={inst.id} className="hover:bg-muted/40 transition-colors">
                         <td className="px-3 py-2.5 text-center font-mono text-muted-foreground">
-                          {row.index}
+                          {(emptyInstPage - 1) * emptyInstPageSize + idx + 1}
                         </td>
-                        <td className="px-3 py-2.5 text-center">
-                          {isFound ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
-                              <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                              <span>Ditemukan</span>
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/30">
-                              <XCircle className="w-3 h-3 text-rose-600" />
-                              <span>Belum Terdaftar</span>
+                        <td className="px-3 py-2.5">
+                          <span className="font-semibold text-foreground block">{inst.name}</span>
+                          {inst.supportedSectors.length > 0 && (
+                            <span className="text-[10px] text-muted-foreground line-clamp-1">
+                              Sektor: {inst.supportedSectors.join(", ")}
                             </span>
                           )}
                         </td>
-                        <td className="px-3 py-2.5 font-medium text-foreground">
-                          <span className="line-clamp-2" title={row.input}>
-                            {row.input}
+                        <td className="px-3 py-2.5">
+                          <span className="inline-block px-1.5 py-0.5 rounded text-[11px] bg-muted font-medium text-foreground border border-border">
+                            {inst.type}
                           </span>
                         </td>
-                        <td className="px-3 py-2.5 font-mono text-muted-foreground">
-                          {row.nik ? (
-                            <span className="bg-muted px-1.5 py-0.5 rounded text-[11px] font-bold text-foreground">
-                              {row.nik}
+                        <td className="px-3 py-2.5 text-muted-foreground">
+                          <div className="flex items-center gap-1">
+                            <MapPin className="w-3 h-3 text-muted-foreground shrink-0" />
+                            <span className="line-clamp-1">
+                              {inst.district !== "-" ? `${inst.district}, ` : ""}
+                              {inst.province}
                             </span>
+                          </div>
+                        </td>
+                        <td className="px-3 py-2.5">
+                          <span className="font-medium text-foreground block line-clamp-1">{inst.headName}</span>
+                          {inst.email !== "-" && (
+                            <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                              <Mail className="w-3 h-3 shrink-0" />
+                              <span className="line-clamp-1">{inst.email}</span>
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-3 py-2.5 font-mono text-muted-foreground">
+                          {inst.phone !== "-" ? (
+                            <div className="flex items-center gap-1 text-foreground">
+                              <Phone className="w-3 h-3 text-emerald-600 shrink-0" />
+                              <span>{inst.phone}</span>
+                            </div>
                           ) : (
                             <span className="text-muted-foreground/60">-</span>
                           )}
                         </td>
-                        <td className="px-3 py-2.5">
-                          {isFound ? (
-                            <div>
-                              <span className="font-semibold text-foreground block">
-                                {row.fullName}
-                              </span>
-                              {row.matchedBy && (
-                                <span className="text-[10px] text-muted-foreground">
-                                  Cocok via {row.matchedBy.replace("_", " ")}
-                                </span>
-                              )}
-                            </div>
+                        <td className="px-3 py-2.5 text-center">
+                          {inst.hasMou && inst.mouUrl ? (
+                            <a
+                              href={inst.mouUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-500/25 border border-indigo-500/30"
+                              title="Buka dokumen MoU di Google Drive"
+                            >
+                              <span>Ada MoU</span>
+                              <ExternalLink className="w-2.5 h-2.5" />
+                            </a>
                           ) : (
-                            <span className="text-rose-600 dark:text-rose-400 italic">
-                              Tidak ada di database
+                            <span className="inline-block px-1.5 py-0.5 rounded text-[10px] bg-muted text-muted-foreground border border-border">
+                              Belum Ada
                             </span>
                           )}
                         </td>
-                        <td className="px-3 py-2.5">
-                          {isFound && row.institutionName ? (
-                            <div className="flex items-center gap-1.5">
-                              <Building2 className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                              <span className="font-medium text-foreground line-clamp-1" title={row.institutionName}>
-                                {row.institutionName}
-                              </span>
-                            </div>
-                          ) : (
-                            <span className="text-muted-foreground">-</span>
-                          )}
-                        </td>
-                        <td className="px-3 py-2.5 text-muted-foreground">
-                          {isFound && (row.district || row.province) ? (
-                            <span className="line-clamp-1" title={`${row.district || ""}, ${row.province || ""}`}>
-                              {row.district ? `${row.district}, ` : ""}
-                              {row.province || ""}
-                            </span>
-                          ) : (
-                            <span>-</span>
-                          )}
-                        </td>
-                        <td className="px-3 py-2.5">
-                          {isFound ? (
-                            <div className="space-y-0.5">
-                              {row.major && (
-                                <span className="block font-medium text-foreground text-[11px] line-clamp-1">
-                                  {row.major}
-                                </span>
-                              )}
-                              {row.preferredCountries.length > 0 && (
-                                <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                                  <Globe2 className="w-3 h-3 text-emerald-600 shrink-0" />
-                                  <span className="line-clamp-1">{row.preferredCountries.join(", ")}</span>
-                                </div>
-                              )}
-                            </div>
-                          ) : (
-                            <span className="text-muted-foreground">-</span>
-                          )}
-                        </td>
-                        <td className="px-3 py-2.5">
-                          {isFound && row.readinessStatus ? (
-                            <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold bg-muted text-foreground border border-border">
-                              {row.readinessStatus}
-                            </span>
-                          ) : (
-                            <span className="text-muted-foreground">-</span>
-                          )}
+                        <td className="px-3 py-2.5 text-center">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/30">
+                            0 Calon
+                          </span>
                         </td>
                       </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Navigasi Paginasi */}
-          {totalPages > 1 && (
-            <div className="p-3 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
-              <span>
-                Menampilkan baris {(currentPage - 1) * pageSize + 1} -{" "}
-                {Math.min(currentPage * pageSize, filteredResults.length)} dari {filteredResults.length} hasil
-              </span>
-
-              <div className="flex items-center gap-1">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                  disabled={currentPage <= 1}
-                  className="h-7 px-2 text-xs"
-                >
-                  Sebelumnya
-                </Button>
-                <span className="px-2 font-mono">
-                  {currentPage} / {totalPages}
-                </span>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                  disabled={currentPage >= totalPages}
-                  className="h-7 px-2 text-xs"
-                >
-                  Selanjutnya
-                </Button>
-              </div>
+                    ))
+                  )}
+                </tbody>
+              </table>
             </div>
-          )}
-        </Card>
+
+            {/* Paginasi Lembaga Kosong */}
+            {totalEmptyPages > 1 && (
+              <div className="p-3 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
+                <span>
+                  Menampilkan {(emptyInstPage - 1) * emptyInstPageSize + 1} -{" "}
+                  {Math.min(emptyInstPage * emptyInstPageSize, filteredEmptyInstitutions.length)} dari{" "}
+                  {filteredEmptyInstitutions.length} lembaga tanpa peserta
+                </span>
+
+                <div className="flex items-center gap-1">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setEmptyInstPage((p) => Math.max(1, p - 1))}
+                    disabled={emptyInstPage <= 1}
+                    className="h-7 px-2 text-xs"
+                  >
+                    Sebelumnya
+                  </Button>
+                  <span className="px-2 font-mono">
+                    {emptyInstPage} / {totalEmptyPages}
+                  </span>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setEmptyInstPage((p) => Math.min(totalEmptyPages, p + 1))}
+                    disabled={emptyInstPage >= totalEmptyPages}
+                    className="h-7 px-2 text-xs"
+                  >
+                    Selanjutnya
+                  </Button>
+                </div>
+              </div>
+            )}
+          </Card>
+        </div>
       )}
     </div>
   );
 }
-

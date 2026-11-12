@@ -406,6 +406,8 @@ Route::middleware(['auth', EnsureUserIsActive::class])->group(function () {
         ->name('business-data.candidates.import');
     Route::post('/business-data/dev-tools/bulk-check-candidates', [BusinessDataController::class, 'bulkCheckCandidates'])
         ->name('business-data.dev-tools.bulk-check');
+    Route::get('/business-data/dev-tools/empty-institutions', [BusinessDataController::class, 'emptyInstitutions'])
+        ->name('business-data.dev-tools.empty-institutions');
     Route::get('/business-data/audit-logs', [BusinessDataController::class, 'auditLogs'])
         ->name('business-data.audit-logs.index');
     Route::get('/business-data/providers', [BusinessDataController::class, 'providers'])

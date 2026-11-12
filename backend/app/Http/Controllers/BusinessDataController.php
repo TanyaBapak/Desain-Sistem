@@ -2438,6 +2438,7 @@ class BusinessDataController extends Controller
         $parsedItems = [];
         $niksToQuery = [];
         $namesToQuery = [];
+        $wordsToQuery = [];
 
         foreach ($lines as $idx => $line) {
             $extractedNik = null;
@@ -2447,7 +2448,8 @@ class BusinessDataController extends Controller
                 $extractedNik = preg_replace('/\D/', '', $line);
             }
 
-            $cleanedName = trim(preg_replace('/[\t;,|]+/', ' ', $line));
+            // Bersihkan teks nama
+            $cleanedName = trim($line);
             if ($extractedNik) {
                 $cleanedName = trim(str_replace($extractedNik, '', $cleanedName));
             }
@@ -2465,6 +2467,13 @@ class BusinessDataController extends Controller
             }
             if ($cleanedName !== '') {
                 $namesToQuery[] = mb_strtolower($cleanedName);
+                // Ekstrak kata-kata nama utama (panjang >= 3 huruf)
+                $words = preg_split('/[^\p{L}\p{N}]+/u', mb_strtolower($cleanedName));
+                foreach ($words as $w) {
+                    if (mb_strlen($w) >= 3 && ! in_array($w, ['sh', 'spd', 'st', 'skom', 'mm', 'se', 'dr', 'drs', 'dra'], true)) {
+                        $wordsToQuery[] = $w;
+                    }
+                }
             }
         }
 
@@ -2497,17 +2506,35 @@ class BusinessDataController extends Controller
             }
         }
 
-        $nameMatches = [];
-        if (! empty($namesToQuery)) {
+        $nameCandidatesPool = [];
+        if (! empty($namesToQuery) || ! empty($wordsToQuery)) {
             $uniqueNames = array_unique($namesToQuery);
+            $uniqueWords = array_unique($wordsToQuery);
+
             $nameRows = DB::table('job_seekers')
                 ->whereNull('deleted_at')
-                ->where(function ($q) use ($uniqueNames) {
-                    foreach (array_chunk($uniqueNames, 50) as $chunk) {
+                ->where(function ($q) use ($uniqueNames, $uniqueWords) {
+                    // 1. Cocokkan string nama langsung
+                    foreach (array_chunk($uniqueNames, 30) as $chunk) {
                         $q->orWhere(function ($sub) use ($chunk) {
                             foreach ($chunk as $nameStr) {
                                 if (mb_strlen($nameStr) >= 3) {
                                     $sub->orWhere('job_seekers.full_name', 'LIKE', '%' . $nameStr . '%');
+                                    // Coba juga jika tanpa koma
+                                    $noComma = str_replace(',', ' ', $nameStr);
+                                    if ($noComma !== $nameStr) {
+                                        $sub->orWhere('job_seekers.full_name', 'LIKE', '%' . trim($noComma) . '%');
+                                    }
+                                }
+                            }
+                        });
+                    }
+                    // 2. Cocokkan kata utama nama (misal "candra", "purwodadi", "ziqraa")
+                    foreach (array_chunk($uniqueWords, 30) as $chunk) {
+                        $q->orWhere(function ($sub) use ($chunk) {
+                            foreach ($chunk as $word) {
+                                if (mb_strlen($word) >= 4) {
+                                    $sub->orWhere('job_seekers.full_name', 'LIKE', '%' . $word . '%');
                                 }
                             }
                         });
@@ -2530,14 +2557,21 @@ class BusinessDataController extends Controller
                     'provinces.name as province_name',
                     'districts.name as district_name',
                 ])
-                ->limit(5000)
+                ->limit(6000)
                 ->get();
 
             foreach ($nameRows as $row) {
-                $lowerName = mb_strtolower(trim($row->full_name));
-                $nameMatches[$lowerName][] = $row;
+                $nameCandidatesPool[] = $row;
             }
         }
+
+        $normalizeName = function (string $text): string {
+            // Bersihkan gelar akademik umum
+            $clean = preg_replace('/\b(s\.?h|s\.?pd|s\.?kom|s\.?t|s\.?sos|s\.?e|m\.?m|m\.?pd|m\.?kom|dr|dra|drs|ph\.?d)\b/i', '', $text);
+            // Buang semua tanda baca (koma, titik, tanda hubung)
+            $clean = preg_replace('/[^\p{L}\p{N}\s]+/u', ' ', $clean);
+            return mb_strtolower(trim(preg_replace('/\s+/', ' ', $clean)));
+        };
 
         $results = [];
         $totalFound = 0;
@@ -2547,18 +2581,41 @@ class BusinessDataController extends Controller
             $matchedRecord = null;
             $matchedBy = null;
 
+            // 1. Cek NIK
             if (! empty($item['nik']) && isset($nikMatches[$item['nik']])) {
                 $matchedRecord = $nikMatches[$item['nik']];
                 $matchedBy = 'NIK';
-            } elseif (! empty($item['name'])) {
-                $searchNameLower = mb_strtolower($item['name']);
-                if (isset($nameMatches[$searchNameLower])) {
-                    $matchedRecord = $nameMatches[$searchNameLower][0];
-                    $matchedBy = 'NAMA_PERSIS';
-                } else {
-                    foreach ($nameMatches as $dbLowerName => $candidates) {
-                        if (str_contains($dbLowerName, $searchNameLower) || str_contains($searchNameLower, $dbLowerName)) {
-                            $matchedRecord = $candidates[0];
+            }
+            // 2. Cek Nama
+            elseif (! empty($item['name'])) {
+                $rawSearchLower = mb_strtolower(trim($item['name']));
+                $searchNormalized = $normalizeName($item['name']);
+
+                // 2a. Cek persis string atau persis setelah normalisasi
+                foreach ($nameCandidatesPool as $candidate) {
+                    $candNameLower = mb_strtolower(trim($candidate->full_name));
+                    $candNormalized = $normalizeName($candidate->full_name);
+
+                    if ($rawSearchLower === $candNameLower || $searchNormalized === $candNormalized) {
+                        $matchedRecord = $candidate;
+                        $matchedBy = 'NAMA_PERSIS';
+                        break;
+                    }
+                }
+
+                // 2b. Cek parsial nama (apakah satu string mengandung string lainnya)
+                if (! $matchedRecord && mb_strlen($searchNormalized) >= 3) {
+                    foreach ($nameCandidatesPool as $candidate) {
+                        $candNameLower = mb_strtolower(trim($candidate->full_name));
+                        $candNormalized = $normalizeName($candidate->full_name);
+
+                        if (str_contains($candNameLower, $rawSearchLower) || str_contains($rawSearchLower, $candNameLower)) {
+                            $matchedRecord = $candidate;
+                            $matchedBy = 'NAMA_PARSIAL';
+                            break;
+                        }
+                        if (str_contains($candNormalized, $searchNormalized) || str_contains($searchNormalized, $candNormalized)) {
+                            $matchedRecord = $candidate;
                             $matchedBy = 'NAMA_PARSIAL';
                             break;
                         }
@@ -2622,6 +2679,87 @@ class BusinessDataController extends Controller
             'totalFound' => $totalFound,
             'totalNotFound' => $totalNotFound,
             'results' => $results,
+        ]);
+    }
+
+    public function emptyInstitutions(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $role = $user->roles()->value('name');
+        abort_unless(in_array($role, ['super_admin', 'superadmin'], true), 403);
+
+        $institutions = DB::table('institutions')
+            ->leftJoin('provinces', 'provinces.id', '=', 'institutions.province_id')
+            ->leftJoin('districts', 'districts.id', '=', 'institutions.district_id')
+            ->where('institutions.status', 'Aktif')
+            ->select([
+                'institutions.id',
+                'institutions.name',
+                'institutions.institution_type',
+                'institutions.province_id',
+                'institutions.district_id',
+                'institutions.mou_drive_url',
+                'institutions.phone',
+                'institutions.email',
+                'institutions.head_name',
+                'institutions.accreditation',
+                'institutions.supported_sectors',
+                'institutions.evokasi_status',
+                'institutions.verification_status',
+                'institutions.created_at',
+                'provinces.name as province_name',
+                'districts.name as district_name',
+            ])
+            ->orderBy('provinces.name')
+            ->orderBy('institutions.name')
+            ->get();
+
+        $instIds = $institutions->pluck('id')->filter()->values()->all();
+
+        $candidateCounts = DB::table('job_seekers')
+            ->whereNull('deleted_at')
+            ->whereIn('institution_id', $instIds)
+            ->select('institution_id', DB::raw('count(*) as total'))
+            ->groupBy('institution_id')
+            ->pluck('total', 'institution_id');
+
+        $emptyList = [];
+        $withParticipantsList = [];
+
+        foreach ($institutions as $inst) {
+            $count = (int) ($candidateCounts[$inst->id] ?? 0);
+            $item = [
+                'id' => $inst->id,
+                'name' => $inst->name,
+                'type' => $inst->institution_type ?: 'Lembaga Vokasi',
+                'province' => $inst->province_name ?: '-',
+                'district' => $inst->district_name ?: '-',
+                'headName' => $inst->head_name ?: '-',
+                'phone' => $inst->phone ?: '-',
+                'email' => $inst->email ?: '-',
+                'hasMou' => ! empty($inst->mou_drive_url),
+                'mouUrl' => $inst->mou_drive_url ?: null,
+                'evokasiStatus' => $inst->evokasi_status ?: 'Belum Terdaftar',
+                'supportedSectors' => is_string($inst->supported_sectors) ? (json_decode($inst->supported_sectors, true) ?: [$inst->supported_sectors]) : ($inst->supported_sectors ?: []),
+                'candidateCount' => $count,
+            ];
+
+            if ($count === 0) {
+                $emptyList[] = $item;
+            } else {
+                $withParticipantsList[] = $item;
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'summary' => [
+                'totalInstitutions' => count($institutions),
+                'totalWithCandidates' => count($withParticipantsList),
+                'totalEmpty' => count($emptyList),
+                'totalCandidatesInSystem' => DB::table('job_seekers')->whereNull('deleted_at')->count(),
+            ],
+            'emptyInstitutions' => $emptyList,
         ]);
     }
 }
