@@ -23,6 +23,7 @@ import {
   MapPin,
   FileCheck2,
   AlertTriangle,
+  ArrowLeftRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -50,13 +51,42 @@ export interface BulkCheckCandidateResult {
   preferredCountries: string[];
 }
 
+export interface SystemOnlyCandidateResult {
+  index: number;
+  status: "SYSTEM_ONLY";
+  id: string;
+  nik: string;
+  fullName: string;
+  institutionId: string | null;
+  institutionName: string | null;
+  province: string | null;
+  district: string | null;
+  educationLevel: string | null;
+  major: string | null;
+  gender: string | null;
+  readinessStatus: string | null;
+  verificationStatus: string | null;
+  preferredCountries: string[];
+}
+
+export interface DetectedInstitutionSummary {
+  id: string;
+  name: string;
+  matchedFromSpreadsheet: number;
+  totalInSystem: number;
+  missingFromSpreadsheet: number;
+}
+
 export interface BulkCheckResponse {
   success: boolean;
   totalDatabase: number;
   totalInput: number;
   totalFound: number;
   totalNotFound: number;
+  totalSystemOnly: number;
+  detectedInstitutions: DetectedInstitutionSummary[];
   results: BulkCheckCandidateResult[];
+  systemOnlyCandidates: SystemOnlyCandidateResult[];
 }
 
 export interface EmptyInstitutionItem {
@@ -84,6 +114,7 @@ export interface EmptyInstitutionsResponse {
     totalCandidatesInSystem: number;
   };
   emptyInstitutions: EmptyInstitutionItem[];
+  institutionsList?: { id: string; name: string; type: string; province: string }[];
 }
 
 const SAMPLE_INPUT = `3301121712060001
@@ -97,16 +128,18 @@ Peserta Fiktif Tidak Ada di Sistem
 9999999999999999`;
 
 export function DevToolsBulkCheckerPage() {
-  // Tab Aktif: 'candidates' (Pemeriksa Nama/NIK) atau 'empty_institutions' (Lembaga Tanpa Peserta)
+  // Tab Aktif: 'candidates' (Pemeriksa Nama/NIK & Matching 2 Arah) atau 'empty_institutions' (Lembaga Tanpa Peserta)
   const [activeMainTab, setActiveMainTab] = useState<"candidates" | "empty_institutions">("candidates");
 
-  // State untuk Tab 1 (Pemeriksa Calon PMI)
+  // State untuk Tab 1 (Pemeriksa Calon PMI & Matching 2 Arah)
   const [rawInput, setRawInput] = useState("");
+  const [targetInstitutionId, setTargetInstitutionId] = useState("auto");
   const [isLoading, setIsLoading] = useState(false);
   const [resultData, setResultData] = useState<BulkCheckResponse | null>(null);
-  const [activeFilter, setActiveFilter] = useState<"ALL" | "FOUND" | "NOT_FOUND">("ALL");
+  const [activeFilter, setActiveFilter] = useState<"ALL" | "FOUND" | "NOT_FOUND" | "SYSTEM_ONLY">("ALL");
   const [tableSearchQuery, setTableSearchQuery] = useState("");
   const [hasCopiedNotFound, setHasCopiedNotFound] = useState(false);
+  const [hasCopiedSystemOnly, setHasCopiedSystemOnly] = useState(false);
   const [isExportingExcel, setIsExportingExcel] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 50;
@@ -122,12 +155,10 @@ export function DevToolsBulkCheckerPage() {
   const [isExportingEmptyExcel, setIsExportingEmptyExcel] = useState(false);
   const emptyInstPageSize = 30;
 
-  // Fetch Lembaga Kosong saat tab 'empty_institutions' pertama kali dibuka
+  // Load institutions list saat pertama dibuka agar user bisa memilih lembaga spesifik bila diinginkan
   useEffect(() => {
-    if (activeMainTab === "empty_institutions" && !emptyInstData && !isLoadingEmptyInst) {
-      loadEmptyInstitutions();
-    }
-  }, [activeMainTab]);
+    loadEmptyInstitutions();
+  }, []);
 
   const loadEmptyInstitutions = async () => {
     setIsLoadingEmptyInst(true);
@@ -146,7 +177,7 @@ export function DevToolsBulkCheckerPage() {
       const data: EmptyInstitutionsResponse = await res.json();
       setEmptyInstData(data);
     } catch (err: any) {
-      toast.error(err.message || "Gagal memuat data lembaga tanpa peserta.");
+      toast.error(err.message || "Gagal memuat data lembaga.");
     } finally {
       setIsLoadingEmptyInst(false);
     }
@@ -188,12 +219,15 @@ export function DevToolsBulkCheckerPage() {
           "X-Requested-With": "XMLHttpRequest",
           ...(csrfToken ? { "X-XSRF-TOKEN": decodeURIComponent(csrfToken) } : {}),
         },
-        body: JSON.stringify({ raw_input: rawInput }),
+        body: JSON.stringify({
+          raw_input: rawInput,
+          target_institution_id: targetInstitutionId,
+        }),
       });
 
       if (!res.ok) {
         const errJson = await res.json().catch(() => null);
-        throw new Error(errJson?.message || `Gagal melakukan pemeriksaan (Status: ${res.status})`);
+        throw new Error(errJson?.message || `Gagal melakukan rekonsiliasi (Status: ${res.status})`);
       }
 
       const data: BulkCheckResponse = await res.json();
@@ -202,7 +236,7 @@ export function DevToolsBulkCheckerPage() {
       setActiveFilter("ALL");
 
       toast.success(
-        `Pemeriksaan selesai: ${data.totalFound} ditemukan (✅), ${data.totalNotFound} belum terdaftar (❌).`
+        `Rekonsiliasi selesai: ${data.totalFound} cocok di keduanya (✅), ${data.totalNotFound} hanya di spreadsheet (❌), ${data.totalSystemOnly} hanya di sistem (⚠️).`
       );
     } catch (err: any) {
       toast.error(err.message || "Terjadi kesalahan saat memeriksa data massal.");
@@ -211,73 +245,125 @@ export function DevToolsBulkCheckerPage() {
     }
   };
 
-  // Filter hasil tabel calon
-  const filteredResults = useMemo(() => {
-    if (!resultData?.results) return [];
+  // Filter gabungan tabel calon & sistem
+  type DisplayRow =
+    | { type: "SPREADSHEET_ROW"; data: BulkCheckCandidateResult }
+    | { type: "SYSTEM_ROW"; data: SystemOnlyCandidateResult };
 
-    let list = resultData.results;
+  const filteredDisplayRows = useMemo<DisplayRow[]>(() => {
+    if (!resultData) return [];
 
-    if (activeFilter === "FOUND") {
-      list = list.filter((r) => r.status === "FOUND");
+    let rows: DisplayRow[] = [];
+
+    if (activeFilter === "ALL") {
+      rows = [
+        ...resultData.results.map((r) => ({ type: "SPREADSHEET_ROW" as const, data: r })),
+        ...resultData.systemOnlyCandidates.map((r) => ({ type: "SYSTEM_ROW" as const, data: r })),
+      ];
+    } else if (activeFilter === "FOUND") {
+      rows = resultData.results
+        .filter((r) => r.status === "FOUND")
+        .map((r) => ({ type: "SPREADSHEET_ROW" as const, data: r }));
     } else if (activeFilter === "NOT_FOUND") {
-      list = list.filter((r) => r.status === "NOT_FOUND");
+      rows = resultData.results
+        .filter((r) => r.status === "NOT_FOUND")
+        .map((r) => ({ type: "SPREADSHEET_ROW" as const, data: r }));
+    } else if (activeFilter === "SYSTEM_ONLY") {
+      rows = resultData.systemOnlyCandidates.map((r) => ({
+        type: "SYSTEM_ROW" as const,
+        data: r,
+      }));
     }
 
     const q = tableSearchQuery.toLowerCase().trim();
     if (q) {
-      list = list.filter(
-        (r) =>
-          r.input.toLowerCase().includes(q) ||
-          r.fullName.toLowerCase().includes(q) ||
-          (r.nik && r.nik.toLowerCase().includes(q)) ||
-          (r.institutionName && r.institutionName.toLowerCase().includes(q)) ||
-          (r.district && r.district.toLowerCase().includes(q)) ||
-          (r.province && r.province.toLowerCase().includes(q)) ||
-          (r.major && r.major.toLowerCase().includes(q))
-      );
+      rows = rows.filter((item) => {
+        if (item.type === "SPREADSHEET_ROW") {
+          const r = item.data;
+          return (
+            r.input.toLowerCase().includes(q) ||
+            r.fullName.toLowerCase().includes(q) ||
+            (r.nik && r.nik.toLowerCase().includes(q)) ||
+            (r.institutionName && r.institutionName.toLowerCase().includes(q)) ||
+            (r.district && r.district.toLowerCase().includes(q)) ||
+            (r.province && r.province.toLowerCase().includes(q)) ||
+            (r.major && r.major.toLowerCase().includes(q))
+          );
+        } else {
+          const r = item.data;
+          return (
+            r.fullName.toLowerCase().includes(q) ||
+            r.nik.toLowerCase().includes(q) ||
+            (r.institutionName && r.institutionName.toLowerCase().includes(q)) ||
+            (r.district && r.district.toLowerCase().includes(q)) ||
+            (r.province && r.province.toLowerCase().includes(q)) ||
+            (r.major && r.major.toLowerCase().includes(q))
+          );
+        }
+      });
     }
 
-    return list;
+    return rows;
   }, [resultData, activeFilter, tableSearchQuery]);
 
-  const totalPages = Math.max(1, Math.ceil(filteredResults.length / pageSize));
-  const paginatedResults = useMemo(() => {
+  const totalPages = Math.max(1, Math.ceil(filteredDisplayRows.length / pageSize));
+  const paginatedRows = useMemo(() => {
     const start = (currentPage - 1) * pageSize;
-    return filteredResults.slice(start, start + pageSize);
-  }, [filteredResults, currentPage, pageSize]);
+    return filteredDisplayRows.slice(start, start + pageSize);
+  }, [filteredDisplayRows, currentPage, pageSize]);
 
-  // Ekspor hasil pemeriksaan calon ke Excel
+  // Ekspor hasil rekonsiliasi 2-Arah ke Excel
   const handleExportExcel = async () => {
-    if (!resultData || resultData.results.length === 0) return;
+    if (!resultData) return;
 
     setIsExportingExcel(true);
     try {
       const XLSX = await import("xlsx");
 
-      const exportRows = resultData.results.map((r, i) => ({
-        No: i + 1,
-        Status: r.status === "FOUND" ? "DITEMUKAN (TERDAFTAR)" : "BELUM TERDAFTAR",
-        "Metode Pencocokan": r.matchedBy || "-",
-        "Kata Kunci Input": r.input,
-        "NIK Terdaftar": r.nik || "-",
-        "Nama Lengkap di Sistem": r.fullName || "-",
-        "Lembaga Vokasi / Asal": r.institutionName || "-",
-        Provinsi: r.province || "-",
-        "Kabupaten / Kota": r.district || "-",
-        Pendidikan: r.educationLevel || "-",
-        Jurusan: r.major || "-",
-        "Negara Target": r.preferredCountries.join(", ") || "-",
-        "Status Kesiapan": r.readinessStatus || "-",
-      }));
+      const exportRows = [
+        ...resultData.results.map((r, i) => ({
+          No: i + 1,
+          "Kategori Status":
+            r.status === "FOUND"
+              ? "ADA DI SPREADSHEET & ADA DI SISTEM (COCOK)"
+              : "HANYA DI SPREADSHEET (BELUM MASUK SISTEM)",
+          "Metode Cocok": r.matchedBy || "-",
+          "Input dari Spreadsheet": r.input,
+          "NIK di Sistem": r.nik || "-",
+          "Nama Lengkap di Sistem": r.fullName || "-",
+          "Lembaga Vokasi": r.institutionName || "-",
+          Provinsi: r.province || "-",
+          "Kabupaten / Kota": r.district || "-",
+          Pendidikan: r.educationLevel || "-",
+          Jurusan: r.major || "-",
+          "Negara Target": r.preferredCountries.join(", ") || "-",
+          "Status Kesiapan": r.readinessStatus || "-",
+        })),
+        ...resultData.systemOnlyCandidates.map((r, i) => ({
+          No: resultData.results.length + i + 1,
+          "Kategori Status": "HANYA DI SISTEM (TIDAK ADA DI SPREADSHEET)",
+          "Metode Cocok": "Data Asli Sistem",
+          "Input dari Spreadsheet": "-",
+          "NIK di Sistem": r.nik,
+          "Nama Lengkap di Sistem": r.fullName,
+          "Lembaga Vokasi": r.institutionName || "-",
+          Provinsi: r.province || "-",
+          "Kabupaten / Kota": r.district || "-",
+          Pendidikan: r.educationLevel || "-",
+          Jurusan: r.major || "-",
+          "Negara Target": r.preferredCountries.join(", ") || "-",
+          "Status Kesiapan": r.readinessStatus || "-",
+        })),
+      ];
 
       const worksheet = XLSX.utils.json_to_sheet(exportRows);
       const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Hasil Rekonsiliasi Calon");
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Rekonsiliasi 2 Arah");
 
       const todayStr = new Date().toISOString().slice(0, 10);
-      XLSX.writeFile(workbook, `Rekonsiliasi_Calon_PMI_${todayStr}.xlsx`);
+      XLSX.writeFile(workbook, `Rekonsiliasi_2_Arah_PMI_${todayStr}.xlsx`);
 
-      toast.success("Hasil pemeriksaan berhasil diekspor ke file Excel.");
+      toast.success("Hasil rekonsiliasi 2 arah berhasil diekspor ke file Excel.");
     } catch {
       toast.error("Gagal mengekspor file Excel.");
     } finally {
@@ -285,7 +371,7 @@ export function DevToolsBulkCheckerPage() {
     }
   };
 
-  // Salin daftar yang belum terdaftar (❌)
+  // Salin daftar yang belum terdaftar di sistem (❌)
   const handleCopyNotFound = () => {
     if (!resultData) return;
     const notFoundList = resultData.results
@@ -294,14 +380,31 @@ export function DevToolsBulkCheckerPage() {
       .join("\n");
 
     if (!notFoundList) {
-      toast.info("Semua peserta terdaftar (tidak ada yang berstatus ❌).");
+      toast.info("Semua peserta spreadsheet terdaftar di sistem.");
       return;
     }
 
     navigator.clipboard.writeText(notFoundList);
     setHasCopiedNotFound(true);
-    toast.success("Daftar calon yang belum terdaftar berhasil disalin ke clipboard!");
+    toast.success("Daftar nama yang belum masuk sistem berhasil disalin!");
     setTimeout(() => setHasCopiedNotFound(false), 2500);
+  };
+
+  // Salin daftar yang HANYA ada di sistem (⚠️)
+  const handleCopySystemOnly = () => {
+    if (!resultData || resultData.systemOnlyCandidates.length === 0) {
+      toast.info("Tidak ada peserta yang hanya ada di sistem.");
+      return;
+    }
+
+    const list = resultData.systemOnlyCandidates
+      .map((r) => `${r.nik} - ${r.fullName} (${r.institutionName || "Tanpa Lembaga"})`)
+      .join("\n");
+
+    navigator.clipboard.writeText(list);
+    setHasCopiedSystemOnly(true);
+    toast.success("Daftar peserta yang hanya ada di sistem berhasil disalin!");
+    setTimeout(() => setHasCopiedSystemOnly(false), 2500);
   };
 
   // Filter lembaga kosong
@@ -406,11 +509,11 @@ export function DevToolsBulkCheckerPage() {
               <Wrench className="h-4 w-4" />
             </div>
             <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-              <span>Dev Tools — Rekonsiliasi & Pemeriksa Sistem</span>
+              <span>Dev Tools — Rekonsiliasi & Matching 2 Arah</span>
             </h1>
           </div>
           <p className="mt-1 text-xs sm:text-sm text-muted-foreground">
-            Alat bantu rekonsiliasi data calon PMI massal serta pelacakan lembaga vokasi spreadsheet/MoU yang belum memiliki peserta di sistem.
+            Mendeteksi kecocokan timbal-balik: siapa yang ada di sistem vs spreadsheet, siapa yang ada di spreadsheet tapi belum di sistem, dan sebaliknya.
           </p>
         </div>
 
@@ -436,11 +539,11 @@ export function DevToolsBulkCheckerPage() {
               : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground"
           }`}
         >
-          <Users className="w-4 h-4" />
-          <span>Pemeriksa Calon PMI Massal</span>
+          <ArrowLeftRight className="w-4 h-4" />
+          <span>Rekonsiliasi Calon (Spreadsheet ⇄ Sistem)</span>
           {resultData && (
             <span className="ml-1 px-1.5 py-0.2 bg-background/20 rounded-full text-[10px] font-mono">
-              {resultData.totalFound}/{resultData.totalInput}
+              {resultData.totalFound} Cocok
             </span>
           )}
         </button>
@@ -465,7 +568,7 @@ export function DevToolsBulkCheckerPage() {
       </div>
 
       {/* ========================================================================= */}
-      {/* TAB 1: PEMERIKSA CALON PMI MASSAL */}
+      {/* TAB 1: REKONSILIASI CALON PMI 2 ARAH (SPREADSHEET ⇄ SISTEM) */}
       {/* ========================================================================= */}
       {activeMainTab === "candidates" && (
         <div className="space-y-6 animate-in fade-in duration-300">
@@ -474,7 +577,7 @@ export function DevToolsBulkCheckerPage() {
             <CardContent className="p-4 sm:p-5 space-y-3">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <label htmlFor="bulk-candidate-input" className="text-sm font-semibold text-foreground flex items-center gap-2">
-                  <span>Tempel Daftar Nama / NIK Massal:</span>
+                  <span>Tempel Daftar Nama / NIK dari Spreadsheet / Excel:</span>
                   <Badge variant="secondary" className="text-xs font-mono">
                     {inputLineCount} Baris Terdeteksi
                   </Badge>
@@ -525,9 +628,22 @@ Bima Saputra
               />
 
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
-                <span className="text-[11px] text-muted-foreground">
-                  Tip: Mendukung NIK 16-digit, nama lengkap (dengan gelar seperti S.H., S.Pd.), atau gabungan NIK & nama dari Excel. Maksimal 2.000 baris.
-                </span>
+                {/* Opsi Target Lembaga untuk Bandingkan dengan Sistem */}
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground shrink-0">Bandingkan terhadap:</span>
+                  <select
+                    value={targetInstitutionId}
+                    onChange={(e) => setTargetInstitutionId(e.target.value)}
+                    className="h-8 max-w-[280px] rounded-lg border border-input bg-background px-2.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary truncate"
+                  >
+                    <option value="auto">Deteksi Otomatis dari Input (Rekomendasi)</option>
+                    {emptyInstData?.institutionsList?.map((inst) => (
+                      <option key={inst.id} value={inst.id}>
+                        {inst.name} ({inst.province})
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
                 <Button
                   type="button"
@@ -538,12 +654,12 @@ Bima Saputra
                   {isLoading ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>Memeriksa ke Database...</span>
+                      <span>Memproses Matching 2 Arah...</span>
                     </>
                   ) : (
                     <>
-                      <Search className="w-4 h-4" />
-                      <span>Periksa Massal ({inputLineCount} Baris)</span>
+                      <ArrowLeftRight className="w-4 h-4" />
+                      <span>Mulai Rekonsiliasi 2 Arah ({inputLineCount} Baris)</span>
                     </>
                   )}
                 </Button>
@@ -551,24 +667,55 @@ Bima Saputra
             </CardContent>
           </Card>
 
-          {/* KPI Ringkasan Hasil */}
+          {/* Banner Informasi Lembaga Terdeteksi & Ringkasan Gap 2 Arah */}
+          {resultData && resultData.detectedInstitutions.length > 0 && (
+            <Card className="border border-indigo-500/30 bg-indigo-500/5 p-4 animate-in fade-in duration-300">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                <div>
+                  <span className="text-xs font-semibold text-indigo-700 dark:text-indigo-300 flex items-center gap-1.5">
+                    <Building2 className="w-4 h-4" />
+                    <span>Lembaga Asal Terdeteksi dari Input:</span>
+                  </span>
+                  <div className="mt-1 flex flex-wrap items-center gap-2">
+                    {resultData.detectedInstitutions.map((inst) => (
+                      <Badge
+                        key={inst.id}
+                        variant="outline"
+                        className="bg-background text-foreground border-indigo-500/30 text-xs py-1 px-2.5 font-semibold"
+                      >
+                        {inst.name} ({inst.matchedFromSpreadsheet} dari {inst.totalInSystem} siswa cocok)
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="text-xs text-muted-foreground bg-background/60 p-2.5 rounded-lg border border-border">
+                  Sistem otomatis membandingkan seluruh data aktif dari lembaga di atas untuk mendeteksi siapa saja yang tidak ada di spreadsheet.
+                </div>
+              </div>
+            </Card>
+          )}
+
+          {/* KPI 4 Kotak Ringkasan Hasil 2 Arah */}
           {resultData && (
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 animate-in fade-in duration-300">
+              {/* Kotak 1: Total Input Spreadsheet */}
               <Card className="border border-border bg-card p-4">
-                <span className="text-xs font-medium text-muted-foreground">Total Diperiksa</span>
+                <span className="text-xs font-medium text-muted-foreground">1. Total di Spreadsheet</span>
                 <div className="mt-1 flex items-baseline gap-2">
                   <span className="text-2xl sm:text-3xl font-extrabold text-foreground tabular-nums">
                     {resultData.totalInput.toLocaleString("id-ID")}
                   </span>
-                  <span className="text-xs text-muted-foreground">Orang</span>
+                  <span className="text-xs text-muted-foreground">Baris</span>
                 </div>
-                <p className="mt-1 text-[11px] text-muted-foreground">Dari berkas input yang ditempel</p>
+                <p className="mt-1 text-[11px] text-muted-foreground">Data yang ditempelkan dari Excel</p>
               </Card>
 
+              {/* Kotak 2: Cocok di Keduanya (Spreadsheet + Sistem) */}
               <Card className="border border-emerald-500/30 bg-emerald-500/5 p-4">
                 <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 flex items-center gap-1">
                   <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>Ditemukan di Sistem</span>
+                  <span>2. Ada di Keduanya (Cocok)</span>
                 </span>
                 <div className="mt-1 flex items-baseline gap-2">
                   <span className="text-2xl sm:text-3xl font-extrabold text-emerald-600 dark:text-emerald-400 tabular-nums">
@@ -578,13 +725,14 @@ Bima Saputra
                     ({resultData.totalInput > 0 ? Math.round((resultData.totalFound / resultData.totalInput) * 100) : 0}%)
                   </span>
                 </div>
-                <p className="mt-1 text-[11px] text-muted-foreground">Sudah terdaftar & memiliki data lengkap</p>
+                <p className="mt-1 text-[11px] text-muted-foreground">Ada di spreadsheet & terdaftar di sistem</p>
               </Card>
 
+              {/* Kotak 3: Hanya di Spreadsheet (Belum Masuk Sistem) */}
               <Card className="border border-rose-500/30 bg-rose-500/5 p-4">
                 <span className="text-xs font-semibold text-rose-700 dark:text-rose-400 flex items-center gap-1">
                   <XCircle className="w-3.5 h-3.5 text-rose-600" />
-                  <span>Belum Terdaftar</span>
+                  <span>3. Hanya di Spreadsheet</span>
                 </span>
                 <div className="mt-1 flex items-baseline gap-2">
                   <span className="text-2xl sm:text-3xl font-extrabold text-rose-600 dark:text-rose-400 tabular-nums">
@@ -594,54 +742,31 @@ Bima Saputra
                     ({resultData.totalInput > 0 ? Math.round((resultData.totalNotFound / resultData.totalInput) * 100) : 0}%)
                   </span>
                 </div>
-                <p className="mt-1 text-[11px] text-muted-foreground">Belum masuk di database sistem</p>
+                <p className="mt-1 text-[11px] text-rose-600 dark:text-rose-400 font-medium">Belum terdaftar di database sistem</p>
               </Card>
 
-              <Card className="border border-border bg-card p-4">
-                <span className="text-xs font-medium text-muted-foreground flex items-center gap-1">
-                  <Database className="w-3.5 h-3.5 text-blue-600" />
-                  <span>Total Basis Data Sistem</span>
+              {/* Kotak 4: Hanya di Sistem (Tidak di Spreadsheet) */}
+              <Card className="border border-amber-500/30 bg-amber-500/5 p-4">
+                <span className="text-xs font-semibold text-amber-700 dark:text-amber-400 flex items-center gap-1">
+                  <AlertCircle className="w-3.5 h-3.5 text-amber-600" />
+                  <span>4. Hanya di Sistem</span>
                 </span>
                 <div className="mt-1 flex items-baseline gap-2">
-                  <span className="text-2xl sm:text-3xl font-extrabold text-foreground tabular-nums">
-                    {resultData.totalDatabase.toLocaleString("id-ID")}
+                  <span className="text-2xl sm:text-3xl font-extrabold text-amber-600 dark:text-amber-400 tabular-nums">
+                    {resultData.totalSystemOnly.toLocaleString("id-ID")}
                   </span>
-                  <span className="text-xs text-muted-foreground">Peserta Riil</span>
+                  <span className="text-xs text-muted-foreground">Peserta</span>
                 </div>
-                <p className="mt-1 text-[11px] text-muted-foreground">Seluruh calon PMI terdaftar aktif</p>
+                <p className="mt-1 text-[11px] text-amber-700 dark:text-amber-300 font-medium">Ada di database lembaga, absen di Excel</p>
               </Card>
             </div>
           )}
 
-          {/* Notifikasi Khusus Bila Ada Calon Belum Masuk */}
-          {resultData && resultData.totalNotFound > 0 && (
-            <div className="p-3.5 rounded-xl border border-rose-500/30 bg-rose-500/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-              <div className="flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
-                <span className="text-rose-900 dark:text-rose-200">
-                  Terdapat <strong>{resultData.totalNotFound} nama/NIK</strong> dari berkas Anda yang <strong>belum terdaftar</strong> di sistem. Anda dapat memfilter tabel di bawah atau menyalinnya langsung.
-                </span>
-              </div>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={() => {
-                  setActiveFilter("NOT_FOUND");
-                  setCurrentPage(1);
-                }}
-                className="h-7 text-xs border-rose-500/40 text-rose-700 dark:text-rose-300 hover:bg-rose-500/20 shrink-0"
-              >
-                Lihat Calon Belum Terdaftar Saja (❌)
-              </Button>
-            </div>
-          )}
-
-          {/* Tabel Hasil Pemeriksaan */}
+          {/* Tabel Hasil Rekonsiliasi 2 Arah */}
           {resultData && (
             <Card className="border border-border bg-card shadow-xs animate-in fade-in duration-300">
               <div className="p-4 border-b border-border flex flex-col md:flex-row md:items-center justify-between gap-3">
-                {/* Filter Tabs */}
+                {/* Filter Tabs 4 Opsi */}
                 <div className="flex flex-wrap items-center gap-1.5 p-1 rounded-xl bg-muted/50 border border-border">
                   <button
                     type="button"
@@ -655,8 +780,9 @@ Bima Saputra
                         : "text-muted-foreground hover:text-foreground"
                     }`}
                   >
-                    Semua Hasil ({resultData.totalInput})
+                    Semua ({resultData.totalInput + resultData.totalSystemOnly})
                   </button>
+
                   <button
                     type="button"
                     onClick={() => {
@@ -670,8 +796,9 @@ Bima Saputra
                     }`}
                   >
                     <CheckCircle2 className="w-3 h-3" />
-                    <span>Ditemukan ({resultData.totalFound})</span>
+                    <span>Cocok di Keduanya ({resultData.totalFound})</span>
                   </button>
+
                   <button
                     type="button"
                     onClick={() => {
@@ -685,7 +812,23 @@ Bima Saputra
                     }`}
                   >
                     <XCircle className="w-3 h-3" />
-                    <span>Belum Terdaftar ({resultData.totalNotFound})</span>
+                    <span>Hanya di Spreadsheet ({resultData.totalNotFound})</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveFilter("SYSTEM_ONLY");
+                      setCurrentPage(1);
+                    }}
+                    className={`px-3 py-1 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 ${
+                      activeFilter === "SYSTEM_ONLY"
+                        ? "bg-amber-600 text-white shadow-xs"
+                        : "text-amber-700 dark:text-amber-400 hover:bg-amber-500/10"
+                    }`}
+                  >
+                    <AlertCircle className="w-3 h-3" />
+                    <span>Hanya di Sistem ({resultData.totalSystemOnly})</span>
                   </button>
                 </div>
 
@@ -711,10 +854,24 @@ Bima Saputra
                       size="sm"
                       onClick={handleCopyNotFound}
                       className="h-8 text-xs gap-1.5 border-rose-500/30 text-rose-700 dark:text-rose-400 hover:bg-rose-500/10"
-                      title="Salin semua nama/NIK yang belum terdaftar untuk ditindaklanjuti"
+                      title="Salin semua nama/NIK yang belum terdaftar di sistem"
                     >
                       {hasCopiedNotFound ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
-                      <span>Salin Data ❌</span>
+                      <span>Salin ❌</span>
+                    </Button>
+                  )}
+
+                  {resultData.totalSystemOnly > 0 && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleCopySystemOnly}
+                      className="h-8 text-xs gap-1.5 border-amber-500/30 text-amber-700 dark:text-amber-400 hover:bg-amber-500/10"
+                      title="Salin peserta yang ada di sistem tapi tidak ada di spreadsheet"
+                    >
+                      {hasCopiedSystemOnly ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                      <span>Salin ⚠️</span>
                     </Button>
                   )}
 
@@ -736,37 +893,115 @@ Bima Saputra
                 </div>
               </div>
 
-              {/* Tabel Konten */}
+              {/* Tabel Konten Rekonsiliasi 2 Arah */}
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs border-collapse">
                   <thead className="bg-muted/50 border-b border-border font-semibold text-muted-foreground">
                     <tr>
                       <th className="px-3 py-2.5 w-12 text-center">#</th>
-                      <th className="px-3 py-2.5 w-32 text-center">Status</th>
-                      <th className="px-3 py-2.5 w-44">Kata Kunci Input</th>
-                      <th className="px-3 py-2.5 w-44 font-mono">NIK Terdaftar</th>
+                      <th className="px-3 py-2.5 w-44 text-center">Status Rekonsiliasi</th>
+                      <th className="px-3 py-2.5 w-40">Kata Kunci Input</th>
+                      <th className="px-3 py-2.5 w-40 font-mono">NIK di Sistem</th>
                       <th className="px-3 py-2.5 min-w-[180px]">Nama di Sistem</th>
-                      <th className="px-3 py-2.5 min-w-[200px]">Lembaga Vokasi Asal</th>
+                      <th className="px-3 py-2.5 min-w-[200px]">Lembaga Vokasi</th>
                       <th className="px-3 py-2.5 w-44">Wilayah Domisili</th>
-                      <th className="px-3 py-2.5 w-44">Sektor & Negara Target</th>
+                      <th className="px-3 py-2.5 w-40">Jurusan & Target</th>
                       <th className="px-3 py-2.5 w-32">Kesiapan</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
-                    {paginatedResults.length === 0 ? (
+                    {paginatedRows.length === 0 ? (
                       <tr>
                         <td colSpan={9} className="py-10 text-center text-muted-foreground">
                           <AlertCircle className="w-6 h-6 mx-auto mb-2 opacity-50" />
-                          <span>Tidak ada data hasil pemeriksaan yang sesuai dengan filter ini.</span>
+                          <span>Tidak ada data rekonsiliasi yang sesuai dengan filter ini.</span>
                         </td>
                       </tr>
                     ) : (
-                      paginatedResults.map((row) => {
-                        const isFound = row.status === "FOUND";
+                      paginatedRows.map((item, rowIdx) => {
+                        const isSpreadsheet = item.type === "SPREADSHEET_ROW";
+                        const isFound = isSpreadsheet && item.data.status === "FOUND";
+                        const isNotFound = isSpreadsheet && item.data.status === "NOT_FOUND";
+                        const isSystemOnly = item.type === "SYSTEM_ROW";
 
+                        const globalIdx = (currentPage - 1) * pageSize + rowIdx + 1;
+
+                        if (isSystemOnly) {
+                          const r = item.data;
+                          return (
+                            <tr
+                              key={`sys-${r.id}`}
+                              className="hover:bg-amber-500/5 bg-amber-500/[0.03] transition-colors"
+                            >
+                              <td className="px-3 py-2.5 text-center font-mono text-muted-foreground">
+                                {globalIdx}
+                              </td>
+                              <td className="px-3 py-2.5 text-center">
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30">
+                                  <AlertCircle className="w-3 h-3 text-amber-600" />
+                                  <span>Hanya di Sistem</span>
+                                </span>
+                              </td>
+                              <td className="px-3 py-2.5 text-muted-foreground italic">
+                                [Tidak ada di Excel]
+                              </td>
+                              <td className="px-3 py-2.5 font-mono">
+                                <span className="bg-muted px-1.5 py-0.5 rounded text-[11px] font-bold text-foreground">
+                                  {r.nik}
+                                </span>
+                              </td>
+                              <td className="px-3 py-2.5">
+                                <span className="font-semibold text-foreground block">{r.fullName}</span>
+                                <span className="text-[10px] text-amber-600 dark:text-amber-400">
+                                  Terdaftar di DB lembaga ini
+                                </span>
+                              </td>
+                              <td className="px-3 py-2.5">
+                                <div className="flex items-center gap-1.5">
+                                  <Building2 className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                                  <span className="font-medium text-foreground line-clamp-1" title={r.institutionName || ""}>
+                                    {r.institutionName || "Tidak Terikat Lembaga"}
+                                  </span>
+                                </div>
+                              </td>
+                              <td className="px-3 py-2.5 text-muted-foreground">
+                                <span className="line-clamp-1">
+                                  {r.district ? `${r.district}, ` : ""}
+                                  {r.province || "-"}
+                                </span>
+                              </td>
+                              <td className="px-3 py-2.5">
+                                <div className="space-y-0.5">
+                                  {r.major && (
+                                    <span className="block font-medium text-foreground text-[11px] line-clamp-1">
+                                      {r.major}
+                                    </span>
+                                  )}
+                                  {r.preferredCountries.length > 0 && (
+                                    <span className="text-[10px] text-muted-foreground block line-clamp-1">
+                                      {r.preferredCountries.join(", ")}
+                                    </span>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="px-3 py-2.5">
+                                {r.readinessStatus ? (
+                                  <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold bg-muted text-foreground border border-border">
+                                    {r.readinessStatus}
+                                  </span>
+                                ) : (
+                                  <span className="text-muted-foreground">-</span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        }
+
+                        // SPREADSHEET ROW
+                        const r = item.data;
                         return (
                           <tr
-                            key={row.index}
+                            key={`sp-${r.index}`}
                             className={`transition-colors ${
                               isFound
                                 ? "hover:bg-emerald-500/5 bg-background"
@@ -774,30 +1009,30 @@ Bima Saputra
                             }`}
                           >
                             <td className="px-3 py-2.5 text-center font-mono text-muted-foreground">
-                              {row.index}
+                              {globalIdx}
                             </td>
                             <td className="px-3 py-2.5 text-center">
                               {isFound ? (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
                                   <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                                  <span>Ditemukan</span>
+                                  <span>Cocok (Keduanya Ada)</span>
                                 </span>
                               ) : (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/30">
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/30">
                                   <XCircle className="w-3 h-3 text-rose-600" />
-                                  <span>Belum Terdaftar</span>
+                                  <span>Hanya di Spreadsheet</span>
                                 </span>
                               )}
                             </td>
                             <td className="px-3 py-2.5 font-medium text-foreground">
-                              <span className="line-clamp-2" title={row.input}>
-                                {row.input}
+                              <span className="line-clamp-2" title={r.input}>
+                                {r.input}
                               </span>
                             </td>
                             <td className="px-3 py-2.5 font-mono text-muted-foreground">
-                              {row.nik ? (
+                              {r.nik ? (
                                 <span className="bg-muted px-1.5 py-0.5 rounded text-[11px] font-bold text-foreground">
-                                  {row.nik}
+                                  {r.nik}
                                 </span>
                               ) : (
                                 <span className="text-muted-foreground/60">-</span>
@@ -807,26 +1042,26 @@ Bima Saputra
                               {isFound ? (
                                 <div>
                                   <span className="font-semibold text-foreground block">
-                                    {row.fullName}
+                                    {r.fullName}
                                   </span>
-                                  {row.matchedBy && (
+                                  {r.matchedBy && (
                                     <span className="text-[10px] text-muted-foreground">
-                                      Cocok via {row.matchedBy.replace("_", " ")}
+                                      Cocok via {r.matchedBy.replace("_", " ")}
                                     </span>
                                   )}
                                 </div>
                               ) : (
                                 <span className="text-rose-600 dark:text-rose-400 italic">
-                                  Tidak ada di database
+                                  Belum ada di database sistem
                                 </span>
                               )}
                             </td>
                             <td className="px-3 py-2.5">
-                              {isFound && row.institutionName ? (
+                              {isFound && r.institutionName ? (
                                 <div className="flex items-center gap-1.5">
                                   <Building2 className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                                  <span className="font-medium text-foreground line-clamp-1" title={row.institutionName}>
-                                    {row.institutionName}
+                                  <span className="font-medium text-foreground line-clamp-1" title={r.institutionName}>
+                                    {r.institutionName}
                                   </span>
                                 </div>
                               ) : (
@@ -834,10 +1069,10 @@ Bima Saputra
                               )}
                             </td>
                             <td className="px-3 py-2.5 text-muted-foreground">
-                              {isFound && (row.district || row.province) ? (
-                                <span className="line-clamp-1" title={`${row.district || ""}, ${row.province || ""}`}>
-                                  {row.district ? `${row.district}, ` : ""}
-                                  {row.province || ""}
+                              {isFound && (r.district || r.province) ? (
+                                <span className="line-clamp-1" title={`${r.district || ""}, ${r.province || ""}`}>
+                                  {r.district ? `${r.district}, ` : ""}
+                                  {r.province || ""}
                                 </span>
                               ) : (
                                 <span>-</span>
@@ -846,15 +1081,15 @@ Bima Saputra
                             <td className="px-3 py-2.5">
                               {isFound ? (
                                 <div className="space-y-0.5">
-                                  {row.major && (
+                                  {r.major && (
                                     <span className="block font-medium text-foreground text-[11px] line-clamp-1">
-                                      {row.major}
+                                      {r.major}
                                     </span>
                                   )}
-                                  {row.preferredCountries.length > 0 && (
+                                  {r.preferredCountries.length > 0 && (
                                     <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
                                       <Globe2 className="w-3 h-3 text-emerald-600 shrink-0" />
-                                      <span className="line-clamp-1">{row.preferredCountries.join(", ")}</span>
+                                      <span className="line-clamp-1">{r.preferredCountries.join(", ")}</span>
                                     </div>
                                   )}
                                 </div>
@@ -863,9 +1098,9 @@ Bima Saputra
                               )}
                             </td>
                             <td className="px-3 py-2.5">
-                              {isFound && row.readinessStatus ? (
+                              {isFound && r.readinessStatus ? (
                                 <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold bg-muted text-foreground border border-border">
-                                  {row.readinessStatus}
+                                  {r.readinessStatus}
                                 </span>
                               ) : (
                                 <span className="text-muted-foreground">-</span>
@@ -884,7 +1119,7 @@ Bima Saputra
                 <div className="p-3 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
                   <span>
                     Menampilkan baris {(currentPage - 1) * pageSize + 1} -{" "}
-                    {Math.min(currentPage * pageSize, filteredResults.length)} dari {filteredResults.length} hasil
+                    {Math.min(currentPage * pageSize, filteredDisplayRows.length)} dari {filteredDisplayRows.length} total baris
                   </span>
 
                   <div className="flex items-center gap-1">

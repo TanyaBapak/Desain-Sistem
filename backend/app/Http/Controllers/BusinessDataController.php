@@ -2576,6 +2576,8 @@ class BusinessDataController extends Controller
         $results = [];
         $totalFound = 0;
         $totalNotFound = 0;
+        $matchedCandidateIds = [];
+        $detectedInstitutionsMap = [];
 
         foreach ($parsedItems as $item) {
             $matchedRecord = null;
@@ -2625,6 +2627,21 @@ class BusinessDataController extends Controller
 
             if ($matchedRecord) {
                 $totalFound++;
+                $matchedCandidateIds[] = $matchedRecord->id;
+
+                if (! empty($matchedRecord->institution_id)) {
+                    $instId = $matchedRecord->institution_id;
+                    $instName = $matchedRecord->institution_name ?: 'Tidak terikat lembaga';
+                    if (! isset($detectedInstitutionsMap[$instId])) {
+                        $detectedInstitutionsMap[$instId] = [
+                            'id' => $instId,
+                            'name' => $instName,
+                            'count' => 0,
+                        ];
+                    }
+                    $detectedInstitutionsMap[$instId]['count']++;
+                }
+
                 $preferredCountries = is_string($matchedRecord->preferred_countries)
                     ? (json_decode($matchedRecord->preferred_countries, true) ?: [$matchedRecord->preferred_countries])
                     : ($matchedRecord->preferred_countries ?: []);
@@ -2672,13 +2689,101 @@ class BusinessDataController extends Controller
             }
         }
 
+        // Rekonsiliasi 2 Arah: Ambil peserta yang ADA DI SISTEM tapi TIDAK ADA DI SPREADSHEET
+        $targetInstIds = [];
+        $targetInstitutionId = $request->input('target_institution_id');
+
+        if (! empty($targetInstitutionId) && $targetInstitutionId !== 'auto' && $targetInstitutionId !== 'all_detected') {
+            $targetInstIds = [$targetInstitutionId];
+        } elseif (! empty($detectedInstitutionsMap)) {
+            uasort($detectedInstitutionsMap, fn ($a, $b) => $b['count'] <=> $a['count']);
+            $targetInstIds = array_slice(array_keys($detectedInstitutionsMap), 0, 5);
+        }
+
+        $systemOnlyCandidates = [];
+        $detectedInstitutions = [];
+
+        if (! empty($targetInstIds)) {
+            $instTotals = DB::table('job_seekers')
+                ->whereNull('deleted_at')
+                ->whereIn('institution_id', $targetInstIds)
+                ->select('institution_id', DB::raw('count(*) as total'))
+                ->groupBy('institution_id')
+                ->pluck('total', 'institution_id');
+
+            foreach ($detectedInstitutionsMap as $id => $info) {
+                if (in_array($id, $targetInstIds, true)) {
+                    $totalInSys = (int) ($instTotals[$id] ?? 0);
+                    $detectedInstitutions[] = [
+                        'id' => $id,
+                        'name' => $info['name'],
+                        'matchedFromSpreadsheet' => $info['count'],
+                        'totalInSystem' => $totalInSys,
+                        'missingFromSpreadsheet' => max(0, $totalInSys - $info['count']),
+                    ];
+                }
+            }
+
+            $systemOnlyRows = DB::table('job_seekers')
+                ->leftJoin('provinces', 'provinces.id', '=', 'job_seekers.province_id')
+                ->leftJoin('districts', 'districts.id', '=', 'job_seekers.district_id')
+                ->whereNull('job_seekers.deleted_at')
+                ->whereIn('job_seekers.institution_id', $targetInstIds)
+                ->whereNotIn('job_seekers.id', $matchedCandidateIds)
+                ->select([
+                    'job_seekers.id',
+                    'job_seekers.nik',
+                    'job_seekers.full_name',
+                    'job_seekers.institution_id',
+                    'job_seekers.institution_name',
+                    'job_seekers.education_level',
+                    'job_seekers.major',
+                    'job_seekers.gender',
+                    'job_seekers.readiness_status',
+                    'job_seekers.verification_status',
+                    'job_seekers.preferred_countries',
+                    'provinces.name as province_name',
+                    'districts.name as district_name',
+                ])
+                ->orderBy('job_seekers.full_name')
+                ->limit(2000)
+                ->get();
+
+            foreach ($systemOnlyRows as $idx => $row) {
+                $prefCountries = is_string($row->preferred_countries)
+                    ? (json_decode($row->preferred_countries, true) ?: [$row->preferred_countries])
+                    : ($row->preferred_countries ?: []);
+
+                $systemOnlyCandidates[] = [
+                    'index' => $idx + 1,
+                    'status' => 'SYSTEM_ONLY',
+                    'id' => $row->id,
+                    'nik' => $row->nik,
+                    'fullName' => $row->full_name,
+                    'institutionId' => $row->institution_id,
+                    'institutionName' => $row->institution_name ?: 'Tidak terikat lembaga',
+                    'province' => $row->province_name,
+                    'district' => $row->district_name,
+                    'educationLevel' => $row->education_level,
+                    'major' => $row->major,
+                    'gender' => $row->gender,
+                    'readinessStatus' => $row->readiness_status,
+                    'verificationStatus' => $row->verification_status,
+                    'preferredCountries' => $prefCountries,
+                ];
+            }
+        }
+
         return response()->json([
             'success' => true,
             'totalDatabase' => $totalDatabase,
             'totalInput' => count($lines),
             'totalFound' => $totalFound,
             'totalNotFound' => $totalNotFound,
+            'totalSystemOnly' => count($systemOnlyCandidates),
+            'detectedInstitutions' => $detectedInstitutions,
             'results' => $results,
+            'systemOnlyCandidates' => $systemOnlyCandidates,
         ]);
     }
 
@@ -2751,6 +2856,13 @@ class BusinessDataController extends Controller
             }
         }
 
+        $institutionsList = $institutions->map(fn ($i) => [
+            'id' => $i->id,
+            'name' => $i->name,
+            'type' => $i->institution_type ?: 'Lembaga Vokasi',
+            'province' => $i->province_name ?: '-',
+        ])->values()->all();
+
         return response()->json([
             'success' => true,
             'summary' => [
@@ -2760,6 +2872,7 @@ class BusinessDataController extends Controller
                 'totalCandidatesInSystem' => DB::table('job_seekers')->whereNull('deleted_at')->count(),
             ],
             'emptyInstitutions' => $emptyList,
+            'institutionsList' => $institutionsList,
         ]);
     }
 }
