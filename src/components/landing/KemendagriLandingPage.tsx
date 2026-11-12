@@ -748,7 +748,7 @@ export const KemendagriLandingPage: React.FC<KemendagriLandingPageProps> = ({
 
                     <div className="my-3">
                       <div className="text-3xl sm:text-4xl font-black text-white tracking-tight tabular-nums">
-                        34
+                        {vokasiAdminCount}
                         <span className="text-xs text-emerald-400 font-semibold ml-2">Lembaga</span>
                       </div>
                       <p className="text-xs text-slate-300 font-medium mt-1">
