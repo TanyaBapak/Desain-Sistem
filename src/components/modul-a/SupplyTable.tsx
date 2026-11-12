@@ -456,10 +456,11 @@ export const SupplyTable: React.FC<SupplyTableProps> = ({
     }
   };
 
-  const readyCount = candidates.filter((c) => c.readinessStatus === 'Ready for Placement').length;
-  const certifiedCount = candidates.filter((c) => c.certifications && c.certifications.length > 0).length;
-  const experiencedCount = candidates.filter((c) => c.workExperiences && c.workExperiences.length > 0).length;
-  const verifiedCount = candidates.filter((c) => c.verificationStatus === 'Verified').length;
+  const targetDataset = hasActiveFilters ? filteredCandidates : candidates;
+  const readyCount = targetDataset.filter((c) => c.readinessStatus === 'Ready for Placement').length;
+  const certifiedCount = targetDataset.filter((c) => c.certifications && c.certifications.length > 0).length;
+  const experiencedCount = targetDataset.filter((c) => c.workExperiences && c.workExperiences.length > 0).length;
+  const verifiedCount = targetDataset.filter((c) => c.verificationStatus === 'Verified').length;
 
   const readinessLabels: Record<CandidateParticipant['readinessStatus'], string> = {
     'Ready for Placement': 'Siap Penempatan',
@@ -595,10 +596,18 @@ export const SupplyTable: React.FC<SupplyTableProps> = ({
         <div className="xl:col-span-3 bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs">
           <span className="text-xs text-slate-500 dark:text-slate-400 font-semibold block">Total Calon PMI Terdata</span>
           <div className="flex items-baseline gap-2 mt-1">
-            <span className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tabular-nums">{candidates.length}</span>
+            <span className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tabular-nums">
+              {filteredCandidates.length}
+            </span>
             <span className="text-xs text-blue-600 dark:text-blue-400 font-bold">Kandidat</span>
           </div>
-          <span className="text-[11px] text-slate-400 dark:text-slate-500 mt-1 block">SMK, D3, & Politeknik Vokasi</span>
+          {hasActiveFilters ? (
+            <span className="text-[11px] text-blue-600 dark:text-blue-400 font-semibold mt-1 block">
+              Tersaring {filteredCandidates.length} dari {candidates.length} total calon
+            </span>
+          ) : (
+            <span className="text-[11px] text-slate-400 dark:text-slate-500 mt-1 block">SMK, D3, & Politeknik Vokasi</span>
+          )}
         </div>
 
         <div className="xl:col-span-9 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs">
@@ -635,8 +644,8 @@ export const SupplyTable: React.FC<SupplyTableProps> = ({
             title="Siap Penempatan (Job Ready)"
             value={readyCount}
             change={
-              candidates.length
-                ? Math.round((readyCount / candidates.length) * 100) + '%'
+              targetDataset.length
+                ? Math.round((readyCount / targetDataset.length) * 100) + '%'
                 : '0%'
             }
             changeType="positive"
