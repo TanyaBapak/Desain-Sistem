@@ -117,7 +117,7 @@ class User extends Authenticatable
     public static function accessibleTabsForRole(?string $roleName): array
     {
         return match ($roleName) {
-            'super_admin', 'superadmin' => ['rbac', 'targets', 'modul-b', 'audit'],
+            'super_admin', 'superadmin' => ['rbac', 'targets', 'modul-b', 'audit', 'dev-tools'],
             'leadership', 'pimpinan' => ['dashboard', 'reports', 'sippmi-monitoring'],
             'task_force', 'taskforce' => ['dashboard', 'modul-a', 'modul-b', 'modul-c', 'modul-d', 'matching', 'sippmi-monitoring', 'approvals', 'reports'],
             'directorate_admin', 'direktorat' => ['dashboard', 'modul-b', 'modul-c', 'matching', 'reports'],

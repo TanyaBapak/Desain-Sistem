@@ -2397,4 +2397,231 @@ class BusinessDataController extends Controller
 
         return response()->json(['data' => $result]);
     }
+
+    /**
+     * Dev Tools: Pemeriksaan & Deteksi Calon PMI Secara Massal
+     * Eksklusif hanya untuk Administrator Sistem (super_admin)
+     */
+    public function bulkCheckCandidates(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $role = $user?->primaryRole()?->name;
+
+        if (! in_array($role, ['super_admin', 'superadmin'], true)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Akses ditolak: Dev Tools eksklusif hanya untuk Administrator Sistem.',
+            ], 403);
+        }
+
+        $rawInput = (string) $request->input('raw_input', '');
+        $lines = preg_split('/[\r\n]+/', trim($rawInput));
+        $lines = array_values(array_filter(array_map('trim', $lines), fn ($line) => $line !== ''));
+
+        $totalDatabase = (int) DB::table('job_seekers')->whereNull('deleted_at')->count();
+
+        if (empty($lines)) {
+            return response()->json([
+                'success' => true,
+                'totalDatabase' => $totalDatabase,
+                'totalInput' => 0,
+                'totalFound' => 0,
+                'totalNotFound' => 0,
+                'results' => [],
+            ]);
+        }
+
+        if (count($lines) > 2000) {
+            $lines = array_slice($lines, 0, 2000);
+        }
+
+        $parsedItems = [];
+        $niksToQuery = [];
+        $namesToQuery = [];
+
+        foreach ($lines as $idx => $line) {
+            $extractedNik = null;
+            if (preg_match('/\b\d{16}\b/', $line, $matches)) {
+                $extractedNik = $matches[0];
+            } elseif (ctype_digit(preg_replace('/\D/', '', $line)) && strlen(preg_replace('/\D/', '', $line)) === 16) {
+                $extractedNik = preg_replace('/\D/', '', $line);
+            }
+
+            $cleanedName = trim(preg_replace('/[\t;,|]+/', ' ', $line));
+            if ($extractedNik) {
+                $cleanedName = trim(str_replace($extractedNik, '', $cleanedName));
+            }
+            $cleanedName = trim(preg_replace('/^[-–—\s\.\d]+|[-–—\s]+$/u', '', $cleanedName));
+
+            $parsedItems[] = [
+                'index' => $idx + 1,
+                'raw' => $line,
+                'nik' => $extractedNik,
+                'name' => $cleanedName !== '' ? $cleanedName : null,
+            ];
+
+            if ($extractedNik) {
+                $niksToQuery[] = $extractedNik;
+            }
+            if ($cleanedName !== '') {
+                $namesToQuery[] = mb_strtolower($cleanedName);
+            }
+        }
+
+        $nikMatches = [];
+        if (! empty($niksToQuery)) {
+            $nikRows = DB::table('job_seekers')
+                ->whereNull('deleted_at')
+                ->whereIn('nik', array_unique($niksToQuery))
+                ->leftJoin('provinces', 'provinces.id', '=', 'job_seekers.province_id')
+                ->leftJoin('districts', 'districts.id', '=', 'job_seekers.district_id')
+                ->select([
+                    'job_seekers.id',
+                    'job_seekers.nik',
+                    'job_seekers.full_name',
+                    'job_seekers.institution_id',
+                    'job_seekers.institution_name',
+                    'job_seekers.education_level',
+                    'job_seekers.major',
+                    'job_seekers.gender',
+                    'job_seekers.readiness_status',
+                    'job_seekers.verification_status',
+                    'job_seekers.preferred_countries',
+                    'provinces.name as province_name',
+                    'districts.name as district_name',
+                ])
+                ->get();
+
+            foreach ($nikRows as $row) {
+                $nikMatches[$row->nik] = $row;
+            }
+        }
+
+        $nameMatches = [];
+        if (! empty($namesToQuery)) {
+            $uniqueNames = array_unique($namesToQuery);
+            $nameRows = DB::table('job_seekers')
+                ->whereNull('deleted_at')
+                ->where(function ($q) use ($uniqueNames) {
+                    foreach (array_chunk($uniqueNames, 50) as $chunk) {
+                        $q->orWhere(function ($sub) use ($chunk) {
+                            foreach ($chunk as $nameStr) {
+                                if (mb_strlen($nameStr) >= 3) {
+                                    $sub->orWhere('job_seekers.full_name', 'LIKE', '%' . $nameStr . '%');
+                                }
+                            }
+                        });
+                    }
+                })
+                ->leftJoin('provinces', 'provinces.id', '=', 'job_seekers.province_id')
+                ->leftJoin('districts', 'districts.id', '=', 'job_seekers.district_id')
+                ->select([
+                    'job_seekers.id',
+                    'job_seekers.nik',
+                    'job_seekers.full_name',
+                    'job_seekers.institution_id',
+                    'job_seekers.institution_name',
+                    'job_seekers.education_level',
+                    'job_seekers.major',
+                    'job_seekers.gender',
+                    'job_seekers.readiness_status',
+                    'job_seekers.verification_status',
+                    'job_seekers.preferred_countries',
+                    'provinces.name as province_name',
+                    'districts.name as district_name',
+                ])
+                ->limit(5000)
+                ->get();
+
+            foreach ($nameRows as $row) {
+                $lowerName = mb_strtolower(trim($row->full_name));
+                $nameMatches[$lowerName][] = $row;
+            }
+        }
+
+        $results = [];
+        $totalFound = 0;
+        $totalNotFound = 0;
+
+        foreach ($parsedItems as $item) {
+            $matchedRecord = null;
+            $matchedBy = null;
+
+            if (! empty($item['nik']) && isset($nikMatches[$item['nik']])) {
+                $matchedRecord = $nikMatches[$item['nik']];
+                $matchedBy = 'NIK';
+            } elseif (! empty($item['name'])) {
+                $searchNameLower = mb_strtolower($item['name']);
+                if (isset($nameMatches[$searchNameLower])) {
+                    $matchedRecord = $nameMatches[$searchNameLower][0];
+                    $matchedBy = 'NAMA_PERSIS';
+                } else {
+                    foreach ($nameMatches as $dbLowerName => $candidates) {
+                        if (str_contains($dbLowerName, $searchNameLower) || str_contains($searchNameLower, $dbLowerName)) {
+                            $matchedRecord = $candidates[0];
+                            $matchedBy = 'NAMA_PARSIAL';
+                            break;
+                        }
+                    }
+                }
+            }
+
+            if ($matchedRecord) {
+                $totalFound++;
+                $preferredCountries = is_string($matchedRecord->preferred_countries)
+                    ? (json_decode($matchedRecord->preferred_countries, true) ?: [$matchedRecord->preferred_countries])
+                    : ($matchedRecord->preferred_countries ?: []);
+
+                $results[] = [
+                    'index' => $item['index'],
+                    'input' => $item['raw'],
+                    'status' => 'FOUND',
+                    'matchedBy' => $matchedBy,
+                    'id' => $matchedRecord->id,
+                    'nik' => $matchedRecord->nik,
+                    'fullName' => $matchedRecord->full_name,
+                    'institutionId' => $matchedRecord->institution_id,
+                    'institutionName' => $matchedRecord->institution_name ?: 'Tidak terikat lembaga',
+                    'province' => $matchedRecord->province_name,
+                    'district' => $matchedRecord->district_name,
+                    'educationLevel' => $matchedRecord->education_level,
+                    'major' => $matchedRecord->major,
+                    'gender' => $matchedRecord->gender,
+                    'readinessStatus' => $matchedRecord->readiness_status,
+                    'verificationStatus' => $matchedRecord->verification_status,
+                    'preferredCountries' => $preferredCountries,
+                ];
+            } else {
+                $totalNotFound++;
+                $results[] = [
+                    'index' => $item['index'],
+                    'input' => $item['raw'],
+                    'status' => 'NOT_FOUND',
+                    'matchedBy' => null,
+                    'id' => null,
+                    'nik' => $item['nik'],
+                    'fullName' => $item['name'] ?: $item['raw'],
+                    'institutionId' => null,
+                    'institutionName' => null,
+                    'province' => null,
+                    'district' => null,
+                    'educationLevel' => null,
+                    'major' => null,
+                    'gender' => null,
+                    'readinessStatus' => null,
+                    'verificationStatus' => null,
+                    'preferredCountries' => [],
+                ];
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'totalDatabase' => $totalDatabase,
+            'totalInput' => count($lines),
+            'totalFound' => $totalFound,
+            'totalNotFound' => $totalNotFound,
+            'results' => $results,
+        ]);
+    }
 }

@@ -28,6 +28,7 @@ class AppController extends Controller
         'rbac',
         'targets',
         'sippmi-monitoring',
+        'dev-tools',
     ];
 
     public function __invoke(

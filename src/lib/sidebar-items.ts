@@ -12,6 +12,7 @@ import {
   ShieldCheck,
   Target,
   Users,
+  Wrench,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -38,4 +39,5 @@ export const NAV_ITEMS: SidebarItem[] = [
   { id: "rbac", label: "Pengelola Pengguna", icon: Settings, section: "Pengelolaan" },
   { id: "audit", label: "Jejak Audit", icon: ShieldCheck, section: "Pengelolaan" },
   { id: "integrations", label: "Integrasi", icon: Link2, section: "Pengelolaan" },
+  { id: "dev-tools", label: "Dev Tools (Pemeriksa Masal)", icon: Wrench, section: "Pengelolaan" },
 ];

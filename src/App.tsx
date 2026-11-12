@@ -48,6 +48,9 @@ const AuditLogView = React.lazy(() =>
 const ReportsView = React.lazy(() =>
   import("@/components/reports/ReportsView").then((m) => ({ default: m.ReportsView }))
 );
+const DevToolsBulkCheckerPage = React.lazy(() =>
+  import("@/pages/DevToolsBulkCheckerPage").then((m) => ({ default: m.DevToolsBulkCheckerPage }))
+);
 import type { ExecutiveDashboardBreakdownsData } from "@/components/reports/ExecutiveDashboardBreakdowns";
 import type { DashboardTargetManagementData } from "@/pages/user-management-types";
 import { PageSkeleton } from "@/components/shared/PageSkeleton";
@@ -272,6 +275,7 @@ function AppContent({
     if (navItem) return navItem.label;
     if (activeTab === "overview") return "Ringkasan";
     if (activeTab === "modul-e") return "Pencocokan";
+    if (activeTab === "dev-tools") return "Dev Tools Pemeriksa Masal";
     return "SMK Go Global";
   })();
 
@@ -575,6 +579,9 @@ function AppContent({
         placementCandidates: [],
         lastSync: null,
       }} />;
+      break;
+    case "dev-tools":
+      page = <DevToolsBulkCheckerPage />;
       break;
     default:
       page = (
