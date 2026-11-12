@@ -24,6 +24,7 @@ import {
   FileCheck2,
   AlertTriangle,
   ArrowLeftRight,
+  Repeat,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -36,6 +37,11 @@ export interface BulkCheckCandidateResult {
   input: string;
   status: "FOUND" | "NOT_FOUND";
   matchedBy: "NIK" | "NAMA_PERSIS" | "NAMA_PARSIAL" | null;
+  isDuplicateInInput: boolean;
+  inputOccurrenceCount: number;
+  duplicateInputLines: number[];
+  isDuplicateInDatabase: boolean;
+  databaseDuplicateCount: number;
   id: string | null;
   nik: string | null;
   fullName: string;
@@ -77,6 +83,13 @@ export interface DetectedInstitutionSummary {
   missingFromSpreadsheet: number;
 }
 
+export interface DuplicateGroupItem {
+  key: string;
+  label: string;
+  count: number;
+  lines: number[];
+}
+
 export interface BulkCheckResponse {
   success: boolean;
   totalDatabase: number;
@@ -84,6 +97,9 @@ export interface BulkCheckResponse {
   totalFound: number;
   totalNotFound: number;
   totalSystemOnly: number;
+  totalDuplicatesInInput: number;
+  totalUniqueDuplicates: number;
+  duplicateGroups: DuplicateGroupItem[];
   detectedInstitutions: DetectedInstitutionSummary[];
   results: BulkCheckCandidateResult[];
   systemOnlyCandidates: SystemOnlyCandidateResult[];
@@ -124,6 +140,9 @@ M RENO OKTAVIANSYAH
 Bima Saputra
 3205352411030001
 Dwi Putra Candra Dewa,S.H.
+Fiqih Arasy
+Aryo Adi Nugroho
+Fiqih Arasy
 Peserta Fiktif Tidak Ada di Sistem
 9999999999999999`;
 
@@ -136,10 +155,11 @@ export function DevToolsBulkCheckerPage() {
   const [targetInstitutionId, setTargetInstitutionId] = useState("auto");
   const [isLoading, setIsLoading] = useState(false);
   const [resultData, setResultData] = useState<BulkCheckResponse | null>(null);
-  const [activeFilter, setActiveFilter] = useState<"ALL" | "FOUND" | "NOT_FOUND" | "SYSTEM_ONLY">("ALL");
+  const [activeFilter, setActiveFilter] = useState<"ALL" | "FOUND" | "NOT_FOUND" | "SYSTEM_ONLY" | "DUPLICATES">("ALL");
   const [tableSearchQuery, setTableSearchQuery] = useState("");
   const [hasCopiedNotFound, setHasCopiedNotFound] = useState(false);
   const [hasCopiedSystemOnly, setHasCopiedSystemOnly] = useState(false);
+  const [hasCopiedDuplicates, setHasCopiedDuplicates] = useState(false);
   const [isExportingExcel, setIsExportingExcel] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 50;
@@ -235,9 +255,16 @@ export function DevToolsBulkCheckerPage() {
       setCurrentPage(1);
       setActiveFilter("ALL");
 
-      toast.success(
-        `Rekonsiliasi selesai: ${data.totalFound} cocok di keduanya (✅), ${data.totalNotFound} hanya di spreadsheet (❌), ${data.totalSystemOnly} hanya di sistem (⚠️).`
-      );
+      if (data.totalDuplicatesInInput > 0) {
+        toast.warning(
+          `Terdeteksi ${data.totalDuplicatesInInput} baris duplikat di spreadsheet Anda (${data.totalUniqueDuplicates} nama/NIK berulang)!`,
+          { duration: 5000 }
+        );
+      } else {
+        toast.success(
+          `Rekonsiliasi selesai: ${data.totalFound} cocok (✅), ${data.totalNotFound} belum ada di sistem (❌), ${data.totalSystemOnly} hanya di sistem (⚠️).`
+        );
+      }
     } catch (err: any) {
       toast.error(err.message || "Terjadi kesalahan saat memeriksa data massal.");
     } finally {
@@ -273,6 +300,10 @@ export function DevToolsBulkCheckerPage() {
         type: "SYSTEM_ROW" as const,
         data: r,
       }));
+    } else if (activeFilter === "DUPLICATES") {
+      rows = resultData.results
+        .filter((r) => r.isDuplicateInInput || r.isDuplicateInDatabase)
+        .map((r) => ({ type: "SPREADSHEET_ROW" as const, data: r }));
     }
 
     const q = tableSearchQuery.toLowerCase().trim();
@@ -327,6 +358,12 @@ export function DevToolsBulkCheckerPage() {
             r.status === "FOUND"
               ? "ADA DI SPREADSHEET & ADA DI SISTEM (COCOK)"
               : "HANYA DI SPREADSHEET (BELUM MASUK SISTEM)",
+          "Duplikasi di Input": r.isDuplicateInInput
+            ? `DUPLIKAT (${r.inputOccurrenceCount}x: Baris ${r.duplicateInputLines.join(", ")})`
+            : "Tunggal (Unik)",
+          "Duplikasi di Sistem": r.isDuplicateInDatabase
+            ? `Ganda di DB (${r.databaseDuplicateCount} record)`
+            : "-",
           "Metode Cocok": r.matchedBy || "-",
           "Input dari Spreadsheet": r.input,
           "NIK di Sistem": r.nik || "-",
@@ -342,6 +379,8 @@ export function DevToolsBulkCheckerPage() {
         ...resultData.systemOnlyCandidates.map((r, i) => ({
           No: resultData.results.length + i + 1,
           "Kategori Status": "HANYA DI SISTEM (TIDAK ADA DI SPREADSHEET)",
+          "Duplikasi di Input": "-",
+          "Duplikasi di Sistem": "-",
           "Metode Cocok": "Data Asli Sistem",
           "Input dari Spreadsheet": "-",
           "NIK di Sistem": r.nik,
@@ -405,6 +444,23 @@ export function DevToolsBulkCheckerPage() {
     setHasCopiedSystemOnly(true);
     toast.success("Daftar peserta yang hanya ada di sistem berhasil disalin!");
     setTimeout(() => setHasCopiedSystemOnly(false), 2500);
+  };
+
+  // Salin daftar nama duplikat (🔁)
+  const handleCopyDuplicates = () => {
+    if (!resultData || resultData.duplicateGroups.length === 0) {
+      toast.info("Tidak ada nama duplikat di input.");
+      return;
+    }
+
+    const list = resultData.duplicateGroups
+      .map((g) => `${g.label} (Muncul ${g.count}x pada baris: ${g.lines.join(", ")})`)
+      .join("\n");
+
+    navigator.clipboard.writeText(list);
+    setHasCopiedDuplicates(true);
+    toast.success("Daftar nama duplikat berhasil disalin ke clipboard!");
+    setTimeout(() => setHasCopiedDuplicates(false), 2500);
   };
 
   // Filter lembaga kosong
@@ -513,7 +569,7 @@ export function DevToolsBulkCheckerPage() {
             </h1>
           </div>
           <p className="mt-1 text-xs sm:text-sm text-muted-foreground">
-            Mendeteksi kecocokan timbal-balik: siapa yang ada di sistem vs spreadsheet, siapa yang ada di spreadsheet tapi belum di sistem, dan sebaliknya.
+            Mendeteksi kecocokan timbal-balik, deteksi duplikasi nama/NIK internal spreadsheet, dan pelacakan lembaga vokasi tanpa peserta.
           </p>
         </div>
 
@@ -592,7 +648,7 @@ export function DevToolsBulkCheckerPage() {
                     className="h-7 text-xs gap-1 border-border text-muted-foreground hover:text-foreground"
                   >
                     <Sparkles className="w-3 h-3 text-amber-500" />
-                    <span>Isi Contoh Sampel</span>
+                    <span>Isi Contoh Sampel (Ada Duplikat)</span>
                   </Button>
                   {rawInput && (
                     <Button
@@ -622,8 +678,9 @@ Contoh:
 3301121712060001
 Muhammad Ubay Al-Ziqraa
 Dwi Putra Candra Dewa,S.H.
-Bima Saputra
-3205352411030001`}
+Fiqih Arasy
+Aryo Adi Nugroho
+Fiqih Arasy`}
                 className="w-full rounded-xl border border-input bg-background p-3 text-xs sm:text-sm font-mono placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition"
               />
 
@@ -667,6 +724,73 @@ Bima Saputra
             </CardContent>
           </Card>
 
+          {/* PERINGATAN KHUSUS DUPLIKASI DI INPUT SPREADSHEET */}
+          {resultData && resultData.totalDuplicatesInInput > 0 && (
+            <Card className="border border-purple-500/40 bg-purple-500/10 p-4 animate-in fade-in duration-300">
+              <div className="flex flex-col md:flex-row md:items-start justify-between gap-3">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <div className="flex h-6 w-6 items-center justify-center rounded-full bg-purple-500/20 text-purple-700 dark:text-purple-300">
+                      <Repeat className="w-3.5 h-3.5" />
+                    </div>
+                    <span className="text-xs sm:text-sm font-bold text-purple-900 dark:text-purple-200">
+                      Terdeteksi {resultData.totalDuplicatesInInput} Baris Duplikat di Spreadsheet Anda!
+                    </span>
+                    <Badge variant="outline" className="border-purple-500/40 bg-purple-500/20 text-purple-800 dark:text-purple-200 font-mono text-[11px]">
+                      {resultData.totalUniqueDuplicates} Nama/NIK Berulang
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-purple-800/90 dark:text-purple-300/90 leading-relaxed">
+                    Beberapa peserta tercantum lebih dari satu kali di file spreadsheet/Excel yang Anda tempelkan:
+                  </p>
+
+                  {/* List Ringkas Nama-Nama Duplikat */}
+                  <div className="pt-1.5 flex flex-wrap gap-1.5 max-h-32 overflow-y-auto">
+                    {resultData.duplicateGroups.map((group, idx) => (
+                      <span
+                        key={idx}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-background text-foreground border border-purple-500/30 shadow-2xs"
+                        title={`Muncul ${group.count} kali pada baris: ${group.lines.join(", ")}`}
+                      >
+                        <span className="text-purple-700 dark:text-purple-400 font-bold">{group.label}</span>
+                        <span className="text-[10px] text-muted-foreground font-mono">
+                          ({group.count}x: Baris #{group.lines.join(", #")})
+                        </span>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2 shrink-0 pt-1">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      setActiveFilter("DUPLICATES");
+                      setCurrentPage(1);
+                    }}
+                    className="h-8 text-xs gap-1 border-purple-500/40 text-purple-800 dark:text-purple-300 hover:bg-purple-500/20 font-semibold"
+                  >
+                    <Repeat className="w-3.5 h-3.5" />
+                    <span>Lihat Data Duplikat Saja</span>
+                  </Button>
+
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={handleCopyDuplicates}
+                    className="h-8 text-xs gap-1 border-purple-500/40 text-purple-800 dark:text-purple-300 hover:bg-purple-500/20"
+                  >
+                    {hasCopiedDuplicates ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                    <span>Salin Nama Duplikat</span>
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          )}
+
           {/* Banner Informasi Lembaga Terdeteksi & Ringkasan Gap 2 Arah */}
           {resultData && resultData.detectedInstitutions.length > 0 && (
             <Card className="border border-indigo-500/30 bg-indigo-500/5 p-4 animate-in fade-in duration-300">
@@ -696,9 +820,9 @@ Bima Saputra
             </Card>
           )}
 
-          {/* KPI 4 Kotak Ringkasan Hasil 2 Arah */}
+          {/* KPI Kotak Ringkasan Hasil 2 Arah + Duplikasi */}
           {resultData && (
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 animate-in fade-in duration-300">
+            <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4 animate-in fade-in duration-300">
               {/* Kotak 1: Total Input Spreadsheet */}
               <Card className="border border-border bg-card p-4">
                 <span className="text-xs font-medium text-muted-foreground">1. Total di Spreadsheet</span>
@@ -715,7 +839,7 @@ Bima Saputra
               <Card className="border border-emerald-500/30 bg-emerald-500/5 p-4">
                 <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 flex items-center gap-1">
                   <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>2. Ada di Keduanya (Cocok)</span>
+                  <span>2. Ada di Keduanya</span>
                 </span>
                 <div className="mt-1 flex items-baseline gap-2">
                   <span className="text-2xl sm:text-3xl font-extrabold text-emerald-600 dark:text-emerald-400 tabular-nums">
@@ -725,7 +849,7 @@ Bima Saputra
                     ({resultData.totalInput > 0 ? Math.round((resultData.totalFound / resultData.totalInput) * 100) : 0}%)
                   </span>
                 </div>
-                <p className="mt-1 text-[11px] text-muted-foreground">Ada di spreadsheet & terdaftar di sistem</p>
+                <p className="mt-1 text-[11px] text-muted-foreground">Ada di spreadsheet & sistem</p>
               </Card>
 
               {/* Kotak 3: Hanya di Spreadsheet (Belum Masuk Sistem) */}
@@ -742,7 +866,7 @@ Bima Saputra
                     ({resultData.totalInput > 0 ? Math.round((resultData.totalNotFound / resultData.totalInput) * 100) : 0}%)
                   </span>
                 </div>
-                <p className="mt-1 text-[11px] text-rose-600 dark:text-rose-400 font-medium">Belum terdaftar di database sistem</p>
+                <p className="mt-1 text-[11px] text-rose-600 dark:text-rose-400 font-medium">Belum ada di sistem</p>
               </Card>
 
               {/* Kotak 4: Hanya di Sistem (Tidak di Spreadsheet) */}
@@ -757,7 +881,24 @@ Bima Saputra
                   </span>
                   <span className="text-xs text-muted-foreground">Peserta</span>
                 </div>
-                <p className="mt-1 text-[11px] text-amber-700 dark:text-amber-300 font-medium">Ada di database lembaga, absen di Excel</p>
+                <p className="mt-1 text-[11px] text-amber-700 dark:text-amber-300 font-medium">Absen di berkas Excel</p>
+              </Card>
+
+              {/* Kotak 5: Duplikasi di Spreadsheet */}
+              <Card className={`p-4 border ${resultData.totalDuplicatesInInput > 0 ? "border-purple-500/40 bg-purple-500/10" : "border-border bg-card"}`}>
+                <span className="text-xs font-semibold text-purple-700 dark:text-purple-300 flex items-center gap-1">
+                  <Repeat className="w-3.5 h-3.5 text-purple-600" />
+                  <span>5. Duplikat di Input</span>
+                </span>
+                <div className="mt-1 flex items-baseline gap-2">
+                  <span className="text-2xl sm:text-3xl font-extrabold text-purple-700 dark:text-purple-300 tabular-nums">
+                    {resultData.totalDuplicatesInInput}
+                  </span>
+                  <span className="text-xs text-muted-foreground">Baris</span>
+                </div>
+                <p className="mt-1 text-[11px] text-purple-800 dark:text-purple-300 font-medium">
+                  {resultData.totalUniqueDuplicates > 0 ? `${resultData.totalUniqueDuplicates} nama berulang di Excel` : "Tidak ada duplikasi di input"}
+                </p>
               </Card>
             </div>
           )}
@@ -766,7 +907,7 @@ Bima Saputra
           {resultData && (
             <Card className="border border-border bg-card shadow-xs animate-in fade-in duration-300">
               <div className="p-4 border-b border-border flex flex-col md:flex-row md:items-center justify-between gap-3">
-                {/* Filter Tabs 4 Opsi */}
+                {/* Filter Tabs 5 Opsi */}
                 <div className="flex flex-wrap items-center gap-1.5 p-1 rounded-xl bg-muted/50 border border-border">
                   <button
                     type="button"
@@ -830,6 +971,24 @@ Bima Saputra
                     <AlertCircle className="w-3 h-3" />
                     <span>Hanya di Sistem ({resultData.totalSystemOnly})</span>
                   </button>
+
+                  {resultData.totalDuplicatesInInput > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveFilter("DUPLICATES");
+                        setCurrentPage(1);
+                      }}
+                      className={`px-3 py-1 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 ${
+                        activeFilter === "DUPLICATES"
+                          ? "bg-purple-600 text-white shadow-xs"
+                          : "text-purple-700 dark:text-purple-400 hover:bg-purple-500/10 font-bold"
+                      }`}
+                    >
+                      <Repeat className="w-3 h-3" />
+                      <span>Duplikat di Input ({resultData.totalDuplicatesInInput})</span>
+                    </button>
+                  )}
                 </div>
 
                 {/* Search & Export Toolbar */}
@@ -846,6 +1005,20 @@ Bima Saputra
                       className="h-8 pl-8 text-xs bg-background"
                     />
                   </div>
+
+                  {resultData.totalDuplicatesInInput > 0 && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleCopyDuplicates}
+                      className="h-8 text-xs gap-1.5 border-purple-500/40 text-purple-700 dark:text-purple-300 hover:bg-purple-500/10 font-semibold"
+                      title="Salin semua nama yang terduplikasi di spreadsheet"
+                    >
+                      {hasCopiedDuplicates ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Repeat className="w-3.5 h-3.5" />}
+                      <span>Salin Duplikat 🔁</span>
+                    </Button>
+                  )}
 
                   {resultData.totalNotFound > 0 && (
                     <Button
@@ -900,13 +1073,13 @@ Bima Saputra
                     <tr>
                       <th className="px-3 py-2.5 w-12 text-center">#</th>
                       <th className="px-3 py-2.5 w-44 text-center">Status Rekonsiliasi</th>
-                      <th className="px-3 py-2.5 w-40">Kata Kunci Input</th>
-                      <th className="px-3 py-2.5 w-40 font-mono">NIK di Sistem</th>
-                      <th className="px-3 py-2.5 min-w-[180px]">Nama di Sistem</th>
+                      <th className="px-3 py-2.5 w-44">Kata Kunci Input</th>
+                      <th className="px-3 py-2.5 w-36 font-mono">NIK di Sistem</th>
+                      <th className="px-3 py-2.5 min-w-[200px]">Nama di Sistem</th>
                       <th className="px-3 py-2.5 min-w-[200px]">Lembaga Vokasi</th>
-                      <th className="px-3 py-2.5 w-44">Wilayah Domisili</th>
-                      <th className="px-3 py-2.5 w-40">Jurusan & Target</th>
-                      <th className="px-3 py-2.5 w-32">Kesiapan</th>
+                      <th className="px-3 py-2.5 w-40">Wilayah Domisili</th>
+                      <th className="px-3 py-2.5 w-36">Jurusan & Target</th>
+                      <th className="px-3 py-2.5 w-28">Kesiapan</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
@@ -1003,25 +1176,55 @@ Bima Saputra
                           <tr
                             key={`sp-${r.index}`}
                             className={`transition-colors ${
-                              isFound
+                              r.isDuplicateInInput
+                                ? "bg-purple-500/[0.04] hover:bg-purple-500/10"
+                                : isFound
                                 ? "hover:bg-emerald-500/5 bg-background"
                                 : "hover:bg-rose-500/5 bg-rose-500/[0.02]"
                             }`}
                           >
                             <td className="px-3 py-2.5 text-center font-mono text-muted-foreground">
-                              {globalIdx}
+                              {r.index}
                             </td>
-                            <td className="px-3 py-2.5 text-center">
-                              {isFound ? (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
-                                  <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                                  <span>Cocok (Keduanya Ada)</span>
-                                </span>
-                              ) : (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/30">
-                                  <XCircle className="w-3 h-3 text-rose-600" />
-                                  <span>Hanya di Spreadsheet</span>
-                                </span>
+                            <td className="px-3 py-2.5 text-center space-y-1">
+                              <div>
+                                {isFound ? (
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
+                                    <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                                    <span>Cocok (Keduanya Ada)</span>
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/30">
+                                    <XCircle className="w-3 h-3 text-rose-600" />
+                                    <span>Hanya di Spreadsheet</span>
+                                  </span>
+                                )}
+                              </div>
+
+                              {/* BADGE DUPLIKAT DI SPREADSHEET */}
+                              {r.isDuplicateInInput && (
+                                <div>
+                                  <span
+                                    className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-purple-500/20 text-purple-800 dark:text-purple-200 border border-purple-500/40"
+                                    title={`Duplikat! Muncul ${r.inputOccurrenceCount} kali pada baris: ${r.duplicateInputLines.join(", ")}`}
+                                  >
+                                    <Repeat className="w-2.5 h-2.5 text-purple-600" />
+                                    <span>Duplikat di Excel (#{r.duplicateInputLines.join(", #")})</span>
+                                  </span>
+                                </div>
+                              )}
+
+                              {/* BADGE DUPLIKAT DI DATABASE */}
+                              {r.isDuplicateInDatabase && (
+                                <div>
+                                  <span
+                                    className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-amber-500/20 text-amber-800 dark:text-amber-200 border border-amber-500/40"
+                                    title={`Terdapat ${r.databaseDuplicateCount} data kembar di database sistem`}
+                                  >
+                                    <AlertTriangle className="w-2.5 h-2.5 text-amber-600" />
+                                    <span>Ganda di DB ({r.databaseDuplicateCount} Record)</span>
+                                  </span>
+                                </div>
                               )}
                             </td>
                             <td className="px-3 py-2.5 font-medium text-foreground">

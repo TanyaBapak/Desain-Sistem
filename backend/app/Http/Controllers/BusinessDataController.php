@@ -2435,10 +2435,19 @@ class BusinessDataController extends Controller
             $lines = array_slice($lines, 0, 2000);
         }
 
+        $normalizeName = function (string $text): string {
+            // Bersihkan gelar akademik umum
+            $clean = preg_replace('/\b(s\.?h|s\.?pd|s\.?kom|s\.?t|s\.?sos|s\.?e|m\.?m|m\.?pd|m\.?kom|dr|dra|drs|ph\.?d)\b/i', '', $text);
+            // Buang semua tanda baca (koma, titik, tanda hubung)
+            $clean = preg_replace('/[^\p{L}\p{N}\s]+/u', ' ', $clean);
+            return mb_strtolower(trim(preg_replace('/\s+/', ' ', $clean)));
+        };
+
         $parsedItems = [];
         $niksToQuery = [];
         $namesToQuery = [];
         $wordsToQuery = [];
+        $inputKeyOccurrences = [];
 
         foreach ($lines as $idx => $line) {
             $extractedNik = null;
@@ -2455,11 +2464,24 @@ class BusinessDataController extends Controller
             }
             $cleanedName = trim(preg_replace('/^[-–—\s\.\d]+|[-–—\s]+$/u', '', $cleanedName));
 
+            // Kunci unik untuk deteksi duplikasi di input spreadsheet
+            $inputKey = '';
+            if ($extractedNik) {
+                $inputKey = 'nik:' . $extractedNik;
+            } elseif ($cleanedName !== '') {
+                $inputKey = 'name:' . $normalizeName($cleanedName);
+            } else {
+                $inputKey = 'raw:' . mb_strtolower(trim($line));
+            }
+
+            $inputKeyOccurrences[$inputKey][] = $idx + 1; // 1-based line number
+
             $parsedItems[] = [
                 'index' => $idx + 1,
                 'raw' => $line,
                 'nik' => $extractedNik,
                 'name' => $cleanedName !== '' ? $cleanedName : null,
+                'inputKey' => $inputKey,
             ];
 
             if ($extractedNik) {
@@ -2477,7 +2499,7 @@ class BusinessDataController extends Controller
             }
         }
 
-        $nikMatches = [];
+        $nikMatchesPool = [];
         if (! empty($niksToQuery)) {
             $nikRows = DB::table('job_seekers')
                 ->whereNull('deleted_at')
@@ -2502,7 +2524,7 @@ class BusinessDataController extends Controller
                 ->get();
 
             foreach ($nikRows as $row) {
-                $nikMatches[$row->nik] = $row;
+                $nikMatchesPool[$row->nik][] = $row;
             }
         }
 
@@ -2565,14 +2587,6 @@ class BusinessDataController extends Controller
             }
         }
 
-        $normalizeName = function (string $text): string {
-            // Bersihkan gelar akademik umum
-            $clean = preg_replace('/\b(s\.?h|s\.?pd|s\.?kom|s\.?t|s\.?sos|s\.?e|m\.?m|m\.?pd|m\.?kom|dr|dra|drs|ph\.?d)\b/i', '', $text);
-            // Buang semua tanda baca (koma, titik, tanda hubung)
-            $clean = preg_replace('/[^\p{L}\p{N}\s]+/u', ' ', $clean);
-            return mb_strtolower(trim(preg_replace('/\s+/', ' ', $clean)));
-        };
-
         $results = [];
         $totalFound = 0;
         $totalNotFound = 0;
@@ -2582,11 +2596,14 @@ class BusinessDataController extends Controller
         foreach ($parsedItems as $item) {
             $matchedRecord = null;
             $matchedBy = null;
+            $dbMatchCount = 0;
 
             // 1. Cek NIK
-            if (! empty($item['nik']) && isset($nikMatches[$item['nik']])) {
-                $matchedRecord = $nikMatches[$item['nik']];
+            if (! empty($item['nik']) && isset($nikMatchesPool[$item['nik']])) {
+                $records = $nikMatchesPool[$item['nik']];
+                $matchedRecord = $records[0];
                 $matchedBy = 'NIK';
+                $dbMatchCount = count($records);
             }
             // 2. Cek Nama
             elseif (! empty($item['name'])) {
@@ -2594,36 +2611,44 @@ class BusinessDataController extends Controller
                 $searchNormalized = $normalizeName($item['name']);
 
                 // 2a. Cek persis string atau persis setelah normalisasi
+                $exactMatches = [];
                 foreach ($nameCandidatesPool as $candidate) {
                     $candNameLower = mb_strtolower(trim($candidate->full_name));
                     $candNormalized = $normalizeName($candidate->full_name);
 
                     if ($rawSearchLower === $candNameLower || $searchNormalized === $candNormalized) {
-                        $matchedRecord = $candidate;
-                        $matchedBy = 'NAMA_PERSIS';
-                        break;
+                        $exactMatches[] = $candidate;
                     }
                 }
 
-                // 2b. Cek parsial nama (apakah satu string mengandung string lainnya)
-                if (! $matchedRecord && mb_strlen($searchNormalized) >= 3) {
+                if (! empty($exactMatches)) {
+                    $matchedRecord = $exactMatches[0];
+                    $matchedBy = 'NAMA_PERSIS';
+                    $dbMatchCount = count($exactMatches);
+                }
+                // 2b. Cek parsial nama jika belum ketemu
+                elseif (mb_strlen($searchNormalized) >= 3) {
+                    $partialMatches = [];
                     foreach ($nameCandidatesPool as $candidate) {
                         $candNameLower = mb_strtolower(trim($candidate->full_name));
                         $candNormalized = $normalizeName($candidate->full_name);
 
-                        if (str_contains($candNameLower, $rawSearchLower) || str_contains($rawSearchLower, $candNameLower)) {
-                            $matchedRecord = $candidate;
-                            $matchedBy = 'NAMA_PARSIAL';
-                            break;
+                        if (str_contains($candNameLower, $rawSearchLower) || str_contains($rawSearchLower, $candNameLower) || str_contains($candNormalized, $searchNormalized) || str_contains($searchNormalized, $candNormalized)) {
+                            $partialMatches[] = $candidate;
                         }
-                        if (str_contains($candNormalized, $searchNormalized) || str_contains($searchNormalized, $candNormalized)) {
-                            $matchedRecord = $candidate;
-                            $matchedBy = 'NAMA_PARSIAL';
-                            break;
-                        }
+                    }
+
+                    if (! empty($partialMatches)) {
+                        $matchedRecord = $partialMatches[0];
+                        $matchedBy = 'NAMA_PARSIAL';
+                        $dbMatchCount = count($partialMatches);
                     }
                 }
             }
+
+            // Informasi Duplikasi di Input Spreadsheet
+            $occurrences = $inputKeyOccurrences[$item['inputKey']] ?? [$item['index']];
+            $isDupInInput = count($occurrences) > 1;
 
             if ($matchedRecord) {
                 $totalFound++;
@@ -2651,6 +2676,11 @@ class BusinessDataController extends Controller
                     'input' => $item['raw'],
                     'status' => 'FOUND',
                     'matchedBy' => $matchedBy,
+                    'isDuplicateInInput' => $isDupInInput,
+                    'inputOccurrenceCount' => count($occurrences),
+                    'duplicateInputLines' => $occurrences,
+                    'isDuplicateInDatabase' => $dbMatchCount > 1,
+                    'databaseDuplicateCount' => $dbMatchCount,
                     'id' => $matchedRecord->id,
                     'nik' => $matchedRecord->nik,
                     'fullName' => $matchedRecord->full_name,
@@ -2672,6 +2702,11 @@ class BusinessDataController extends Controller
                     'input' => $item['raw'],
                     'status' => 'NOT_FOUND',
                     'matchedBy' => null,
+                    'isDuplicateInInput' => $isDupInInput,
+                    'inputOccurrenceCount' => count($occurrences),
+                    'duplicateInputLines' => $occurrences,
+                    'isDuplicateInDatabase' => false,
+                    'databaseDuplicateCount' => 0,
                     'id' => null,
                     'nik' => $item['nik'],
                     'fullName' => $item['name'] ?: $item['raw'],
@@ -2685,6 +2720,22 @@ class BusinessDataController extends Controller
                     'readinessStatus' => null,
                     'verificationStatus' => null,
                     'preferredCountries' => [],
+                ];
+            }
+        }
+
+        // Ringkasan Duplikasi di Input
+        $totalDuplicateLinesInInput = 0;
+        $duplicateGroups = [];
+        foreach ($inputKeyOccurrences as $key => $lineNums) {
+            if (count($lineNums) > 1) {
+                $totalDuplicateLinesInInput += count($lineNums);
+                $label = str_starts_with($key, 'name:') ? substr($key, 5) : (str_starts_with($key, 'nik:') ? substr($key, 4) : $key);
+                $duplicateGroups[] = [
+                    'key' => $key,
+                    'label' => ucwords($label),
+                    'count' => count($lineNums),
+                    'lines' => $lineNums,
                 ];
             }
         }
@@ -2781,6 +2832,9 @@ class BusinessDataController extends Controller
             'totalFound' => $totalFound,
             'totalNotFound' => $totalNotFound,
             'totalSystemOnly' => count($systemOnlyCandidates),
+            'totalDuplicatesInInput' => $totalDuplicateLinesInInput,
+            'totalUniqueDuplicates' => count($duplicateGroups),
+            'duplicateGroups' => $duplicateGroups,
             'detectedInstitutions' => $detectedInstitutions,
             'results' => $results,
             'systemOnlyCandidates' => $systemOnlyCandidates,
