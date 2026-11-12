@@ -267,7 +267,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   businessDataLoaded: false,
   businessOptions: { provinces: DEFAULT_PROVINCES, districts: DEFAULT_DISTRICTS, sectors: [], occupations: [], countries: DEFAULT_SYSTEM_COUNTRIES, institutions: [] },
   setBusinessData: (data) => set((state) => {
-    const hasIncomingCandidates = Array.isArray(data.candidates) && data.candidates.length > 0;
+    const hasIncomingCandidates = Array.isArray(data.candidates);
     const candidates = hasIncomingCandidates
       ? data.candidates.map((c: any) => ({
           ...c,
@@ -290,7 +290,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         }))
       : state.candidates;
 
-    const hasIncomingPrograms = Array.isArray(data.programs) && data.programs.length > 0;
+    const hasIncomingPrograms = Array.isArray(data.programs);
     const programs = hasIncomingPrograms
       ? data.programs.map((p: any) => ({
           ...p,
@@ -306,7 +306,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         }))
       : state.programs;
 
-    const hasIncomingProviders = Array.isArray(data.providers) && data.providers.length > 0;
+    const hasIncomingProviders = Array.isArray(data.providers);
     const providers = hasIncomingProviders
       ? data.providers.map((pr: any) => ({
           ...pr,
@@ -321,7 +321,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         }))
       : state.providers;
 
-    const hasIncomingDemands = Array.isArray(data.demands) && data.demands.length > 0;
+    const hasIncomingDemands = Array.isArray(data.demands);
     const demands = hasIncomingDemands
       ? data.demands.map((d: any) => ({
           ...d,
@@ -335,12 +335,12 @@ export const useAppStore = create<AppState>((set, get) => ({
         }))
       : (state.demands.length > 0 ? state.demands : mockDemand);
 
-    const hasIncomingApprovals = Array.isArray(data.approvalRequests) && data.approvalRequests.length > 0;
+    const hasIncomingApprovals = Array.isArray(data.approvalRequests);
     const approvalRequests = hasIncomingApprovals
       ? data.approvalRequests
       : (data.approvalRequests !== undefined && data.approvalPagination?.total === 0 ? [] : state.approvalRequests);
 
-    const hasIncomingAllocations = Array.isArray(data.allocations) && data.allocations.length > 0;
+    const hasIncomingAllocations = Array.isArray(data.allocations);
     const allocations = hasIncomingAllocations ? data.allocations : state.allocations;
 
     return {

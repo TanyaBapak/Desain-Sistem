@@ -104,30 +104,14 @@ export async function archiveBusinessData(
     return true;
   } catch (err: unknown) {
     const error = err as { response?: { status?: number; data?: { message?: string } } };
-    if (error.response?.status === 403) {
-      toast.error(error.response.data?.message || "Anda tidak memiliki hak akses untuk menonaktifkan data ini.");
-      return false;
-    }
+    const errorMsg =
+      error.response?.data?.message ||
+      (error.response?.status === 403
+        ? "Anda tidak memiliki hak akses untuk menonaktifkan data ini."
+        : "Data belum dapat dinonaktifkan. Periksa hak akses dan relasi data.");
+    toast.error(errorMsg);
+    return false;
   }
-
-  return new Promise<boolean>((resolve) => {
-    router.delete(url, {
-      data: reason ? { reason } : {},
-      preserveScroll: true,
-      only: ["businessData"],
-      onSuccess: () => {
-        toast.success("Data berhasil dinonaktifkan.");
-        onSuccess?.();
-        router.reload({ only: ["businessData"] });
-        resolve(true);
-      },
-      onError: (errors: Record<string, string>) => {
-        const message = Object.values(errors).find(Boolean);
-        toast.error(message ?? "Data belum dapat dinonaktifkan. Periksa hak akses dan relasi data.");
-        resolve(false);
-      },
-    });
-  });
 }
 
 export async function batchArchiveBusinessData(
@@ -149,11 +133,12 @@ export async function batchArchiveBusinessData(
     return true;
   } catch (err: unknown) {
     const error = err as { response?: { status?: number; data?: { message?: string } } };
-    if (error.response?.status === 403) {
-      toast.error(error.response.data?.message || "Anda tidak memiliki hak akses untuk menonaktifkan data ini.");
-      return false;
-    }
-    toast.error(error.response?.data?.message || "Gagal menghapus data secara masal.");
+    const errorMsg =
+      error.response?.data?.message ||
+      (error.response?.status === 403
+        ? "Anda tidak memiliki hak akses untuk menonaktifkan data ini."
+        : "Gagal menghapus data secara masal.");
+    toast.error(errorMsg);
     return false;
   }
 }

@@ -2440,8 +2440,8 @@ class BusinessDataPresenter
             return;
         }
 
-        $existing = DB::table('job_seekers')
-            ->whereNull('deleted_at')
+        // JANGAN resurrect atau auto-insert jika data pernah ada untuk institusi ini (termasuk yang di-soft-delete oleh user)
+        $everExisted = DB::table('job_seekers')
             ->where(function ($q) use ($patterns, $institutionId, $user) {
                 $hasCond = false;
                 if (! empty($institutionId)) {
@@ -2473,9 +2473,9 @@ class BusinessDataPresenter
                     }
                 }
             })
-            ->count();
+            ->exists();
 
-        if ($existing > 0) {
+        if ($everExisted) {
             return;
         }
 
@@ -2576,38 +2576,41 @@ class BusinessDataPresenter
             $jobRoleName = $c['role'] ?? 'Operator';
             $countriesList = $c['countries'] ?? ['Jepang'];
 
-            DB::table('job_seekers')->updateOrInsert(
-                ['id' => $candId],
-                [
-                    'full_name' => $name,
-                    'gender' => (str_contains(strtolower($name), 'putri') || str_contains(strtolower($name), 'siti') || str_contains(strtolower($name), 'ayu') || str_contains(strtolower($name), 'anisa') || str_contains(strtolower($name), 'dewi')) ? 'P' : 'L',
-                    'province_id' => $provId,
-                    'district_id' => $distId,
-                    'education_level' => 'SMK',
-                    'institution_name' => $instName,
-                    'institution_id' => $instId,
-                    'major' => $majorName,
-                    'gpa_score' => 3.50,
-                    'source_type' => 'LPK',
-                    'source_reference' => 'Task Force SMK Go Global Roster 2026',
-                    'readiness_status' => 'Ready for Placement',
-                    'verification_status' => 'Verified',
-                    'lifecycle_status' => 'APPROVED',
-                    'passport_ready' => 1,
-                    'mcu_ready' => 1,
-                    'created_by' => $createdByName,
-                    'external_source' => 'taskforce_roster',
-                    'external_id' => 'ROSTER-' . $candId,
-                    'preferred_countries' => json_encode($countriesList),
-                    'preferred_sectors' => json_encode([$sectorName]),
-                    'preferred_job_roles' => json_encode([$jobRoleName]),
-                    'nik' => $nik,
-                    'registration_number' => $regNum,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                    'deleted_at' => null,
-                ]
-            );
+            $alreadyExists = DB::table('job_seekers')->where('id', $candId)->exists();
+            if ($alreadyExists) {
+                continue;
+            }
+
+            DB::table('job_seekers')->insert([
+                'id' => $candId,
+                'full_name' => $name,
+                'gender' => (str_contains(strtolower($name), 'putri') || str_contains(strtolower($name), 'siti') || str_contains(strtolower($name), 'ayu') || str_contains(strtolower($name), 'anisa') || str_contains(strtolower($name), 'dewi')) ? 'P' : 'L',
+                'province_id' => $provId,
+                'district_id' => $distId,
+                'education_level' => 'SMK',
+                'institution_name' => $instName,
+                'institution_id' => $instId,
+                'major' => $majorName,
+                'gpa_score' => 3.50,
+                'source_type' => 'LPK',
+                'source_reference' => 'Task Force SMK Go Global Roster 2026',
+                'readiness_status' => 'Ready for Placement',
+                'verification_status' => 'Verified',
+                'lifecycle_status' => 'APPROVED',
+                'passport_ready' => 1,
+                'mcu_ready' => 1,
+                'created_by' => $createdByName,
+                'external_source' => 'taskforce_roster',
+                'external_id' => 'ROSTER-' . $candId,
+                'preferred_countries' => json_encode($countriesList),
+                'preferred_sectors' => json_encode([$sectorName]),
+                'preferred_job_roles' => json_encode([$jobRoleName]),
+                'nik' => $nik,
+                'registration_number' => $regNum,
+                'created_at' => now(),
+                'updated_at' => now(),
+                'deleted_at' => null,
+            ]);
 
             // Skills & Languages
             DB::table('job_seeker_skills')->where('job_seeker_id', $candId)->delete();
@@ -2653,7 +2656,7 @@ class BusinessDataPresenter
         $isLightweight = in_array($tab, ['dashboard', 'overview'], true);
 
         $query = DB::table('job_seekers')
-            ->whereNull('deleted_at')
+            ->whereNull('job_seekers.deleted_at')
             ->when($role === 'province_admin', fn ($query) => $query->where('job_seekers.province_id', $user->province_id))
             ->when($role === 'district_admin', fn ($query) => $query->where('job_seekers.district_id', $user->district_id))
             ->when(in_array($role, ['institution_admin', 'training_operator', 'vokasi', 'lembaga_vokasi'], true) || $user->scope_level === 'lembaga', function ($query) use ($user) {

@@ -2112,24 +2112,25 @@ class BusinessDataController extends Controller
     private function authorizeWrite(Request $request, string $type, string $action): void
     {
         abort_unless(isset(self::ENTITY_TABLES[$type]), 404);
-        $role = $request->user()->roles()->value('name');
+        $user = $request->user();
+        $role = $user?->primaryRole()?->name ?? $user?->roles()->value('name');
 
         if (in_array($role, ['super_admin', 'superadmin', 'directorate_admin', 'direktorat'], true) || $request->session()->has('impersonator_id')) {
             return;
         }
 
         $allowedRoles = match ($type) {
-            'candidates' => ['super_admin', 'superadmin', 'task_force', 'taskforce', 'province_admin', 'district_admin', 'institution_admin', 'verifier', 'vokasi', 'lembaga_vokasi'],
+            'candidates' => ['super_admin', 'superadmin', 'task_force', 'taskforce', 'province_admin', 'district_admin', 'institution_admin', 'training_operator', 'verifier', 'vokasi', 'lembaga_vokasi'],
             'programs' => ['super_admin', 'superadmin', 'task_force', 'taskforce', 'directorate_admin', 'direktorat', 'institution_admin', 'training_operator', 'vokasi', 'lembaga_vokasi'],
-            'providers' => ['super_admin', 'superadmin', 'task_force', 'taskforce', 'directorate_admin', 'direktorat', 'institution_admin', 'vokasi', 'lembaga_vokasi'],
+            'providers' => ['super_admin', 'superadmin', 'task_force', 'taskforce', 'directorate_admin', 'direktorat', 'institution_admin', 'training_operator', 'vokasi', 'lembaga_vokasi'],
             'demands' => ['super_admin', 'superadmin', 'task_force', 'taskforce', 'demand_admin'],
         };
 
         abort_unless(in_array($role, $allowedRoles, true), 403);
-        if ($action === 'create' && in_array($role, ['institution_admin', 'vokasi', 'lembaga_vokasi'], true) && $type === 'providers') {
+        if ($action === 'create' && in_array($role, ['institution_admin', 'training_operator', 'vokasi', 'lembaga_vokasi'], true) && $type === 'providers') {
             abort(403);
         }
-        if ($type === 'candidates' && in_array($role, ['institution_admin', 'vokasi', 'lembaga_vokasi'], true) && ! $this->resolveUserInstitution($request->user())) {
+        if ($type === 'candidates' && in_array($role, ['institution_admin', 'training_operator', 'vokasi', 'lembaga_vokasi'], true) && ! $this->resolveUserInstitution($user)) {
             abort(403);
         }
         if ($action === 'create' && in_array($role, ['institution_admin', 'training_operator', 'vokasi', 'lembaga_vokasi'], true) && ! $this->resolveUserInstitution($request->user()) && $type === 'programs') {
@@ -2228,7 +2229,7 @@ class BusinessDataController extends Controller
     private function assertRecordScope(Request $request, string $type, object $record): void
     {
         $user = $request->user();
-        $role = $user->roles()->value('name');
+        $role = $user?->primaryRole()?->name ?? $user?->roles()->value('name');
         if (in_array($role, ['super_admin', 'superadmin', 'directorate_admin', 'direktorat'], true) || $request->session()->has('impersonator_id')) {
             return;
         }
@@ -2240,13 +2241,17 @@ class BusinessDataController extends Controller
                 'task_force', 'taskforce' => empty($record->province_id) || app(Bp3miScope::class)->allowsProvinceId($user, $record->province_id),
                 'province_admin' => $record->province_id === $user->province_id,
                 'district_admin' => $record->district_id === $user->district_id,
-                'institution_admin', 'vokasi', 'lembaga_vokasi' => $record->institution_id === $user->institution_id
+                'institution_admin', 'training_operator', 'vokasi', 'lembaga_vokasi' => $record->institution_id === $user->institution_id
                     || in_array($record->institution_id, $instScope['ids'], true)
                     || (! empty($user->organization) && stripos((string) $record->institution_name, $user->organization) !== false)
                     || collect($instScope['patterns'] ?? [])->contains(fn ($p) => stripos((string) $record->institution_name, str_replace('%', '', (string) $p)) !== false)
                     || empty($user->institution_id),
                 default => $user->scope_level === 'lembaga'
-                    ? ($record->institution_id === $user->institution_id || in_array($record->institution_id, $instScope['ids'], true))
+                    ? ($record->institution_id === $user->institution_id
+                        || in_array($record->institution_id, $instScope['ids'], true)
+                        || (! empty($user->organization) && stripos((string) $record->institution_name, $user->organization) !== false)
+                        || collect($instScope['patterns'] ?? [])->contains(fn ($p) => stripos((string) $record->institution_name, str_replace('%', '', (string) $p)) !== false)
+                        || empty($user->institution_id))
                     : true,
             },
             'programs' => match ($role) {
