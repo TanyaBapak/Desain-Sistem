@@ -9,13 +9,13 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
-// Otomatis sinkronkan pembaruan data kandidat & kelas dari gardata.sippmi.com jika auto-sync diaktifkan
-if ((bool) config('services.gardata.auto_sync_enabled', false)) {
-    Schedule::job(new SyncGardataPlacementData)
-        ->everyFifteenMinutes()
-        ->timezone('Asia/Jakarta')
-        ->withoutOverlapping();
-}
+// Auto-sync feeder eksternal dinonaktifkan permanen sesuai kebijakan data riil p2mi.sippmi.com
+// if ((bool) config('services.gardata.auto_sync_enabled', false)) {
+//     Schedule::job(new SyncGardataPlacementData)
+//         ->everyFifteenMinutes()
+//         ->timezone('Asia/Jakarta')
+//         ->withoutOverlapping();
+// }
 
 // Otomatis backup database setiap hari pukul 02:00 WIB dan hapus arsip backup yang berusia lebih dari 3 hari
 Schedule::command('db:backup --days=3')

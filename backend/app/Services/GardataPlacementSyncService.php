@@ -290,14 +290,15 @@ class GardataPlacementSyncService
 
     public function syncSippmi(?string $overrideBaseUrl = null, ?string $overrideApiKey = null, bool $force = false): array
     {
-        $baseUrl = rtrim((string) ($overrideBaseUrl ?: config('services.sippmi.base_url')), '/');
-        $apiKey = (string) ($overrideApiKey ?: config('services.sippmi.api_key'));
+        Log::info('Sinkronisasi sippmi.com diabaikan: Feeder publik telah dinonaktifkan.');
 
-        if ($baseUrl === '' || $apiKey === '') {
-            throw new RuntimeException('Konfigurasi API sippmi belum lengkap: atur SIPPMI_BASE_URL dan SIPPMI_API_KEY secara terpisah dari Gardata.');
-        }
-
-        return $this->syncCandidates($baseUrl, $apiKey, 'sippmi', $force);
+        return [
+            'recordsFetched' => 0,
+            'recordsInserted' => 0,
+            'recordsUpdated' => 0,
+            'recordsSkipped' => 0,
+            'status' => 'disabled',
+        ];
     }
 
     private function persistCandidate(array $item, string $source = self::SOURCE, bool $force = false): array

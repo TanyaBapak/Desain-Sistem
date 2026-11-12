@@ -100,7 +100,13 @@ class PurgeSippmiFeederCommand extends Command
         $this->info("✓ Berhasil menghapus {$count} data feeder SIPPMI.");
 
         // Hapus institusi feed SIPPMI
-        DB::table('institutions')->where('id', 'GRD-SIPPMI')->delete();
+        DB::table('institutions')
+            ->where(function ($q) {
+                $q->where('id', 'GRD-SIPPMI')
+                    ->orWhere('name', 'LIKE', '%SIPPMI - Portal Feeder PMI%')
+                    ->orWhere('name', 'LIKE', '%Portal Feeder PMI%');
+            })
+            ->delete();
 
         // Impor ulang 453 roster Indonusa
         $this->line("Memastikan seluruh 453 roster riil Politeknik Indonusa Surakarta tersimpan utuh...");
