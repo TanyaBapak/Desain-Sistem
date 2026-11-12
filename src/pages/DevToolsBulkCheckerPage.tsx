@@ -686,20 +686,29 @@ Fiqih Arasy`}
 
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
                 {/* Opsi Target Lembaga untuk Bandingkan dengan Sistem */}
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground shrink-0">Bandingkan terhadap:</span>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-xs text-muted-foreground shrink-0 font-medium">Bandingkan terhadap:</span>
                   <select
                     value={targetInstitutionId}
                     onChange={(e) => setTargetInstitutionId(e.target.value)}
-                    className="h-8 max-w-[280px] rounded-lg border border-input bg-background px-2.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary truncate"
+                    className="h-8 max-w-[340px] rounded-lg border border-input bg-background px-2.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary truncate font-medium"
                   >
                     <option value="auto">Deteksi Otomatis dari Input (Rekomendasi)</option>
-                    {emptyInstData?.institutionsList?.map((inst) => (
-                      <option key={inst.id} value={inst.id}>
-                        {inst.name} ({inst.province})
-                      </option>
-                    ))}
+                    {emptyInstData?.institutionsList && emptyInstData.institutionsList.length > 0 ? (
+                      emptyInstData.institutionsList.map((inst) => (
+                        <option key={inst.id} value={inst.id}>
+                          {inst.name} ({inst.province})
+                        </option>
+                      ))
+                    ) : (
+                      <option disabled value="">Memuat lembaga berakun...</option>
+                    )}
                   </select>
+                  {emptyInstData?.institutionsList && (
+                    <span className="text-[11px] text-muted-foreground">
+                      ({emptyInstData.institutionsList.length} lembaga berakun di sistem)
+                    </span>
+                  )}
                 </div>
 
                 <Button

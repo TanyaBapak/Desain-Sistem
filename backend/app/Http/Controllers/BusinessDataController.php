@@ -2910,12 +2910,64 @@ class BusinessDataController extends Controller
             }
         }
 
-        $institutionsList = $institutions->map(fn ($i) => [
-            'id' => $i->id,
-            'name' => $i->name,
-            'type' => $i->institution_type ?: 'Lembaga Vokasi',
-            'province' => $i->province_name ?: '-',
-        ])->values()->all();
+        // Ambil hanya ID lembaga vokasi yang memiliki akun pengguna (user account) di sistem
+        $accountUserInstIds = DB::table('users')
+            ->whereNull('deleted_at')
+            ->whereNotNull('institution_id')
+            ->where('institution_id', '!=', '')
+            ->pluck('institution_id')
+            ->all();
+
+        $multiInstUsers = DB::table('users')
+            ->whereNull('deleted_at')
+            ->whereNotNull('institution_ids')
+            ->pluck('institution_ids')
+            ->all();
+
+        foreach ($multiInstUsers as $rawJson) {
+            $decoded = is_string($rawJson) ? json_decode($rawJson, true) : $rawJson;
+            if (is_array($decoded)) {
+                foreach ($decoded as $id) {
+                    if (! empty($id)) {
+                        $accountUserInstIds[] = (string) $id;
+                    }
+                }
+            }
+        }
+
+        $orgNames = DB::table('users')
+            ->whereNull('deleted_at')
+            ->where(function ($q) {
+                $q->where('scope_level', 'lembaga')
+                    ->orWhereNotNull('organization')
+                    ->orWhereNotNull('scope_name');
+            })
+            ->get(['organization', 'scope_name'])
+            ->flatMap(fn ($u) => [$u->organization, $u->scope_name])
+            ->filter()
+            ->unique()
+            ->all();
+
+        if (! empty($orgNames)) {
+            $accountUserInstIdsFromNames = DB::table('institutions')
+                ->whereIn('name', $orgNames)
+                ->pluck('id')
+                ->all();
+            $accountUserInstIds = array_merge($accountUserInstIds, $accountUserInstIdsFromNames);
+        }
+
+        $allAccountInstIds = array_values(array_unique(array_filter($accountUserInstIds)));
+
+        $institutionsList = $institutions
+            ->filter(fn ($i) => in_array((string) $i->id, $allAccountInstIds, true))
+            ->map(fn ($i) => [
+                'id' => $i->id,
+                'name' => $i->name,
+                'type' => $i->institution_type ?: 'Lembaga Vokasi',
+                'province' => $i->province_name ?: '-',
+            ])
+            ->values()
+            ->all();
 
         return response()->json([
             'success' => true,
