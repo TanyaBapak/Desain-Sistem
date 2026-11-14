@@ -410,6 +410,8 @@ Route::middleware(['auth', EnsureUserIsActive::class])->group(function () {
         ->name('business-data.dev-tools.empty-institutions');
     Route::get('/business-data/dev-tools/download-penambahan-peserta', [BusinessDataController::class, 'downloadPenambahanPeserta'])
         ->name('business-data.dev-tools.download-penambahan');
+    Route::post('/business-data/dev-tools/deduplicate-candidates', [BusinessDataController::class, 'deduplicateCandidates'])
+        ->name('business-data.dev-tools.deduplicate');
     Route::get('/business-data/audit-logs', [BusinessDataController::class, 'auditLogs'])
         ->name('business-data.audit-logs.index');
     Route::get('/business-data/providers', [BusinessDataController::class, 'providers'])

@@ -168,6 +168,7 @@ export function DevToolsBulkCheckerPage() {
   // State untuk Tab 2 (Lembaga Tanpa Peserta)
   const [emptyInstData, setEmptyInstData] = useState<EmptyInstitutionsResponse | null>(null);
   const [isLoadingEmptyInst, setIsLoadingEmptyInst] = useState(false);
+  const [isDeduplicating, setIsDeduplicating] = useState(false);
   const [emptyInstSearch, setEmptyInstSearch] = useState("");
   const [emptyInstTypeFilter, setEmptyInstTypeFilter] = useState("ALL");
   const [emptyInstMouFilter, setEmptyInstMouFilter] = useState("ALL");
@@ -556,6 +557,58 @@ export function DevToolsBulkCheckerPage() {
     setTimeout(() => setHasCopiedEmptyNames(false), 2500);
   };
 
+  // Pindai & bersihkan duplikasi database
+  const handleCheckAndCleanDuplicates = async () => {
+    setIsDeduplicating(true);
+    try {
+      const checkRes = await fetch("/business-data/dev-tools/deduplicate-candidates", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          "X-Requested-With": "XMLHttpRequest",
+        },
+        body: JSON.stringify({ action: "check" }),
+      });
+      const checkData = await checkRes.json();
+      if (!checkData.success) {
+        toast.error(checkData.message || "Gagal memeriksa duplikasi database.");
+        return;
+      }
+      if (checkData.duplicateCount === 0) {
+        toast.success("Basis data 100% bersih! Tidak ditemukan data duplikat.");
+        return;
+      }
+
+      const confirmed = window.confirm(
+        `Ditemukan ${checkData.duplicateCount} data calon peserta duplikat di database.\n\nApakah Anda ingin membersihkannya sekarang?`
+      );
+      if (!confirmed) return;
+
+      const cleanRes = await fetch("/business-data/dev-tools/deduplicate-candidates", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          "X-Requested-With": "XMLHttpRequest",
+        },
+        body: JSON.stringify({ action: "clean" }),
+      });
+      const cleanData = await cleanRes.json();
+      if (cleanData.success) {
+        toast.success(
+          `Berhasil membersihkan ${cleanData.cleanedCount} data duplikat! Sisa aktif: ${cleanData.remainingActive} orang.`
+        );
+      } else {
+        toast.error(cleanData.message || "Gagal membersihkan data duplikat.");
+      }
+    } catch {
+      toast.error("Terjadi kesalahan jaringan saat memproses deduplikasi.");
+    } finally {
+      setIsDeduplicating(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header Halaman Dev Tools */}
@@ -575,6 +628,18 @@ export function DevToolsBulkCheckerPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleCheckAndCleanDuplicates}
+            disabled={isDeduplicating}
+            className="h-8 text-xs border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 text-amber-800 dark:text-amber-300 gap-1.5 shadow-sm"
+            title="Pindai dan bersihkan data calon peserta ganda/duplikat di basis data sistem (NIK atau Nama & Lembaga identik)"
+          >
+            {isDeduplicating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Repeat className="w-3.5 h-3.5" />}
+            <span>Bersihkan Duplikat Database</span>
+          </Button>
           <a
             href="/business-data/dev-tools/download-penambahan-peserta"
             download="rincian_penambahan_peserta_smk_go_global.csv"

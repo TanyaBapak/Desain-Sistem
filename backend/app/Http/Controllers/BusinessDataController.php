@@ -3108,4 +3108,113 @@ class BusinessDataController extends Controller
             'Content-Disposition' => "attachment; filename=\"{$filename}\"",
         ]);
     }
+
+    /**
+     * Dev Tools: Pemeriksaan & Pembersihan Data Duplikat Kandidat
+     */
+    public function deduplicateCandidates(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $role = $user?->primaryRole()?->name ?? $user?->roles()->value('name');
+        abort_unless(in_array($role, ['super_admin', 'superadmin'], true) || $request->session()->has('impersonator_id'), 403);
+
+        $action = $request->input('action', 'check'); // 'check' atau 'clean'
+
+        $allActive = DB::table('job_seekers')
+            ->whereNull('deleted_at')
+            ->select(['id', 'nik', 'full_name', 'institution_id', 'institution_name', 'created_at', 'lifecycle_status'])
+            ->orderBy('created_at', 'asc')
+            ->get();
+
+        $seenNiks = [];
+        $seenNameInst = [];
+        $idsToPurge = [];
+        $duplicateDetails = [];
+
+        foreach ($allActive as $c) {
+            $nik = trim((string) ($c->nik ?? ''));
+            $cleanName = mb_strtolower(trim(preg_replace('/\s+/', ' ', (string) ($c->full_name ?? ''))));
+            $cleanInst = mb_strtolower(trim(preg_replace('/\s+/', ' ', (string) ($c->institution_name ?? ''))));
+
+            $isDuplicate = false;
+            $reason = '';
+            $primaryId = null;
+
+            if ($nik !== '' && preg_match('/^\d{16}$/', $nik)) {
+                if (isset($seenNiks[$nik])) {
+                    $isDuplicate = true;
+                    $primaryId = $seenNiks[$nik];
+                    $reason = "NIK ganda ({$nik}) dengan ID {$primaryId}";
+                } else {
+                    $seenNiks[$nik] = $c->id;
+                }
+            }
+
+            if (! $isDuplicate && $cleanName !== '' && $cleanInst !== '') {
+                $nameInstKey = $cleanName . '::' . $cleanInst;
+                if (isset($seenNameInst[$nameInstKey])) {
+                    $isDuplicate = true;
+                    $primaryId = $seenNameInst[$nameInstKey];
+                    $reason = "Nama & Lembaga ganda ({$c->full_name} @ {$c->institution_name}) dengan ID {$primaryId}";
+                } else {
+                    $seenNameInst[$nameInstKey] = $c->id;
+                }
+            }
+
+            if ($isDuplicate) {
+                $idsToPurge[] = $c->id;
+                $duplicateDetails[] = [
+                    'id' => $c->id,
+                    'name' => $c->full_name,
+                    'inst' => $c->institution_name,
+                    'nik' => $c->nik,
+                    'reason' => $reason,
+                    'primaryId' => $primaryId,
+                ];
+            }
+        }
+
+        $dupCount = count($idsToPurge);
+
+        if ($action === 'clean' && $dupCount > 0) {
+            $chunks = array_chunk($idsToPurge, 100);
+            foreach ($chunks as $chunk) {
+                DB::transaction(function () use ($chunk) {
+                    DB::table('candidate_matches')->whereIn('job_seeker_id', $chunk)->delete();
+                    DB::table('program_allocation_candidates')->whereIn('job_seeker_id', $chunk)->delete();
+                    DB::table('training_enrollments')->whereIn('job_seeker_id', $chunk)->delete();
+                    DB::table('job_seeker_skills')->whereIn('job_seeker_id', $chunk)->delete();
+                    DB::table('job_seeker_languages')->whereIn('job_seeker_id', $chunk)->delete();
+
+                    DB::table('job_seekers')->whereIn('id', $chunk)->update([
+                        'deleted_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                });
+            }
+
+            try {
+                app(BusinessDataPresenter::class)->forgetAll();
+            } catch (\Throwable) {}
+
+            return response()->json([
+                'success' => true,
+                'action' => 'clean',
+                'cleanedCount' => $dupCount,
+                'remainingActive' => DB::table('job_seekers')->whereNull('deleted_at')->count(),
+                'message' => "Berhasil membersihkan {$dupCount} data duplikat dari database.",
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'action' => 'check',
+            'duplicateCount' => $dupCount,
+            'duplicates' => array_slice($duplicateDetails, 0, 50),
+            'totalActive' => $allActive->count(),
+            'message' => $dupCount > 0 
+                ? "Ditemukan {$dupCount} data calon peserta duplikat di database." 
+                : "Basis data bersih. Tidak ditemukan duplikasi NIK atau Nama & Lembaga.",
+        ]);
+    }
 }
