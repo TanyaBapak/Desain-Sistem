@@ -36,6 +36,13 @@ class DeduplicateCandidatesCommand extends Command
 
         $this->info("Total calon peserta aktif diperiksa: " . $allActive->count() . " orang.");
 
+        $normalizeInst = function (string $inst): string {
+            $clean = mb_strtolower(trim(preg_replace('/\s+/', ' ', $inst)));
+            $clean = preg_replace('/^(stp|lpk|lkp|smk|universitas|sekolah tinggi|politeknik|institut|pt|cv)\s+/i', '', $clean);
+            $clean = str_replace(['ambarukmo', 'jogja', 'yogyakarta'], ['ambarrukmo', '', ''], $clean);
+            return trim(preg_replace('/\s+/', ' ', $clean));
+        };
+
         $seenNiks = [];
         $seenNameInst = [];
         $idsToPurge = [];
@@ -44,7 +51,9 @@ class DeduplicateCandidatesCommand extends Command
         foreach ($allActive as $c) {
             $nik = trim((string) ($c->nik ?? ''));
             $cleanName = mb_strtolower(trim(preg_replace('/\s+/', ' ', (string) ($c->full_name ?? ''))));
-            $cleanInst = mb_strtolower(trim(preg_replace('/\s+/', ' ', (string) ($c->institution_name ?? ''))));
+            $rawInst = trim((string) ($c->institution_name ?? ''));
+            $cleanInst = $normalizeInst($rawInst);
+            $instId = trim((string) ($c->institution_id ?? ''));
 
             $isDuplicate = false;
             $reason = '';
@@ -61,15 +70,15 @@ class DeduplicateCandidatesCommand extends Command
                 }
             }
 
-            // 2. Cek Nama + Lembaga ganda
-            if (! $isDuplicate && $cleanName !== '' && $cleanInst !== '') {
-                $nameInstKey = $cleanName . '::' . $cleanInst;
-                if (isset($seenNameInst[$nameInstKey])) {
+            // 2. Cek Nama + Lembaga ganda (baik via inst ID atau Nama Lembaga ternormalisasi)
+            if (! $isDuplicate && $cleanName !== '') {
+                $nameKey = $cleanName . '::' . ($instId ?: $cleanInst);
+                if (isset($seenNameInst[$nameKey])) {
                     $isDuplicate = true;
-                    $primaryId = $seenNameInst[$nameInstKey];
+                    $primaryId = $seenNameInst[$nameKey];
                     $reason = "Nama & Lembaga ganda ({$c->full_name} @ {$c->institution_name}) dengan ID {$primaryId}";
                 } else {
-                    $seenNameInst[$nameInstKey] = $c->id;
+                    $seenNameInst[$nameKey] = $c->id;
                 }
             }
 
