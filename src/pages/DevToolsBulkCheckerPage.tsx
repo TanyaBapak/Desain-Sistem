@@ -25,6 +25,7 @@ import {
   AlertTriangle,
   ArrowLeftRight,
   Repeat,
+  Download,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -574,6 +575,15 @@ export function DevToolsBulkCheckerPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          <a
+            href="/business-data/dev-tools/download-penambahan-peserta"
+            download="rincian_penambahan_peserta_smk_go_global.csv"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-emerald-500/40 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-xs font-semibold transition shadow-sm"
+            title="Unduh seluruh baris peserta tambahan yang masuk ke database di luar roster master (format CSV / Excel)"
+          >
+            <Download className="w-3.5 h-3.5" />
+            <span>Unduh Rincian Peserta Tambahan (.csv)</span>
+          </a>
           <Badge variant="outline" className="bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30 text-xs gap-1 py-1">
             <ShieldCheck className="w-3.5 h-3.5" />
             <span>Eksklusif Super Admin</span>

@@ -2986,4 +2986,126 @@ class BusinessDataController extends Controller
             'institutionsList' => $institutionsList,
         ]);
     }
+
+    /**
+     * Unduh rincian lengkap CSV seluruh peserta tambahan di luar basis data 4.898
+     */
+    public function downloadPenambahanPeserta(Request $request): \Symfony\Component\HttpFoundation\StreamedResponse
+    {
+        $user = $request->user();
+        $role = $user?->primaryRole()?->name ?? $user?->roles()->value('name');
+        abort_unless(in_array($role, ['super_admin', 'superadmin', 'directorate_admin', 'direktorat', 'task_force', 'taskforce'], true) || $request->session()->has('impersonator_id'), 403);
+
+        $rosterPath = database_path('data/real_candidates_roster_clean.json');
+        if (! File::exists($rosterPath)) {
+            $rosterPath = storage_path('app/reference/real_candidates_roster_clean.json');
+        }
+        $rosterList = File::exists($rosterPath) ? (json_decode(File::get($rosterPath), true) ?: []) : [];
+
+        $kogasPath = database_path('data/kogas_real_candidates.json');
+        $kogasList = File::exists($kogasPath) ? (json_decode(File::get($kogasPath), true) ?: []) : [];
+
+        $baseCandidateIds = [];
+        $occurrences = [];
+        foreach ($rosterList as $c) {
+            $name = trim((string) ($c['name'] ?? ''));
+            $inst = trim((string) ($c['institution'] ?? ''));
+            if ($name === '' || $inst === '') {
+                continue;
+            }
+            $occurKey = mb_strtolower($name . '::' . $inst);
+            $occurrences[$occurKey] = ($occurrences[$occurKey] ?? 0) + 1;
+            $suffix = $occurrences[$occurKey] > 1 ? "::{$occurrences[$occurKey]}" : '';
+            $candId = 'CAND-' . Str::upper(substr(hash('sha256', $name . '::' . $inst . $suffix), 0, 12));
+            $baseCandidateIds[$candId] = true;
+        }
+        foreach ($kogasList as $kc) {
+            $kid = $kc['id'] ?? ('CAND-' . Str::upper(substr(hash('sha256', ($kc['full_name'] ?? '') . '::CSV-7CPOPTMDGLEZ'), 0, 12)));
+            $baseCandidateIds[$kid] = true;
+        }
+
+        $allCandidates = DB::table('job_seekers')
+            ->whereNull('deleted_at')
+            ->leftJoin('provinces', 'provinces.id', '=', 'job_seekers.province_id')
+            ->leftJoin('districts', 'districts.id', '=', 'job_seekers.district_id')
+            ->select([
+                'job_seekers.id',
+                'job_seekers.nik',
+                'job_seekers.full_name',
+                'job_seekers.gender',
+                'job_seekers.institution_id',
+                'job_seekers.institution_name',
+                'provinces.name as province_name',
+                'districts.name as district_name',
+                'job_seekers.education_level',
+                'job_seekers.major',
+                'job_seekers.preferred_countries',
+                'job_seekers.preferred_sectors',
+                'job_seekers.created_by',
+                'job_seekers.source_type',
+                'job_seekers.created_at',
+            ])
+            ->orderBy('job_seekers.institution_name')
+            ->orderBy('job_seekers.full_name')
+            ->get();
+
+        $additionalCandidates = $allCandidates->filter(function ($c) use ($baseCandidateIds) {
+            return ! isset($baseCandidateIds[$c->id]);
+        });
+
+        $filename = 'rincian_penambahan_peserta_smk_go_global_' . date('Ymd_His') . '.csv';
+
+        return response()->streamDownload(function () use ($additionalCandidates) {
+            $fp = fopen('php://output', 'w');
+            fputs($fp, "\xEF\xBB\xBF"); // UTF-8 BOM for Excel
+            fputcsv($fp, [
+                'No',
+                'ID Peserta',
+                'NIK',
+                'Nama Lengkap',
+                'Jenis Kelamin',
+                'Lembaga Vokasi Asal',
+                'Provinsi Domisili',
+                'Kabupaten / Kota',
+                'Pendidikan Terakhir',
+                'Jurusan / Kejuruan',
+                'Negara Target Preferensi',
+                'Sektor Minat',
+                'Didaftarkan Oleh',
+                'Sumber Data',
+                'Tanggal Terdaftar',
+            ]);
+
+            $no = 1;
+            foreach ($additionalCandidates as $c) {
+                $countries = is_string($c->preferred_countries) ? json_decode($c->preferred_countries, true) : $c->preferred_countries;
+                $countriesStr = is_array($countries) ? implode(', ', $countries) : (string) $c->preferred_countries;
+
+                $sectors = is_string($c->preferred_sectors) ? json_decode($c->preferred_sectors, true) : $c->preferred_sectors;
+                $sectorsStr = is_array($sectors) ? implode(', ', $sectors) : (string) $c->preferred_sectors;
+
+                fputcsv($fp, [
+                    $no++,
+                    $c->id,
+                    $c->nik ? (string) $c->nik : '-',
+                    $c->full_name,
+                    $c->gender,
+                    $c->institution_name ?: '-',
+                    $c->province_name ?: '-',
+                    $c->district_name ?: '-',
+                    $c->education_level ?: 'SMK',
+                    $c->major ?: '-',
+                    $countriesStr ?: 'Jepang',
+                    $sectorsStr ?: '-',
+                    $c->created_by ?: 'Administrator',
+                    $c->source_type ?: 'Lembaga Vokasi',
+                    $c->created_at ?: '-',
+                ]);
+            }
+            fclose($fp);
+        }, $filename, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+        ]);
+    }
 }
